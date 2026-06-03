@@ -1,33 +1,38 @@
-version: '3.9'
-
 services:
-  app:
-    build: .
-    container_name: planillas_backend # Nombre del contenedor para la aplicación
-    restart: always # Reinicia el contenedor automáticamente si se detiene
-    ports:
-      -"3000:3000" # Expone el puerto 3000 para acceder a la aplicación
-    depends_on:
-      - db:
-        condition: service_healthy # Asegura que el servicio de la base de datos esté saludable antes de iniciar la aplicación
-    environment:
-      - DATABASE_URL=postgresql://postgres:bella@db:5432/planillas_db
-    
+
   db:
     image: postgres:17-alpine # Utiliza la imagen oficial de PostgreSQL en su versión 17-alpine
     container_name: planillas_db # Nombre del contenedor para la base de datos
     restart: always # Reinicia el contenedor automáticamente si se detiene
+    ports:
+      - "5432:5432" # Expone el puerto 5432 para acceder a la base de datos
     environment:
       - POSTGRES_USER=postgres # Usuario de la base de datos
       - POSTGRES_PASSWORD=bella # Contraseña del usuario de la base de datos
       - POSTGRES_DB=planillas_db # Nombre de la base de datos
     volumes:
-      - db_data:/var/lib/postgresql/data # Monta un volumen para persistir los datos de la base de datos
+      - postgres_payroll_data:/var/lib/postgresql/data # Monta un volumen para persistir los datos de la base de datos
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"] # Comando para verificar la salud del servicio de la base de datos
-      interval: 10s # Intervalo entre cada verificación de salud
-      timeout: 5s # Tiempo de espera para la respuesta del comando de verificación de salud
-      retries: 5 # Número de intentos antes de considerar el servicio como no saludable
+      test: ["CMD-SHELL", "pg_isready -U postgres -d planillas_db"] # Se añade la flag -d para asegurar la salud sobre la BD específica
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  volumes:
-    db_data: # Define un volumen llamado db_data para almacenar los datos de la base de datos
+  redis:
+    image: redis:7-alpine # Utiliza la imagen oficial de Redis en su versión 7-alpine
+    container_name: planillas_redis # Nombre del contenedor para Redis
+    restart: always # Reinicia el contenedor automáticamente si se detiene
+    ports: 
+      - "6379:6379" # Expone el puerto 6379 para acceder a Redis
+    volumes:
+      - redis_payroll_data:/data # Monta un volumen para persistir los datos de Redis
+    command: redis-server --appendonly yes # Opcional: Asegura que Redis guarde las colas en disco de forma persistente
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_payroll_data: # Define el volumen para almacenar los datos de la base de datos de manera persistente
+  redis_payroll_data: # Define el volumen para almacenar los datos de Redis y persistir colas de trabajo (jobs)
