@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  app:
+    build: .
+    container_name: planillas_backend # Nombre del contenedor para la aplicación
+    restart: always # Reinicia el contenedor automáticamente si se detiene
+    ports:
+      -"3000:3000" # Expone el puerto 3000 para acceder a la aplicación
+    depends_on:
+      - db:
+        condition: service_healthy # Asegura que el servicio de la base de datos esté saludable antes de iniciar la aplicación
+    environment:
+      - DATABASE_URL=postgresql://postgres:bella@db:5432/planillas_db
+    
+  db:
+    image: postgres:17-alpine # Utiliza la imagen oficial de PostgreSQL en su versión 17-alpine
+    container_name: planillas_db # Nombre del contenedor para la base de datos
+    restart: always # Reinicia el contenedor automáticamente si se detiene
+    environment:
+      - POSTGRES_USER=postgres # Usuario de la base de datos
+      - POSTGRES_PASSWORD=bella # Contraseña del usuario de la base de datos
+      - POSTGRES_DB=planillas_db # Nombre de la base de datos
+    volumes:
+      - db_data:/var/lib/postgresql/data # Monta un volumen para persistir los datos de la base de datos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"] # Comando para verificar la salud del servicio de la base de datos
+      interval: 10s # Intervalo entre cada verificación de salud
+      timeout: 5s # Tiempo de espera para la respuesta del comando de verificación de salud
+      retries: 5 # Número de intentos antes de considerar el servicio como no saludable
+
+  volumes:
+    db_data: # Define un volumen llamado db_data para almacenar los datos de la base de datos
