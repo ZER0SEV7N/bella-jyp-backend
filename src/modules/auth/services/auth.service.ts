@@ -1,10 +1,11 @@
 //src/modules/auth/services/auth.service.ts
 //Servicio de autenticación para manejar la lógica de negocio relacionada con la autenticación
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { LoginDTO, ProvisionarUsuarioDTO } from ' @jyp/shared-contracts';
+import { LoginDTO, ProvisionarUsuarioDTO, SolicitudRecuperacionDTO } from ' @jyp/shared-contracts';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -101,6 +102,7 @@ export class AuthService {
             title: 'Acceso Denegado',
             detail: 'El documento o la contraseña son incorrectos.',
         });
-    }
-    
+    }        
+
+
 }

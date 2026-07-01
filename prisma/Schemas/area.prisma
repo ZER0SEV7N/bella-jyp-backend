@@ -1,0 +1,10 @@
+
+model area {
+  id          String      @id @db.Uuid
+  nombre      String      @db.VarChar(100)
+  descripcion String?     @db.VarChar(255)
+  activo      Boolean     @default(true)
+  deleted_at  DateTime?   @db.Timestamptz(6)
+  cargo       cargo[]
+  empleados   empleados[]
+}

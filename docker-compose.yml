@@ -18,6 +18,22 @@ services:
       timeout: 5s
       retries: 5
 
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: planillas_pgbouncer
+    restart: always
+    ports:
+      - "6432:5432" # Puerto 6432 para que NestJS se conecte aquí
+    environment:
+      # Conecta PgBouncer a la base de datos física usando el DNS interno de Docker ("db")
+      - DATABASE_URL=postgres://postgres:bella@db:5432/planillas_db
+      - POOL_MODE=transaction # Modo estricto requerido por Prisma
+      - MAX_CLIENT_CONN=1000  # Soporta hasta 1000 conexiones lógicas de NestJS
+      - DEFAULT_POOL_SIZE=20  # Usa solo 20 conexiones físicas reales hacia Postgres
+    depends_on:
+      db:
+        condition: service_healthy # Espera a que Postgres esté listo
+
   redis:
     image: redis:7-alpine # Utiliza la imagen oficial de Redis en su versión 7-alpine
     container_name: planillas_redis # Nombre del contenedor para Redis
@@ -35,4 +51,4 @@ services:
 
 volumes:
   postgres_payroll_data: # Define el volumen para almacenar los datos de la base de datos de manera persistente
-  redis_payroll_data: # Define el volumen para almacenar los datos de Redis y persistir colas de trabajo (jobs)
+  redis_payroll_data: # Define el volumen para almacenar los datos de Redis y persistir colas de trabajo (jobs) 

@@ -1,0 +1,307 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model anotacion_tareas {
+  id               String           @id @db.Uuid
+  tarea_id         String           @db.Uuid
+  asignado_por     String           @db.Uuid
+  descripcion      String
+  deleted_at       DateTime?        @db.Timestamptz(6)
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  tareas_asistente tareas_asistente @relation(fields: [tarea_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_tarea")
+  usuarios         usuarios         @relation(fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_usuario")
+}
+
+model aportaciones {
+  id       String   @id @db.Uuid
+  afp_id   String   @db.Uuid
+  nombre   String   @db.VarChar(100)
+  cantidad Decimal  @default(0) @db.Decimal(12, 4)
+  tipo_afp tipo_afp @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_aportaciones_afp")
+}
+
+model area {
+  id          String      @id @db.Uuid
+  nombre      String      @db.VarChar(100)
+  descripcion String?     @db.VarChar(255)
+  activo      Boolean     @default(true)
+  deleted_at  DateTime?   @db.Timestamptz(6)
+  cargo       cargo[]
+  empleados   empleados[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model audit_log {
+  id              String    @id @db.Uuid
+  usuario_id      String?   @db.Uuid
+  accion          String    @db.VarChar(100)
+  tabla_afectada  String    @db.VarChar(100)
+  registro_id     String    @db.Uuid
+  valores_antes   Json?
+  valores_despues Json?
+  direccion_ip    String    @db.Inet
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  usuarios        usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_log_usuario")
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_log_fecha")
+  @@index([tabla_afectada], map: "idx_audit_log_tabla")
+  @@index([usuario_id], map: "idx_audit_log_usuario")
+}
+
+model bancos {
+  id              String            @id @db.Uuid
+  nombre          String            @db.VarChar(100)
+  dato_financiero dato_financiero[]
+}
+
+model cargo {
+  id          String      @id @db.Uuid
+  id_area     String      @db.Uuid
+  nombre      String      @db.VarChar(100)
+  descripcion String?     @db.VarChar(255)
+  activo      Boolean     @default(true)
+  deleted_at  DateTime?   @db.Timestamptz(6)
+  area        area        @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
+  empleados   empleados[]
+
+  @@index([id_area], map: "idx_cargo_area")
+}
+
+model comisiones_afp {
+  id                 String   @id @db.Uuid
+  afp_id             String   @db.Uuid
+  periodo            String   @db.VarChar(50)
+  aporte_obligatorio Decimal  @default(0) @db.Decimal(6, 4)
+  comision_sobre_ra  Decimal  @default(0) @db.Decimal(6, 4)
+  prima_seguro       Decimal  @default(0) @db.Decimal(6, 4)
+  comision_mixta     Decimal  @default(0) @db.Decimal(6, 4)
+  tipo_afp           tipo_afp @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
+}
+
+model contratos {
+  id              String          @id @db.Uuid
+  empleado_id     String          @db.Uuid
+  id_estado       String          @db.Uuid
+  tipo_modalidad  String?         @db.VarChar(100)
+  fecha_inicio    DateTime        @db.Date
+  fecha_fin       DateTime?       @db.Date
+  renovado        Boolean         @default(false)
+  observacion     String?
+  deleted_at      DateTime?       @db.Timestamptz(6)
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
+  estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
+
+  @@index([deleted_at], map: "idx_contratos_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([empleado_id], map: "idx_contratos_empleado")
+}
+
+model dato_financiero {
+  id                String          @id @db.Uuid
+  empleado_id       String          @unique @db.Uuid
+  id_regimen        String          @db.Uuid
+  id_tipo_afp       String?         @db.Uuid
+  id_banco          String?         @db.Uuid
+  cuenta_bancaria   String?         @db.VarChar(30)
+  sueldo_basico     Decimal         @default(0) @db.Decimal(12, 4)
+  cuspp             String?         @db.VarChar(20)
+  tipo_comision     String?         @db.VarChar(50)
+  nro_cuenta_sueldo String?         @db.VarChar(30)
+  cci               String?         @db.VarChar(30)
+  banco_cts         String?         @db.VarChar(50)
+  nro_cuenta_cts    String?         @db.VarChar(30)
+  deleted_at        DateTime?       @db.Timestamptz(6)
+  bancos            bancos?         @relation(fields: [id_banco], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_banco")
+  empleados         empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
+  regimen_pension   regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
+  tipo_afp          tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
+
+  @@index([empleado_id], map: "idx_dato_fin_empleado")
+}
+
+model empleados {
+  id                  String                @id @db.Uuid
+  cargo_id            String                @db.Uuid
+  area_id             String                @db.Uuid
+  documento_id        String                @db.Uuid
+  estado_empleado_id  String                @db.Uuid
+  nombre              String                @db.VarChar(100)
+  apellido            String                @db.VarChar(100)
+  nro_documento       String                @unique @db.VarChar(20)
+  fecha_nacimiento    DateTime?             @db.Date
+  fecha_inicio        DateTime?             @db.Date
+  fecha_cese          DateTime?             @db.Date
+  afp_fecha_filiacion DateTime?             @db.Date
+  asig_familiar       Boolean               @default(false)
+  activo              Boolean               @default(true)
+  deleted_at          DateTime?             @db.Timestamptz(6)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  contratos           contratos[]
+  dato_financiero     dato_financiero?
+  area                area                  @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
+  cargo               cargo                 @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_cargo")
+  estado_empleado     estado_empleado       @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
+  tipo_documento      tipo_documento        @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
+  historial_planillas historial_planillas[]
+  usuarios            usuarios?
+
+  @@index([activo], map: "idx_empleados_activo", where: raw("(activo = true)"))
+  @@index([area_id], map: "idx_empleados_area")
+  @@index([cargo_id], map: "idx_empleados_cargo")
+  @@index([deleted_at], map: "idx_empleados_deleted", where: raw("(deleted_at IS NULL)"))
+}
+
+model estado_contrato {
+  id        String      @id @db.Uuid
+  nombre    String      @db.VarChar(100)
+  contratos contratos[]
+}
+
+model estado_empleado {
+  id          String      @id @db.Uuid
+  descripcion String      @db.VarChar(100)
+  empleados   empleados[]
+}
+
+model historial_planillas {
+  id                     String               @id @db.Uuid
+  empleado_id            String               @db.Uuid
+  periodo                String               @db.VarChar(7)
+  sueldo_base            Decimal              @default(0.0000) @db.Decimal(12, 4)
+  asignacion_familia     Decimal              @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_25        Decimal              @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_35        Decimal              @default(0.0000) @db.Decimal(12, 4)
+  recargo_nocturno       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_afp_fondo    Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_afp_seguro   Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_afp_comision Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_quinta       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  tasa_afp_aplicada      Decimal              @db.Decimal(6, 4)
+  aporte_essalud         Decimal              @default(0.0000) @db.Decimal(12, 4)
+  total_ingresos         Decimal              @default(0.0000) @db.Decimal(12, 4)
+  total_descuentos       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  neto_a_pagar           Decimal              @default(0.0000) @db.Decimal(12, 4)
+  estado                 estado_planilla_enum @default(abierto)
+  comentarios            String?
+  activo                 Boolean              @default(true)
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime             @default(now()) @db.Timestamptz(6)
+  deleted_at             DateTime?            @db.Timestamptz(6)
+  empleados              empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_empleado")
+
+  @@unique([empleado_id, periodo], map: "uq_empleado_periodo")
+  @@index([periodo, estado], map: "idx_planilla_periodo_estado")
+}
+
+model regimen_pension {
+  id              String            @id @db.Uuid
+  nombre          String            @db.VarChar(100)
+  dato_financiero dato_financiero[]
+  tipo_afp        tipo_afp[]
+}
+
+model tareas_asistente {
+  id                                               String             @id @db.Uuid
+  asignado_a                                       String             @db.Uuid
+  asignado_por                                     String             @db.Uuid
+  titulo                                           String             @db.VarChar(200)
+  descripcion                                      String?
+  fecha_entrega                                    DateTime?          @db.Date
+  estado                                           estado_tarea_enum  @default(pendiente)
+  anotaciones                                      String?
+  deleted_at                                       DateTime?          @db.Timestamptz(6)
+  created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
+  anotacion_tareas                                 anotacion_tareas[]
+  usuarios_tareas_asistente_asignado_aTousuarios   usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
+  usuarios_tareas_asistente_asignado_porTousuarios usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
+
+  @@index([asignado_a], map: "idx_tareas_asignado_a")
+  @@index([deleted_at], map: "idx_tareas_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([estado], map: "idx_tareas_estado")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tipo_afp {
+  id              String            @id @db.Uuid
+  id_regimen      String            @db.Uuid
+  nombre          String            @db.VarChar(100)
+  aportaciones    aportaciones[]
+  comisiones_afp  comisiones_afp[]
+  dato_financiero dato_financiero[]
+  regimen_pension regimen_pension   @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipo_afp_regimen")
+
+  @@index([id_regimen], map: "idx_tipo_afp_regimen")
+}
+
+model tipo_documento {
+  id             String      @id @db.Uuid
+  tipo_documento String      @db.VarChar(100)
+  empleados      empleados[]
+}
+
+model tokens_seguridad {
+  id         String   @id @db.Uuid
+  usuario_id String   @db.Uuid
+  token_hash String   @db.VarChar(255)
+  proposito  String   @db.VarChar(50)
+  expira_en  DateTime @db.Timestamptz(6)
+  usado      Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  usuarios   usuarios @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tokens_usuario")
+
+  @@index([id], map: "idx_tokens_activos", where: raw("(usado = false)"))
+  @@index([usuario_id, proposito], map: "idx_tokens_usuario")
+}
+
+model usuarios {
+  id                                                       String             @id @db.Uuid
+  empleado_id                                              String             @unique @db.Uuid
+  email                                                    String             @unique @db.VarChar(150)
+  password_hash                                            String             @db.VarChar(255)
+  rol                                                      rol_usuario_enum
+  activo                                                   Boolean            @default(true)
+  deleted_at                                               DateTime?          @db.Timestamptz(6)
+  ultimo_acceso                                            DateTime?          @db.Timestamptz(6)
+  created_at                                               DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at                                               DateTime           @default(now()) @db.Timestamptz(6)
+  anotacion_tareas                                         anotacion_tareas[]
+  audit_log                                                audit_log[]
+  tareas_asistente_tareas_asistente_asignado_aTousuarios   tareas_asistente[] @relation("tareas_asistente_asignado_aTousuarios")
+  tareas_asistente_tareas_asistente_asignado_porTousuarios tareas_asistente[] @relation("tareas_asistente_asignado_porTousuarios")
+  tokens_seguridad                                         tokens_seguridad[]
+  empleados                                                empleados          @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuarios_empleado")
+
+  @@index([activo], map: "idx_usuarios_activo", where: raw("(activo = true)"))
+  @@index([deleted_at], map: "idx_usuarios_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([email], map: "idx_usuarios_email")
+  @@index([empleado_id], map: "idx_usuarios_empleado")
+}
+
+enum estado_planilla_enum {
+  abierto
+  en_revision
+  congelado
+  declarado
+}
+
+enum estado_tarea_enum {
+  pendiente
+  revision
+  aprobado
+}
+
+enum rol_usuario_enum {
+  ADMIN
+  CONTADOR
+  RRHH
+  ASISTENTE
+  EMPLEADO
+}

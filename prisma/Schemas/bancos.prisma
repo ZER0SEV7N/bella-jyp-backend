@@ -1,0 +1,6 @@
+
+model bancos {
+  id              String            @id @db.Uuid
+  nombre          String            @db.VarChar(100)
+  dato_financiero dato_financiero[]
+}

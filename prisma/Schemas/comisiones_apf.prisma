@@ -1,0 +1,10 @@
+model comisiones_afp {
+  id                 String   @id @db.Uuid
+  afp_id             String   @db.Uuid
+  periodo            String   @db.VarChar(50)
+  aporte_obligatorio Decimal  @default(0) @db.Decimal(6, 4)
+  comision_sobre_ra  Decimal  @default(0) @db.Decimal(6, 4)
+  prima_seguro       Decimal  @default(0) @db.Decimal(6, 4)
+  comision_mixta     Decimal  @default(0) @db.Decimal(6, 4)
+  tipo_afp           tipo_afp @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
+}

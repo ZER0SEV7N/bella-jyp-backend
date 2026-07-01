@@ -1,0 +1,17 @@
+model contratos {
+  id              String          @id @db.Uuid
+  empleado_id     String          @db.Uuid
+  id_estado       String          @db.Uuid
+  tipo_modalidad  String?         @db.VarChar(100)
+  fecha_inicio    DateTime        @db.Date
+  fecha_fin       DateTime?       @db.Date
+  renovado        Boolean         @default(false)
+  observacion     String?
+  deleted_at      DateTime?       @db.Timestamptz(6)
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
+  estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
+
+  @@index([deleted_at], map: "idx_contratos_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([empleado_id], map: "idx_contratos_empleado")
+}

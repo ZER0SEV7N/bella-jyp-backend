@@ -1,0 +1,11 @@
+model tipo_afp {
+  id              String            @id @db.Uuid
+  id_regimen      String            @db.Uuid
+  nombre          String            @db.VarChar(100)
+  aportaciones    aportaciones[]
+  comisiones_afp  comisiones_afp[]
+  dato_financiero dato_financiero[]
+  regimen_pension regimen_pension   @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipo_afp_regimen")
+
+  @@index([id_regimen], map: "idx_tipo_afp_regimen")
+}

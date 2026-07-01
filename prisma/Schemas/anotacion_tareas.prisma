@@ -1,0 +1,10 @@
+model anotacion_tareas {
+  id               String           @id @db.Uuid
+  tarea_id         String           @db.Uuid
+  asignado_por     String           @db.Uuid
+  descripcion      String
+  deleted_at       DateTime?        @db.Timestamptz(6)
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  tareas_asistente tareas_asistente @relation(fields: [tarea_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_tarea")
+  usuarios         usuarios         @relation(fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_usuario")
+}

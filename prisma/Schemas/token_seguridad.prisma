@@ -1,0 +1,14 @@
+model TokenSeguridad {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  usuario_id  String   @db.Uuid
+  token_hash  String   @db.VarChar(255) 
+  proposito   String   @db.VarChar(50)  
+  expira_en   DateTime
+  usado       Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  usuario     Usuario  @relation(fields: [usuario_id], references: [id])
+
+  @@index([usuario_id, proposito])
+  @@map("tokens_seguridad")
+}
