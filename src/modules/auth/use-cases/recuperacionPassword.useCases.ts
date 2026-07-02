@@ -38,6 +38,7 @@ export class RecuperacionPasswordUseCases {
 
         const tokenRecord = await this.prisma.tokens_seguridad.create({
             data: {
+                id: crypto.randomUUID(),
                 usuario_id: usuario.id,
                 token_hash: hashedToken,
                 proposito: 'RESET_PASSWORD',
@@ -58,9 +59,9 @@ export class RecuperacionPasswordUseCases {
         const [tokenId, plainToken] = dto.token_compuesto.split('.');
 
         //Consultar el token en la base de datos y traer el usuario asociado
-        const tokenRecord = await this.prisma.tokenSeguridad.findUnique({
+        const tokenRecord = await this.prisma.tokens_seguridad.findUnique({
             where: { id: tokenId },
-            include: { usuario: true }
+            include: { usuarios: true }
         });
 
         //Validar que el token exista, no haya sido usado y sea del propósito correcto
@@ -82,11 +83,11 @@ export class RecuperacionPasswordUseCases {
 
         //Actualizar la contraseña del usuario y marcar el token como usado en una transacción
         await this.prisma.$transaction([
-            this.prisma.tokenSeguridad.update({
+            this.prisma.tokens_seguridad.update({
                 where: { id: tokenId },
                 data: { usado: true }
             }),
-            this.prisma.usuario.update({
+            this.prisma.usuarios.update({
                 where: { id: tokenRecord.usuario_id },
                 data: { 
                 password_hash: newPasswordHash,

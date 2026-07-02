@@ -151,6 +151,7 @@ model empleados {
   estado_empleado     estado_empleado       @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
   tipo_documento      tipo_documento        @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
   historial_planillas historial_planillas[]
+  usuario             usuario?
   usuarios            usuarios?
 
   @@index([activo], map: "idx_empleados_activo", where: raw("(activo = true)"))

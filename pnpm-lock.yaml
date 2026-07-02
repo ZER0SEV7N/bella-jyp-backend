@@ -14,6 +14,9 @@ importers:
       '@fastify/multipart':
         specifier: ^10.0.0
         version: 10.0.0
+      '@jyp/shared-contracts':
+        specifier: link:../shared-contracts
+        version: link:../shared-contracts
       '@nestjs/common':
         specifier: ^11.1.24
         version: 11.1.24(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -62,9 +65,6 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
-      shared-contracts:
-        specifier: link:shared-contracts
-        version: link:shared-contracts
       zod:
         specifier: ^4.4.3
         version: 4.4.3

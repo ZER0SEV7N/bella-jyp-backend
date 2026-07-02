@@ -6,7 +6,7 @@ import { ZodType } from 'zod';
 @Injectable()
 export class ZodValidationPipe implements PipeTransform {
   // Inyección del contrato base
-  constructor(private schema: ZodType) {}
+  constructor(private readonly schema: any) {}
 
   transform(value: unknown, metadata: ArgumentMetadata) {
     // Excluimos parámetros de ruta o query params (solo validamos el Body)

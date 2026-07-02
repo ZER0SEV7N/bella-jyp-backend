@@ -2,16 +2,22 @@
 //Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación
 import { Controller, Post, Body, Res, UsePipes, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { AuthService } from '../services/auth.service';
+import { LoginUseCase } from '../use-cases/login.useCase';
+import { ProvisionarUsuarioUseCase } from '../use-cases/crearUsuarioInterno.useCase';
+import { RecuperacionPasswordUseCases } from '../use-cases/recuperacionPassword.useCases';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { LoginSchema, LoginDTO, ProvisionarUsuarioSchema, ProvisionarUsuarioDTO } from '@jyp/shared-contracts';
-
+import { LoginSchema, ProvisionarUsuarioSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
+import type { LoginDTO, ProvisionarUsuarioDTO, SolicitudRecuperacionDTO } from '@jyp/shared-contracts';
 @Controller('api/auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+    constructor(
+        private readonly loginUseCase: LoginUseCase,
+        private readonly provisionarUsuarioUseCase: ProvisionarUsuarioUseCase,
+        private readonly recuperacionPasswordUseCase: RecuperacionPasswordUseCases
+    ) {}
 
     //POST: /api/auth/login
     //Ruta para autenticar un usuario y generar un Access Token y Refresh Token
@@ -24,7 +30,7 @@ export class AuthController {
     @HttpCode(HttpStatus.OK)
     @UsePipes(new ZodValidationPipe(LoginSchema))
     async login(@Body() payload: LoginDTO, @Res({ passthrough: true}) res: FastifyReply) {
-        const { accessToken, refreshToken, usuario } = await this.authService.autenticar(payload);
+        const { accessToken, refreshToken, usuario } = await this.loginUseCase.execute(payload);
 
         res.setCookie('jyp_rt', refreshToken, {
             httpOnly: true,
@@ -55,6 +61,13 @@ export class AuthController {
     @UsePipes(new ZodValidationPipe(ProvisionarUsuarioSchema))
     async provisionar(@Body() payload: ProvisionarUsuarioDTO) {
         // Retorno directo, cero formateo en el controlador
-        return await this.authService.crearUsuarioInterno(payload);
+        return await this.provisionarUsuarioUseCase.execute(payload);
+    }
+
+    @Post('recuperar-password')
+    @HttpCode(HttpStatus.OK)
+    @UsePipes(new ZodValidationPipe(SolicitudRecuperacionSchema))
+    async solicitarRecuperacion(@Body() payload: SolicitudRecuperacionDTO) {
+        return await this.recuperacionPasswordUseCase.solicitar(payload);
     }
 }
