@@ -7,7 +7,6 @@ import {
 import * as argon2 from 'argon2';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ProvisionarUsuarioDTO } from '@jyp/shared-contracts';
-
 @Injectable()
 export class ProvisionarUsuarioUseCase {
   constructor(private readonly prisma: PrismaService) {}
