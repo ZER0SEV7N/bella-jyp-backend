@@ -17,7 +17,11 @@ export class RecuperacionPasswordUseCases {
     //genera un token de seguridad y lo almacena en la base de datos
     async solicitar(dto: SolicitudRecuperacionDTO) {
         const usuario = await this.prisma.usuarios.findFirst({
-            where: { nro_documento: dto.nro_documento, activo: true },
+            where: { 
+                empleados: { nro_documento: dto.nro_documento },
+                activo: true 
+            },
+            include: { empleados: true }
         });
 
         //Prevencion de enumeracion de usuarios, no se revela si el usuario existe o no
@@ -89,10 +93,15 @@ export class RecuperacionPasswordUseCases {
             }),
             this.prisma.usuarios.update({
                 where: { id: tokenRecord.usuario_id },
-                data: { 
-                password_hash: newPasswordHash,
-                hashed_rt: null //Cerramos todas las sesiones activas (Logout global)
-                }
+                data: { password_hash: newPasswordHash }
+            }),
+            this.prisma.tokens_seguridad.updateMany({
+                where: {
+                    usuario_id: tokenRecord.usuario_id,
+                    proposito: 'REFRESH_TOKEN',
+                    usado: false
+                },
+                data: { usado: true }
             })
         ]);
 

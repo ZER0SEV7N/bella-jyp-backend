@@ -3,7 +3,6 @@ services:
   db:
     image: postgres:17-alpine # Utiliza la imagen oficial de PostgreSQL en su versión 17-alpine
     container_name: planillas_db # Nombre del contenedor para la base de datos
-    restart: always # Reinicia el contenedor automáticamente si se detiene
     ports:
       - "5432:5432" # Expone el puerto 5432 para acceder a la base de datos
     environment:
@@ -21,7 +20,6 @@ services:
   pgbouncer:
     image: edoburu/pgbouncer:latest
     container_name: planillas_pgbouncer
-    restart: always
     ports:
       - "6432:5432" # Puerto 6432 para que NestJS se conecte aquí
     environment:
@@ -37,7 +35,6 @@ services:
   redis:
     image: redis:7-alpine # Utiliza la imagen oficial de Redis en su versión 7-alpine
     container_name: planillas_redis # Nombre del contenedor para Redis
-    restart: always # Reinicia el contenedor automáticamente si se detiene
     ports: 
       - "6379:6379" # Expone el puerto 6379 para acceder a Redis
     volumes:
