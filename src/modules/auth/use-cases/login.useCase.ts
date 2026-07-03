@@ -33,21 +33,27 @@ export class LoginUseCase {
     if (!usuario) throw this.credencialesInvalidas();
 
     // 3. Verificación Criptográfica (Argon2id)
-    const isPasswordValid = await argon2.verify(usuario.password_hash, dto.password);
+    const isPasswordValid = await argon2.verify(
+      usuario.password_hash,
+      dto.password,
+    );
     if (!isPasswordValid) throw this.credencialesInvalidas();
 
     // 4. Construcción del Payload del Token (Asimétrico)
     const payload = {
       sub: usuario.id,
       rol: usuario.rol,
-      doc: usuario.empleados?.nro_documento, 
+      doc: usuario.empleados?.nro_documento,
       empId: usuario.empleado_id,
     };
 
     // 5. Firma en paralelo (Protegiendo el Event Loop)
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, { expiresIn: '15m' }),
-      this.jwtService.signAsync(payload, { expiresIn: '7d', secret: process.env.JWT_REFRESH_SECRET }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: '7d',
+        secret: process.env.JWT_REFRESH_SECRET,
+      }),
     ]);
 
     // 6. Persistencia de Sesión (En tu tabla satélite)
@@ -60,17 +66,17 @@ export class LoginUseCase {
         token_hash: hashedRT,
         proposito: 'REFRESH_TOKEN',
         expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 días
-      }
+      },
     });
 
     // 7. Retorno Estricto
     return {
       accessToken,
       refreshToken,
-      usuario: { 
-        id: usuario.id, 
-        nro_documento: usuario.empleados?.nro_documento, 
-        rol: usuario.rol 
+      usuario: {
+        id: usuario.id,
+        nro_documento: usuario.empleados?.nro_documento,
+        rol: usuario.rol,
       },
     };
   }

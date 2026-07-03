@@ -1,7 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
-import fastifyCookie from '@fastify/cookie'; 
+import fastifyCookie from '@fastify/cookie';
 import { Rfc7807ExceptionFilter } from './common/filters/rfc7807-exception.filter';
 import { TransformResponseInterceptor } from './common/inteceptors/transform-response.interceptors';
 import fastifyMultipart from '@fastify/multipart';
@@ -9,7 +12,7 @@ import fastifyMultipart from '@fastify/multipart';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true })
+    new FastifyAdapter({ logger: true }),
   );
 
   //Registro de filtros globales e interceptores globales
