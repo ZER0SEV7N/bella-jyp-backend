@@ -2,14 +2,14 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { editCargoSchema, dtoEditCargoInput } from '@jyp/shared-scontracts';
 @Injectable()
-export class DeleteCargoUseCase {
+export class UpdateCargoUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(dto: dtoEditCargoInput) {
+  async execute(id: string, dto: dtoEditCargoInput) {
     //validar con zod
     const Cargo = editCargoSchema.parse(dto);
     try {
       await this.prisma.cargo.update({
-        where: { id: Cargo.id },
+        where: { id: id },
         data: Cargo,
       });
       return {
