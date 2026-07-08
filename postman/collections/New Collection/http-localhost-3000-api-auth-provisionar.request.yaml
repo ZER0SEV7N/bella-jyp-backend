@@ -1,0 +1,21 @@
+$kind: http-request
+name: http://localhost:3000/api/auth/provisionar
+url: http://localhost:3000/api/auth/provisionar
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"tipo_documento\": \"DNI\",\r
+
+    \  \"nro_documento\": \"12345678\",\r
+
+    \  \"email\": \"admin@jyp.com\",\r
+
+    \  \"password\": \"Password123!\",\r
+
+    \  \"rol\": \"ADMIN\"\r
+
+    }"
+examples: .resources/http-localhost-3000-api-auth-provisionar.resources/examples
+order: 1854676724501370

@@ -127,14 +127,30 @@ model dato_financiero {
   @@index([empleado_id], map: "idx_dato_fin_empleado")
 }
 
+// --- Modulo de carga masiva ---
+
+model CargaMasivaJob {
+  id              String   @id @db.Uuid
+  usuario_id      String   @db.Uuid 
+  
+  total_registros Int      @default(0)
+  procesados      Int      @default(0)
+  fallidos        Int      @default(0)
+  errores_detalle Json?    
+  estado          estado_job_enum @default(EN_COLA) 
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+  @@map("carga_masiva_jobs")
+}
+
 model empleados {
   id                  String                @id @db.Uuid
   cargo_id            String                @db.Uuid
   area_id             String                @db.Uuid
   documento_id        String                @db.Uuid
   estado_empleado_id  String                @db.Uuid
-  nombre              String                @db.VarChar(100)
-  apellido            String                @db.VarChar(100)
+  nombre              String?               @db.VarChar(100)
+  apellido            String?               @db.VarChar(100)
   nro_documento       String                @unique @db.VarChar(20)
   fecha_nacimiento    DateTime?             @db.Date
   fecha_inicio        DateTime?             @db.Date
@@ -145,6 +161,7 @@ model empleados {
   deleted_at          DateTime?             @db.Timestamptz(6)
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
   contratos           contratos[]
   dato_financiero     dato_financiero?
   area                area                  @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
@@ -158,6 +175,7 @@ model empleados {
   @@index([area_id], map: "idx_empleados_area")
   @@index([cargo_id], map: "idx_empleados_cargo")
   @@index([deleted_at], map: "idx_empleados_deleted", where: raw("(deleted_at IS NULL)"))
+  @@map("empleados")
 }
 
 model estado_contrato {
@@ -305,4 +323,16 @@ enum rol_usuario_enum {
   RRHH
   ASISTENTE
   EMPLEADO
+}
+
+enum estado_job_enum {
+  EN_COLA
+  PROCESANDO
+  COMPLETADO
+  FALLIDO
+}
+
+enum estado_sincronizacion_enum {
+  COMPLETO
+  BORRADOR
 }

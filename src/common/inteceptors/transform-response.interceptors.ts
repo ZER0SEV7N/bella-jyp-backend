@@ -26,11 +26,12 @@ export interface ResponseFormat<T> {
 @Injectable()
 export class TransformResponseInterceptor<T> implements NestInterceptor<T, ResponseFormat<T>> {
     intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ResponseFormat<T>> {
-        const ctx = context.switchToHttp();
-        const request = ctx.getRequest<FastifyRequest>();
-        const response = ctx.getResponse<FastifyReply>();
-        const statusCode = response.statusCode;
+        const ctx = context.switchToHttp(); //Contexto de la petición HTTP
+        const request = ctx.getRequest<FastifyRequest>(); //Petición HTTP
+        const response = ctx.getResponse<FastifyReply>(); //Respuesta HTTP
+        const statusCode = response.statusCode; //Código de estado HTTP de la respuesta
 
+        //Transformar la respuesta
         return next.handle().pipe(
             map((data) => ({
                 statusCode: statusCode,

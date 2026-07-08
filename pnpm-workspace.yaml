@@ -2,5 +2,6 @@ allowBuilds:
   '@nestjs/core': true
   '@prisma/engines': true
   argon2: true
+  msgpackr-extract: true
   prisma: true
   unrs-resolver: true
