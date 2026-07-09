@@ -1,0 +1,1 @@
+export * from './crearEmpleado.UseCase';
