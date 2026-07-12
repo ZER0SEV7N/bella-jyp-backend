@@ -27,9 +27,7 @@ export class ConsultarEstadoCargaMasivaUseCase {
             }
         });
 
-        if (!job) 
-            // Se transforma en RFC 7807 globalmente[cite: 2]
-            throw new NotFoundException(`El lote de carga masiva con ID ${jobId} no existe o no te pertenece.`);
+        if (!job) throw new NotFoundException(`El lote de carga masiva con ID ${jobId} no existe o no te pertenece.`);
 
         return job;
     }

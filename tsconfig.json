@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
+    "types": ["node", "jest"],
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
@@ -25,5 +26,6 @@
     "noFallthroughCasesInSwitch": false,
     "strictPropertyInitialization": false,
     "useDefineForClassFields": false
-  }
+  },
+  "include": ["src/**/*", "test/**/*", "src/**/*.spec.ts"]
 }
