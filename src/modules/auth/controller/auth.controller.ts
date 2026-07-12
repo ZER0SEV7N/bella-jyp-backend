@@ -36,13 +36,17 @@ export class AuthController {
     private readonly recuperacionPasswordUseCase: RecuperacionPasswordUseCases,
   ) {}
 
-  //POST: /api/auth/login
-  //Ruta para autenticar un usuario y generar un Access Token y Refresh Token
-  //REQUEST BODY: { tipo_documento: string,
-  //                nro_documento: string,
-  //                 password: string
-  //              }
-  //RESPONSE: { accessToken: string, usuario: { id: number, rol: string, nro_documento: string } }
+  
+  /**
+   * POST: /api/auth/login
+   * Ruta para iniciar sesión y obtener tokens de acceso y refresco.
+   * @REQUEST BODY: { nro_documento: string, password: string }
+   * @returns: { accessToken: string, usuario: { id: number, rol: string, nro_documento: string } }
+   * @SET-COOKIE: jyp_rt=refreshToken;
+   * @yields 2023-06-15 12:00:00 - Usuario con nro_documento '12345678' ha iniciado sesión exitosamente.
+   * @yields 2023-06-15 12:00:00 - Usuario con nro_documento '12345678' ha fallado al iniciar sesión. Razón: Contraseña incorrecta.
+   * @yields 2023-06-15 12:00:00 - Usuario con nro_documento '12345678' ha fallado al iniciar sesión. Razón: Usuario no encontrado.
+   */
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(LoginSchema))
@@ -64,16 +68,18 @@ export class AuthController {
     return { accessToken, usuario };
   }
 
-  //POST: /api/auth/provisionar
-  //Ruta para provisionar un nuevo usuario, solo accesible para usuarios con rol ADMIN o RRHH
-  //REQUEST BODY: { tipo_documento: string,
-  //                nro_documento: string,
-  //                password: string,
-  //                rol: string,
-  //                email?: string,
-  //                empleado_id?: number
-  //              }
-  //RESPONSE: { id: number, rol: string, nro_documento: string }
+  /**
+   * POST: /api/auth/provisionar
+   * Ruta para provisionar un nuevo usuario, solo accesible para usuarios con rol ADMIN o RRHH
+   * @REQUEST BODY: { tipo_documento: string,
+   *                  nro_documento: string,
+   *                  password: string,
+   *                  rol: string,
+   *                  email?: string,
+   *                  empleado_id?: number
+   *            }
+   * @returns: { id: number, rol: string, nro_documento: string }
+  */
   @Post('provisionar')
   @HttpCode(HttpStatus.CREATED)
   // EL MURO DE DEFENSA: Primero valida el JWT, luego valida el Rol de quien hace la petición
@@ -85,6 +91,12 @@ export class AuthController {
     return await this.provisionarUsuarioUseCase.execute(payload);
   }
 
+  /**
+   * POST: /api/auth/recuperar-password
+   * Ruta para solicitar la recuperación de contraseña
+   * @REQUEST BODY: { nro_documento: string }
+   * @returns { message: string }
+   */
   @Post('recuperar-password')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(SolicitudRecuperacionSchema))

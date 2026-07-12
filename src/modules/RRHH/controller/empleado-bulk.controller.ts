@@ -57,7 +57,8 @@ export class EmpleadoBulkController {
             });
 
         //Retornar una respuesta inmediata al cliente indicando que la solicitud ha sido aceptada para procesamiento
-        response.status(HttpStatus.ACCEPTED).send({ jobId, message: 'La carga masiva ha sido aceptada y se está procesando en segundo plano.' });
+        response.status(HttpStatus.ACCEPTED);
+        
         return { 
             type: "https://api.jyp.com/jobs/accepted",
             title: "Procesamiento en Cola",
@@ -70,6 +71,9 @@ export class EmpleadoBulkController {
 
     /**
      * Endpoint de consulta para el Polling Inteligente del Frontend.
+     * GET /api/rrhh/empleados/bulk/:jobId
+     * @param jobId string - El ID del job de carga masiva que se desea consultar.
+     * @returns Un objeto con el estado actual del job, incluyendo total de registros, procesados y fallidos.
      */
     @Get(':jobId')
     async getBulkStatus(@Param('jobId') jobId: string) {

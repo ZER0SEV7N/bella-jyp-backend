@@ -10,6 +10,7 @@ import { Readable } from 'node:stream';
 
 @Injectable()
 export class ProcesarCargaMasivaUseCase {
+
     constructor(
         @InjectQueue('rrhh-bulk-queue') private readonly rrhhBulkQueue: Queue, //Inyecta la cola de procesamiento de carga masiva
         private readonly prisma: PrismaService //Inyecta el servicio de Prisma para interactuar con la base de datos
@@ -73,5 +74,18 @@ export class ProcesarCargaMasivaUseCase {
                     reject(error);
                 });
         })
+    }
+
+    //Metodo para manejar errores en el procesamiento del job de carga masiva
+    handleJobFailure(jobId: string, error: any) {
+        this.prisma.cargaMasivaJob.update({
+            where: { id: jobId },
+            data: {
+                estado: 'FALLIDO',
+                mensaje_error: error.message || 'Error desconocido durante el procesamiento de la carga masiva.'
+            }
+        }).catch((err) => {
+            console.error(`Error al actualizar el estado del job ${jobId} a FALLIDO: ${err.message}`);
+        });
     }
 }

@@ -11,8 +11,6 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 
-// INYECCIÓN CRÍTICA: Forzamos la carga síncrona del .env en la memoria de V8
-// ANTES de que el contenedor IoC intente instanciar la clase.
 dotenv.config();
 
 @Injectable()
@@ -26,11 +24,9 @@ export class PrismaService
     const connectionString = process.env.DATABASE_URL;
 
     // Defensa Perimetral (Fail-Fast)
-    if (!connectionString) {
-      throw new Error(
+    if (!connectionString) throw new Error(
         'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
-      );
-    }
+    );
 
     // 1. Instanciamos el Pool nativo de conexiones de PostgreSQL
     const pool = new Pool({ connectionString });
