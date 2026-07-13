@@ -3,7 +3,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   dtoEliminarCargoInput,
   eliminarCargoSchema,
-} from '@jyp/shared-scontracts';
+} from '@jyp/shared-contracts';
 @Injectable()
 export class DeleteCargoUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -15,7 +15,7 @@ export class DeleteCargoUseCase {
         where: { id: data.id },
         data: {
           activo: false,
-          delete_at: new Date(),
+          deleted_at: new Date(),
         },
       });
       return {

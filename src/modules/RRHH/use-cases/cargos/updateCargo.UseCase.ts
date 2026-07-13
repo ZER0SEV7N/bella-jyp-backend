@@ -1,6 +1,6 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { editCargoSchema, dtoEditCargoInput } from '@jyp/shared-scontracts';
+import { editCargoSchema, dtoEditCargoInput } from '@jyp/shared-contracts';
 @Injectable()
 export class UpdateCargoUseCase {
   constructor(private readonly prisma: PrismaService) {}

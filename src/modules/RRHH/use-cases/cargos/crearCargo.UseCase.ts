@@ -1,6 +1,6 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { dtoCreateCargoInput, createCargoSchema } from '@jyp/shared-scontracts';
+import { dtoCreateCargoInput, createCargoSchema } from '@jyp/shared-contracts';
 @Injectable()
 export class CrearCargoUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -9,7 +9,10 @@ export class CrearCargoUseCase {
     const data = createCargoSchema.parse(dto);
     try {
       const cargoCreado = await this.prisma.cargo.create({
-        data: data,
+        data: {
+          id: crypto.randomUUID(),
+          ...data
+        },
       });
       return {
         state: true,

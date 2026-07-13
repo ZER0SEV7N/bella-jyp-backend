@@ -1,6 +1,6 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { dtoCrearAreaInput, crearAreaSchema } from '@jyp/shared-scontracts';
+import { dtoCrearAreaInput, crearAreaSchema } from '@jyp/shared-contracts';
 @Injectable()
 export class CrearAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -10,7 +10,10 @@ export class CrearAreaUseCase {
     // 2. Crear y manejar errores
     try {
       const areaCreada = await this.prisma.area.create({
-        data: dataValidada,
+        data: {
+          id: crypto.randomUUID(),
+          ...dataValidada
+        },
       });
       // 3. Retorno exitoso
       return {

@@ -3,7 +3,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   dtoCreateEmpleado,
   createEmpleadoSchema,
-} from '@jyp/shared-scontracts';
+} from '@jyp/shared-contracts';
 
 @Injectable()
 export class CrearEmpleadoUseCase {
@@ -13,7 +13,12 @@ export class CrearEmpleadoUseCase {
     const data = createEmpleadoSchema.parse(dto);
     try {
       //crear empleado con prisma
-      const empleadoCreado = await this.prisma.empleados.create({ data: data });
+      const empleadoCreado = await this.prisma.empleados.create({ 
+        data:{
+          id: crypto.randomUUID(),
+          ...data
+        }
+      });
       return {
         state: true,
         message: 'Empleado creado correctamente',
