@@ -127,24 +127,39 @@ model dato_financiero {
   @@index([empleado_id], map: "idx_dato_fin_empleado")
 }
 
+// --- Modulo de carga masiva ---
+model CargaMasivaJob {
+  id              String   @id @db.Uuid
+  usuario_id      String   @db.Uuid 
+  total_registros Int      @default(0)
+  procesados      Int      @default(0)
+  fallidos        Int      @default(0)
+  errores_detalle Json?    @db.JsonB
+  estado          estado_job_enum @default(EN_COLA) 
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+  @@map("carga_masiva_jobs")
+}
+
 model empleados {
-  id                  String                @id @db.Uuid
-  cargo_id            String                @db.Uuid
-  area_id             String                @db.Uuid
-  documento_id        String                @db.Uuid
-  estado_empleado_id  String                @db.Uuid
-  nombre              String                @db.VarChar(100)
-  apellido            String                @db.VarChar(100)
-  nro_documento       String                @unique @db.VarChar(20)
-  fecha_nacimiento    DateTime?             @db.Date
-  fecha_inicio        DateTime?             @db.Date
-  fecha_cese          DateTime?             @db.Date
-  afp_fecha_filiacion DateTime?             @db.Date
-  asig_familiar       Boolean               @default(false)
-  activo              Boolean               @default(true)
-  deleted_at          DateTime?             @db.Timestamptz(6)
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  id                  String                       @id @db.Uuid
+  cargo_id            String                       @db.Uuid
+  area_id             String                       @db.Uuid
+  documento_id        String                       @db.Uuid
+  estado_empleado_id  String                       @db.Uuid
+  nombre              String?                      @db.VarChar(100)
+  apellido            String?                      @db.VarChar(100)
+  nro_documento       String                       @unique @db.VarChar(20)
+  fecha_nacimiento    DateTime?                    @db.Date
+  fecha_inicio        DateTime?                    @db.Date
+  fecha_cese          DateTime?                    @db.Date
+  afp_fecha_filiacion DateTime?                    @db.Date
+  asig_familiar       Boolean                      @default(false)
+  activo              Boolean                      @default(true)
+  deleted_at          DateTime?                    @db.Timestamptz(6)
+  created_at          DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime                     @default(now()) @db.Timestamptz(6)
+  estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
   contratos           contratos[]
   dato_financiero     dato_financiero?
   area                area                  @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
@@ -158,6 +173,7 @@ model empleados {
   @@index([area_id], map: "idx_empleados_area")
   @@index([cargo_id], map: "idx_empleados_cargo")
   @@index([deleted_at], map: "idx_empleados_deleted", where: raw("(deleted_at IS NULL)"))
+  @@map("empleados")
 }
 
 model estado_contrato {
@@ -168,7 +184,7 @@ model estado_contrato {
 
 model estado_empleado {
   id          String      @id @db.Uuid
-  descripcion String      @db.VarChar(100)
+  descripcion String      @unique @db.VarChar(100)
   empleados   empleados[]
 }
 
@@ -244,7 +260,7 @@ model tipo_afp {
 
 model tipo_documento {
   id             String      @id @db.Uuid
-  tipo_documento String      @db.VarChar(100)
+  tipo_documento String      @unique @db.VarChar(100)
   empleados      empleados[]
 }
 
@@ -305,4 +321,16 @@ enum rol_usuario_enum {
   RRHH
   ASISTENTE
   EMPLEADO
+}
+
+enum estado_job_enum {
+  EN_COLA
+  PROCESANDO
+  COMPLETADO
+  FALLIDO
+}
+
+enum estado_sincronizacion_enum {
+  COMPLETO
+  BORRADOR
 }

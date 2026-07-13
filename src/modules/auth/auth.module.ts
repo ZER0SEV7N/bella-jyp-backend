@@ -1,3 +1,7 @@
+//src/modules/auth/auth.module.ts
+//Modulo de autenticacion
+//Se encarga de manejar la autenticación y autorización de usuarios internos,
+//incluyendo el login, la provisión de usuarios y la recuperación de contraseña.
 import { Module } from '@nestjs/common';
 import { AuthController } from './controller/auth.controller';
 import { LoginUseCase } from './use-cases/login.useCase';
@@ -9,19 +13,18 @@ import { PrismaModule } from '@/common/prisma/prisma.module';
 @Module({
   imports: [
     PrismaModule,
-    // El secreto del Access Token se carga dinámicamente.
-    // El Refresh Token usa su propio secreto inyectado en el Use Case.
+    //El secreto del Access Token se carga dinámicamente.
+    //El Refresh Token usa su propio secreto inyectado en el Use Case.
     JwtModule.register({
       secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234',
     }),
   ],
   controllers: [AuthController],
   providers: [
-    // Registro innegociable de los Casos de Uso
     LoginUseCase,
     ProvisionarUsuarioUseCase,
     RecuperacionPasswordUseCases,
   ],
-  exports: [JwtModule], // Exportado por si otros módulos requieren verificar tokens manualmente
+  exports: [JwtModule], //Exportado por si otros módulos requieren verificar tokens manualmente
 })
 export class AuthModule {}
