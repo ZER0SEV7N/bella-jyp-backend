@@ -11,7 +11,7 @@ export class CrearCargoUseCase {
       const cargoCreado = await this.prisma.cargo.create({
         data: {
           id: crypto.randomUUID(),
-          ...data
+          ...data,
         },
       });
       return {

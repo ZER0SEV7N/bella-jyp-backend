@@ -34,13 +34,14 @@ export class RecuperacionPasswordUseCases {
       };
 
     //Regla de negocio: Personal activo sin correo electrónico no puede recuperar contraseña
-    if (!usuario.email) throw new BadRequestException({
-      type: 'https://api.jyp.com/errors/missing-email',
-      title: 'Correo No Registrado',
-      status: 400,
-      detail:
-        'El usuario no tiene un correo vinculado. Solicite el restablecimiento presencialmente a RRHH.',
-    });
+    if (!usuario.email)
+      throw new BadRequestException({
+        type: 'https://api.jyp.com/errors/missing-email',
+        title: 'Correo No Registrado',
+        status: 400,
+        detail:
+          'El usuario no tiene un correo vinculado. Solicite el restablecimiento presencialmente a RRHH.',
+      });
 
     //Generar el token criptografico
     const plainToken = crypto.randomBytes(32).toString('hex');
@@ -62,7 +63,9 @@ export class RecuperacionPasswordUseCases {
 
     this.dispararWebhookN8n(usuario.email, tokenCompuesto);
 
-    return { message: 'Si el documento es válido, se enviarán las instrucciones.', };
+    return {
+      message: 'Si el documento es válido, se enviarán las instrucciones.',
+    };
   }
 
   //Metodo para restablecer la contraseña usando el token de seguridad

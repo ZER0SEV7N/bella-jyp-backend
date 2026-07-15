@@ -36,7 +36,6 @@ export class AuthController {
     private readonly recuperacionPasswordUseCase: RecuperacionPasswordUseCases,
   ) {}
 
-  
   /**
    * POST: /api/auth/login
    * Ruta para iniciar sesión y obtener tokens de acceso y refresco.
@@ -79,7 +78,7 @@ export class AuthController {
    *                  empleado_id?: number
    *            }
    * @returns: { id: number, rol: string, nro_documento: string }
-  */
+   */
   @Post('provisionar')
   @HttpCode(HttpStatus.CREATED)
   // EL MURO DE DEFENSA: Primero valida el JWT, luego valida el Rol de quien hace la petición

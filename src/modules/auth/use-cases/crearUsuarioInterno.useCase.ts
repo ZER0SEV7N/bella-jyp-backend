@@ -17,17 +17,19 @@ export class ProvisionarUsuarioUseCase {
 
   //Metodo principal para ejecutar el caso de uso
   async execute(dto: ProvisionarUsuarioDTO) {
-    if (!dto.email) throw new BadRequestException(
+    if (!dto.email)
+      throw new BadRequestException(
         'El correo corporativo es estrictamente obligatorio para crear credenciales.',
       );
-    
+
     //Buscar el empleado por nro_documento
     const empleado = await this.prisma.empleados.findUnique({
       where: { nro_documento: dto.nro_documento },
     });
 
     //Validación: Si el empleado no existe, lanzar una excepción NotFoundException
-    if (!empleado) throw new NotFoundException({
+    if (!empleado)
+      throw new NotFoundException({
         type: 'https://api.jyp.com/errors/not-found',
         title: 'Empleado Inexistente',
         detail: `El empleado con documento ${dto.nro_documento} no existe. RRHH debe registrarlo primero.`,
@@ -39,12 +41,13 @@ export class ProvisionarUsuarioUseCase {
     });
 
     //Validación: Si el usuario ya existe, lanzar una excepción ConflictException
-    if (existeUsuario) throw new ConflictException({
+    if (existeUsuario)
+      throw new ConflictException({
         type: 'https://api.jyp.com/errors/conflict',
         title: 'Usuario Existente',
         detail: 'Este empleado ya posee credenciales de acceso activas.',
       });
-    
+
     //Hash de la contraseña usando Argon2id
     const passwordHash = await argon2.hash(dto.password, {
       type: argon2.argon2id,

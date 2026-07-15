@@ -12,7 +12,7 @@ export class CrearAreaUseCase {
       const areaCreada = await this.prisma.area.create({
         data: {
           id: crypto.randomUUID(),
-          ...dataValidada
+          ...dataValidada,
         },
       });
       // 3. Retorno exitoso

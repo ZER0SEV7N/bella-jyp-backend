@@ -24,9 +24,10 @@ export class PrismaService
     const connectionString = process.env.DATABASE_URL;
 
     // Defensa Perimetral (Fail-Fast)
-    if (!connectionString) throw new Error(
+    if (!connectionString)
+      throw new Error(
         'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
-    );
+      );
 
     // 1. Instanciamos el Pool nativo de conexiones de PostgreSQL
     const pool = new Pool({ connectionString });

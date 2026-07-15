@@ -18,7 +18,7 @@ export class UpdateAreaUseCase {
       });
       return {
         state: true,
-        message: 'Área eliminada correctamente',
+        message: 'Área actualizada correctamente',
         data: areaActualizada,
       };
       //retornar el area actualizada

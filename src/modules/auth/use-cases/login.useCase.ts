@@ -20,7 +20,8 @@ export class LoginUseCase {
     //Buscar al usuario por nro_documento y tipo_documento, asegurando que esté activo
     const usuario = await this.prisma.usuarios.findFirst({
       where: {
-        empleados: { nro_documento: dto.nro_documento,
+        empleados: {
+          nro_documento: dto.nro_documento,
           tipo_documento: { tipo_documento: dto.tipo_documento },
         },
         activo: true, //Condición de seguridad a nivel de tabla auth
