@@ -1,13 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@/common/prisma/prisma.module';
-import * as AreaUseCase from './use-cases/area';
-import * as CargoUseCase from './use-cases/cargos';
-import * as EmpleadoCase from './use-cases/empleado';
-import {
-  AreaController,
-  CargoController,
-  EmpleadoController,
-} from './controller';
+import { AreaController } from './controller/Area.controller';
+import { CargoController } from './controller/cargo.controller';
+import { EmpleadoController } from './controller/empleado.controller';
+import { AreaUseCase, CargoUseCase, EmpleadoCase } from './use-cases';
+
+
 @Module({
   imports: [PrismaModule],
   controllers: [AreaController, CargoController, EmpleadoController],
