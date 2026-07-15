@@ -3,7 +3,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   dtoEliminarAreaInput,
   eliminarAreaSchema,
-} from '@jyp/shared-scontracts';
+} from '@jyp/shared-contracts';
 @Injectable()
 export class EliminarAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}

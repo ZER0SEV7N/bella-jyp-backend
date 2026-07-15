@@ -36,7 +36,7 @@ export class AreaController {
     return await this.eliminarAreaUseCase.execute(payload);
   }
   //update - total
-  @Put('actualizar:id')
+  @Put('actualizar/:id')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id') id: string,

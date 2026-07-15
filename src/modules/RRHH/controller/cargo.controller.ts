@@ -39,7 +39,7 @@ export class CargoController {
   async update(@Param('id') id: string, @Body() payload: dtoEditCargoInput) {
     return await this.updateCargoUseCase.execute(id, payload);
   }
-  @Put('eliminar/:id')
+  @Put('eliminar')
   @HttpCode(HttpStatus.OK)
   async eliminar(@Body() payload: dtoEliminarCargoInput) {
     return await this.deleteCargoUseCase.execute(payload);

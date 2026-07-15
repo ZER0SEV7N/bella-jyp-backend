@@ -3,7 +3,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   dtoActualizarAreaInput,
   actualizarAreaSchema,
-} from '@jyp/shared-scontracts';
+} from '@jyp/shared-contracts';
 @Injectable()
 export class UpdateAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -18,7 +18,7 @@ export class UpdateAreaUseCase {
       });
       return {
         state: true,
-        message: 'Área eliminada correctamente',
+        message: 'Área actualizada correctamente',
         data: areaActualizada,
       };
       //retornar el area actualizada
