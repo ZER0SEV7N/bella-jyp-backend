@@ -17,7 +17,7 @@ export class DeleteCargoUseCase {
       });
       return {
         state: true,
-        message: 'Cargo inhabilitada correctamente',
+        message: 'Cargo inhabilitado correctamente',
         data: CargoEliminado,
       };
     } catch (error) {

@@ -37,7 +37,7 @@ export class AreaController {
    * }
    * @URL : http://localhost:3000/api/rrhh/area/ @Param /active
    */
-  @Delete(':id/deactive')
+  @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
   async eliminar(@Param('id') id: string) {
     return await this.eliminarAreaUseCase.execute(id);

@@ -12,7 +12,6 @@ import {
 import type {
   dtoCreateCargoInput,
   dtoEditCargoInput,
-  dtoEliminarCargoInput,
 } from '@jyp/shared-contracts';
 //casos de uso
 import {
