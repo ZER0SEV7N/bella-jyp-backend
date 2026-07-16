@@ -37,7 +37,7 @@ export class AreaController {
    * }
    * @URL : http://localhost:3000/api/rrhh/area/ @Param /active
    */
-  @Delete(':id/active')
+  @Delete(':id/deactive')
   @HttpCode(HttpStatus.OK)
   async eliminar(@Param('id') id: string) {
     return await this.eliminarAreaUseCase.execute(id);
@@ -48,7 +48,7 @@ export class AreaController {
    * @param payload
    * @returns
    */
-  @Patch('actualizar/:id')
+  @Patch(':id/actualizar')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id') id: string,

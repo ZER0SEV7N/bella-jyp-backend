@@ -6,7 +6,7 @@ import {
   HttpStatus,
   Put,
   Param,
-  Patch,
+  Delete,
 } from '@nestjs/common';
 //validacion de estructura de datos mediate el zod
 import type {
@@ -34,14 +34,14 @@ export class CargoController {
     return await this.crearCargoUseCase.execute(payload);
   }
 
-  @Put('actualizar/:id')
+  @Put(':id/actualizar')
   @HttpCode(HttpStatus.OK)
   async update(@Param('id') id: string, @Body() payload: dtoEditCargoInput) {
     return await this.updateCargoUseCase.execute(id, payload);
   }
-  @Put('eliminar')
+  @Delete(':id/delete')
   @HttpCode(HttpStatus.OK)
-  async eliminar(@Body() payload: dtoEliminarCargoInput) {
-    return await this.deleteCargoUseCase.execute(payload);
+  async eliminar(@Param('id') id: string) {
+    return await this.deleteCargoUseCase.execute(id);
   }
 }
