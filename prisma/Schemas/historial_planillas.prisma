@@ -1,0 +1,29 @@
+model historial_planillas {
+  id                     String               @id @db.Uuid
+  empleado_id            String               @db.Uuid
+  periodo                String               @db.VarChar(7)
+  sueldo_base            Decimal              @default(0.0000) @db.Decimal(12, 4)
+  asignacion_familia     Decimal              @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_25        Decimal              @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_35        Decimal              @default(0.0000) @db.Decimal(12, 4)
+  recargo_nocturno       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_afp_fondo    Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_afp_seguro   Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_afp_comision Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_quinta       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  tasa_afp_aplicada      Decimal              @db.Decimal(6, 4)
+  aporte_essalud         Decimal              @default(0.0000) @db.Decimal(12, 4)
+  total_ingresos         Decimal              @default(0.0000) @db.Decimal(12, 4)
+  total_descuentos       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  neto_a_pagar           Decimal              @default(0.0000) @db.Decimal(12, 4)
+  estado                 estado_planilla_enum @default(abierto)
+  comentarios            String?
+  activo                 Boolean              @default(true)
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime             @default(now()) @db.Timestamptz(6)
+  deleted_at             DateTime?            @db.Timestamptz(6)
+  empleados              empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_empleado")
+
+  @@unique([empleado_id, periodo], map: "uq_empleado_periodo")
+  @@index([periodo, estado], map: "idx_planilla_periodo_estado")
+}

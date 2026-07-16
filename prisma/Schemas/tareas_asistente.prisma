@@ -1,0 +1,19 @@
+model tareas_asistente {
+  id                                               String             @id @db.Uuid
+  asignado_a                                       String             @db.Uuid
+  asignado_por                                     String             @db.Uuid
+  titulo                                           String             @db.VarChar(200)
+  descripcion                                      String?
+  fecha_entrega                                    DateTime?          @db.Date
+  estado                                           estado_tarea_enum  @default(pendiente)
+  anotaciones                                      String?
+  deleted_at                                       DateTime?          @db.Timestamptz(6)
+  created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
+  anotacion_tareas                                 anotacion_tareas[]
+  usuarios_tareas_asistente_asignado_aTousuarios   usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
+  usuarios_tareas_asistente_asignado_porTousuarios usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
+
+  @@index([asignado_a], map: "idx_tareas_asignado_a")
+  @@index([deleted_at], map: "idx_tareas_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([estado], map: "idx_tareas_estado")
+}

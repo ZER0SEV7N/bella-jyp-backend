@@ -1,0 +1,33 @@
+
+model empleados {
+  id                  String                @id @db.Uuid
+  cargo_id            String                @db.Uuid
+  area_id             String                @db.Uuid
+  documento_id        String                @db.Uuid
+  estado_empleado_id  String                @db.Uuid
+  nombre              String                @db.VarChar(100)
+  apellido            String                @db.VarChar(100)
+  nro_documento       String                @unique @db.VarChar(20)
+  fecha_nacimiento    DateTime?             @db.Date
+  fecha_inicio        DateTime?             @db.Date
+  fecha_cese          DateTime?             @db.Date
+  afp_fecha_filiacion DateTime?             @db.Date
+  asig_familiar       Boolean               @default(false)
+  activo              Boolean               @default(true)
+  deleted_at          DateTime?             @db.Timestamptz(6)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  contratos           contratos[]
+  dato_financiero     dato_financiero?
+  area                area                  @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
+  cargo               cargo                 @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_cargo")
+  estado_empleado     estado_empleado       @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
+  tipo_documento      tipo_documento        @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
+  historial_planillas historial_planillas[]
+  usuarios            usuarios?
+
+  @@index([activo], map: "idx_empleados_activo", where: raw("(activo = true)"))
+  @@index([area_id], map: "idx_empleados_area")
+  @@index([cargo_id], map: "idx_empleados_cargo")
+  @@index([deleted_at], map: "idx_empleados_deleted", where: raw("(deleted_at IS NULL)"))
+}

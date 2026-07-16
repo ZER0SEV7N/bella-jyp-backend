@@ -1,0 +1,22 @@
+model dato_financiero {
+  id                String          @id @db.Uuid
+  empleado_id       String          @unique @db.Uuid
+  id_regimen        String          @db.Uuid
+  id_tipo_afp       String?         @db.Uuid
+  id_banco          String?         @db.Uuid
+  cuenta_bancaria   String?         @db.VarChar(30)
+  sueldo_basico     Decimal         @default(0) @db.Decimal(12, 4)
+  cuspp             String?         @db.VarChar(20)
+  tipo_comision     String?         @db.VarChar(50)
+  nro_cuenta_sueldo String?         @db.VarChar(30)
+  cci               String?         @db.VarChar(30)
+  banco_cts         String?         @db.VarChar(50)
+  nro_cuenta_cts    String?         @db.VarChar(30)
+  deleted_at        DateTime?       @db.Timestamptz(6)
+  bancos            bancos?         @relation(fields: [id_banco], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_banco")
+  empleados         empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
+  regimen_pension   regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
+  tipo_afp          tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
+
+  @@index([empleado_id], map: "idx_dato_fin_empleado")
+}

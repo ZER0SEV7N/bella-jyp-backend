@@ -1,0 +1,13 @@
+model cargo {
+  id          String      @id @db.Uuid
+  id_area     String      @db.Uuid
+  nombre      String      @db.VarChar(100)
+  descripcion String?     @db.VarChar(255)
+  activo      Boolean     @default(true)
+  deleted_at  DateTime?   @db.Timestamptz(6)
+  area        area        @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
+  empleados   empleados[]
+
+  @@index([id_area], map: "idx_cargo_area")
+}
+

@@ -1,0 +1,13 @@
+/**
+base para armar el prisma
+*/
+generator client {
+  provider        = "prisma-prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+

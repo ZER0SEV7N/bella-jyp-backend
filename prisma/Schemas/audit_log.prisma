@@ -1,0 +1,16 @@
+model audit_log {
+  id              String    @id @db.Uuid
+  usuario_id      String?   @db.Uuid
+  accion          String    @db.VarChar(100)
+  tabla_afectada  String    @db.VarChar(100)
+  registro_id     String    @db.Uuid
+  valores_antes   Json?
+  valores_despues Json?
+  direccion_ip    String    @db.Inet
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  usuarios        usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_log_usuario")
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_log_fecha")
+  @@index([tabla_afectada], map: "idx_audit_log_tabla")
+  @@index([usuario_id], map: "idx_audit_log_usuario")
+}

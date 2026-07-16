@@ -1,0 +1,8 @@
+
+model aportaciones {
+  id       String   @id @db.Uuid
+  afp_id   String   @db.Uuid
+  nombre   String   @db.VarChar(100)
+  cantidad Decimal  @default(0) @db.Decimal(12, 4)
+  tipo_afp tipo_afp @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_aportaciones_afp")
+}

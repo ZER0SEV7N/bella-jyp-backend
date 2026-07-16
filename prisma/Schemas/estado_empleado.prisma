@@ -1,0 +1,6 @@
+
+model estado_empleado {
+  id          String      @id @db.Uuid
+  descripcion String      @db.VarChar(100)
+  empleados   empleados[]
+}
