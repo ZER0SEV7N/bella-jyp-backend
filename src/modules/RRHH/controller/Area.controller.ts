@@ -31,11 +31,8 @@ export class AreaController {
   ) {}
   //delete - softdelete
   /**
-   * @param id: string
-   * @returns {
-   *
-   * }
-   * @URL : http://localhost:3000/api/rrhh/area/ @Param /active
+   * @param id string - UUID
+   * @URL : http://localhost:3000/api/rrhh/area/ @Param /desactive
    */
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
@@ -44,9 +41,12 @@ export class AreaController {
   }
   //update - total
   /**
-   * @param id
-   * @param payload
-   * @returns
+   * @param id string - UUID
+   * @param payload : dtoActualizarAreaInput{
+   * "nombre" : "Area-Nro1",
+   * "descripcion" : "Descripcion-Nro1"
+   * }
+   * @URL : http://localhost:3000/api/rrhh/area/@Param /actualizar
    */
   @Patch(':id/actualizar')
   @HttpCode(HttpStatus.OK)
@@ -59,7 +59,11 @@ export class AreaController {
   //post - crear
   /**
    * @param payload
-   * @returns
+   * @param {
+   * "nombre" : "Area-prueba-Nro1",
+   * "descripcion" : "Descripcion-Nro1"
+   * }
+   * @URL : http://localhost:3000/api/rrhh/area/crear
    */
   @Post('crear')
   @HttpCode(HttpStatus.CREATED)
