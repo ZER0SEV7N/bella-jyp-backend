@@ -19,6 +19,7 @@ import {
   CrearAreaUseCase,
   EliminarAreaUseCase,
   UpdateAreaUseCase,
+  ActiveAreaUseCase,
 } from '../use-cases/area';
 
 @Controller('api/rrhh/area')
@@ -28,7 +29,19 @@ export class AreaController {
     private readonly crearAreaUseCase: CrearAreaUseCase,
     private readonly updateAreaUseCase: UpdateAreaUseCase,
     private readonly eliminarAreaUseCase: EliminarAreaUseCase,
+    private readonly activeAreaUseCase: ActiveAreaUseCase,
   ) {}
+  //reactive area
+  /**
+   * @param id - string - uuid
+   * @URL : http://localhost:3000/api/rrhh/area/ @Param /reactive
+   */
+  @Patch(':id/reactive')
+  @HttpCode(HttpStatus.OK)
+  async reactive(@Param('id') id: string) {
+    return await this.activeAreaUseCase.execute(id);
+  }
+
   //delete - softdelete
   /**
    * @param id string - UUID
@@ -56,6 +69,7 @@ export class AreaController {
   ) {
     return await this.updateAreaUseCase.execute(id, payload);
   }
+
   //post - crear
   /**
    * @param payload

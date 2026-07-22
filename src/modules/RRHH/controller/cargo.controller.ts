@@ -7,6 +7,7 @@ import {
   Put,
   Param,
   Delete,
+  Patch,
 } from '@nestjs/common';
 //validacion de estructura de datos mediate el zod
 import type {
@@ -18,6 +19,7 @@ import {
   CrearCargoUseCase,
   DeleteCargoUseCase,
   UpdateCargoUseCase,
+  ActiveCargoUseCase,
 } from '../use-cases/cargos';
 
 @Controller('api/rrhh/cargo')
@@ -26,6 +28,7 @@ export class CargoController {
     private readonly crearCargoUseCase: CrearCargoUseCase,
     private readonly updateCargoUseCase: UpdateCargoUseCase,
     private readonly deleteCargoUseCase: DeleteCargoUseCase,
+    private readonly reactiveCargoUseCase: ActiveCargoUseCase,
   ) {}
 
   /**
@@ -67,5 +70,15 @@ export class CargoController {
   @HttpCode(HttpStatus.OK)
   async eliminar(@Param('id') id: string) {
     return await this.deleteCargoUseCase.execute(id);
+  }
+  //reactive cargo
+  /**
+   * @param id - string - uuid
+   * @URL : http://localhost:3000/api/rrhh/cargo/ @Param /reactive
+   */
+  @Patch(':id/reactive')
+  @HttpCode(HttpStatus.OK)
+  async reactive(@Param('id') id: string) {
+    return await this.reactiveCargoUseCase.execute(id);
   }
 }

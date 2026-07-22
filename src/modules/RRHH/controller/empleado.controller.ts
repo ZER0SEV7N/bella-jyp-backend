@@ -15,6 +15,7 @@ import {
   CrearEmpleadoUseCase,
   DeleteEmpleadoUseCase,
   EditEmpleadoUseCase,
+  ActiveEmpleadoUseCase,
 } from '../use-cases/empleado';
 
 @Controller('api/rrhh/empleado')
@@ -23,6 +24,7 @@ export class EmpleadoController {
     private readonly crearEmpleadoUseCase: CrearEmpleadoUseCase,
     private readonly editEmpleadoUseCase: EditEmpleadoUseCase,
     private readonly eliminarEmpleadoUseCase: DeleteEmpleadoUseCase,
+    private readonly reactiveEmpleadoUseCase: ActiveEmpleadoUseCase,
   ) {}
   //crear empelado
   /**
@@ -47,6 +49,16 @@ export class EmpleadoController {
   @HttpCode(HttpStatus.OK)
   async deletedEmpleado(@Param('id') id: string) {
     return await this.eliminarEmpleadoUseCase.execute(id);
+  }
+  //reactive empleado
+  /**
+   * @param id - string - uuid
+   * @URL : http://localhost:3000/api/rrhh/empleado/ @Param /reactive
+   */
+  @Patch(':id/reactive')
+  @HttpCode(HttpStatus.OK)
+  async reactive(@Param('id') id: string) {
+    return await this.reactiveEmpleadoUseCase.execute(id);
   }
 
   //crear empelado
