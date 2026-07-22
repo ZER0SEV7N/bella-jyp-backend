@@ -1,9 +1,17 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { dtoCrearAreaInput, crearAreaSchema } from '@jyp/shared-contracts';
+import { AuditCreateUseCase } from '../audit/create.UseCase';
+import {
+  dtoCrearAreaInput,
+  crearAreaSchema,
+  dtoAuditLog,
+} from '@jyp/shared-contracts';
 @Injectable()
 export class CrearAreaUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditoria: AuditCreateUseCase,
+  ) {}
   async execute(dto: dtoCrearAreaInput) {
     // 1. Validar: Zod lanza error automáticamente si falla
     const dataValidada = crearAreaSchema.parse(dto);
@@ -15,12 +23,22 @@ export class CrearAreaUseCase {
           ...dataValidada,
         },
       });
-      // 3. Retorno exitoso
-      return {
-        state: true,
-        message: 'Area creada correctamente',
-        data: areaCreada,
+      //armar bojeto para mandar a accion de aditoria
+      const registro: dtoAuditLog = {
+        accion: 'crear nueva Area',
+        tabla_afectada: 'AREA',
+        registro_id: areaCreada.id,
       };
+      //ejecutar registro de auditoria
+      const registroRealizado = await this.auditoria.execute(registro);
+      if (registroRealizado) {
+        // 3. Retorno exitoso
+        return {
+          state: true,
+          message: 'Area creada correctamente',
+          data: areaCreada,
+        };
+      }
     } catch (error) {
       throw new BadRequestException({
         type: 'https://api.jyp.com/errors/bad-request',
