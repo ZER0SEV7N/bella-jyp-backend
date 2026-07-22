@@ -1,21 +1,24 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { editCargoSchema, dtoEditCargoInput } from '@jyp/shared-contracts';
+import { eliminarCargoSchema } from '@jyp/shared-contracts';
 @Injectable()
-export class UpdateCargoUseCase {
+export class EliminarCargoUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(id: string, dto: dtoEditCargoInput) {
+  async execute(idCargo: string) {
     //validar con zod
-    const Cargo = editCargoSchema.parse(dto);
+    const { id } = eliminarCargoSchema.parse({ id: idCargo });
     try {
-      await this.prisma.cargo.update({
+      const CargoEliminado = await this.prisma.cargo.update({
         where: { id: id },
-        data: Cargo,
+        data: {
+          activo: false,
+          deleted_at: new Date(),
+        },
       });
       return {
         state: true,
-        message: 'Cargo actulizdo correctamente',
-        data: Cargo,
+        message: 'Cargo inhabilitado correctamente',
+        data: CargoEliminado,
       };
     } catch (error) {
       throw new BadRequestException({

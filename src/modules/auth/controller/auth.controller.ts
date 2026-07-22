@@ -73,8 +73,8 @@ export class AuthController {
    * @REQUEST BODY: { tipo_documento: string,
    *                  nro_documento: string,
    *                  password: string,
-   *                  rol: string,
    *                  email?: string,
+   *                  rol: string,
    *                  empleado_id?: number
    *            }
    * @returns: { id: number, rol: string, nro_documento: string }

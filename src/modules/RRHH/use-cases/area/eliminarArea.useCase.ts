@@ -1,16 +1,13 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import {
-  dtoEliminarAreaInput,
-  eliminarAreaSchema,
-} from '@jyp/shared-contracts';
+import { eliminarAreaSchema } from '@jyp/shared-contracts';
 @Injectable()
 export class EliminarAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(dto: dtoEliminarAreaInput) {
+  async execute(idArea: string) {
     // 1. Validación
-    const { id } = eliminarAreaSchema.parse(dto);
+    const { id } = eliminarAreaSchema.parse({ id: idArea });
 
     try {
       // 2. Ejecución

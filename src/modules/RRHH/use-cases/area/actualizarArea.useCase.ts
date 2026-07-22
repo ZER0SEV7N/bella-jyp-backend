@@ -5,7 +5,7 @@ import {
   actualizarAreaSchema,
 } from '@jyp/shared-contracts';
 @Injectable()
-export class UpdateAreaUseCase {
+export class ActualizarAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(id: string, dto: dtoActualizarAreaInput) {
     //validar los datos de entrada del dto

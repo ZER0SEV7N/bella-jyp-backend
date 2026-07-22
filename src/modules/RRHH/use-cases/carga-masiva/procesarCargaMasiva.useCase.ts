@@ -94,9 +94,9 @@ export class ProcesarCargaMasivaUseCase {
         where: { id: jobId },
         data: {
           estado: 'FALLIDO',
-          mensaje_error:
-            error.message ||
-            'Error desconocido durante el procesamiento de la carga masiva.',
+          // mensaje_error:
+          //   error.message ||
+          //   'Error desconocido durante el procesamiento de la carga masiva.',
         },
       })
       .catch((err) => {
