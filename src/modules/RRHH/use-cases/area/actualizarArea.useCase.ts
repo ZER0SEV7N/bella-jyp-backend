@@ -1,34 +1,33 @@
+//src/modules/RRHH/use-cases/area/ActualizarArea.useCase.ts
+//Caso de uso para actualizar un área en el módulo de RRHH
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { Injectable, BadRequestException } from '@nestjs/common';
-import {
-  dtoActualizarAreaInput,
-  actualizarAreaSchema,
-} from '@jyp/shared-contracts';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { ActualizarAreaDto } from '@jyp/shared-contracts';
+
 @Injectable()
 export class ActualizarAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(id: string, dto: dtoActualizarAreaInput) {
-    //validar los datos de entrada del dto
-    const dataValidada = actualizarAreaSchema.parse(dto);
-    try {
-      //actualizar el area en la base de datos
-      const areaActualizada = await this.prisma.area.update({
-        where: { id },
-        data: dataValidada,
+  async execute(areaId: string, dto: ActualizarAreaDto) {
+     try {
+      
+      //Verificar si el área existe y no está eliminada
+      const existingArea = await this.prisma.area.findUnique({ where: { id: areaId }, });
+
+      if (!existingArea || existingArea.deleted_at !== null) throw new NotFoundException(`El área con ID ${areaId} no fue encontrada o está eliminada`);
+
+      //Ejecutar la actualización
+      const updatedArea = await this.prisma.area.update({
+        where: { id: areaId },
+        data: {
+          nombre: dto.nombre,
+          descripcion: dto.descripcion,
+        },
       });
-      return {
-        state: true,
-        message: 'Área actualizada correctamente',
-        data: areaActualizada,
-      };
-      //retornar el area actualizada
+
+      return updatedArea;
     } catch (error) {
-      throw new BadRequestException({
-        type: 'https://api.jyp.com/errors/bad-request',
-        title: 'Error al actualizar el área',
-        detail:
-          'No se pudo actualizar en la base de datos. Verifica que el nombre no esté duplicado.',
-      });
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException('Error al intentar actualizar el área');
     }
   }
 }

@@ -1,34 +1,37 @@
+//src/modules/RRHH/use-cases/cargos/activeCargo.useCase.ts
+//Caso de uso para activar un cargo en el módulo de RRHH
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
+//Caso de uso
 @Injectable()
 export class ActiveCargoUseCase {
   constructor(private readonly prisma: PrismaService) {}
+
   async execute(idCargo: string) {
-    //validara
-    const idValidado = z.uuid().parse(idCargo);
+    const idValidado = z.string().uuid().parse(idCargo);
+    
     try {
-      //ejecutar con prisma
       const data = await this.prisma.cargo.update({
         where: {
           id: idValidado,
         },
         data: {
           activo: true,
+          deleted_at: null //Limpiar la fecha de eliminación para restaurar el cargo
         },
       });
+
       return {
         state: true,
-        message: 'Área eliminada correctamente',
+        message: 'Cargo restaurado/activado correctamente',
         data: data,
       };
     } catch (error) {
-      // 3. Manejo de error para evitar que el sistema falle silenciosamente
       throw new BadRequestException({
-        title: 'Error al reactivar Cargo',
-        detail:
-          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        title: 'Error al activar el cargo',
+        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }

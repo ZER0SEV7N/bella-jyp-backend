@@ -313,9 +313,12 @@ enum estado_tarea_enum {
   pendiente
   revision
   aprobado
+  rechazado
+  auditado
 }
 
 enum rol_usuario_enum {
+  JYP
   ADMIN
   CONTADOR
   RRHH

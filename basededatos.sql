@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE estado_tarea_enum AS ENUM ('pendiente', 'revision', 'aprobado', 'rechazado', 'auditado');
 CREATE TYPE estado_planilla_enum AS ENUM ('abierto', 'en_revision', 'congelado', 'declarado');
-CREATE TYPE rol_usuario_enum AS ENUM ('ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE', 'EMPLEADO');
+CREATE TYPE rol_usuario_enum AS ENUM ('JYP','ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE', 'EMPLEADO');
 CREATE TYPE estado_job_enum AS ENUM ('EN_COLA', 'PROCESANDO', 'COMPLETADO', 'FALLIDO');
 CREATE TYPE estado_sincronizacion_enum AS ENUM ('COMPLETO', 'BORRADOR');
 

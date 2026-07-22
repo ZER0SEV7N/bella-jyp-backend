@@ -14,7 +14,7 @@ import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 export class EmpleadoController {
   constructor(
     private readonly crearEmpleadoUseCase: CrearEmpleadoUseCase,
-    private readonly editEmpleadoUseCase: EditarEmpleadoUseCase,
+    private readonly editarEmpleadoUseCase: EditarEmpleadoUseCase,
     private readonly eliminarEmpleadoUseCase: EliminarEmpleadoUseCase,
     private readonly activeEmpleadoUseCase: ActiveEmpleadoUseCase,
   ) {}
@@ -33,22 +33,25 @@ export class EmpleadoController {
     @Param('id') id: string,
     @Body() payload: dtoEditEmpleado,
   ) {
-    return this.editEmpleadoUseCase.execute(id, payload);
+    return this.editarEmpleadoUseCase.execute(id, payload);
   }
-  //crear empelado
+
   /**
+   * Eliminar un empleado (SOFT DELETE)
+   * DELETE - /api/rrhh/empleado/:id/desactive
    * @param id : string - uuid
-   * @URL : http://localhost:3000/api/rrhh/empleado/@param /desactive
    */
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
   async deletedEmpleado(@Param('id') id: string) {
     return await this.eliminarEmpleadoUseCase.execute(id);
   }
-  //reactive empleado
+
+
   /**
+   * Reactivar un empleado que se encuentra desactivado
+   * PATCH - /api/rrhh/empleado/:id/reactive
    * @param id - string - uuid
-   * @URL : http://localhost:3000/api/rrhh/empleado/ @Param /reactive
    */
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
@@ -56,8 +59,9 @@ export class EmpleadoController {
     return await this.activeEmpleadoUseCase.execute(id);
   }
 
-  //crear empelado
   /**
+   * Crear un nuevo empleado
+   * POST - /api/rrhh/empleado/crear
    * @param payload : dtoCreateEmpleado
    * @URL : http://localhost:3000/api/rrhh/empleado/crear
    */

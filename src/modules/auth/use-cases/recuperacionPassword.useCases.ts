@@ -6,10 +6,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import {
-  SolicitudRecuperacionDTO,
-  RestablecerPasswordDTO,
-} from '@jyp/shared-contracts';
+import { SolicitudRecuperacionDTO, RestablecerPasswordDTO, } from '@jyp/shared-contracts';
 import axios from 'axios';
 
 @Injectable()
