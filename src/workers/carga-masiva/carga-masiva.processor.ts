@@ -3,7 +3,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { ProcesarFilaEmpleadoUseCase } from '@/modules/RRHH/use-cases/carga-masiva/procesarFila.useCase';
+import { ProcesarFilaEmpleadoUseCase } from '@/modules/RRHH/use-cases/carga-masiva/procesarFilaEmpleado.useCase';
 import { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 
 //Processor para la cola de carga masiva de empleados
