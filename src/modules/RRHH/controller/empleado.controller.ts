@@ -11,7 +11,7 @@ import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.
 import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
-import { ObtenerEmpleadosUseCase } from '../use-cases/empleado/ObtenerEmpleados.useCase';
+import { ObtenerEmpleadosUseCase } from '../use-cases/empleado/obtenerEmpleados.useCase';
 import { Roles } from '@/common/decorators/roles.decorator';
 
 @Controller('api/rrhh/empleado')

@@ -3,6 +3,7 @@
 import { Module, Global } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 
+@Global()
 @Module({
     imports: [
         BullModule.forRoot({
@@ -16,9 +17,6 @@ import { BullModule } from '@nestjs/bullmq';
                 backoff: { type: 'exponential', delay: 2000 }, // Estrategia de reintento exponencial con un retraso inicial de 2 segundos
                 removeOnComplete: true, // Eliminar automáticamente los jobs completados
             },
-        }),
-        BullModule.registerQueue({
-            name: 'rrhh-bulk-queue', //Nombre de la cola para el procesamiento de carga masiva de empleados
         }),
     ],
     exports: [BullModule], //Exporta el módulo de Bull para que pueda ser utilizado en otros módulos de la aplicación
