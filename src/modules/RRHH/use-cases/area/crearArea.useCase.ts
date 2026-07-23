@@ -1,51 +1,39 @@
+//src/modules/RRHH/use-cases/area/crearArea.useCase.ts
+//Caso de uso para crear un área en el módulo de RRHH
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { AuditCreateUseCase } from '../audit/create.UseCase';
-import {
-  dtoCrearAreaInput,
-  crearAreaSchema,
-  dtoAuditLog,
-} from '@jyp/shared-contracts';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { CrearAreaDto } from '@jyp/shared-contracts'; 
+import { IdentityGenerator } from '@/common/utils/uuid.util';
+
 @Injectable()
 export class CrearAreaUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auditoria: AuditCreateUseCase,
   ) {}
-  async execute(dto: dtoCrearAreaInput) {
-    // 1. Validar: Zod lanza error automáticamente si falla
-    const dataValidada = crearAreaSchema.parse(dto);
-    // 2. Crear y manejar errores
+  async execute(dto: CrearAreaDto) {
     try {
-      const areaCreada = await this.prisma.area.create({
+      //Generar un nuevo ID para el área utilizando la utilidad IdentityGenerator
+      const newAreaId = IdentityGenerator.generateId();
+
+      //Crear el área en la base de datos utilizando Prisma
+      const area = await this.prisma.area.create({
         data: {
-          id: crypto.randomUUID(),
-          ...dataValidada,
+          id: newAreaId,
+          nombre: dto.nombre,
+          descripcion: dto.descripcion,
+          activo: true,
         },
       });
-      //armar bojeto para mandar a accion de aditoria
-      const registro: dtoAuditLog = {
-        accion: 'crear nueva Area',
-        tabla_afectada: 'AREA',
-        registro_id: areaCreada.id,
-      };
-      //ejecutar registro de auditoria
-      const registroRealizado = await this.auditoria.execute(registro);
-      if (registroRealizado) {
-        // 3. Retorno exitoso
-        return {
-          state: true,
-          message: 'Area creada correctamente',
-          data: areaCreada,
-        };
-      }
+
+      //Registrar la acción de creación en la auditoría
+
+      //Retornar el área creada
+      return area;
     } catch (error) {
-      throw new BadRequestException({
-        type: 'https://api.jyp.com/errors/bad-request',
-        title: 'Error al crear el área',
-        detail:
-          'No se pudo guardar en la base de datos. Verifica que el nombre no esté duplicado.',
-      });
+      throw new InternalServerErrorException(
+        'Ocurrió un error al intentar crear el área',
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 }

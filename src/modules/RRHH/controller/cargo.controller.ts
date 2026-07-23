@@ -1,38 +1,29 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
-  Put,
-  Param,
-  Delete,
-  Patch,
-} from '@nestjs/common';
-//validacion de estructura de datos mediate el zod
-import type {
-  dtoCreateCargoInput,
-  dtoEditCargoInput,
-} from '@jyp/shared-contracts';
+//src/modules/RRHH/controller/cargo.controller.ts
+//Controlador para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
+import { Controller,Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, } from '@nestjs/common';
 //casos de uso
-import {
-  CrearCargoUseCase,
-  DeleteCargoUseCase,
-  UpdateCargoUseCase,
-  ActiveCargoUseCase,
-} from '../use-cases/cargos';
+import { CrearCargoUseCase} from '../use-cases/cargos/crearCargo.useCase';
+import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.useCase';
+import { EliminarCargoUseCase } from '../use-cases/cargos/eliminarCargo.useCase';
+import { ActiveCargoUseCase } from '../use-cases/cargos/activeCargo.useCase';
+import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
+import type { CrearCargoDto, ActualizarCargoDto } from '@jyp/shared-contracts';
+import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 
+//Controller para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
 @Controller('api/rrhh/cargo')
+@UseGuards(JwtAccessGuard)
 export class CargoController {
   constructor(
     private readonly crearCargoUseCase: CrearCargoUseCase,
-    private readonly updateCargoUseCase: UpdateCargoUseCase,
-    private readonly deleteCargoUseCase: DeleteCargoUseCase,
-    private readonly reactiveCargoUseCase: ActiveCargoUseCase,
+    private readonly actualizarCargoUseCase: ActualizarCargoUseCase,
+    private readonly eliminarCargoUseCase: EliminarCargoUseCase,
+    private readonly activeCargoUseCase: ActiveCargoUseCase,
   ) {}
 
   /**
-   *crear cargo
+   * Crear un nuevo cargo
    * @url http://localhost:3000/api/rrhh/cargo/crear
    * @param payload {
    *  "id_area" : id string - uuid
@@ -41,8 +32,8 @@ export class CargoController {
    * }
    */
   @Post('crear')
-  @HttpCode(HttpStatus.CREATED)
-  async crear(@Body() payload: dtoCreateCargoInput) {
+  @UsePipes(new ZodValidationPipe(CrearCargoSchema))
+  async crear(@Body() payload: CrearCargoDto) {
     return await this.crearCargoUseCase.execute(payload);
   }
 
@@ -57,28 +48,35 @@ export class CargoController {
    * }
    */
   @Put(':id/actualizar')
-  @HttpCode(HttpStatus.OK)
-  async update(@Param('id') id: string, @Body() payload: dtoEditCargoInput) {
-    return await this.updateCargoUseCase.execute(id, payload);
+  @UsePipes(new ZodValidationPipe(ActualizarCargoSchema))
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() payload: ActualizarCargoDto
+  ) {
+    return await this.actualizarCargoUseCase.execute(id, payload);
   }
+
+
   /**
-   *editar cargo
+   * Eliminar un cargo (SOFT DELETE)
    * @url http://localhost:3000/api/rrhh/cargo/@param /desactive
    * @param id string - uuid
    */
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
-  async eliminar(@Param('id') id: string) {
-    return await this.deleteCargoUseCase.execute(id);
+  async eliminar(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.eliminarCargoUseCase.execute(id);
   }
-  //reactive cargo
+
+
   /**
-   * @param id - string - uuid
-   * @URL : http://localhost:3000/api/rrhh/cargo/ @Param /reactive
+   * Reactivar un cargo que se encuentra desactivado
+   * @url http://localhost:3000/api/rrhh/cargo/@param /reactive
+   * @param id string - uuid
    */
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
-  async reactive(@Param('id') id: string) {
-    return await this.reactiveCargoUseCase.execute(id);
+  async reactive(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.activeCargoUseCase.execute(id);
   }
 }

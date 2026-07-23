@@ -20,7 +20,7 @@ export class RolesGuard implements CanActivate {
     );
 
     //Si la ruta no tiene el decorador @Roles, entonces no se requiere ningún rol específico y se permite el acceso
-    if (!requiredRoles) return true;
+    if (!requiredRoles || requiredRoles.length === 0) return true;
 
     const { user } = context.switchToHttp().getRequest();
 

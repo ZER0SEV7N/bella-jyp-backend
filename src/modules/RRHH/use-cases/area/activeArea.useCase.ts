@@ -1,10 +1,15 @@
+//src/modules/RRHH/use-cases/area/activeArea.useCase.ts
+//Caso de uso para reactivar un area que se encuentra desactivada
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
+//Clase
 @Injectable()
 export class ActiveAreaUseCase {
+  //Inyectar el servicio de Prisma para interactuar con la base de datos
   constructor(private readonly prisma: PrismaService) {}
+  //Método para ejecutar el caso de uso
   async execute(idArea: string) {
     //validara
     const idValidado = z.uuid().parse(idArea);

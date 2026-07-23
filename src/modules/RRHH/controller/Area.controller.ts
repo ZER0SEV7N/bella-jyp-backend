@@ -17,27 +17,65 @@ import type {
   dtoActualizarAreaInput,
 } from '@jyp/shared-contracts';
 //casos de uso
-import {
-  CrearAreaUseCase,
-  EliminarAreaUseCase,
-  UpdateAreaUseCase,
-  ActiveAreaUseCase,
-} from '../use-cases/area';
+import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
+import { ActualizarAreaUseCase } from '../use-cases/area/actualizarArea.useCase';
+import { EliminarAreaUseCase } from '../use-cases/area/eliminarArea.useCase';
+import { ActiveAreaUseCase } from '../use-cases/area/activeArea.useCase';
+import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+import { CrearAreaSchema, ActualizarAreaSchema } from '@jyp/shared-contracts';
+import type { CrearAreaDto, ActualizarAreaDto } from '@jyp/shared-contracts';
 
 @Controller('api/rrhh/area')
 @UseGuards(JwtAccessGuard)
 export class AreaController {
-  //constructor de los casos de uso
+  //Inyectar los casos de uso necesarios para manejar las operaciones relacionadas con las areas
   constructor(
     private readonly crearAreaUseCase: CrearAreaUseCase,
-    private readonly updateAreaUseCase: UpdateAreaUseCase,
+    private readonly actualizarAreaUseCase: ActualizarAreaUseCase,
     private readonly eliminarAreaUseCase: EliminarAreaUseCase,
     private readonly activeAreaUseCase: ActiveAreaUseCase,
   ) {}
-  //reactive area
+
   /**
+   * Crear un nuevo area
+   * POST - /api/rrhh/area/crear 
+   * @param payload : dtoCrearAreaInput{
+   *    "nombre" : "Area-prueba-Nro1",
+   *    "descripcion" : "Descripcion-Nro1"
+   * }
+   * @Returns
+   */
+  @Post('crear')
+  @UsePipes(new ZodValidationPipe(CrearAreaSchema))
+  async crear(@Body() payload: CrearAreaDto) {
+    return await this.crearAreaUseCase.execute(payload);
+  }
+
+  /**
+   * Actualizar un area existente
+   * PATCH - /api/rrhh/area/:id/actualizar
+   * @param id string - UUID
+   * @param payload : dtoActualizarAreaInput{
+   *    "nombre" : "Area-Nro1",
+   *    "descripcion" : "Descripcion-Nro1"
+   * }
+   * @returns
+   */
+  @Patch(':id/actualizar')
+  @UsePipes(new ZodValidationPipe(ActualizarAreaSchema))
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() payload: ActualizarAreaDto
+  ) {
+    return await this.actualizarAreaUseCase.execute(id, payload);
+  }
+
+  /**
+   * Reactivar un area que se encuentra desactivada
+   * PATCH - /api/rrhh/area/:id/reactive
    * @param id - string - uuid
-   * @URL : http://localhost:3000/api/rrhh/area/ @Param /reactive
+   * @returns: Promise<any>
    */
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
@@ -45,46 +83,16 @@ export class AreaController {
     return await this.activeAreaUseCase.execute(id);
   }
 
-  //delete - softdelete
   /**
+   * Eliminar un area (SOFT DELETE)
+   * DELETE - /api/rrhh/area/:id/desactive
    * @param id string - UUID
-   * @URL : http://localhost:3000/api/rrhh/area/ @Param /desactive
+   * @returns
    */
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
   async eliminar(@Param('id') id: string) {
     return await this.eliminarAreaUseCase.execute(id);
   }
-  //update - total
-  /**
-   * @param id string - UUID
-   * @param payload : dtoActualizarAreaInput{
-   * "nombre" : "Area-Nro1",
-   * "descripcion" : "Descripcion-Nro1"
-   * }
-   * @URL : http://localhost:3000/api/rrhh/area/@Param /actualizar
-   */
-  @Patch(':id/actualizar')
-  @HttpCode(HttpStatus.OK)
-  async update(
-    @Param('id') id: string,
-    @Body() payload: dtoActualizarAreaInput,
-  ) {
-    return await this.updateAreaUseCase.execute(id, payload);
-  }
-
-  //post - crear
-  /**
-   * @param payload
-   * @param {
-   * "nombre" : "Area-prueba-Nro1",
-   * "descripcion" : "Descripcion-Nro1"
-   * }
-   * @URL : http://localhost:3000/api/rrhh/area/crear
-   */
-  @Post('crear')
-  @HttpCode(HttpStatus.CREATED)
-  async crear(@Body() payload: dtoCrearAreaInput) {
-    return await this.crearAreaUseCase.execute(payload);
-  }
+  
 }

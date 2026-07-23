@@ -18,8 +18,7 @@ export interface CiudadanoReniec {
 @Injectable()
 export class ReniecAdapter {
   private readonly logger = new Logger(ReniecAdapter.name); //Logger para registrar información y errores
-  private readonly RENIEC_API_URL =
-    process.env.RENIEC_API_URL || 'https://api.reniec.gob.pe'; //URL del servicio de RENIEC
+  private readonly RENIEC_API_URL = process.env.RENIEC_API_URL || 'https://api.reniec.gob.pe'; //URL del servicio de RENIEC
   private readonly RENIEC_API_KEY = process.env.RENIEC_API_KEY;
 
   async consultarDni(dni: string): Promise<CiudadanoReniec> {
@@ -28,7 +27,7 @@ export class ReniecAdapter {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // Timeout estricto de 5s
 
-      const res = await fetch(`${this.RENIEC_API_URL}${dni}`, {
+      const res = await fetch(`${this.RENIEC_API_URL}/dni/${dni}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${this.RENIEC_API_KEY}`,
@@ -39,17 +38,14 @@ export class ReniecAdapter {
 
       clearTimeout(timeoutId); //Limpiar el timeout si la respuesta llega a tiempo
 
-      if (!res.ok)
-        throw new BadGatewayException(
-          `La API de RENIEC respondió con status: ${res.status}`,
-        );
+      if (!res.ok) throw new BadGatewayException( `La API de RENIEC respondió con status: ${res.status}` );
 
       const data = await res.json();
 
       return {
-        nombre: data.nombres,
-        apellido_paterno: data.apellidoPaterno,
-        apellido_materno: data.apellidoMaterno,
+        nombre: data.nombres || data.nombre || '',
+        apellido_paterno: data.apellidoPaterno || data.apellido_paterno || '',
+        apellido_materno: data.apellidoMaterno || data.apellido_materno || '',
       };
     } catch (error: any) {
       this.logger.error(
