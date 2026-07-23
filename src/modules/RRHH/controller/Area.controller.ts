@@ -8,7 +8,9 @@ import {
   Param,
   Patch,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 //validacion de estructura de datos mediate el zod
 import type {
   dtoCrearAreaInput,
@@ -23,6 +25,7 @@ import {
 } from '../use-cases/area';
 
 @Controller('api/rrhh/area')
+@UseGuards(JwtAccessGuard)
 export class AreaController {
   //constructor de los casos de uso
   constructor(
