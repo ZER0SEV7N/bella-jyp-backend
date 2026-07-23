@@ -2,7 +2,7 @@
 //Caso de uso para crear un área en el módulo de RRHH
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { AuditCreateUseCase } from '../../../audit/create.UseCase';
+import { AuditCreateUseCase } from '../../../audit/auditar.useCase';
 import { CrearAreaDto } from '@jyp/shared-contracts'; 
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 
