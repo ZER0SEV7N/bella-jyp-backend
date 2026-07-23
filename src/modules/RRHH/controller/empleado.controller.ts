@@ -1,11 +1,31 @@
 //src/modules/RRHH/controller/empleado.controller.ts
 //Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH
-import { Controller, Post, Body, HttpCode, HttpStatus, Delete, Param ,Patch, UseGuards, UsePipes, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Delete,
+  Param,
+  Patch,
+  UseGuards,
+  UsePipes,
+  Get,
+  Query,
+} from '@nestjs/common';
 //validacion de estructura de datos mediate el zod
-import { CrearEmpleadoSchema, ObtenerEmpleadosQuerySchema } from '@jyp/shared-contracts';
-import type { CrearEmpleadoDto, EditarEmpleadoDto, ObtenerEmpleadosQueryDto } from '@jyp/shared-contracts';
+import {
+  CrearEmpleadoSchema,
+  ObtenerEmpleadosQuerySchema,
+} from '@jyp/shared-contracts';
+import type {
+  CrearEmpleadoDto,
+  EditarEmpleadoDto,
+  ObtenerEmpleadosQueryDto,
+} from '@jyp/shared-contracts';
 //casos de uso
-import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase'
+import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.useCase';
 import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';
@@ -54,7 +74,7 @@ export class EmpleadoController {
    * PATCH - /api/rrhh/empleado/:id/actualizar
    * @param id : string --uuid
    * @param payload : EditarEmpleadoDto{
-   *   "nombres" : "Nombres-Nro1", 
+   *   "nombres" : "Nombres-Nro1",
    */
   @Patch(':id/actualizar')
   @HttpCode(HttpStatus.OK)
@@ -76,7 +96,6 @@ export class EmpleadoController {
     return await this.eliminarEmpleadoUseCase.execute(id);
   }
 
-
   /**
    * Reactivar un empleado que se encuentra desactivado
    * PATCH - /api/rrhh/empleado/:id/reactive
@@ -87,6 +106,4 @@ export class EmpleadoController {
   async reactive(@Param('id') id: string) {
     return await this.activeEmpleadoUseCase.execute(id);
   }
-
-
 }

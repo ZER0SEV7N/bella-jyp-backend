@@ -1,8 +1,21 @@
 //src/modules/RRHH/controller/cargo.controller.ts
 //Controlador para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
-import { Controller,Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Put,
+  Param,
+  Patch,
+  Delete,
+  UseGuards,
+  UsePipes,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 //casos de uso
-import { CrearCargoUseCase} from '../use-cases/cargos/crearCargo.useCase';
+import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.useCase';
 import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.useCase';
 import { EliminarCargoUseCase } from '../use-cases/cargos/eliminarCargo.useCase';
 import { ActiveCargoUseCase } from '../use-cases/cargos/activeCargo.useCase';
@@ -51,11 +64,10 @@ export class CargoController {
   @UsePipes(new ZodValidationPipe(ActualizarCargoSchema))
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() payload: ActualizarCargoDto
+    @Body() payload: ActualizarCargoDto,
   ) {
     return await this.actualizarCargoUseCase.execute(id, payload);
   }
-
 
   /**
    * Eliminar un cargo (SOFT DELETE)
@@ -67,7 +79,6 @@ export class CargoController {
   async eliminar(@Param('id', ParseUUIDPipe) id: string) {
     return await this.eliminarCargoUseCase.execute(id);
   }
-
 
   /**
    * Reactivar un cargo que se encuentra desactivado

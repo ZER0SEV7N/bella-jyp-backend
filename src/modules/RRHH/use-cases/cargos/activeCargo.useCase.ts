@@ -11,7 +11,7 @@ export class ActiveCargoUseCase {
 
   async execute(idCargo: string) {
     const idValidado = z.string().uuid().parse(idCargo);
-    
+
     try {
       const data = await this.prisma.cargo.update({
         where: {
@@ -19,7 +19,7 @@ export class ActiveCargoUseCase {
         },
         data: {
           activo: true,
-          deleted_at: null //Limpiar la fecha de eliminación para restaurar el cargo
+          deleted_at: null, //Limpiar la fecha de eliminación para restaurar el cargo
         },
       });
 
@@ -31,7 +31,8 @@ export class ActiveCargoUseCase {
     } catch (error) {
       throw new BadRequestException({
         title: 'Error al activar el cargo',
-        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail:
+          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }

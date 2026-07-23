@@ -39,7 +39,7 @@ export class AreaController {
 
   /**
    * Crear un nuevo area
-   * POST - /api/rrhh/area/crear 
+   * POST - /api/rrhh/area/crear
    * @param payload : dtoCrearAreaInput{
    *    "nombre" : "Area-prueba-Nro1",
    *    "descripcion" : "Descripcion-Nro1"
@@ -66,7 +66,7 @@ export class AreaController {
   @UsePipes(new ZodValidationPipe(ActualizarAreaSchema))
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() payload: ActualizarAreaDto
+    @Body() payload: ActualizarAreaDto,
   ) {
     return await this.actualizarAreaUseCase.execute(id, payload);
   }
@@ -94,5 +94,4 @@ export class AreaController {
   async eliminar(@Param('id') id: string) {
     return await this.eliminarAreaUseCase.execute(id);
   }
-  
 }

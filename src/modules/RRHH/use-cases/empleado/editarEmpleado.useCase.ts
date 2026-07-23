@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { EditarEmpleadoDto } from '@jyp/shared-contracts';
 
@@ -8,27 +12,30 @@ export class EditarEmpleadoUseCase {
   async execute(id: string, payload: EditarEmpleadoDto) {
     try {
       //Buscar el empleado por su ID
-      const empleado = await this.prisma.empleados.findUnique({ where: { id } });
+      const empleado = await this.prisma.empleados.findUnique({
+        where: { id },
+      });
 
-      if (!empleado || empleado.deleted_at !== null) 
+      if (!empleado || empleado.deleted_at !== null)
         throw new NotFoundException({
           title: 'Colaborador no encontrado',
           detail: 'El legajo no existe o ha sido eliminado (cesado).',
         });
-      
 
       // Si intenta cambiar el documento, validamos que no colisione con otro
-      if (payload.nro_documento && payload.nro_documento !== empleado.nro_documento) {
+      if (
+        payload.nro_documento &&
+        payload.nro_documento !== empleado.nro_documento
+      ) {
         const docExistente = await this.prisma.empleados.findUnique({
           where: { nro_documento: payload.nro_documento },
         });
 
-        if (docExistente) 
+        if (docExistente)
           throw new BadRequestException({
             title: 'Documento Duplicado',
             detail: `El DNI/Documento ${payload.nro_documento} ya pertenece a otro colaborador.`,
           });
-        
       }
 
       const empleadoActualizado = await this.prisma.empleados.update({
@@ -41,19 +48,28 @@ export class EditarEmpleadoUseCase {
           nro_documento: payload.nro_documento,
           nombre: payload.nombre,
           apellido: payload.apellido,
-          fecha_nacimiento: payload.fecha_nacimiento ? new Date(payload.fecha_nacimiento) : undefined,
-          fecha_inicio: payload.fecha_inicio ? new Date(payload.fecha_inicio) : undefined,
+          fecha_nacimiento: payload.fecha_nacimiento
+            ? new Date(payload.fecha_nacimiento)
+            : undefined,
+          fecha_inicio: payload.fecha_inicio
+            ? new Date(payload.fecha_inicio)
+            : undefined,
           asig_familiar: payload.asig_familiar,
         },
       });
 
       return empleadoActualizado;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
-      
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+
       throw new BadRequestException({
         title: 'Error de Actualización',
-        detail: 'Fallo interno al intentar modificar el legajo del colaborador.',
+        detail:
+          'Fallo interno al intentar modificar el legajo del colaborador.',
       });
     }
   }

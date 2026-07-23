@@ -34,7 +34,7 @@ import { CargaMasivaProcessor } from '../../workers/carga-masiva/carga-masiva.pr
 @Module({
   imports: [
     // Importamos la cola para poder inyectarla en el Carga Masiva UseCase
-    BullModule.registerQueue({ name: 'rrhh-bulk-queue', }),
+    BullModule.registerQueue({ name: 'rrhh-bulk-queue' }),
     ClsModule,
   ],
   controllers: [
