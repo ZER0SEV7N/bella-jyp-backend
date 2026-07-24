@@ -5,9 +5,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { RRHHModule } from './modules/RRHH/RRHH.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/config/redis/redis.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
-  imports: [AuthModule, RRHHModule, PrismaModule, RedisModule],
+  imports: [AuthModule, RRHHModule, PrismaModule, RedisModule, AuditModule],
   controllers: [AppController],
   providers: [AppService],
 })
