@@ -7,6 +7,7 @@ import { AreaController } from './controller/area.controller';
 import { CargoController } from './controller/cargo.controller';
 import { EmpleadoController } from './controller/empleado.controller';
 import { EmpleadoBulkController } from './controller/empleado-bulk.controller';
+import { JornadaController } from './controller/jornada.controller';
 // --- CASOS DE USO: ÁREA ---
 import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from './use-cases/area/actualizarArea.useCase';
@@ -27,6 +28,12 @@ import { ActiveEmpleadoUseCase } from './use-cases/empleado/activeEmpleado.useCa
 import { ProcesarCargaMasivaUseCase } from './use-cases/carga-masiva/procesarCargaMasiva.useCase';
 import { ConsultarEstadoCargaMasivaUseCase } from './use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ProcesarFilaEmpleadoUseCase } from './use-cases/carga-masiva/procesarFilaEmpleado.useCase';
+// --- CASOS DE USO: JORNADAS ---
+import { CrearJornadaUseCase } from './use-cases/jornadas/crearJornada.useCase';
+import { EditarJornadaUseCase } from './use-cases/jornadas/editarJornada.useCase';
+import { EstadoJornadaUseCase } from './use-cases/jornadas/estadoJornada.useCase';
+import { ListarJornadaUseCase } from './use-cases/jornadas/listarJornada.useCase';
+
 // --- SERVICIOS Y WORKERS ---
 import { ReniecAdapter } from './services/reniec.adapter';
 import { CargaMasivaProcessor } from '../../workers/carga-masiva/carga-masiva.processor';
@@ -42,6 +49,7 @@ import { CargaMasivaProcessor } from '../../workers/carga-masiva/carga-masiva.pr
     CargoController,
     EmpleadoController,
     EmpleadoBulkController,
+    JornadaController,
   ],
   providers: [
     //Areas
@@ -65,6 +73,11 @@ import { CargaMasivaProcessor } from '../../workers/carga-masiva/carga-masiva.pr
     ConsultarEstadoCargaMasivaUseCase,
     ProcesarFilaEmpleadoUseCase,
     CargaMasivaProcessor,
+    //Jornadas
+    CrearJornadaUseCase,
+    EditarJornadaUseCase,
+    EstadoJornadaUseCase,
+    ListarJornadaUseCase,
     //Adaptadores Externos
     ReniecAdapter,
   ],

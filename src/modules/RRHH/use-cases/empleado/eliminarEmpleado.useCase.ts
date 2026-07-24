@@ -11,11 +11,10 @@ export class EliminarEmpleadoUseCase {
       //Buscar el empleado por su ID
       const empleado = await this.prisma.empleados.findUnique({ where: { id } });
 
-      if (!empleado || empleado.deleted_at !== null) 
-        throw new NotFoundException({
-          title: 'Colaborador no encontrado',
-          detail: 'El legajo no existe o ya se encuentra eliminado.',
-        });
+      if (!empleado || empleado.deleted_at !== null) throw new NotFoundException({
+        title: 'Colaborador no encontrado',
+        detail: 'El legajo no existe o ya se encuentra eliminado.',
+      });
       
       //Realizar un "soft delete" del empleado, marcando el campo "activo" como false y estableciendo la fecha de cese y deleted_at
       const empleadoEliminado = await this.prisma.empleados.update({
