@@ -20,9 +20,9 @@ export class CrearEmpleadoUseCase {
       const empleadoExistente = await this.prisma.empleados.findUnique({ where: { nro_documento: dto.nro_documento } });
 
       if (empleadoExistente) throw new BadRequestException({
-          title: 'Documento Duplicado',
-          detail: `Ya existe un colaborador registrado con el documento ${dto.nro_documento}.`,
-        });
+        title: 'Documento Duplicado',
+        detail: `Ya existe un colaborador registrado con el documento ${dto.nro_documento}.`,
+      });
 
       let nombreFinal = dto.nombre;
       let apellidoFinal = dto.apellido;

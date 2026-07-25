@@ -16,10 +16,10 @@ export class CrearCargoUseCase {
       const areaAsignada = await this.prisma.area.findUnique({ where: { id: payload.id_area } });
 
       if (!areaAsignada || !areaAsignada.activo || areaAsignada.deleted_at !== null) 
-        throw new NotFoundException({
-          title: 'Área inválida',
-          detail: 'El área especificada no existe o se encuentra inactiva/eliminada.',
-        });
+      throw new NotFoundException({
+        title: 'Área inválida',
+        detail: 'El área especificada no existe o se encuentra inactiva/eliminada.',
+      });
       
       //Evitar que se creen dos cargos con el mismo nombre en la misma área
       const cargoExistente = await this.prisma.cargo.findFirst({

@@ -11,7 +11,7 @@ export class ActiveAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
   //Método para ejecutar el caso de uso
   async execute(idArea: string) {
-    //validara
+    //validar que el ID proporcionado sea un UUID válido
     const idValidado = z.uuid().parse(idArea);
     try {
       //ejecutar con prisma
@@ -29,11 +29,10 @@ export class ActiveAreaUseCase {
         data: data,
       };
     } catch (error) {
-      // 3. Manejo de error para evitar que el sistema falle silenciosamente
+      //Manejo de error para evitar que el sistema falle silenciosamente
       throw new BadRequestException({
         title: 'Error al activar el área',
-        detail:
-          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail:'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }

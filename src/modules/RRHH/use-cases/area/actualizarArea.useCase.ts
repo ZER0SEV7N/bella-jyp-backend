@@ -9,7 +9,6 @@ export class ActualizarAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(areaId: string, dto: ActualizarAreaDto) {
      try {
-      
       //Verificar si el área existe y no está eliminada
       const existingArea = await this.prisma.area.findUnique({ where: { id: areaId }, });
 

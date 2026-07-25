@@ -12,32 +12,30 @@ export class ActualizarCargoUseCase {
 
   async execute(id: string, payload: ActualizarCargoDto) {
     try {
+      //Verificar si el cargo que se desea actualizar existe y no ha sido eliminado
       const cargoActual = await this.prisma.cargo.findUnique({ where: { id }, });
 
-      if (!cargoActual || cargoActual.deleted_at !== null) 
-        throw new NotFoundException({
-          title: 'Cargo no encontrado',
-          detail: 'El cargo que intenta actualizar no existe o ha sido eliminado.',
-        });
+      if (!cargoActual || cargoActual.deleted_at !== null) throw new NotFoundException({
+        title: 'Cargo no encontrado',
+        detail: 'El cargo que intenta actualizar no existe o ha sido eliminado.',
+      });
 
-      //Si el payload incluye un id_area nuevo, validamos que exista
+      //Si el payload incluye un id_area nuevo, verificar que el area destino exista y esté activa antes de proceder con la actualización
       if (payload.id_area && payload.id_area !== cargoActual.id_area) {
         const areaDestino = await this.prisma.area.findUnique({
           where: { id: payload.id_area }
         });
 
-        if (!areaDestino || !areaDestino.activo) 
-          throw new BadRequestException({
-            title: 'Área destino inválida',
-            detail: 'El área a la que intenta mover el cargo no existe o está inactiva.',
-          });
+        if (!areaDestino || !areaDestino.activo) throw new BadRequestException({
+          title: 'Área destino inválida',
+          detail: 'El área a la que intenta mover el cargo no existe o está inactiva.',
+        });
       }
 
+      //Actualizar el cargo con los nuevos datos proporcionados en el payload
       const cargoActualizado = await this.prisma.cargo.update({
         where: { id },
-        data: {
-          ...payload
-        },
+        data: { ...payload },
       });
 
       return cargoActualizado;
