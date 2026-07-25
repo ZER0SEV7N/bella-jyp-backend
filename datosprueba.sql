@@ -1,4 +1,4 @@
--- Active: 1783006006135@@127.0.0.1@5432@planillas_db
+-- Active: 1783116194814@@127.0.0.1@5432@planillas_db
 -- =========================================================================
 -- SCRIPT DE MOCK DATA - SISTEMA DE PLANILLAS JYP
 -- Limpia datos existentes y carga catálogos base y un par de empleados

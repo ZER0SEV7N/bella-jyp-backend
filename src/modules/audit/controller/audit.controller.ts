@@ -1,6 +1,15 @@
 //src/modules/audit/controller/audit.controller.ts
 //Controlador para manejar las solicitudes relacionadas con la auditoría, como obtener logs de auditoría y registrar auditorías manuales.
-import { Controller, Get, Query, Post, Body, UseGuards, Req, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  UsePipes,
+} from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -37,7 +46,7 @@ export class AuditController {
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async obtenerLogs(
     @Query() queryParams: ObtenerAuditQueryDto,
-    @Req() req: FastifyRequest & { user: { id: string, rol: string} }
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
   ) {
     return await this.obtenerLogsUseCase.execute(queryParams, req.user);
   }
@@ -49,10 +58,10 @@ export class AuditController {
    * @param payload: Datos del log de auditoría a registrar.
    * @returns: El log de auditoría registrado.
    */
-    @Post('logs')
-    @Roles('ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH')
-    @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
-    async registrarAuditoria(@Body() payload: AuditLogDto) {
-        return await this.registroAuditoriaUseCase.execute(payload);
-    }
+  @Post('logs')
+  @Roles('ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH')
+  @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
+  async registrarAuditoria(@Body() payload: AuditLogDto) {
+    return await this.registroAuditoriaUseCase.execute(payload);
+  }
 }
