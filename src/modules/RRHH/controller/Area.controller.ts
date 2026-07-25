@@ -9,22 +9,29 @@ import {
   Patch,
   Delete,
   UseGuards,
+  Get,
+  UsePipes,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
-//validacion de estructura de datos mediate el zod
-import type {
-  dtoCrearAreaInput,
-  dtoActualizarAreaInput,
-} from '@jyp/shared-contracts';
 //casos de uso
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from '../use-cases/area/actualizarArea.useCase';
 import { EliminarAreaUseCase } from '../use-cases/area/eliminarArea.useCase';
 import { ActiveAreaUseCase } from '../use-cases/area/activeArea.useCase';
+import { ObtenerAreaUseCase } from '../use-cases/area/obtenerArea.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { CrearAreaSchema, ActualizarAreaSchema } from '@jyp/shared-contracts';
-import type { CrearAreaDto, ActualizarAreaDto } from '@jyp/shared-contracts';
+import {
+  CrearAreaSchema,
+  ActualizarAreaSchema,
+  AreaResponseSchema,
+} from '@jyp/shared-contracts';
+import type {
+  CrearAreaDto,
+  ActualizarAreaDto,
+  ResponseAreaDto,
+} from '@jyp/shared-contracts';
 
 @Controller('api/rrhh/area')
 @UseGuards(JwtAccessGuard)
@@ -35,8 +42,13 @@ export class AreaController {
     private readonly actualizarAreaUseCase: ActualizarAreaUseCase,
     private readonly eliminarAreaUseCase: EliminarAreaUseCase,
     private readonly activeAreaUseCase: ActiveAreaUseCase,
+    private readonly obtenerAreaUseCase: ObtenerAreaUseCase,
   ) {}
 
+  @Get(':id/obtener')
+  async obtener(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.obtenerAreaUseCase.execute(id);
+  }
   /**
    * Crear un nuevo area
    * POST - /api/rrhh/area/crear

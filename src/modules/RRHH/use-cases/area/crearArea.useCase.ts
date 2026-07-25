@@ -22,9 +22,6 @@ export class CrearAreaUseCase {
           activo: true,
         },
       });
-
-      //Registrar la acción de creación en la auditoría
-
       //Retornar el área creada
       return area;
     } catch (error) {

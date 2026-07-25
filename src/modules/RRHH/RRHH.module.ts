@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ClsModule } from 'nestjs-cls';
 // --- CONTROLADORES ---
-import { AreaController } from './controller/area.controller';
+import { AreaController } from './controller/Area.controller';
 import { CargoController } from './controller/cargo.controller';
 import { EmpleadoController } from './controller/empleado.controller';
 import { EmpleadoBulkController } from './controller/empleado-bulk.controller';
@@ -12,11 +12,13 @@ import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from './use-cases/area/actualizarArea.useCase';
 import { EliminarAreaUseCase } from './use-cases/area/eliminarArea.useCase';
 import { ActiveAreaUseCase } from './use-cases/area/activeArea.useCase';
+import { ObtenerAreaUseCase } from './use-cases/area/obtenerArea.useCase';
 // --- CASOS DE USO: CARGO ---
-import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.useCase';
-import { EliminarCargoUseCase } from './use-cases/cargos/eliminarCargo.useCase';
+import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.UseCase';
+import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.UseCase';
+import { EliminarCargoUseCase } from './use-cases/cargos/eliminarCargo.UseCase';
 import { ActiveCargoUseCase } from './use-cases/cargos/activeCargo.useCase';
+import { ObtenerCargoUseCase } from './use-cases/cargos/obtenerCargo.useCase';
 // --- CASOS DE USO: EMPLEADO ---
 import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
 import { ObtenerEmpleadosUseCase } from './use-cases/empleado/obtenerEmpleados.useCase';
@@ -49,11 +51,13 @@ import { CargaMasivaProcessor } from '../../workers/carga-masiva/carga-masiva.pr
     ActualizarAreaUseCase,
     EliminarAreaUseCase,
     ActiveAreaUseCase,
+    ObtenerAreaUseCase,
     //Cargos
     CrearCargoUseCase,
     ActualizarCargoUseCase,
     EliminarCargoUseCase,
     ActiveCargoUseCase,
+    ObtenerCargoUseCase,
     //Empleados
     CrearEmpleadoUseCase,
     ObtenerEmpleadosUseCase,

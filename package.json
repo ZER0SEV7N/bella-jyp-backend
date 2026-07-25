@@ -22,7 +22,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^10.0.0",
-    "@jyp/shared-contracts": "link:../shared-contracts",
+    "@jyp/shared-contracts": "link:../bella-jyp-shared-contracts",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.1.24",
     "@nestjs/config": "^4.0.4",

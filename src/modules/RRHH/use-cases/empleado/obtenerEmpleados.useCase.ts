@@ -24,7 +24,7 @@ export class ObtenerEmpleadosUseCase {
 
     //Ejecutar la consulta a la base de datos utilizando Prisma
     const [total, empleados] = await this.prisma.$transaction([
-      this.prisma.empleados.count({ where: whereClause }), //Contar el total de empleados que cumplen con los filtros
+      this.prisma.empleados.count({ where: whereClau+++++++++++++++++ se }), //Contar el total de empleados que cumplen con los filtros
       this.prisma.empleados.findMany({
         where: whereClause,
         skip,

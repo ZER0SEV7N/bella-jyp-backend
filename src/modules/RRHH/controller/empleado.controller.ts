@@ -25,7 +25,7 @@ import type {
   ObtenerEmpleadosQueryDto,
 } from '@jyp/shared-contracts';
 //casos de uso
-import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
+import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.UseCase';
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.useCase';
 import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';

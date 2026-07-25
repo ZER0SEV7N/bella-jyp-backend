@@ -13,13 +13,15 @@ import {
   UseGuards,
   UsePipes,
   ParseUUIDPipe,
+  Get,
 } from '@nestjs/common';
 //casos de uso
-import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.useCase';
-import { EliminarCargoUseCase } from '../use-cases/cargos/eliminarCargo.useCase';
+import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.UseCase';
+import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.UseCase';
+import { EliminarCargoUseCase } from '../use-cases/cargos/eliminarCargo.UseCase';
 import { ActiveCargoUseCase } from '../use-cases/cargos/activeCargo.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { ObtenerCargoUseCase } from '../use-cases/cargos/obtenerCargo.useCase';
 import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
 import type { CrearCargoDto, ActualizarCargoDto } from '@jyp/shared-contracts';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
@@ -33,8 +35,13 @@ export class CargoController {
     private readonly actualizarCargoUseCase: ActualizarCargoUseCase,
     private readonly eliminarCargoUseCase: EliminarCargoUseCase,
     private readonly activeCargoUseCase: ActiveCargoUseCase,
+    private readonly obtenerCargoUseCase: ObtenerCargoUseCase,
   ) {}
 
+  @Get(':id/obtener')
+  async obtener(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.obtenerCargoUseCase.execute(id);
+  }
   /**
    * Crear un nuevo cargo
    * @url http://localhost:3000/api/rrhh/cargo/crear
