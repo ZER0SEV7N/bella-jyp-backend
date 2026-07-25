@@ -8,7 +8,10 @@ datasource db {
   provider = "postgresql"
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// ---------------------------------------------------------
+// Modelo de anotacion de tareas
+// ---------------------------------------------------------
+
 model anotacion_tareas {
   id               String           @id @db.Uuid
   tarea_id         String           @db.Uuid
@@ -38,22 +41,22 @@ model area {
   empleados   empleados[]
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model audit_log {
-  id              String    @id @db.Uuid
-  usuario_id      String?   @db.Uuid
-  accion          String    @db.VarChar(100)
-  tabla_afectada  String    @db.VarChar(100)
-  registro_id     String    @db.Uuid
-  valores_antes   Json?
-  valores_despues Json?
-  direccion_ip    String    @db.Inet
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
-  usuarios        usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_log_usuario")
+model tipo_afp {
+  id              String            @id @db.Uuid
+  id_regimen      String            @db.Uuid
+  nombre          String            @db.VarChar(100)
+  aportaciones    aportaciones[]
+  comisiones_afp  comisiones_afp[]
+  dato_financiero dato_financiero[]
+  regimen_pension regimen_pension   @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipo_afp_regimen")
 
-  @@index([created_at(sort: Desc)], map: "idx_audit_log_fecha")
-  @@index([tabla_afectada], map: "idx_audit_log_tabla")
-  @@index([usuario_id], map: "idx_audit_log_usuario")
+  @@index([id_regimen], map: "idx_tipo_afp_regimen")
+}
+
+model tipo_documento {
+  id             String      @id @db.Uuid
+  tipo_documento String      @unique @db.VarChar(100)
+  empleados      empleados[]
 }
 
 model bancos {
@@ -73,6 +76,25 @@ model cargo {
   empleados   empleados[]
 
   @@index([id_area], map: "idx_cargo_area")
+}
+
+model estado_contrato {
+  id        String      @id @db.Uuid
+  nombre    String      @db.VarChar(100)
+  contratos contratos[]
+}
+
+model estado_empleado {
+  id          String      @id @db.Uuid
+  descripcion String      @unique @db.VarChar(100)
+  empleados   empleados[]
+}
+
+model regimen_pension {
+  id              String            @id @db.Uuid
+  nombre          String            @db.VarChar(100)
+  dato_financiero dato_financiero[]
+  tipo_afp        tipo_afp[]
 }
 
 model comisiones_afp {
@@ -147,6 +169,7 @@ model empleados {
   area_id             String                       @db.Uuid
   documento_id        String                       @db.Uuid
   estado_empleado_id  String                       @db.Uuid
+  jornada_id          String?                      @db.Uuid
   nombre              String?                      @db.VarChar(100)
   apellido            String?                      @db.VarChar(100)
   nro_documento       String                       @unique @db.VarChar(20)
@@ -166,6 +189,9 @@ model empleados {
   cargo               cargo                 @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_cargo")
   estado_empleado     estado_empleado       @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
   tipo_documento      tipo_documento        @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
+  jornada             jornada?              @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_jornada")
+  asistencias         asistencia_marcacion[]
+  incidencias         incidencias_mes[]
   historial_planillas historial_planillas[]
   usuarios            usuarios?
 
@@ -174,18 +200,6 @@ model empleados {
   @@index([cargo_id], map: "idx_empleados_cargo")
   @@index([deleted_at], map: "idx_empleados_deleted", where: raw("(deleted_at IS NULL)"))
   @@map("empleados")
-}
-
-model estado_contrato {
-  id        String      @id @db.Uuid
-  nombre    String      @db.VarChar(100)
-  contratos contratos[]
-}
-
-model estado_empleado {
-  id          String      @id @db.Uuid
-  descripcion String      @unique @db.VarChar(100)
-  empleados   empleados[]
 }
 
 model historial_planillas {
@@ -206,7 +220,7 @@ model historial_planillas {
   total_ingresos         Decimal              @default(0.0000) @db.Decimal(12, 4)
   total_descuentos       Decimal              @default(0.0000) @db.Decimal(12, 4)
   neto_a_pagar           Decimal              @default(0.0000) @db.Decimal(12, 4)
-  estado                 estado_planilla_enum @default(abierto)
+  estado                 estado_planilla_enum @default(ABIERTO)
   comentarios            String?
   activo                 Boolean              @default(true)
   created_at             DateTime             @default(now()) @db.Timestamptz(6)
@@ -218,13 +232,6 @@ model historial_planillas {
   @@index([periodo, estado], map: "idx_planilla_periodo_estado")
 }
 
-model regimen_pension {
-  id              String            @id @db.Uuid
-  nombre          String            @db.VarChar(100)
-  dato_financiero dato_financiero[]
-  tipo_afp        tipo_afp[]
-}
-
 model tareas_asistente {
   id                                               String             @id @db.Uuid
   asignado_a                                       String             @db.Uuid
@@ -232,7 +239,7 @@ model tareas_asistente {
   titulo                                           String             @db.VarChar(200)
   descripcion                                      String?
   fecha_entrega                                    DateTime?          @db.Date
-  estado                                           estado_tarea_enum  @default(pendiente)
+  estado                                           estado_tarea_enum  @default(PENDIENTE)
   anotaciones                                      String?
   deleted_at                                       DateTime?          @db.Timestamptz(6)
   created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
@@ -245,38 +252,9 @@ model tareas_asistente {
   @@index([estado], map: "idx_tareas_estado")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model tipo_afp {
-  id              String            @id @db.Uuid
-  id_regimen      String            @db.Uuid
-  nombre          String            @db.VarChar(100)
-  aportaciones    aportaciones[]
-  comisiones_afp  comisiones_afp[]
-  dato_financiero dato_financiero[]
-  regimen_pension regimen_pension   @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipo_afp_regimen")
-
-  @@index([id_regimen], map: "idx_tipo_afp_regimen")
-}
-
-model tipo_documento {
-  id             String      @id @db.Uuid
-  tipo_documento String      @unique @db.VarChar(100)
-  empleados      empleados[]
-}
-
-model tokens_seguridad {
-  id         String   @id @db.Uuid
-  usuario_id String   @db.Uuid
-  token_hash String   @db.VarChar(255)
-  proposito  String   @db.VarChar(50)
-  expira_en  DateTime @db.Timestamptz(6)
-  usado      Boolean  @default(false)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  usuarios   usuarios @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tokens_usuario")
-
-  @@index([id], map: "idx_tokens_activos", where: raw("(usado = false)"))
-  @@index([usuario_id, proposito], map: "idx_tokens_usuario")
-}
+// --------------------------------------------------------------------
+// Modelos de usuario y auditoria
+// --------------------------------------------------------------------
 
 model usuarios {
   id                                                       String             @id @db.Uuid
@@ -302,19 +280,96 @@ model usuarios {
   @@index([empleado_id], map: "idx_usuarios_empleado")
 }
 
+model tokens_seguridad {
+  id         String   @id @db.Uuid
+  usuario_id String   @db.Uuid
+  token_hash String   @db.VarChar(255)
+  proposito  String   @db.VarChar(50)
+  expira_en  DateTime @db.Timestamptz(6)
+  usado      Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  usuarios   usuarios @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tokens_usuario")
+
+  @@index([id], map: "idx_tokens_activos", where: raw("(usado = false)"))
+  @@index([usuario_id, proposito], map: "idx_tokens_usuario")
+}
+
+model audit_log {
+  id              String    @id @db.Uuid
+  usuario_id      String?   @db.Uuid
+  accion          String    @db.VarChar(100)
+  tabla_afectada  String    @db.VarChar(100)
+  registro_id     String    @db.Uuid
+  valores_antes   Json?
+  valores_despues Json?
+  direccion_ip    String    @db.Inet
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  usuarios        usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_log_usuario")
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_log_fecha")
+  @@index([tabla_afectada], map: "idx_audit_log_tabla")
+  @@index([usuario_id], map: "idx_audit_log_usuario")
+}
+
+// ========================================================
+// MODELOS referente a la jornada
+// ========================================================
+
+model jornada {
+  id                 String      @id @db.Uuid
+  nombre             String      @db.VarChar(100) // Ej: "Turno Mañana"
+  hora_entrada       DateTime    @db.Time(6)      // Solo guarda la hora
+  hora_salida        DateTime    @db.Time(6)
+  tolerancia_minutos Int         @default(0)
+  activo             Boolean     @default(true)
+  deleted_at         DateTime?   @db.Timestamptz(6)
+  empleados          empleados[]
+}
+
+model asistencia_marcacion {
+  id             String              @id @db.Uuid
+  empleado_id    String              @db.Uuid
+  fecha_hora     DateTime            @db.Timestamptz(6)
+  tipo_marcacion tipo_marcacion_enum
+  metodo         String              @db.VarChar(50) // Ej: "BIOMETRICO", "APP"
+  creado_en      DateTime            @default(now()) @db.Timestamptz(6)
+  empleados      empleados           @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_asistencia_empleado")
+  @@index([empleado_id, fecha_hora], map: "idx_asistencia_emp_fecha")
+}
+
+model incidencias_mes {
+  id                 String                 @id @db.Uuid
+  empleado_id        String                 @db.Uuid
+  periodo            String                 @db.VarChar(7) // Ej: "2026-07"
+  dias_trabajados    Int                    @default(0)
+  faltas             Int                    @default(0)
+  minutos_tardanza   Int                    @default(0)
+  horas_extras_25    Decimal                @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_35    Decimal                @default(0.0000) @db.Decimal(12, 4)
+  estado             estado_incidencia_enum @default(PENDIENTE)
+  creado_en          DateTime               @default(now()) @db.Timestamptz(6)
+  actualizado_en     DateTime               @default(now()) @db.Timestamptz(6)
+  empleados          empleados              @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_empleado")
+  @@unique([empleado_id, periodo], map: "uq_incidencia_periodo")
+}
+
+// ========================================================
+// ENUMS GLOBALES
+// ========================================================
+
 enum estado_planilla_enum {
-  abierto
-  en_revision
-  congelado
-  declarado
+  ABIERTO
+  EN_REVISION
+  CONGELADO
+  DECLARADO
 }
 
 enum estado_tarea_enum {
-  pendiente
-  revision
-  aprobado
-  rechazado
-  auditado
+  PENDIENTE
+  REVISION
+  APROBADO
+  RECHAZADO
+  AUDITADO
 }
 
 enum rol_usuario_enum {
@@ -336,4 +391,15 @@ enum estado_job_enum {
 enum estado_sincronizacion_enum {
   COMPLETO
   BORRADOR
+}
+
+enum tipo_marcacion_enum {
+  ENTRADA
+  SALIDA
+}
+
+enum estado_incidencia_enum {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
 }

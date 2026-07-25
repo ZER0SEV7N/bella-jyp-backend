@@ -14,13 +14,22 @@ export class EliminarCargoUseCase {
 
   async execute(id: string) {
     try {
+      //Verificar si el cargo existe y no ha sido eliminado previamente
       const cargo = await this.prisma.cargo.findUnique({ where: { id } });
 
+<<<<<<< HEAD
       if (!cargo || cargo.deleted_at !== null)
         throw new NotFoundException({
           title: 'Cargo no encontrado',
           detail: 'El cargo no existe o ya se encuentra eliminado.',
         });
+=======
+      if (!cargo || cargo.deleted_at !== null) throw new NotFoundException({
+        title: 'Cargo no encontrado',
+        detail: 'El cargo no existe o ya se encuentra eliminado.',
+      });
+      
+>>>>>>> feature/soporte
 
       //Evitar desactivar un cargo si hay empleados activos ocupándolo
       const empleadosAsignados = await this.prisma.empleados.count({
@@ -31,12 +40,20 @@ export class EliminarCargoUseCase {
         },
       });
 
+<<<<<<< HEAD
       //Enviar el error
       if (empleadosAsignados > 0)
         throw new BadRequestException({
           title: 'Eliminación bloqueada',
           detail: `Este cargo está siendo ocupado por ${empleadosAsignados} empleado(s) activo(s). Debe reasignarlos antes de desactivar el cargo.`,
         });
+=======
+      //Si hay empleados activos asignados al cargo, lanzar una excepción para bloquear la eliminación
+      if (empleadosAsignados > 0) throw new BadRequestException({
+        title: 'Eliminación bloqueada',
+        detail: `Este cargo está siendo ocupado por ${empleadosAsignados} empleado(s) activo(s). Debe reasignarlos antes de desactivar el cargo.`,
+      });
+>>>>>>> feature/soporte
 
       const cargoEliminado = await this.prisma.cargo.update({
         where: { id },

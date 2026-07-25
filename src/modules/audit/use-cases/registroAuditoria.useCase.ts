@@ -1,4 +1,4 @@
-//src/modules/audit/auditar.useCase.ts
+//src/modules/audit/use-cases/RegistroAuditoria.useCase.ts
 //Caso de uso para registrar auditoría en el sistema
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '@/common/cls/cls.constants';
@@ -8,7 +8,7 @@ import { ClsService } from 'nestjs-cls';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 
 @Injectable()
-export class AuditCreateUseCase {
+export class RegistroAuditoriaUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,

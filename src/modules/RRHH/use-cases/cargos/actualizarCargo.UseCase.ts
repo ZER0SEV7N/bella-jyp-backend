@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ActualizarCargoDto } from '@jyp/shared-contracts';
-
 //Caso de uso
 @Injectable()
 export class ActualizarCargoUseCase {
@@ -25,7 +24,7 @@ export class ActualizarCargoUseCase {
             'El cargo que intenta actualizar no existe o ha sido eliminado.',
         });
 
-      //Si el payload incluye un id_area nuevo, validamos que exista
+      //Si el payload incluye un id_area nuevo, verificar que el area destino exista y esté activa antes de proceder con la actualización
       if (payload.id_area && payload.id_area !== cargoActual.id_area) {
         const areaDestino = await this.prisma.area.findUnique({
           where: { id: payload.id_area },
@@ -39,6 +38,7 @@ export class ActualizarCargoUseCase {
           });
       }
 
+      //Actualizar el cargo con los nuevos datos proporcionados en el payload
       const cargoActualizado = await this.prisma.cargo.update({
         where: { id },
         data: {
