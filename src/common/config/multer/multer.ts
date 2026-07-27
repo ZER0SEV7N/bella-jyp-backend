@@ -1,11 +1,12 @@
 import { diskStorage } from 'multer';
 import { randomUUID } from 'crypto';
 import { BadRequestException } from '@nestjs/common';
-export const configracionMulter = {
+import { extname } from 'path';
+export const configracionMulter: any = {
   storage: diskStorage({
     destination: './contratos',
     filename: (req, file, cb) => {
-      const nombreFile = `${Date.now()}-${randomUUID()}archivo`;
+      const nombreFile = `${Date.now()}-${randomUUID()}-${extname(file.originalname)}`;
       cb(null, nombreFile);
     },
   }),
@@ -20,5 +21,5 @@ export const configracionMulter = {
     }
     cb(null, true);
   },
-  limits: { filezise: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 },
 };

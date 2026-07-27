@@ -13,7 +13,6 @@ import {
   UsePipes,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 //casos de uso
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from '../use-cases/area/actualizarArea.useCase';

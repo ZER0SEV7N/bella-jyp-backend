@@ -21,7 +21,7 @@ import { EliminarCargoUseCase } from './use-cases/cargos/eliminarCargo.UseCase';
 import { ActiveCargoUseCase } from './use-cases/cargos/activeCargo.useCase';
 import { ObtenerCargoUseCase } from './use-cases/cargos/obtenerCargo.useCase';
 // --- CASOS DE USO: EMPLEADO ---
-import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
+import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.UseCase';
 import { ObtenerEmpleadosUseCase } from './use-cases/empleado/obtenerEmpleados.useCase';
 import { EditarEmpleadoUseCase } from './use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from './use-cases/empleado/eliminarEmpleado.useCase';

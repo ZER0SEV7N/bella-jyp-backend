@@ -6,7 +6,7 @@ import { RRHHModule } from './modules/RRHH/RRHH.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/config/redis/redis.module';
 import { AuditModule } from './modules/audit/audit.module';
-import { ContratoModule } from './modules/contratos/contratos.module';
+import { ContratoModule } from './modules/contrato/contrato.module';
 
 @Module({
   imports: [

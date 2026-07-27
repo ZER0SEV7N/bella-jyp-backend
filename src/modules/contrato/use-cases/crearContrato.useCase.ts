@@ -7,12 +7,8 @@ export class CrearContratoUseCase {
   async execute(datosContrato: datosContratoDto) {
     //crear uuid
     try {
-      const nuevoId = crypto.randomUUID();
       const contrato = await this.prisma.contratos.create({
-        data: {
-          id: nuevoId,
-          ...datosContrato,
-        },
+        data: datosContrato,
       });
       return contrato;
     } catch (error) {
