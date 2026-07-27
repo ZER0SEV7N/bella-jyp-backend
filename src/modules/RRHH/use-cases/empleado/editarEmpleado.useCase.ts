@@ -31,18 +31,11 @@ export class EditarEmpleadoUseCase {
           where: { nro_documento: payload.nro_documento },
         });
 
-<<<<<<< HEAD
         if (docExistente)
           throw new BadRequestException({
             title: 'Documento Duplicado',
             detail: `El DNI/Documento ${payload.nro_documento} ya pertenece a otro colaborador.`,
           });
-=======
-        if (docExistente) throw new BadRequestException({
-          title: 'Documento Duplicado',
-          detail: `El DNI/Documento ${payload.nro_documento} ya pertenece a otro colaborador.`,
-        });
->>>>>>> feature/soporte
       }
 
       const empleadoActualizado = await this.prisma.empleados.update({

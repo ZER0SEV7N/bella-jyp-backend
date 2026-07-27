@@ -10,14 +10,8 @@ export class ActiveCargoUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(idCargo: string) {
-<<<<<<< HEAD
-    const idValidado = z.string().uuid().parse(idCargo);
+    const idValidado = z.string().parse(idCargo);
 
-=======
-    //Validar que el ID proporcionado sea un UUID válido
-    const idValidado = z.uuid().parse(idCargo);
-    
->>>>>>> feature/soporte
     try {
       const data = await this.prisma.cargo.update({
         where: {
