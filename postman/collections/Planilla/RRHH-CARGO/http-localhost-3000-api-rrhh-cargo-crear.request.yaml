@@ -1,0 +1,20 @@
+$kind: http-request
+name: http://localhost:3000/api/rrhh/cargo/crear
+url: http://localhost:3000/api/rrhh/cargo/crear
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"id_area\": \"018f4a7c-7777-7000-1111-000000000001\",\r
+
+    \    \"nombre\": \"Analista de Base de Datos\",\r
+
+    \    \"descripcion\": \"Gestión de Prisma y PostgreSQL\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: ""
+order: 1785198945185
