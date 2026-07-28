@@ -48,7 +48,18 @@ export class EmpleadoController {
   /**
    * Crear un nuevo empleado
    * POST - /api/rrhh/empleado/crear
-   * @param payload : dtoCreateEmpleado
+   * @param payload : CrearEmpleadoDto {
+   *                     "cargo_id": "uuid",
+   *                     "area_id": "uuid",
+   *                     "documento_id": "uuid",
+   *                     "estado_empleado_id": "uuid",
+   *                     "nro_documento": "string",
+   *                     "nombre": "string",
+   *                     "apellido": "string",
+   *                     "fecha_nacimiento": "date (ISO 8601)",
+   *                     "fecha_inicio": "date (ISO 8601)",
+   *                     "asig_familiar": "Boolean"
+   *                  }
    * @URL : http://localhost:3000/api/rrhh/empleado/crear
    */
   @Post('crear')
@@ -61,6 +72,13 @@ export class EmpleadoController {
   /**
    * Listar colaboradores con paginación y filtros
    * GET - /api/rrhh/empleados
+   * @Query queryParams : ObtenerEmpleadosQueryDto {
+   *    "page": 1,
+   *    "limit": 10,
+   *    "area_id": "uuid",
+   *    "cargo_id": "uuid",
+   *    "activo": "Boolean"
+   * }
    */
   @Get()
   //@Roles('ADMIN', 'RRHH', 'CONTADOR')

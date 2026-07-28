@@ -1,6 +1,9 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 //src/modules/RRHH/use-cases/empleado/ObtenerEmpleados.useCase.ts
 //Caso de uso para obtener empleados con paginación y filtros en el módulo de RRHH
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ObtenerEmpleadosQueryDto } from '@jyp/shared-contracts';
 
@@ -13,9 +16,13 @@ export class ObtenerEmpleadosUseCase {
     const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
 
     //Construir el objeto de filtros dinámicamente según los parámetros proporcionados
+<<<<<<< HEAD
     const whereClause: any = {
       deleted_at: null, //Solo empleados no eliminados
     };
+=======
+    const whereClause: any = { deleted_at: null }; //Solo empleados no eliminados
+>>>>>>> feature/soporte
 
     //Agregar filtros condicionales
     if (area_id) whereClause.area_id = area_id;
