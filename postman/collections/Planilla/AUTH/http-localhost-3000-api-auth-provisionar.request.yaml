@@ -8,7 +8,7 @@ body:
 
     \  \"tipo_documento\": \"DNI\",\r
 
-    \  \"nro_documento\": \"12345678\",\r
+    \  \"nro_documento\": \"70112233\",\r
 
     \  \"email\": \"admin@jyp.com\",\r
 
@@ -18,4 +18,4 @@ body:
 
     }"
 examples: .resources/http-localhost-3000-api-auth-provisionar.resources/examples
-order: 1854676724501370
+order: 2351554840367431

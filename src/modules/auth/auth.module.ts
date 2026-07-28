@@ -9,6 +9,7 @@ import { ProvisionarUsuarioUseCase } from './use-cases/crearUsuarioInterno.useCa
 import { RecuperacionPasswordUseCases } from './use-cases/recuperacionPassword.useCases';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '@/common/prisma/prisma.module';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { PrismaModule } from '@/common/prisma/prisma.module';
     LoginUseCase,
     ProvisionarUsuarioUseCase,
     RecuperacionPasswordUseCases,
+    JwtStrategy,
   ],
-  exports: [JwtModule], //Exportado por si otros módulos requieren verificar tokens manualmente
+  exports: [JwtModule, JwtStrategy], //Exportado por si otros módulos requieren verificar tokens manualmente
 })
 export class AuthModule {}
