@@ -2,8 +2,8 @@
 //Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH
 import { Controller, Post, Body, HttpCode, HttpStatus, Delete, Param ,Patch, UseGuards, UsePipes, Get, Query } from '@nestjs/common';
 //validacion de estructura de datos mediate el zod
-import { CrearEmpleadoSchema, ObtenerEmpleadosQuerySchema } from '@jyp/shared-contracts';
-import type { CrearEmpleadoDto, EditarEmpleadoDto, ObtenerEmpleadosQueryDto } from '@jyp/shared-contracts';
+import { CrearEmpleadoSchema, ListarEmpleadosQuerySchema } from '@jyp/shared-contracts';
+import type { CrearEmpleadoDto, EditarEmpleadoDto, ListarEmpleadosQueryDto } from '@jyp/shared-contracts';
 //casos de uso
 import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase'
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
@@ -11,7 +11,7 @@ import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.
 import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
-import { ObtenerEmpleadosUseCase } from '../use-cases/empleado/obtenerEmpleados.useCase';
+import { ListarEmpleadosUseCase } from '../use-cases/empleado/listarEmpleados.useCase';
 import { Roles } from '@/common/decorators/roles.decorator';
 
 @Controller('api/rrhh/empleado')
@@ -22,7 +22,7 @@ export class EmpleadoController {
     private readonly editarEmpleadoUseCase: EditarEmpleadoUseCase,
     private readonly eliminarEmpleadoUseCase: EliminarEmpleadoUseCase,
     private readonly activeEmpleadoUseCase: ActiveEmpleadoUseCase,
-    private readonly obtenerEmpleadosUseCase: ObtenerEmpleadosUseCase,
+    private readonly listarEmpleadosUseCase: ListarEmpleadosUseCase,
   ) {}
 
   /**
@@ -40,7 +40,7 @@ export class EmpleadoController {
    *                     "fecha_inicio": "date (ISO 8601)",
    *                     "asig_familiar": "Boolean"
    *                  }
-   * @URL : http://localhost:3000/api/rrhh/empleado/crear
+   * 
    */
   @Post('crear')
   //@Roles('ADMIN', 'RRHH')
@@ -52,7 +52,7 @@ export class EmpleadoController {
   /**
    * Listar colaboradores con paginación y filtros
    * GET - /api/rrhh/empleados
-   * @Query queryParams : ObtenerEmpleadosQueryDto {
+   * @Query queryParams : ListarEmpleadosQueryDto {
    *    "page": 1,
    *    "limit": 10,
    *    "area_id": "uuid",
@@ -62,9 +62,9 @@ export class EmpleadoController {
    */
   @Get()
   //@Roles('ADMIN', 'RRHH', 'CONTADOR')
-  @UsePipes(new ZodValidationPipe(ObtenerEmpleadosQuerySchema)) // Aplica validación a los Query Params
-  async obtenerTodos(@Query() queryParams: ObtenerEmpleadosQueryDto) {
-    return await this.obtenerEmpleadosUseCase.execute(queryParams);
+  @UsePipes(new ZodValidationPipe(ListarEmpleadosQuerySchema)) // Aplica validación a los Query Params
+  async obtenerTodos(@Query() queryParams: ListarEmpleadosQueryDto) {
+    return await this.listarEmpleadosUseCase.execute(queryParams);
   }
 
   /**

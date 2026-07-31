@@ -1,15 +1,16 @@
 //src/modules/RRHH/controller/Area.controller.ts
 //Controlador para manejar las operaciones relacionadas con las areas en el módulo de RRHH
-import { Controller, Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query } from '@nestjs/common';
 //casos de uso
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from '../use-cases/area/actualizarArea.useCase';
 import { EliminarAreaUseCase } from '../use-cases/area/eliminarArea.useCase';
 import { ActiveAreaUseCase } from '../use-cases/area/activeArea.useCase';
+import { ListarAreasUseCase } from '../use-cases/area/listarAreas.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { CrearAreaSchema, ActualizarAreaSchema } from '@jyp/shared-contracts';
-import type { CrearAreaDto, ActualizarAreaDto } from '@jyp/shared-contracts';
+import type { CrearAreaDto, ActualizarAreaDto, ListarAreasQueryDto } from '@jyp/shared-contracts';
 
 @Controller('api/rrhh/area')
 @UseGuards(JwtAccessGuard)
@@ -20,6 +21,7 @@ export class AreaController {
     private readonly actualizarAreaUseCase: ActualizarAreaUseCase,
     private readonly eliminarAreaUseCase: EliminarAreaUseCase,
     private readonly activeAreaUseCase: ActiveAreaUseCase,
+    private readonly listarAreasUseCase: ListarAreasUseCase
   ) {}
 
   /**
@@ -40,12 +42,14 @@ export class AreaController {
   /**
    * Actualizar un area existente
    * PATCH - /api/rrhh/area/:id/actualizar
-   * @param id string - UUID
+   * @param id_area string - UUID
    * @param payload : dtoActualizarAreaInput{
    *    "nombre" : "Area-Nro1",
    *    "descripcion" : "Descripcion-Nro1"
    * }
-   * @returns
+   * @returns 200 OK - El area ha sido actualizada exitosamente.
+   *          404 Not Found - El area con el ID proporcionado no existe.
+   *          400 Bad Request - Los datos proporcionados son inválidos.
    */
   @Patch(':id/actualizar')
   @UsePipes(new ZodValidationPipe(ActualizarAreaSchema))
@@ -59,8 +63,10 @@ export class AreaController {
   /**
    * Reactivar un area que se encuentra desactivada
    * PATCH - /api/rrhh/area/:id/reactive
-   * @param id - string - uuid
-   * @returns: Promise<any>
+   * @param id_area - string - uuid
+   * @returns: 200 OK - El area ha sido reactivada exitosamente.
+   *          404 Not Found - El area con el ID proporcionado no existe.
+   *          400 Bad Request - El area ya está activa.
    */
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
@@ -71,7 +77,7 @@ export class AreaController {
   /**
    * Eliminar un area (SOFT DELETE)
    * DELETE - /api/rrhh/area/:id/desactive
-   * @param id string - UUID
+   * @param id_area string - UUID
    * @returns
    */
   @Delete(':id/desactive')
@@ -80,4 +86,18 @@ export class AreaController {
     return await this.eliminarAreaUseCase.execute(id);
   }
   
+  /**
+   * Listar areas con paginación y filtros
+   * GET - /api/rrhh/area
+   * @Query queryParams : ListarAreasQueryDto {
+   *     "page": 1,
+   *    "limit": 10,
+   *   "activo": "Boolean"
+   * }
+   * @returns Un objeto con las areas encontradas y metadatos de paginación.
+   */
+  @Get()
+  async listarAreas(@Query() queryParams: ListarAreasQueryDto) {
+    return await this.listarAreasUseCase.listar(queryParams);
+  }
 }

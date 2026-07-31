@@ -1,0 +1,15 @@
+$kind: http-request
+name: http://localhost:3000/api/rrhh/cargo?page=1&limit=10
+url: http://localhost:3000/api/rrhh/cargo?page=1&limit=10
+method: GET
+queryParams:
+  page: "1"
+  limit: "10"
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: ""
+order: 3251416548465274

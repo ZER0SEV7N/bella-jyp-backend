@@ -10,8 +10,8 @@ import { CrearJornadaUseCase } from '../use-cases/jornadas/crearJornada.useCase'
 import { EditarJornadaUseCase } from '../use-cases/jornadas/editarJornada.useCase';
 import { ListarJornadaUseCase } from '../use-cases/jornadas/listarJornada.useCase';
 //DTOs y esquemas de validación
-import type { CrearJornadaDto, ActualizarJornadaDto, ObtenerJornadasQueryDto } from '@jyp/shared-contracts';
-import { CrearJornadaSchema, ActualizarJornadaSchema, ObtenerJornadasQuerySchema } from '@jyp/shared-contracts';
+import type { CrearJornadaDto, ActualizarJornadaDto, ListarJornadasQueryDto } from '@jyp/shared-contracts';
+import { CrearJornadaSchema, ActualizarJornadaSchema, ListarJornadasQuerySchema } from '@jyp/shared-contracts';
 
 @Controller('api/rrhh/jornadas')
 @UseGuards(JwtAccessGuard, RolesGuard)
@@ -55,8 +55,8 @@ export class JornadaController {
      */
     @Get()
     @Roles('ADMIN', 'RRHH', 'CONTADOR')
-    @UsePipes(new ZodValidationPipe(ObtenerJornadasQuerySchema))
-    async listarJornadas(@Query() query: ObtenerJornadasQueryDto) {
+    @UsePipes(new ZodValidationPipe(ListarJornadasQuerySchema))
+    async listarJornadas(@Query() query: ListarJornadasQueryDto) {
         return await this.listarJornadaUseCase.execute(query);
     }
 

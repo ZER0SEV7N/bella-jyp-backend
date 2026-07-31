@@ -5,13 +5,13 @@
 //Caso de uso para obtener empleados con paginación y filtros en el módulo de RRHH
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { ObtenerEmpleadosQueryDto } from '@jyp/shared-contracts';
+import { ListarEmpleadosQueryDto } from '@jyp/shared-contracts';
 
 @Injectable()
-export class ObtenerEmpleadosUseCase {
+export class ListarEmpleadosUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(query: ObtenerEmpleadosQueryDto) {
+  async execute(query: ListarEmpleadosQueryDto) {
     const { page, limit, area_id, cargo_id, activo } = query; //Desestructurar los parámetros de consulta
     const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
 

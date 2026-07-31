@@ -2,13 +2,13 @@
 //Caso de uso para listar las jornadas laborales con paginación y filtrado
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import type { ObtenerJornadasQueryDto } from '@jyp/shared-contracts';
+import type { ListarJornadasQueryDto } from '@jyp/shared-contracts';
 
 @Injectable()
 export class ListarJornadaUseCase {
     constructor(private readonly prisma: PrismaService) {}
 
-    async execute(query: ObtenerJornadasQueryDto) {
+    async execute(query: ListarJornadasQueryDto) {
         const { page, limit, activo } = query; //Obtener los parámetros de paginación y filtrado
         const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
 

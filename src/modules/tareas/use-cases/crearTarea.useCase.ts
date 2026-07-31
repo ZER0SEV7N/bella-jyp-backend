@@ -27,7 +27,7 @@ export class CrearTareaUseCase {
                     asignado_a: payload.asignado_a,
                     asignado_por: asignadoPorId,
                     titulo: payload.titulo,
-                    descripcion: payload.deescripcion || null,
+                    descripcion: payload.descripcion || null,
                     fecha_entrega: payload.fecha_entrega ? new Date(payload.fecha_entrega) : null,
                     estado: 'PENDIENTE',
                 },
