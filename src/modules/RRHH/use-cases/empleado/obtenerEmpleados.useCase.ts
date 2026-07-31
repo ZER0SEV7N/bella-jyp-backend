@@ -16,13 +16,7 @@ export class ObtenerEmpleadosUseCase {
     const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
 
     //Construir el objeto de filtros dinámicamente según los parámetros proporcionados
-<<<<<<< HEAD
-    const whereClause: any = {
-      deleted_at: null, //Solo empleados no eliminados
-    };
-=======
     const whereClause: any = { deleted_at: null }; //Solo empleados no eliminados
->>>>>>> feature/soporte
 
     //Agregar filtros condicionales
     if (area_id) whereClause.area_id = area_id;

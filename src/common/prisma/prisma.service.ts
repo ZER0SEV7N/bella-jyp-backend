@@ -69,7 +69,9 @@ export class PrismaService
               return query(args);
 
             //Filtar solo operaciones DML (Create, Update, Delete) para inyectar auditoría
-            const isDML = ['create', 'update', 'delete', 'upsert'].includes(operation,);
+            const isDML = ['create', 'update', 'delete', 'upsert'].includes(
+              operation,
+            );
             if (!isDML) return query(args);
 
             let valoresAntes = null; //Variable para almacenar los valores antes de la operación (para auditoría)
@@ -92,13 +94,16 @@ export class PrismaService
 
             //Capturar el estado Exacto después de la operación para operaciones de Create y Update
             let valoresDespues = null;
-            if(operation === 'create' || operation === 'update' || operation === 'upsert') 
+            if (
+              operation === 'create' ||
+              operation === 'update' ||
+              operation === 'upsert'
+            )
               valoresDespues = resultado;
 
             //Extraer información de auditoría del contexto de la solicitud usando ClsService
             let userId = clsService.get(CLS_USER_ID) || 'system';
             if (!userId || userId === 'system') userId = null;
-            
 
             const ipAddress = clsService.get(CLS_IP_ADDRESS) || '127.0.0.1';
 

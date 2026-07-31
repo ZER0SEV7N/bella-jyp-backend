@@ -15,8 +15,7 @@ import {
 import { CrearContratoUseCase } from '../use-cases/crearContrato.useCase';
 import { EliminarContratoUseCase } from '../use-cases/eliminarContrato.useCase';
 import { RenovarContratoUseCase } from '../use-cases/renovarContrato.useCase';
-
-//add
+//comon y  librerias
 import { FileInterceptor } from '@nest-lab/fastify-multer';
 import { configracionMulter } from '@/common/config/multer/multer';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
@@ -35,15 +34,27 @@ export class ContratoController {
     private readonly renovaContratoUseCase: RenovarContratoUseCase,
     private readonly editarContratoUseCase: EditarContratoUseCase,
   ) {}
-
+  /**
+   * @Url :POST -  http://localhost:3000/api/contrato/crear
+   * @param file : pdf
+   * @param payload {
+   *
+   * }
+   */
   @Post('crear')
   @UseInterceptors(FileInterceptor('file', configracionMulter))
   async crear(
     @UploadedFile() file: Express.Multer.File,
     @Body(new ZodValidationPipe(datosContratoSchema)) payload: datosContratoDto,
   ) {
-    return await this.crearContratoUseCase.execute(payload);
+    return await this.crearContratoUseCase.execute(payload, file.filename);
   }
+  /**
+   * @Url :PUT -  http://localhost:3000/api/contrato/:id/editar
+   * @param file : pdf
+   * @param payload {
+   * }
+   */
   //actualziar
   @Put(':id/editar')
   @UsePipes(new ZodValidationPipe(editarContratoSchema))

@@ -4,12 +4,13 @@ import { datosContratoDto } from '@jyp/shared-contracts';
 @Injectable()
 export class CrearContratoUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(datosContrato: datosContratoDto) {
+  async execute(datosContrato: datosContratoDto, URL: string) {
     //crear uuid
     try {
       const contrato = await this.prisma.contratos.create({
         data: {
           id: crypto.randomUUID(),
+          url: URL,
           ...datosContrato,
         },
       });

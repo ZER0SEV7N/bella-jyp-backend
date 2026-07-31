@@ -10,7 +10,15 @@ import { TareasModule } from './modules/tareas/tareas.module';
 import { ContratoModule } from './modules/contrato/contrato.module';
 
 @Module({
-  imports: [AuthModule, RRHHModule, PrismaModule, RedisModule, AuditModule, TareasModule, ContratoModule],
+  imports: [
+    AuthModule,
+    RRHHModule,
+    PrismaModule,
+    RedisModule,
+    AuditModule,
+    TareasModule,
+    ContratoModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

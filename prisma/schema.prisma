@@ -112,6 +112,7 @@ model contratos {
   id              String          @id @db.Uuid
   empleado_id     String          @db.Uuid
   id_estado       String          @db.Uuid
+  url             String          @db.VarChar(225)
   tipo_modalidad  String?         @db.VarChar(100)
   fecha_inicio    DateTime        @db.Date
   fecha_fin       DateTime?       @db.Date

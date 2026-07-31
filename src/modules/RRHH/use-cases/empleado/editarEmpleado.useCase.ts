@@ -1,8 +1,12 @@
 //src/modules/RRHH/use-cases/empleado/editarEmpleado.useCase.ts
-//Case de uso para editar un empleado en la base de datos. 
-//Se encarga de validar la existencia del empleado, verificar que el documento no esté duplicado y actualizar los datos del empleado en la base de datos. 
+//Case de uso para editar un empleado en la base de datos.
+//Se encarga de validar la existencia del empleado, verificar que el documento no esté duplicado y actualizar los datos del empleado en la base de datos.
 //Maneja excepciones para casos de empleado no encontrado, documento duplicado y errores internos durante la actualización.
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { EditarEmpleadoDto } from '@jyp/shared-contracts';
 
