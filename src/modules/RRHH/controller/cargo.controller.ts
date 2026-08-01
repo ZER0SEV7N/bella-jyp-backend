@@ -11,8 +11,17 @@ import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
 import type { CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto } from '@jyp/shared-contracts';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+import {
+  ApiSwaggerCargosController,
+  ApiSwaggerCrearCargo,
+  ApiSwaggerActualizarCargo,
+  ApiSwaggerDesactivarCargo,
+  ApiSwaggerReactivarCargo,
+  ApiSwaggerListarCargos,
+} from '../decorators/cargo-swagger.decorator';
 
 //Controller para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
+@ApiSwaggerCargosController()
 @Controller('api/rrhh/cargo')
 @UseGuards(JwtAccessGuard)
 export class CargoController {
@@ -37,6 +46,7 @@ export class CargoController {
    *          400 Bad Request - Los datos proporcionados son inválidos.
    *           
    */
+  @ApiSwaggerCrearCargo()
   @Post('crear')
   @UsePipes(new ZodValidationPipe(CrearCargoSchema))
   //@roles('ADMIN', 'RRHH')
@@ -58,6 +68,7 @@ export class CargoController {
    *          404 Not Found - El cargo con el ID proporcionado no existe.
    *          400 Bad Request - Los datos proporcionados son inválidos.
    */
+  @ApiSwaggerActualizarCargo()
   @Put(':id/actualizar')
   @UsePipes(new ZodValidationPipe(ActualizarCargoSchema))
   //@roles('ADMIN', 'RRHH')
@@ -75,6 +86,7 @@ export class CargoController {
    * DELETE /api/rrhh/cargo/@param /desactive
    * @param id string - uuid
    */
+  @ApiSwaggerDesactivarCargo()
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
   //@roles('ADMIN', 'RRHH')
@@ -88,8 +100,10 @@ export class CargoController {
    * PATCH /api/rrhh/cargo/@param /reactive
    * @param id string - uuid
    */
+  @ApiSwaggerReactivarCargo()
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
+  //@roles('ADMIN', 'RRHH')
   async reactive(@Param('id', ParseUUIDPipe) id: string) {
     return await this.activeCargoUseCase.execute(id);
   }
@@ -106,7 +120,9 @@ export class CargoController {
    * }
    * @returns Un objeto con los cargos encontrados y metadatos de paginación.
    */
+    @ApiSwaggerListarCargos()
     @Get()
+    // @Roles('ADMIN', 'RRHH')
     async listarCargos(@Query() queryParams: ListarCargosQueryDto) {
        return await this.listarCargosUseCase.listar(queryParams);
     }

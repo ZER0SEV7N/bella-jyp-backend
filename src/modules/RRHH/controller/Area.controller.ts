@@ -9,9 +9,18 @@ import { ActiveAreaUseCase } from '../use-cases/area/activeArea.useCase';
 import { ListarAreasUseCase } from '../use-cases/area/listarAreas.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { CrearAreaSchema, ActualizarAreaSchema } from '@jyp/shared-contracts';
+import { CrearAreaSchema, ActualizarAreaSchema, ListarAreasQuerySchema } from '@jyp/shared-contracts';
 import type { CrearAreaDto, ActualizarAreaDto, ListarAreasQueryDto } from '@jyp/shared-contracts';
+import {
+  ApiSwaggerAreasController,
+  ApiSwaggerCrearArea,
+  ApiSwaggerActualizarArea,
+  ApiSwaggerDesactivarArea,
+  ApiSwaggerReactivarArea,
+  ApiSwaggerListarAreas,
+} from '../decorators/area-swagger.decorator';
 
+@ApiSwaggerAreasController()
 @Controller('api/rrhh/area')
 @UseGuards(JwtAccessGuard)
 export class AreaController {
@@ -33,6 +42,7 @@ export class AreaController {
    * }
    * @Returns
    */
+  @ApiSwaggerCrearArea()
   @Post('crear')
   @UsePipes(new ZodValidationPipe(CrearAreaSchema))
   async crear(@Body() payload: CrearAreaDto) {
@@ -51,6 +61,7 @@ export class AreaController {
    *          404 Not Found - El area con el ID proporcionado no existe.
    *          400 Bad Request - Los datos proporcionados son inválidos.
    */
+  @ApiSwaggerActualizarArea()
   @Patch(':id/actualizar')
   @UsePipes(new ZodValidationPipe(ActualizarAreaSchema))
   async update(
@@ -68,6 +79,7 @@ export class AreaController {
    *          404 Not Found - El area con el ID proporcionado no existe.
    *          400 Bad Request - El area ya está activa.
    */
+  @ApiSwaggerReactivarArea()
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
   async reactive(@Param('id') id: string) {
@@ -80,6 +92,7 @@ export class AreaController {
    * @param id_area string - UUID
    * @returns
    */
+  @ApiSwaggerDesactivarArea()
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
   async eliminar(@Param('id') id: string) {
@@ -96,7 +109,10 @@ export class AreaController {
    * }
    * @returns Un objeto con las areas encontradas y metadatos de paginación.
    */
+  @ApiSwaggerListarAreas()
   @Get()
+  // @Roles('ADMIN', 'RRHH')
+  @UsePipes(new ZodValidationPipe(ListarAreasQuerySchema))
   async listarAreas(@Query() queryParams: ListarAreasQueryDto) {
     return await this.listarAreasUseCase.listar(queryParams);
   }

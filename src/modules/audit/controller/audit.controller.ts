@@ -10,7 +10,13 @@ import type { ObtenerAuditQueryDto, AuditLogDto } from '@jyp/shared-contracts';
 import { ObtenerLogsUseCase } from '../use-cases/obtenerLogs.useCase';
 import { RegistroAuditoriaUseCase } from '../use-cases/registroAuditoria.useCase';
 import type { FastifyRequest } from 'fastify';
+import {
+  ApiSwaggerAuditoriaController,
+  ApiSwaggerCrearAuditoria,
+  ApiSwaggerListarAuditoria,
+} from '../decorators/audit-swagger.decorator';
 
+@ApiSwaggerAuditoriaController()
 @Controller('api/audit')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class AuditController {
@@ -32,6 +38,7 @@ export class AuditController {
    * @query registro_id: Filtrar por ID de registro (opcional).
    * @returns: Un objeto con los logs de auditoría y la información de paginación.
    */
+  @ApiSwaggerListarAuditoria()
   @Get('logs')
   //@Roles('ADMIN', 'CONTADOR')
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
@@ -49,10 +56,11 @@ export class AuditController {
    * @param payload: Datos del log de auditoría a registrar.
    * @returns: El log de auditoría registrado.
    */
-    @Post('logs')
-    @Roles('ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH')
-    @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
-    async registrarAuditoria(@Body() payload: AuditLogDto) {
-        return await this.registroAuditoriaUseCase.execute(payload);
-    }
+  @ApiSwaggerCrearAuditoria()
+  @Post('logs')
+  @Roles('ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH')
+  @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
+  async registrarAuditoria(@Body() payload: AuditLogDto) {
+      return await this.registroAuditoriaUseCase.execute(payload);
+  }
 }
