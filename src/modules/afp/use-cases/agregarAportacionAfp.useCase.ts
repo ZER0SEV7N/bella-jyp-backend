@@ -7,6 +7,5 @@ export class agregarAportacionAfpUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(dto: AportacionesDto) {
     //validar si el afp exite
-    
   }
 }
