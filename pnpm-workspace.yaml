@@ -1,6 +1,7 @@
 allowBuilds:
   '@nestjs/core': true
   '@prisma/engines': true
+  '@scarf/scarf': true
   argon2: true
   msgpackr-extract: true
   prisma: true

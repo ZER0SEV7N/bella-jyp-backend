@@ -57,7 +57,7 @@ export class PrismaService
         $allModels: {
           async $allOperations({model, operation, args, query }) {
             //Omitir tablas de auditoría para evitar recursión infinita
-            if(!model || ['audit_log', 'carga_masiva_jobs', 'anotacion_tareas'].includes(model)) return query(args);
+            if(!model || ['audit_log', 'carga_masiva_jobs', 'anotacion_tareas', 'tokens_seguridad'].includes(model)) return query(args);
 
             //Filtar solo operaciones DML (Create, Update, Delete) para inyectar auditoría
             const isDML = ['create', 'update', 'delete', 'upsert'].includes(operation,);
