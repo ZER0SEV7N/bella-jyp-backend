@@ -7,14 +7,11 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
-  ApiConsumes,
   ApiParam,
+  ApiExtension
 } from '@nestjs/swagger';
 
 /**
- * ===========================
- * AREAS
- * ===========================
  * Decorador personalizado para documentar los endpoints de autenticación en Swagger.
  * @param tag - Nombre de la etiqueta para agrupar los endpoints en Swagger.
  * @param summary - Resumen de la operación para mostrar en Swagger.
@@ -22,7 +19,7 @@ import {
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 export function ApiSwaggerAreasController() {
-    return applyDecorators(ApiTags('Modulo RRHH - Areas'), ApiBearerAuth('JWT-auth'));
+    return applyDecorators(ApiTags('Modulo RRHH - Areas'), ApiBearerAuth('JWT-auth'), ApiExtension('x-roles', ['ADMIN', 'RRHH']));
 }
 
 /**

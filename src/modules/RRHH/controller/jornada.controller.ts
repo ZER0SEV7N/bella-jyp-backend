@@ -12,7 +12,14 @@ import { ListarJornadaUseCase } from '../use-cases/jornadas/listarJornada.useCas
 //DTOs y esquemas de validación
 import type { CrearJornadaDto, ActualizarJornadaDto, ListarJornadasQueryDto } from '@jyp/shared-contracts';
 import { CrearJornadaSchema, ActualizarJornadaSchema, ListarJornadasQuerySchema } from '@jyp/shared-contracts';
+import { ApiSwaggerJordanaController, ApiSwaggerCrearJordana, ApiSwaggerListarJordana, ApiSwaggerActualizarJordana, ApiSwaggerDesactivarJordana, ApiSwaggerReactivarJordana } from '../decorators/jordana-swagger.decorator';
 
+/**
+ * Controlador para gestionar las jornadas laborales en el módulo de RRHH.
+ * @requires - JWT Bearer token para autenticación.
+ * @requires - Roles: ADMIN, RRHH para autorización.
+ */
+@ApiSwaggerJordanaController()
 @Controller('api/rrhh/jornadas')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class JornadaController {
@@ -37,6 +44,7 @@ export class JornadaController {
      * @returns La jornada laboral creada con sus detalles.
      * @throws {BadRequestException}
      */
+    @ApiSwaggerCrearJordana()
     @Post()
     //@Roles('ADMIN', 'RRHH')
     @UsePipes(new ZodValidationPipe(CrearJornadaSchema))
@@ -53,8 +61,9 @@ export class JornadaController {
      *          activo: boolean }
      * @returns Un objeto con las jornadas laborales encontradas y metadatos de paginación.
      */
+    @ApiSwaggerListarJordana()
     @Get()
-    @Roles('ADMIN', 'RRHH', 'CONTADOR')
+    //@Roles('ADMIN', 'RRHH', 'CONTADOR')
     @UsePipes(new ZodValidationPipe(ListarJornadasQuerySchema))
     async listarJornadas(@Query() query: ListarJornadasQueryDto) {
         return await this.listarJornadaUseCase.execute(query);
@@ -75,8 +84,9 @@ export class JornadaController {
      * @returns La jornada laboral actualizada con sus detalles.
      * @throws {NotFoundException, BadRequestException}
      */
+    @ApiSwaggerActualizarJordana()
     @Put('/:id')
-    @Roles('ADMIN', 'RRHH')
+    //@Roles('ADMIN', 'RRHH')
     @UsePipes(new ZodValidationPipe(ActualizarJornadaSchema))
     async actualizarJornada(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ActualizarJornadaDto) {
         return await this.editarJornadaUseCase.execute(id, dto);
@@ -91,8 +101,9 @@ export class JornadaController {
      * @throws {NotFoundException, BadRequestException}
      * 
     */
+    @ApiSwaggerDesactivarJordana()
     @Delete('/:id/desactivar')
-    @Roles('ADMIN', 'RRHH')
+    //@Roles('ADMIN', 'RRHH')
     @HttpCode(HttpStatus.OK)
     async desactivarJornada(@Param('id', ParseUUIDPipe) id: string) {
         return await this.estadoJornadaUseCase.desactivar(id);
@@ -106,8 +117,9 @@ export class JornadaController {
      * @returns La jornada laboral reactivada con sus detalles.
      * @throws {NotFoundException}
      */
+    @ApiSwaggerReactivarJordana()
     @Patch('/:id/reactivar')
-    @Roles('ADMIN', 'RRHH')
+    //@Roles('ADMIN', 'RRHH')
     @HttpCode(HttpStatus.OK)
     async reactivarJornada(@Param('id', ParseUUIDPipe) id: string) {
         return await this.estadoJornadaUseCase.reactivar(id);

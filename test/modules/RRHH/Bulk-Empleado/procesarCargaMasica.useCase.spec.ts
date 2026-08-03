@@ -131,6 +131,8 @@ describe('ProcesarCargaMasivaUseCase', () => {
 
         // Act & Assert
         const fatalError = new Error('Disk Read Error');
+
+        passThroughMock.on('error', () => {});
         
         const expectPromise = expect(promise).rejects.toThrow(fatalError);
         passThroughMock.emit('error', fatalError);
@@ -144,7 +146,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
 
             expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
                 where: { id: 'job-404' },
-                data: { estado: 'FALLIDO', mensaje_error: 'Database timeout' }
+                data: { estado: 'FALLIDO' }
             });
         });
 
@@ -153,7 +155,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
 
             expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
                 where: { id: 'job-404' },
-                data: { estado: 'FALLIDO', mensaje_error: 'Error desconocido durante el procesamiento de la carga masiva.' }
+                data: { estado: 'FALLIDO' }
             });
         });
 

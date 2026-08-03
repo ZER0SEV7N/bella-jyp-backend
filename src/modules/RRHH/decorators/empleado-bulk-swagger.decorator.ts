@@ -6,9 +6,9 @@ import {
     ApiBody,
     ApiResponse,
     ApiBearerAuth,
-    ApiQuery,
     ApiConsumes,
     ApiParam,
+    ApiExtension,
 } from '@nestjs/swagger';
 
 /**
@@ -19,7 +19,7 @@ import {
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 export function ApiSwaggerEmpleadosBulkController() {
-    return applyDecorators(ApiTags('Modulo RRHH - Carga Masiva CSVCarga Masiva CSV'), ApiBearerAuth('JWT-auth'));
+    return applyDecorators(ApiTags('Modulo RRHH - Carga Masiva CSVCarga Masiva CSV'), ApiBearerAuth('JWT-auth'), ApiExtension('x-roles', ['ADMIN', 'RRHH']));
 }
 
 /** 

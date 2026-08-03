@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CrearAreaUseCase } from '@/modules/RRHH/use-cases/area';
+import { CrearAreaUseCase } from '@/modules/RRHH/use-cases/area/crearArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 describe('CrearAreaUseCase', () => {
@@ -37,7 +37,7 @@ describe('CrearAreaUseCase', () => {
 
     // Datos que Prisma "devolvería" (simulados)
     const mockCreatedArea = {
-      id: ,
+      id: '123e4567-e89b-12d3-a456-426614174000',
       ...input,
       activo: true,
       deleted_at: null,

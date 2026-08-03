@@ -2,23 +2,32 @@
 //Pruebas unitarias para el servicio de Prisma
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { Pool } from 'pg';
+import { ClsService } from 'nestjs-cls';
 
 //Mockear los modulos externos de conexion antes de ejecutar las pruebas unitarias
-jest.mock('@prisma/client', () => ({
-    PrismaClient: class {
+jest.mock('@prisma/client', () => {
+    class MockPrismaClient {
         $connect = jest.fn();
         $disconnect = jest.fn();
+        $extends = jest.fn().mockReturnThis(); 
     }
-}));
+    return { PrismaClient: MockPrismaClient };
+});
 
-// Mockeamos 'pg' y '@prisma/adapter-pg' simplemente para que no hagan nada al importarlos
+//Mockear 'pg' y '@prisma/adapter-pg' simplemente para que no hagan nada al importarlos
 jest.mock('pg', () => ({ Pool: jest.fn() }));
 jest.mock('@prisma/adapter-pg', () => ({ PrismaPg: jest.fn() }));
 
+//Describir el bloque de pruebas unitarias para el servicio de Prisma
 describe('PrismaService', () => {
     let service: PrismaService;
     let originalEnv: NodeJS.ProcessEnv;
+
+    //Crear un Mock del ClsService para inyectarlo en el PrismaService
+    const mockClsService = {
+        get: jest.fn(),
+        set: jest.fn(),
+    };
 
     beforeEach(async () => {
         originalEnv = process.env;
@@ -28,9 +37,16 @@ describe('PrismaService', () => {
             NODE_ENV: 'test' 
         };
         const module: TestingModule = await Test.createTestingModule({
-            providers: [PrismaService],
+        providers: [
+            PrismaService,
+            {
+                provide: ClsService,
+                useValue: mockClsService, //Utiliza el Mock del ClsService en lugar del real
+            },
+        ],
         }).compile();
 
+        //Obtener la instancia del servicio de Prisma desde el módulo de pruebas
         service = module.get<PrismaService>(PrismaService);
     });
 
@@ -40,12 +56,18 @@ describe('PrismaService', () => {
         jest.clearAllMocks();
     });
 
+    //Prueba para verificar que el servicio se instancia correctamente
+    it('Debería instanciarse correctamente con dependencias simuladas', () => {
+        expect(service).toBeDefined();
+    });
+
+    //Prueba para verificar que el servicio lanza una excepción crítica si no existe DATABASE_URL en el entorno
     it('Deberia Lanzar una excepcion critica si no existe DATABASE_URL en el entorno', async () => {
         //Arrange: Simulamos que DATABASE_URL no está definida
         delete process.env.DATABASE_URL;
         
         //Act & Assert: Esperamos que la instanciación del servicio lance un error crítico
-        expect(() => new PrismaService()).toThrow(
+        expect(() => new PrismaService(mockClsService as any)).toThrow(
             'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env'
         );
     });
@@ -80,7 +102,7 @@ describe('PrismaService', () => {
         process.env.NODE_ENV = 'development';
         
         // Act
-        const devService = new PrismaService();
+        const devService = new PrismaService(mockClsService as any);
 
         // Assert: Simplemente validamos que se pudo instanciar correctamente sin errores 
         // al pasar por la rama de "development".

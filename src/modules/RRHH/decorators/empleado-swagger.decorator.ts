@@ -8,6 +8,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiParam,
+  ApiExtension,
 } from '@nestjs/swagger';
 
 /**
@@ -18,7 +19,7 @@ import {
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 export function ApiSwaggerEmpleadosController() {
-    return applyDecorators(ApiTags('Modulo RRHH - Empleados'), ApiBearerAuth('JWT-auth'));
+    return applyDecorators(ApiTags('Modulo RRHH - Empleados'), ApiBearerAuth('JWT-auth'), ApiExtension('x-roles', ['ADMIN', 'RRHH']));
 }
 
 /**
