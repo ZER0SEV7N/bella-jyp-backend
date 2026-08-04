@@ -2,12 +2,13 @@
 //Controlador para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
 import { Controller,Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query, } from '@nestjs/common';
 //casos de uso
-import { CrearCargoUseCase} from '../use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.useCase';
-import { EliminarCargoUseCase } from '../use-cases/cargos/eliminarCargo.useCase';
+import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.UseCase';
+import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.UseCase';
+import { EliminarCargoUseCase } from '../use-cases/cargos/eliminarCargo.UseCase';
 import { ActiveCargoUseCase } from '../use-cases/cargos/activeCargo.useCase';
 import { ListarCargosUseCase } from '../use-cases/cargos/listarCargos.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { ObtenerCargoUseCase } from '../use-cases/cargos/obtenerCargo.useCase';
 import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
 import type { CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto } from '@jyp/shared-contracts';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
@@ -31,8 +32,13 @@ export class CargoController {
     private readonly eliminarCargoUseCase: EliminarCargoUseCase,
     private readonly listarCargosUseCase: ListarCargosUseCase,
     private readonly activeCargoUseCase: ActiveCargoUseCase,
+    private readonly obtenerCargoUseCase: ObtenerCargoUseCase,
   ) {}
 
+  @Get(':id/obtener')
+  async obtener(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.obtenerCargoUseCase.execute(id);
+  }
   /**
    * Crear un nuevo cargo
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden crear un nuevo cargo.
@@ -74,11 +80,10 @@ export class CargoController {
   //@roles('ADMIN', 'RRHH')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() payload: ActualizarCargoDto
+    @Body() payload: ActualizarCargoDto,
   ) {
     return await this.actualizarCargoUseCase.execute(id, payload);
   }
-
 
   /**
    * Eliminar un cargo (SOFT DELETE)

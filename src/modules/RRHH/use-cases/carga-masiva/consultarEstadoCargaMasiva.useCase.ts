@@ -27,7 +27,10 @@ export class ConsultarEstadoCargaMasivaUseCase {
       },
     });
 
-    if (!job) throw new NotFoundException(`El lote de carga masiva con ID ${jobId} no existe o no te pertenece.`);
+    if (!job)
+      throw new NotFoundException(
+        `El lote de carga masiva con ID ${jobId} no existe o no te pertenece.`,
+      );
 
     return job;
   }

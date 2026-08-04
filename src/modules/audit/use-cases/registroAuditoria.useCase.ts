@@ -29,14 +29,18 @@ export class RegistroAuditoriaUseCase {
           accion: payload.accion,
           tabla_afectada: payload.tabla_afectada,
           registro_id: payload.registro_id,
-          valores_antes: payload.valores_antes ? JSON.parse(JSON.stringify(payload.valores_antes)) : null,
-          valores_despues: payload.valores_despues ? JSON.parse(JSON.stringify(payload.valores_despues)) : null,
+          valores_antes: payload.valores_antes
+            ? JSON.parse(JSON.stringify(payload.valores_antes))
+            : null,
+          valores_despues: payload.valores_despues
+            ? JSON.parse(JSON.stringify(payload.valores_despues))
+            : null,
           direccion_ip: ipAddress,
         },
       });
 
       return auditLog;
-       } catch (error) {
+    } catch (error) {
       throw new InternalServerErrorException({
         title: 'Fallo de Auditoría Manual',
         detail: 'No se pudo guardar el rastro del sistema.',

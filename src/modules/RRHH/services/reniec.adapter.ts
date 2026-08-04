@@ -18,7 +18,8 @@ export interface CiudadanoReniec {
 @Injectable()
 export class ReniecAdapter {
   private readonly logger = new Logger(ReniecAdapter.name); //Logger para registrar información y errores
-  private readonly RENIEC_API_URL = process.env.RENIEC_API_URL || 'https://api.reniec.gob.pe'; //URL del servicio de RENIEC
+  private readonly RENIEC_API_URL =
+    process.env.RENIEC_API_URL || 'https://api.reniec.gob.pe'; //URL del servicio de RENIEC
   private readonly RENIEC_API_KEY = process.env.RENIEC_API_KEY;
 
   async consultarDni(dni: string): Promise<CiudadanoReniec> {
@@ -38,7 +39,10 @@ export class ReniecAdapter {
 
       clearTimeout(timeoutId); //Limpiar el timeout si la respuesta llega a tiempo
 
-      if (!res.ok) throw new BadGatewayException( `La API de RENIEC respondió con status: ${res.status}` );
+      if (!res.ok)
+        throw new BadGatewayException(
+          `La API de RENIEC respondió con status: ${res.status}`,
+        );
 
       const data = await res.json();
 

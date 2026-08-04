@@ -112,6 +112,7 @@ model contratos {
   id              String          @id @db.Uuid
   empleado_id     String          @db.Uuid
   id_estado       String          @db.Uuid
+  url             String          @db.VarChar(225)
   tipo_modalidad  String?         @db.VarChar(100)
   fecha_inicio    DateTime        @db.Date
   fecha_fin       DateTime?       @db.Date
@@ -151,49 +152,50 @@ model dato_financiero {
 
 // --- Modulo de carga masiva ---
 model CargaMasivaJob {
-  id              String   @id @db.Uuid
-  usuario_id      String   @db.Uuid 
-  total_registros Int      @default(0)
-  procesados      Int      @default(0)
-  fallidos        Int      @default(0)
-  errores_detalle Json?    @db.JsonB
-  estado          estado_job_enum @default(EN_COLA) 
-  created_at      DateTime @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+  id              String          @id @db.Uuid
+  usuario_id      String          @db.Uuid
+  total_registros Int             @default(0)
+  procesados      Int             @default(0)
+  fallidos        Int             @default(0)
+  errores_detalle Json?           @db.JsonB
+  estado          estado_job_enum @default(EN_COLA)
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+
   @@map("carga_masiva_jobs")
 }
 
 model empleados {
-  id                  String                       @id @db.Uuid
-  cargo_id            String                       @db.Uuid
-  area_id             String                       @db.Uuid
-  documento_id        String                       @db.Uuid
-  estado_empleado_id  String                       @db.Uuid
-  jornada_id          String?                      @db.Uuid
-  nombre              String?                      @db.VarChar(100)
-  apellido            String?                      @db.VarChar(100)
-  nro_documento       String                       @unique @db.VarChar(20)
-  fecha_nacimiento    DateTime?                    @db.Date
-  fecha_inicio        DateTime?                    @db.Date
-  fecha_cese          DateTime?                    @db.Date
-  afp_fecha_filiacion DateTime?                    @db.Date
-  asig_familiar       Boolean                      @default(false)
-  activo              Boolean                      @default(true)
-  deleted_at          DateTime?                    @db.Timestamptz(6)
-  created_at          DateTime                     @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime                     @default(now()) @db.Timestamptz(6)
+  id                    String                     @id @db.Uuid
+  cargo_id              String                     @db.Uuid
+  area_id               String                     @db.Uuid
+  documento_id          String                     @db.Uuid
+  estado_empleado_id    String                     @db.Uuid
+  jornada_id            String?                    @db.Uuid
+  nombre                String?                    @db.VarChar(100)
+  apellido              String?                    @db.VarChar(100)
+  nro_documento         String                     @unique @db.VarChar(20)
+  fecha_nacimiento      DateTime?                  @db.Date
+  fecha_inicio          DateTime?                  @db.Date
+  fecha_cese            DateTime?                  @db.Date
+  afp_fecha_filiacion   DateTime?                  @db.Date
+  asig_familiar         Boolean                    @default(false)
+  activo                Boolean                    @default(true)
+  deleted_at            DateTime?                  @db.Timestamptz(6)
+  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                   @default(now()) @db.Timestamptz(6)
   estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
-  contratos           contratos[]
-  dato_financiero     dato_financiero?
-  area                area                  @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
-  cargo               cargo                 @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_cargo")
-  estado_empleado     estado_empleado       @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
-  tipo_documento      tipo_documento        @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
-  jornada             jornada?              @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_jornada")
-  asistencias         asistencia_marcacion[]
-  incidencias         incidencias_mes[]
-  historial_planillas historial_planillas[]
-  usuarios            usuarios?
+  contratos             contratos[]
+  dato_financiero       dato_financiero?
+  area                  area                       @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
+  cargo                 cargo                      @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_cargo")
+  estado_empleado       estado_empleado            @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
+  tipo_documento        tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
+  jornada               jornada?                   @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_jornada")
+  asistencias           asistencia_marcacion[]
+  incidencias           incidencias_mes[]
+  historial_planillas   historial_planillas[]
+  usuarios              usuarios?
 
   @@index([activo], map: "idx_empleados_activo", where: raw("(activo = true)"))
   @@index([area_id], map: "idx_empleados_area")
@@ -318,7 +320,7 @@ model audit_log {
 model jornada {
   id                 String      @id @db.Uuid
   nombre             String      @db.VarChar(100) // Ej: "Turno Mañana"
-  hora_entrada       DateTime    @db.Time(6)      // Solo guarda la hora
+  hora_entrada       DateTime    @db.Time(6) // Solo guarda la hora
   hora_salida        DateTime    @db.Time(6)
   tolerancia_minutos Int         @default(0)
   activo             Boolean     @default(true)
@@ -334,22 +336,24 @@ model asistencia_marcacion {
   metodo         String              @db.VarChar(50) // Ej: "BIOMETRICO", "APP"
   creado_en      DateTime            @default(now()) @db.Timestamptz(6)
   empleados      empleados           @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_asistencia_empleado")
+
   @@index([empleado_id, fecha_hora], map: "idx_asistencia_emp_fecha")
 }
 
 model incidencias_mes {
-  id                 String                 @id @db.Uuid
-  empleado_id        String                 @db.Uuid
-  periodo            String                 @db.VarChar(7) // Ej: "2026-07"
-  dias_trabajados    Int                    @default(0)
-  faltas             Int                    @default(0)
-  minutos_tardanza   Int                    @default(0)
-  horas_extras_25    Decimal                @default(0.0000) @db.Decimal(12, 4)
-  horas_extras_35    Decimal                @default(0.0000) @db.Decimal(12, 4)
-  estado             estado_incidencia_enum @default(PENDIENTE)
-  creado_en          DateTime               @default(now()) @db.Timestamptz(6)
-  actualizado_en     DateTime               @default(now()) @db.Timestamptz(6)
-  empleados          empleados              @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_empleado")
+  id               String                 @id @db.Uuid
+  empleado_id      String                 @db.Uuid
+  periodo          String                 @db.VarChar(7) // Ej: "2026-07"
+  dias_trabajados  Int                    @default(0)
+  faltas           Int                    @default(0)
+  minutos_tardanza Int                    @default(0)
+  horas_extras_25  Decimal                @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_35  Decimal                @default(0.0000) @db.Decimal(12, 4)
+  estado           estado_incidencia_enum @default(PENDIENTE)
+  creado_en        DateTime               @default(now()) @db.Timestamptz(6)
+  actualizado_en   DateTime               @default(now()) @db.Timestamptz(6)
+  empleados        empleados              @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_empleado")
+
   @@unique([empleado_id, periodo], map: "uq_incidencia_periodo")
 }
 

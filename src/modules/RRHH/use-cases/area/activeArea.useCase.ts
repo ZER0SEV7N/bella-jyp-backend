@@ -32,7 +32,8 @@ export class ActiveAreaUseCase {
       //Manejo de error para evitar que el sistema falle silenciosamente
       throw new BadRequestException({
         title: 'Error al activar el área',
-        detail:'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail:
+          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }

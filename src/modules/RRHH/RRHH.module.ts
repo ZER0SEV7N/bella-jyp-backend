@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ClsModule } from 'nestjs-cls';
 // --- CONTROLADORES ---
-import { AreaController } from './controller/area.controller';
+import { AreaController } from './controller/Area.controller';
 import { CargoController } from './controller/cargo.controller';
 import { EmpleadoController } from './controller/empleado.controller';
 import { EmpleadoBulkController } from './controller/empleado-bulk.controller';
@@ -13,16 +13,27 @@ import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from './use-cases/area/actualizarArea.useCase';
 import { EliminarAreaUseCase } from './use-cases/area/eliminarArea.useCase';
 import { ActiveAreaUseCase } from './use-cases/area/activeArea.useCase';
+<<<<<<< HEAD
 import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
+=======
+import { ObtenerAreaUseCase } from './use-cases/area/obtenerArea.useCase';
+>>>>>>> feature/RrhhModule
 // --- CASOS DE USO: CARGO ---
-import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.useCase';
-import { EliminarCargoUseCase } from './use-cases/cargos/eliminarCargo.useCase';
+import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.UseCase';
+import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.UseCase';
+import { EliminarCargoUseCase } from './use-cases/cargos/eliminarCargo.UseCase';
 import { ActiveCargoUseCase } from './use-cases/cargos/activeCargo.useCase';
+<<<<<<< HEAD
 import { ListarCargosUseCase } from './use-cases/cargos/listarCargos.useCase';
 // --- CASOS DE USO: EMPLEADO ---
 import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
 import { ListarEmpleadosUseCase } from './use-cases/empleado/listarEmpleados.useCase';
+=======
+import { ObtenerCargoUseCase } from './use-cases/cargos/obtenerCargo.useCase';
+// --- CASOS DE USO: EMPLEADO ---
+import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.UseCase';
+import { ObtenerEmpleadosUseCase } from './use-cases/empleado/obtenerEmpleados.useCase';
+>>>>>>> feature/RrhhModule
 import { EditarEmpleadoUseCase } from './use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from './use-cases/empleado/eliminarEmpleado.useCase';
 import { ActiveEmpleadoUseCase } from './use-cases/empleado/activeEmpleado.useCase';

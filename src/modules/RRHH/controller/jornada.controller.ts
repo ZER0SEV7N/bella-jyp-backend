@@ -1,5 +1,20 @@
 //src/modules/jornada/use-cases/estadoJornada.useCase.ts
-import { Controller, Post, Param, Body, Get, Query, UseGuards, UsePipes, ParseUUIDPipe, HttpCode, Put, Delete, HttpStatus, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Param,
+  Body,
+  Get,
+  Query,
+  UseGuards,
+  UsePipes,
+  ParseUUIDPipe,
+  HttpCode,
+  Put,
+  Delete,
+  HttpStatus,
+  Patch,
+} from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -23,12 +38,12 @@ import { ApiSwaggerJordanaController, ApiSwaggerCrearJordana, ApiSwaggerListarJo
 @Controller('api/rrhh/jornadas')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class JornadaController {
-    constructor(
-        private readonly estadoJornadaUseCase: EstadoJornadaUseCase,
-        private readonly crearJornadaUseCase: CrearJornadaUseCase,
-        private readonly editarJornadaUseCase: EditarJornadaUseCase,
-        private readonly listarJornadaUseCase: ListarJornadaUseCase
-    ) {}
+  constructor(
+    private readonly estadoJornadaUseCase: EstadoJornadaUseCase,
+    private readonly crearJornadaUseCase: CrearJornadaUseCase,
+    private readonly editarJornadaUseCase: EditarJornadaUseCase,
+    private readonly listarJornadaUseCase: ListarJornadaUseCase,
+  ) {}
 
     /**
      * Crear una nueva jornada laboral

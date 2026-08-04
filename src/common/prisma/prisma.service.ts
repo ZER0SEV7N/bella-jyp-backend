@@ -30,7 +30,10 @@ export class PrismaService
     const connectionString = process.env.DATABASE_URL;
 
     //Defensa Perimetral (Fail-Fast)
-    if (!connectionString) throw new Error( 'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env');
+    if (!connectionString)
+      throw new Error(
+        'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
+      );
 
     //Instanciar el Pool nativo de conexiones de PostgreSQL
     const pool = new Pool({ connectionString });
@@ -55,38 +58,46 @@ export class PrismaService
     const extendedClient = this.$extends({
       query: {
         $allModels: {
-          async $allOperations({model, operation, args, query }) {
+          async $allOperations({ model, operation, args, query }) {
             //Omitir tablas de auditoría para evitar recursión infinita
             if(!model || ['audit_log', 'carga_masiva_jobs', 'anotacion_tareas', 'tokens_seguridad'].includes(model)) return query(args);
 
             //Filtar solo operaciones DML (Create, Update, Delete) para inyectar auditoría
-            const isDML = ['create', 'update', 'delete', 'upsert'].includes(operation,);
+            const isDML = ['create', 'update', 'delete', 'upsert'].includes(
+              operation,
+            );
             if (!isDML) return query(args);
 
             let valoresAntes = null; //Variable para almacenar los valores antes de la operación (para auditoría)
 
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
-            if(operation === 'update' || operation === 'delete') {
-              try{
-                valoresAntes = await (originalPrisma as any)[model].findUnique({ where: (args as any).where });
+            if (operation === 'update' || operation === 'delete') {
+              try {
+                valoresAntes = await (originalPrisma as any)[model].findUnique({
+                  where: (args as any).where,
+                });
               } catch (error) {
-                localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`);
+                localLogger.warn(
+                  `Auditoría: No se pudo obtener el estado previo de ${model}`,
+                );
               }
             }
-            
+
             //Ejecutar la consulta original de Prisma
             const resultado = await query(args);
 
             //Capturar el estado Exacto después de la operación para operaciones de Create y Update
             let valoresDespues = null;
-            if(operation === 'create' || operation === 'update' || operation === 'upsert') 
+            if (
+              operation === 'create' ||
+              operation === 'update' ||
+              operation === 'upsert'
+            )
               valoresDespues = resultado;
-            
 
             //Extraer información de auditoría del contexto de la solicitud usando ClsService
             let userId = clsService.get(CLS_USER_ID) || 'system';
             if (!userId || userId === 'system') userId = null;
-            
 
             const ipAddress = clsService.get(CLS_IP_ADDRESS) || '127.0.0.1';
 
@@ -98,20 +109,30 @@ export class PrismaService
                   usuario_id: userId,
                   accion: operation.toUpperCase(),
                   tabla_afectada: model,
-                  registro_id: (resultado as any)?.id || (args as any).where?.id || IdentityGenerator.generateId(),
-                  valores_antes: valoresAntes ? JSON.stringify(valoresAntes) : null,
-                  valores_despues: valoresDespues ? JSON.stringify(valoresDespues) : null,
+                  registro_id:
+                    (resultado as any)?.id ||
+                    (args as any).where?.id ||
+                    IdentityGenerator.generateId(),
+                  valores_antes: valoresAntes
+                    ? JSON.stringify(valoresAntes)
+                    : null,
+                  valores_despues: valoresDespues
+                    ? JSON.stringify(valoresDespues)
+                    : null,
                   direccion_ip: ipAddress,
-                }
+                },
               });
             } catch (error) {
-              localLogger.error(`Auditoría: No se pudo registrar la operación de ${operation} en ${model}`, error);
+              localLogger.error(
+                `Auditoría: No se pudo registrar la operación de ${operation} en ${model}`,
+                error,
+              );
             }
 
             return resultado;
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     //Inyectar los métodos de ciclo de vida de NestJS en el cliente extendido para que se ejecuten correctamente
@@ -128,9 +149,14 @@ export class PrismaService
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log('Conexión ACID establecida vía Driver Adapter nativo (pg).', );
+      this.logger.log(
+        'Conexión ACID establecida vía Driver Adapter nativo (pg).',
+      );
     } catch (error) {
-      this.logger.error('Fallo crítico al inicializar la base de datos.', error );
+      this.logger.error(
+        'Fallo crítico al inicializar la base de datos.',
+        error,
+      );
       throw error;
     }
   }
@@ -138,6 +164,8 @@ export class PrismaService
   //Cerrar la conexión de forma segura al destruir el módulo
   async onModuleDestroy() {
     await this.$disconnect();
-    this.logger.log('Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).');
+    this.logger.log(
+      'Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).',
+    );
   }
 }
