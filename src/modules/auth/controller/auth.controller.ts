@@ -3,7 +3,7 @@
 import { Controller, Post, Body, Res, UsePipes, HttpCode, HttpStatus, UseGuards, UnauthorizedException} from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { LoginUseCase } from '../use-cases/login.useCase';
-import { ProvisionarUsuarioUseCase } from '../use-cases/crearUsuarioInterno.useCase';
+import { ProvisionarUsuarioUseCase } from '../use-cases/provisionarUsuario.useCase';
 import { RecuperacionPasswordUseCases } from '../use-cases/recuperacionPassword.useCases';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { RefrescarTokenUseCase } from '../use-cases/refrescarToken.useCase';

@@ -5,7 +5,7 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './controller/auth.controller';
 import { LoginUseCase } from './use-cases/login.useCase';
-import { ProvisionarUsuarioUseCase } from './use-cases/crearUsuarioInterno.useCase';
+import { ProvisionarUsuarioUseCase } from './use-cases/provisionarUsuario.useCase';
 import { RecuperacionPasswordUseCases } from './use-cases/recuperacionPassword.useCases';
 import { RefrescarTokenUseCase } from './use-cases/refrescarToken.useCase';
 import { JwtModule } from '@nestjs/jwt';

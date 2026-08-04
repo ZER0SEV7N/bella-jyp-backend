@@ -117,11 +117,11 @@ describe('ProcesarCargaMasivaUseCase', () => {
         expect(mockQueue.add).toHaveBeenCalledWith('lote-0', expect.any(Object), { removeOnComplete: true });
     });
 
-   it('Deberia rechazar la promesa si ocurre un error en el stream de lectura', async () => {
+    it('Deberia rechazar la promesa si ocurre un error en el stream de lectura', async () => {
         // Arrange
         const dummyStream = new Readable({ objectMode: true, read() {} });
         
-        // ¡ESTA ES LA LÍNEA MÁGICA! Evita que el error rebote y crashee el proceso de Node.
+        //Evita que el error rebote y crashee el proceso de Node.
         dummyStream.on('error', () => {}); 
 
         const passThroughMock = new PassThrough({ objectMode: true });
@@ -162,6 +162,8 @@ describe('ProcesarCargaMasivaUseCase', () => {
        it('Deberia capturar el error y loguearlo si la actualizacion a FALLIDO tambien falla', async () => {
             const dbError = new Error('Connection Refused');
             mockPrisma.cargaMasivaJob.update.mockRejectedValue(dbError);
+
+            jest.spyOn(console, 'error').mockImplementation(() => {});
 
             useCase.handleJobFailure('job-404', new Error('Error inicial'));
 
