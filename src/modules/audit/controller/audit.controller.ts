@@ -65,20 +65,11 @@ export class AuditController {
    * @param payload: Datos del log de auditoría a registrar.
    * @returns: El log de auditoría registrado.
    */
-<<<<<<< HEAD
   @ApiSwaggerCrearAuditoria()
-=======
->>>>>>> feature/RrhhModule
   @Post('logs')
   @Roles('ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH')
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async registrarAuditoria(@Body() payload: AuditLogDto) {
-<<<<<<< HEAD
       return await this.registroAuditoriaUseCase.execute(payload);
   }
 }
-=======
-    return await this.registroAuditoriaUseCase.execute(payload);
-  }
-}
->>>>>>> feature/RrhhModule

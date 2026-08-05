@@ -8,15 +8,9 @@ import type { ListarJornadasQueryDto } from '@jyp/shared-contracts';
 export class ListarJornadaUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-<<<<<<< HEAD
     async execute(query: ListarJornadasQueryDto) {
         const { page, limit, activo } = query; //Obtener los parámetros de paginación y filtrado
         const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
-=======
-  async execute(query: ObtenerJornadasQueryDto) {
-    const { page, limit, activo } = query; //Obtener los parámetros de paginación y filtrado
-    const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
->>>>>>> feature/RrhhModule
 
     const where: any = { deleted_at: null }; //Construir el objeto de filtrado para la consulta
     if (activo !== undefined) where.activo = activo;

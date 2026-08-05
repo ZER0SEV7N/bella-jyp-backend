@@ -1,16 +1,12 @@
 generator client {
   provider        = "prisma-client-js"
-  engineType      = "library"
   previewFeatures = ["partialIndexes"]
+  engineType      = "library"
 }
 
 datasource db {
   provider = "postgresql"
 }
-
-// ---------------------------------------------------------
-// Modelo de anotacion de tareas
-// ---------------------------------------------------------
 
 model anotacion_tareas {
   id               String           @id @db.Uuid
@@ -112,7 +108,6 @@ model contratos {
   id              String          @id @db.Uuid
   empleado_id     String          @db.Uuid
   id_estado       String          @db.Uuid
-  url             String          @db.VarChar(225)
   tipo_modalidad  String?         @db.VarChar(100)
   fecha_inicio    DateTime        @db.Date
   fecha_fin       DateTime?       @db.Date
@@ -120,6 +115,7 @@ model contratos {
   observacion     String?
   deleted_at      DateTime?       @db.Timestamptz(6)
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  url             String          @db.VarChar(225)
   empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
   estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
 
@@ -150,17 +146,16 @@ model dato_financiero {
   @@index([empleado_id], map: "idx_dato_fin_empleado")
 }
 
-// --- Modulo de carga masiva ---
 model CargaMasivaJob {
   id              String          @id @db.Uuid
   usuario_id      String          @db.Uuid
   total_registros Int             @default(0)
   procesados      Int             @default(0)
   fallidos        Int             @default(0)
-  errores_detalle Json?           @db.JsonB
-  estado          estado_job_enum @default(EN_COLA)
+  errores_detalle Json?
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+  estado          estado_job_enum @default(EN_COLA)
 
   @@map("carga_masiva_jobs")
 }
@@ -171,7 +166,6 @@ model empleados {
   area_id               String                     @db.Uuid
   documento_id          String                     @db.Uuid
   estado_empleado_id    String                     @db.Uuid
-  jornada_id            String?                    @db.Uuid
   nombre                String?                    @db.VarChar(100)
   apellido              String?                    @db.VarChar(100)
   nro_documento         String                     @unique @db.VarChar(20)
@@ -184,17 +178,18 @@ model empleados {
   deleted_at            DateTime?                  @db.Timestamptz(6)
   created_at            DateTime                   @default(now()) @db.Timestamptz(6)
   updated_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  jornada_id            String?                    @db.Uuid
   estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
+  asistencias           asistencia_marcacion[]
   contratos             contratos[]
   dato_financiero       dato_financiero?
   area                  area                       @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
   cargo                 cargo                      @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_cargo")
   estado_empleado       estado_empleado            @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
-  tipo_documento        tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
   jornada               jornada?                   @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_jornada")
-  asistencias           asistencia_marcacion[]
-  incidencias           incidencias_mes[]
+  tipo_documento        tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
   historial_planillas   historial_planillas[]
+  incidencias           incidencias_mes[]
   usuarios              usuarios?
 
   @@index([activo], map: "idx_empleados_activo", where: raw("(activo = true)"))
@@ -254,10 +249,6 @@ model tareas_asistente {
   @@index([estado], map: "idx_tareas_estado")
 }
 
-// --------------------------------------------------------------------
-// Modelos de usuario y auditoria
-// --------------------------------------------------------------------
-
 model usuarios {
   id                                                       String             @id @db.Uuid
   empleado_id                                              String             @unique @db.Uuid
@@ -313,14 +304,10 @@ model audit_log {
   @@index([usuario_id], map: "idx_audit_log_usuario")
 }
 
-// ========================================================
-// MODELOS referente a la jornada
-// ========================================================
-
 model jornada {
   id                 String      @id @db.Uuid
-  nombre             String      @db.VarChar(100) // Ej: "Turno Mañana"
-  hora_entrada       DateTime    @db.Time(6) // Solo guarda la hora
+  nombre             String      @db.VarChar(100)
+  hora_entrada       DateTime    @db.Time(6)
   hora_salida        DateTime    @db.Time(6)
   tolerancia_minutos Int         @default(0)
   activo             Boolean     @default(true)
@@ -333,7 +320,7 @@ model asistencia_marcacion {
   empleado_id    String              @db.Uuid
   fecha_hora     DateTime            @db.Timestamptz(6)
   tipo_marcacion tipo_marcacion_enum
-  metodo         String              @db.VarChar(50) // Ej: "BIOMETRICO", "APP"
+  metodo         String              @db.VarChar(50)
   creado_en      DateTime            @default(now()) @db.Timestamptz(6)
   empleados      empleados           @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_asistencia_empleado")
 
@@ -343,7 +330,7 @@ model asistencia_marcacion {
 model incidencias_mes {
   id               String                 @id @db.Uuid
   empleado_id      String                 @db.Uuid
-  periodo          String                 @db.VarChar(7) // Ej: "2026-07"
+  periodo          String                 @db.VarChar(7)
   dias_trabajados  Int                    @default(0)
   faltas           Int                    @default(0)
   minutos_tardanza Int                    @default(0)
@@ -356,10 +343,6 @@ model incidencias_mes {
 
   @@unique([empleado_id, periodo], map: "uq_incidencia_periodo")
 }
-
-// ========================================================
-// ENUMS GLOBALES
-// ========================================================
 
 enum estado_planilla_enum {
   ABIERTO
@@ -377,12 +360,12 @@ enum estado_tarea_enum {
 }
 
 enum rol_usuario_enum {
-  JYP
   ADMIN
   CONTADOR
   RRHH
   ASISTENTE
   EMPLEADO
+  JYP
 }
 
 enum estado_job_enum {

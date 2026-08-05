@@ -32,26 +32,6 @@ export class CrearTareaUseCase {
             'El usuario al que intenta asignar la tarea no existe o ha sido desactivado/eliminado.',
         });
 
-<<<<<<< HEAD
-            //Crear la tarea en la base de datos
-            const nuevaTarea = await this.prisma.tareas_asistente.create({
-                data: {
-                    id: IdentityGenerator.generateId(),
-                    asignado_a: payload.asignado_a,
-                    asignado_por: asignadoPorId,
-                    titulo: payload.titulo,
-                    descripcion: payload.descripcion || null,
-                    fecha_entrega: payload.fecha_entrega ? new Date(payload.fecha_entrega) : null,
-                    estado: 'PENDIENTE',
-                },
-            });
-            
-            return nuevaTarea;
-        } catch (error) {
-            if (error instanceof NotFoundException) throw error;
-            throw new BadRequestException('Error al registrar la asignacion de la tarea.');
-        }
-=======
       //Crear la tarea en la base de datos
       const nuevaTarea = await this.prisma.tareas_asistente.create({
         data: {
@@ -73,7 +53,6 @@ export class CrearTareaUseCase {
       throw new BadRequestException(
         'Error al registrar la asignacion de la tarea.',
       );
->>>>>>> feature/RrhhModule
     }
   }
 }

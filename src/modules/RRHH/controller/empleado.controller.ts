@@ -18,7 +18,7 @@ import {
 import { CrearEmpleadoSchema, EditarEmpleadoSchema, ListarEmpleadosQuerySchema } from '@jyp/shared-contracts';
 import type { CrearEmpleadoDto, EditarEmpleadoDto, ListarEmpleadosQueryDto } from '@jyp/shared-contracts';
 //casos de uso
-import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.UseCase';
+import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.useCase';
 import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';
