@@ -7,7 +7,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import type { crearTipoAfpDto } from '@jyp/shared-contracts';
 
 @Injectable()
-export class agregarTipoAfpUseCase {
+export class AgregarTipoAfpUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(dto: crearTipoAfpDto) {
     //validar si el regimen es aft

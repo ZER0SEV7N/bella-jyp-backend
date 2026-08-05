@@ -1,39 +1,45 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
-import type { crearComisionDto } from '@jyp/shared-contracts';
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import type { CrearComisionDto } from '@jyp/shared-contracts';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
-export class agregarComisionUseCase {
+export class AgregarComisionUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(dto: crearComisionDto) {
-    //validar que el tipo de afp exista
-    const tipo_afp = await this.prisma.tipo_afp.findUnique({
-      where: {
-        id: dto.afp_id,
-      },
-    });
-    //validar si es valido
-    if (!tipo_afp) {
-      throw new NotFoundException('tipo de afp no valido');
+
+  async execute(dto: CrearComisionDto) {
+    const [validar_tipo, comision_actual] = await Promise.all([
+      this.prisma.tipo_afp.findUnique({
+        where: { id: dto.tipo_afp_id },
+        include: { regimen_pension: true },
+      }),
+      this.prisma.comisiones_afp.findUnique({
+        where: { id: dto.anterior_comision.id },
+        select: { id: true, periodo_final: true },
+      }),
+    ]);
+
+    if (!validar_tipo || validar_tipo.regimen_pension.nombre !== 'AFP') {
+      throw new NotFoundException('AFP no encontrada o no acorde al regimen');
     }
-    try {
-      //agregar nueva comision de AFP
-      const comision = await this.prisma.comisiones_afp.create({
+
+    if (!comision_actual || comision_actual.periodo_final !== null) {
+      throw new NotFoundException('comision no encontrada o no esta vigente');
+    }
+
+    const nuevaComision = await this.prisma.$transaction(async (pr) => {
+      await pr.comisiones_afp.update({
+        where: { id: dto.anterior_comision.id },
+        data: { periodo_final: dto.anterior_comision.periodo_final },
+      });
+      return pr.comisiones_afp.create({
         data: {
           id: crypto.randomUUID(),
-          ...dto,
+          afp_id: dto.tipo_afp_id,
+          ...dto.nueva_comision,
         },
       });
-      return comision;
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Ocurrió un error al intentar crear el área',
-        error instanceof Error ? error.message : String(error),
-      );
-    }
+    });
+
+    return nuevaComision;
   }
 }

@@ -3,7 +3,7 @@ import { AportacionesDto } from '@jyp/shared-contracts';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 @Injectable()
-export class agregarAportacionUseCase {
+export class AgregarAportacionUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(dto: AportacionesDto) {
     //crear aportacion

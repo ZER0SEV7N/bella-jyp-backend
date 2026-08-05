@@ -8,13 +8,14 @@ import { RedisModule } from './common/config/redis/redis.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { TareasModule } from './modules/tareas/tareas.module';
 import { ContratoModule } from './modules/contrato/contrato.module';
-import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WebSocketsModule } from './common/websockets/webSockets.module';
 import { AlertModule } from './common/alert/aler.Module';
+import { afpModule } from './modules/afp/afp.module';
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
+    afpModule,
     AuthModule,
     RRHHModule,
     PrismaModule,
