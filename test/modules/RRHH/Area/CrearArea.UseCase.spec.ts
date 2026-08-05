@@ -1,4 +1,4 @@
-//test/RRHH/Area/CrearArea.UseCase.spec.ts
+//test/RRHH/Area/crearArea.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { CrearAreaUseCase } from '@/modules/RRHH/use-cases/area/crearArea.useCase';
@@ -71,26 +71,26 @@ describe('CrearAreaUseCase', () => {
   });
 
   it('Debería lanzar BadRequestException si no se envía el nombre del área (Falta de Atributo)', async () => {
-    // Arrange: Payload inválido forzado saltándose el tipado
+    //Arrange: Payload inválido forzado saltándose el tipado
     const payloadInvalido = { descripcion: 'Área sin nombre' } as any;
 
-    // Act & Assert
+    //Act & Assert
     await expect(useCase.execute(payloadInvalido)).rejects.toThrow(BadRequestException);
     await expect(useCase.execute(payloadInvalido)).rejects.toThrow('El nombre del área es estrictamente obligatorio.',);
 
-    // Verificamos que la BD nunca fue tocada porque el filtro lo detuvo antes
+    //Verificar que no se haya llamado a la base de datos
     expect(mockPrisma.area.findFirst).not.toHaveBeenCalled();
     expect(mockPrisma.area.create).not.toHaveBeenCalled();
   });
 
   it('Debería lanzar InternalServerErrorException si la base de datos falla al crear', async () => {
-    // Arrange: Todo va bien, pero la BD se cae en el momento exacto del insert
+    //Arrange: Todo va bien, pero la BD se cae en el momento exacto del insert
     mockPrisma.area.findFirst.mockResolvedValue(null);
     mockPrisma.area.create.mockRejectedValue(new Error('Database Connection Lost'));
 
     const payload = { nombre: 'Sistemas' };
 
-    // Act & Assert
+    //Act & Assert
     await expect(useCase.execute(payload)).rejects.toThrow(InternalServerErrorException);
   });
 });

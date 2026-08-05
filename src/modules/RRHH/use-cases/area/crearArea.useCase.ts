@@ -29,17 +29,15 @@ export class CrearAreaUseCase {
           id: newAreaId,
           nombre: dto.nombre,
           descripcion: dto.descripcion,
-          activo: true,
-        },
+          activo: true
+        }
       });
       //Retornar el área creada
       return area;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       
-
-      throw new InternalServerErrorException(
-        'Ocurrió un error al intentar crear el área',
+      throw new InternalServerErrorException('Ocurrió un error al intentar crear el área',
         error instanceof Error ? error.message : String(error),
       );
     }

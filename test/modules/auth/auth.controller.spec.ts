@@ -31,9 +31,7 @@ describe('AuthController', () => {
     });
 
     //Limpieza de mocks después de cada prueba
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
+    afterEach(() => jest.clearAllMocks());
 
 
     //=========================================================================

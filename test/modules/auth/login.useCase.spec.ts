@@ -49,9 +49,7 @@ describe('LoginUseCase', () => {
     });
 
     //Despues de cada prueba, limpiar los mocks
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
+    afterEach(() => jest.clearAllMocks());
 
 
     

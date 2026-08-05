@@ -31,9 +31,7 @@ describe('JwtStrategy', () => {
     });
 
     //Limpieza de mocks después de cada prueba
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
+    afterEach(() => jest.clearAllMocks());
 
     
     it('Deberia validar el payload, verificar la BD e inyectar el CLS context', async () => {

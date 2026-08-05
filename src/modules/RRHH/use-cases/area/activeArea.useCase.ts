@@ -11,9 +11,9 @@ export class ActiveAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
   //Método para ejecutar el caso de uso
   async execute(idArea: string) {
-    //validar que el ID proporcionado sea un UUID válido
-    const idValidado = z.uuid().parse(idArea);
     try {
+      //validar que el ID proporcionado sea un UUID válido
+      const idValidado = z.uuid().parse(idArea);
       //ejecutar con prisma
       const data = await this.prisma.area.update({
         where: { id: idValidado },

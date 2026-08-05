@@ -54,9 +54,7 @@ describe('RecuperacionPasswordUseCases', () => {
     });
 
     //Limpiar los mocks después de cada prueba
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
+    afterEach(() => jest.clearAllMocks());
 
     //=========================================================================
     //MÉTODO: SOLICITAR

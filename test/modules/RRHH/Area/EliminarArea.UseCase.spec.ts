@@ -47,28 +47,34 @@ describe('EliminarAreaUseCase', () => {
     });
 
     it('Debería lanzar NotFoundException si el área no existe o ya fue eliminada', async () => {
+        //Arrange: Configurar el mock para simular que el área no existe
         mockPrisma.area.findUnique.mockResolvedValue(null);
+        //Act & Assert: Ejecutar el caso de uso y verificar que lance NotFoundException
         await expect(useCase.execute('area-404')).rejects.toThrow(NotFoundException);
 
+        //Arrange: Configurar el mock para simular que el área ya fue eliminada
         mockPrisma.area.findUnique.mockResolvedValue({ id: 'area-123', deleted_at: new Date() });
+        //Act & Assert: Ejecutar el caso de uso y verificar que lance NotFoundException
         await expect(useCase.execute('area-123')).rejects.toThrow(NotFoundException);
     });
 
     it('Debería lanzar BadRequestException si el área tiene cargos activos', async () => {
+        //Arrange: Configurar el mock para simular que el área tiene cargos activos
         mockPrisma.area.findUnique.mockResolvedValue({ id: 'area-123', deleted_at: null });
-        // Simulamos que el área tiene 5 cargos asociados
         mockPrisma.cargo.count.mockResolvedValue(5); 
 
+        //Act & Assert: Ejecutar el caso de uso y verificar que lance BadRequestException
         await expect(useCase.execute('area-123')).rejects.toThrow(BadRequestException);
-        expect(mockPrisma.area.update).not.toHaveBeenCalled(); // Aseguramos que NO se borró
+        expect(mockPrisma.area.update).not.toHaveBeenCalled(); 
     });
 
     it('Debería lanzar InternalServerErrorException si la base de datos falla en el proceso', async () => {
+        //Arrange: Configurar el mock para simular un fallo en la base de datos 
         mockPrisma.area.findUnique.mockResolvedValue({ id: 'area-123', deleted_at: null });
         mockPrisma.cargo.count.mockResolvedValue(0);
-        // Falla el update por caída de BD
         mockPrisma.area.update.mockRejectedValue(new Error('DB Down'));
 
+        //Act & Assert: Ejecutar el caso de uso y verificar que lance InternalServerErrorException
         await expect(useCase.execute('area-123')).rejects.toThrow(InternalServerErrorException);
     });
 });

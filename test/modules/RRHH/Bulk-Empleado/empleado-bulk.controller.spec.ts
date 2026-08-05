@@ -29,10 +29,7 @@ describe('EmpleadoBulkController', () => {
       controllers: [EmpleadoBulkController],
       providers: [
         { provide: ProcesarCargaMasivaUseCase, useValue: mockProcesarUseCase },
-        {
-          provide: ConsultarEstadoCargaMasivaUseCase,
-          useValue: mockConsultarUseCase,
-        },
+        { provide: ConsultarEstadoCargaMasivaUseCase, useValue: mockConsultarUseCase },
         { provide: ClsService, useValue: mockClsService },
       ],
     }).compile();
@@ -40,38 +37,35 @@ describe('EmpleadoBulkController', () => {
     controller = module.get<EmpleadoBulkController>(EmpleadoBulkController);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  }); //Limpiamos los mocks entre pruebas
+  afterEach(() => jest.clearAllMocks()); //Limpiamos los mocks entre pruebas
 
   //====================================================================
   //PRUEBAS PARA: POST /api/rrhh/empleados/bulk (uploadBulk)
   //====================================================================
   describe('uploadBulk', () => {
     it('Deberia rebotar la peticion si no es multipart/form-data (Fail-Fast)', async () => {
+      //Arrange: Simular una petición que no es multipart/form-data
       const mockRequest = { isMultipart: () => false } as FastifyRequest;
       const mockResponse = { status: jest.fn() } as unknown as FastifyReply;
 
-      await expect(
-        controller.uploadBulk(mockRequest, mockResponse),
-      ).rejects.toThrow(BadRequestException);
+      //Act & Assert: Llamamos al endpoint y esperamos que lance BadRequestException
+      await expect(controller.uploadBulk(mockRequest, mockResponse)).rejects.toThrow(BadRequestException);
     });
 
     it('Deberia lanzar BadRequestException si no se encontró ningún archivo en la petición', async () => {
-      // Simulamos que es multipart, pero data.file() retorna undefined
+      //Arrange: Simular una petición multipart/form-data pero sin archivos adjuntos
       const mockRequest = {
         isMultipart: () => true,
         file: jest.fn().mockResolvedValue(undefined),
       } as unknown as FastifyRequest;
       const mockResponse = { status: jest.fn() } as unknown as FastifyReply;
 
-      await expect(
-        controller.uploadBulk(mockRequest, mockResponse),
-      ).rejects.toThrow('No se encontró ningún archivo en la petición.');
+      //Act & Assert: Llamamos al endpoint y esperamos que lance BadRequestException
+      await expect(controller.uploadBulk(mockRequest, mockResponse)).rejects.toThrow('No se encontró ningún archivo en la petición.');
     });
 
     it('Deberia lanzar BadRequestException si el archivo no es de tipo CSV', async () => {
-      // Simulamos que se subió un archivo, pero es un PDF
+      //Arrange: Simular que se subió un archivo, pero es un PDF
       const mockFile = {
         mimetype: 'application/pdf',
         file: { pipe: jest.fn() },
@@ -82,12 +76,12 @@ describe('EmpleadoBulkController', () => {
       } as unknown as FastifyRequest;
       const mockResponse = { status: jest.fn() } as unknown as FastifyReply;
 
-      await expect(
-        controller.uploadBulk(mockRequest, mockResponse),
-      ).rejects.toThrow('El archivo debe ser de tipo CSV.');
+      //Act & Assert: Llamar al endpoint y esperamos que lance BadRequestException
+      await expect(controller.uploadBulk(mockRequest, mockResponse)).rejects.toThrow('El archivo debe ser de tipo CSV.');
     });
 
     it('Deberia retornar 202 Accepted e invocar el caso de uso correctamente', async () => {
+      //Arrange: Simular la subida de un archivo CSV válido
       const mockFile = { mimetype: 'text/csv', file: { pipe: jest.fn() } };
       const mockRequest = {
         isMultipart: () => true,
@@ -95,12 +89,13 @@ describe('EmpleadoBulkController', () => {
       } as unknown as FastifyRequest;
       const mockResponse = { status: jest.fn() } as unknown as FastifyReply;
 
+      //Act: Llamar al endpoint con un archivo CSV válido
       const result = await controller.uploadBulk(mockRequest, mockResponse);
 
+      //Assert: Validar que el status de la respuesta sea 202 y que el caso de uso fue invocado correctamente
       expect(mockResponse.status).toHaveBeenCalledWith(202);
       expect(result.status).toBe(202);
       expect(result).toHaveProperty('jobId');
-      //Validamos que el procesamiento en segundo plano fue llamado con el stream del archivo
       expect(mockProcesarUseCase.execute).toHaveBeenCalledWith(
         expect.any(String), //jobId generado dinámicamente
         'user-uuid-123', //ID del usuario inyectado por el CLS
@@ -114,13 +109,13 @@ describe('EmpleadoBulkController', () => {
   //====================================================================
   describe('getBulkStatus', () => {
     it('Deberia lanzar BadRequestException si no se proporciona jobId', async () => {
-      await expect(controller.getBulkStatus('')).rejects.toThrow(
-        'El parámetro jobId es obligatorio.',
-      );
+      //Act & Assert: Llamamos al endpoint GET sin jobId y esperamos que lance BadRequestException
+      await expect(controller.getBulkStatus('')).rejects.toThrow('El parámetro jobId es obligatorio.');
     });
   });
 
   it('Deberia retornar la data del estado del job y el timestamp correctamente', async () => {
+    //Arrange: Configurar el mock para simular la respuesta del caso de uso    
     const mockJobId = 'job-12345';
     const mockStatusData = {
       id: mockJobId,
@@ -133,14 +128,11 @@ describe('EmpleadoBulkController', () => {
     //Simular la ejecución del caso de uso para retornar datos de estado
     mockConsultarUseCase.execute.mockResolvedValue(mockStatusData);
 
-    //Act: Llamamos al endpoint GET con un jobId válido
+    //Act: Llamar al endpoint GET con un jobId válido
     const result = await controller.getBulkStatus(mockJobId);
 
-    //Validamos que el caso de uso fue llamado con los parámetros correctos
-    expect(mockConsultarUseCase.execute).toHaveBeenCalledWith(
-      mockJobId,
-      'user-uuid-123',
-    );
+    //Assert: Validar que el caso de uso fue invocado correctamente y que la respuesta contiene los datos esperados
+    expect(mockConsultarUseCase.execute).toHaveBeenCalledWith(mockJobId, 'user-uuid-123');
     expect(result.data).toEqual(mockStatusData);
     expect(result).toHaveProperty('timestamp');
   });

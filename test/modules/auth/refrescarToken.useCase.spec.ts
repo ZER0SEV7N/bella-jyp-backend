@@ -34,9 +34,7 @@ describe('RefrescarTokenUseCase', () => {
     });
 
     //Limpieza de mocks después de cada prueba
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
+    afterEach(() => jest.clearAllMocks());
 
     it('Deberia retornar un nuevo Access Token si el Refresh Token es valido y el usuario este activo', async () => {
         //Arrange: Configurar los datos de prueba y los mocks

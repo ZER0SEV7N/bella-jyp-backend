@@ -41,9 +41,7 @@ describe('ProvisionarUsuarioUseCase', () => {
     });
 
     //Limpiar los mocks después de cada prueba
-    afterEach(() => {
-        jest.clearAllMocks(); //Limpiar todos los mocks después de cada prueba
-    });
+    afterEach(() => jest.clearAllMocks()); //Limpiar todos los mocks después de cada prueba
 
     it('Deberia crear un usuario exitosamente', async () => {
         //Arrange: Configurar los mocks para simular la existencia del empleado y la creación del usuario
