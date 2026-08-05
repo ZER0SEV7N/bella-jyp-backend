@@ -9,6 +9,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { TareasModule } from './modules/tareas/tareas.module';
 import { ContratoModule } from './modules/contrato/contrato.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WebSocketsModule } from './common/websockets/webSockets.module';
 import { AlertModule } from './common/alert/aler.Module';
@@ -24,6 +25,7 @@ import { AlertModule } from './common/alert/aler.Module';
     ContratoModule,
     AlertModule,
     WebSocketsModule,
+    UsuariosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

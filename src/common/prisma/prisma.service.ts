@@ -30,10 +30,9 @@ export class PrismaService
     const connectionString = process.env.DATABASE_URL;
 
     //Defensa Perimetral (Fail-Fast)
-    if (!connectionString)
-      throw new Error(
-        'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
-      );
+    if (!connectionString) throw new Error(
+      'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
+    );
 
     //Instanciar el Pool nativo de conexiones de PostgreSQL
     const pool = new Pool({ connectionString });
@@ -42,8 +41,7 @@ export class PrismaService
     const adapter = new PrismaPg(pool);
 
     //Inicializar el motor nativo con el adaptador inyectado
-    super({
-      adapter,
+    super({ adapter,
       log:
         process.env.NODE_ENV === 'development'
           ? ['query', 'error', 'warn']
@@ -71,26 +69,18 @@ export class PrismaService
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
             if (operation === 'update' || operation === 'delete') {
               try {
-                valoresAntes = await (originalPrisma as any)[model].findUnique({
-                  where: (args as any).where,
-                });
+                valoresAntes = await (originalPrisma as any)[model].findUnique({ where: (args as any).where });
               } catch (error) {
-                localLogger.warn(
-                  `Auditoría: No se pudo obtener el estado previo de ${model}`,
-                );
+                localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`, error);
               }
             }
 
             //Ejecutar la consulta original de Prisma
             const resultado = await query(args);
 
-            //Capturar el estado Exacto después de la operación para operaciones de Create y Update
+            //Capturar el estado Exacto después de la operación para operaciones de Create, Update y Upsert
             let valoresDespues = null;
-            if (
-              operation === 'create' ||
-              operation === 'update' ||
-              operation === 'upsert'
-            )
+            if (operation === 'create' || operation === 'update' || operation === 'upsert')
               valoresDespues = resultado;
 
             //Extraer información de auditoría del contexto de la solicitud usando ClsService
@@ -107,10 +97,7 @@ export class PrismaService
                   usuario_id: userId,
                   accion: operation.toUpperCase(),
                   tabla_afectada: model,
-                  registro_id:
-                    (resultado as any)?.id ||
-                    (args as any).where?.id ||
-                    IdentityGenerator.generateId(),
+                  registro_id: (resultado as any)?.id || (args as any).where?.id || IdentityGenerator.generateId(),
                   valores_antes: valoresAntes
                     ? JSON.stringify(valoresAntes)
                     : null,
@@ -121,10 +108,7 @@ export class PrismaService
                 },
               });
             } catch (error) {
-              localLogger.error(
-                `Auditoría: No se pudo registrar la operación de ${operation} en ${model}`,
-                error,
-              );
+              localLogger.error(`Auditoría: No se pudo registrar la operación de ${operation} en ${model}`, error);
             }
 
             return resultado;
