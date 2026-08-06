@@ -75,7 +75,7 @@ export class ProcesarFilaEmpleadoUseCase {
       },
       create: {
         id: IdentityGenerator.generateId(),
-        documento_id: fila.tipo_documento,
+        documento_id: tipoDoc.id,
         nro_documento: fila.nro_documento,
         nombre: nombreValidado,
         apellido: apellidoValidado,
