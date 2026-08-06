@@ -13,6 +13,8 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WebSocketsModule } from './common/websockets/webSockets.module';
 import { AlertModule } from './common/alert/aler.Module';
+import { AfpModule } from './modules/afp/afp.module';
+
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
@@ -26,6 +28,7 @@ import { AlertModule } from './common/alert/aler.Module';
     AlertModule,
     WebSocketsModule,
     UsuariosModule,
+    AfpModule,
   ],
   controllers: [AppController],
   providers: [AppService],

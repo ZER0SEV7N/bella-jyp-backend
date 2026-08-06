@@ -94,14 +94,17 @@ model regimen_pension {
 }
 
 model comisiones_afp {
-  id                 String   @id @db.Uuid
-  afp_id             String   @db.Uuid
-  periodo            String   @db.VarChar(50)
-  aporte_obligatorio Decimal  @default(0) @db.Decimal(6, 4)
-  comision_sobre_ra  Decimal  @default(0) @db.Decimal(6, 4)
-  prima_seguro       Decimal  @default(0) @db.Decimal(6, 4)
-  comision_mixta     Decimal  @default(0) @db.Decimal(6, 4)
-  tipo_afp           tipo_afp @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
+  id                 String    @id @db.Uuid
+  afp_id             String    @db.Uuid
+  aporte_obligatorio Decimal   @default(0) @db.Decimal(6, 4)
+  comision_sobre_ra  Decimal   @default(0) @db.Decimal(6, 4)
+  prima_seguro       Decimal   @default(0) @db.Decimal(6, 4)
+  comision_mixta     Decimal   @default(0) @db.Decimal(6, 4)
+  periodo_final      DateTime? @db.Date
+  periodo_inicio     DateTime  @db.Date
+  tipo_afp           tipo_afp  @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
+
+  @@index([afp_id, periodo_inicio], map: "idx_comisiones_afp_fechas")
 }
 
 model contratos {
