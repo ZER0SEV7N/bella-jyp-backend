@@ -37,7 +37,7 @@ describe('CrearAreaUseCase', () => {
 
     // Datos que Prisma "devolvería" (simulados)
     const mockCreatedArea = {
-      id: ,
+      id: 'area-uuid-123',
       ...input,
       activo: true,
       deleted_at: null,
