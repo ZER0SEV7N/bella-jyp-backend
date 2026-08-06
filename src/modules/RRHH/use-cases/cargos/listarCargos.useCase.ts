@@ -11,7 +11,6 @@ export class ListarCargosUseCase {
     constructor(private readonly prisma: PrismaService) {}
 
     async listar(query: ListarCargosQueryDto) {
-        
         const page = Number(query.page) || 1; //Obtener el número de página, por defecto 1
         const limit = Number(query.limit) || 50;
         const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
@@ -19,7 +18,6 @@ export class ListarCargosUseCase {
         const where: any = { deleted_at: null }; //Solo cargos no eliminados
         if (query?.id_area) where.id_area = query.id_area; 
         if (query?.activo !== undefined) where.activo = query.activo === true;
-        
 
         //Ejecutar la consulta a la base de datos utilizando Prisma
         const [total, cargos] = await this.prisma.$transaction([

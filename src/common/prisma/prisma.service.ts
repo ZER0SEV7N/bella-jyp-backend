@@ -99,10 +99,10 @@ export class PrismaService
                   tabla_afectada: model,
                   registro_id: (resultado as any)?.id || (args as any).where?.id || IdentityGenerator.generateId(),
                   valores_antes: valoresAntes
-                    ? JSON.stringify(valoresAntes)
+                    ? JSON.parse(JSON.stringify(valoresAntes))
                     : null,
                   valores_despues: valoresDespues
-                    ? JSON.stringify(valoresDespues)
+                    ? JSON.parse(JSON.stringify(valoresDespues))
                     : null,
                   direccion_ip: ipAddress,
                 },

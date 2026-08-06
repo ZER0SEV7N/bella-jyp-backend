@@ -174,7 +174,12 @@ describe('PrismaService', () => {
             accion: 'CREATE',
             tabla_afectada: 'area',
             direccion_ip: '192.168.1.100',
-            valores_despues: expect.any(String) // Valida que se haya serializado a JSON
+            registro_id: 'nuevo-registro',
+            valores_antes: null,
+            valores_despues: expect.objectContaining({
+              id: 'nuevo-registro',
+              nombre: 'Test',
+            }),
           })
         })
       );
@@ -200,8 +205,14 @@ describe('PrismaService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             accion: 'UPDATE',
-            valores_antes: expect.stringContaining('Viejo Nombre'),
-            valores_despues: expect.stringContaining('Nuevo Nombre')
+            valores_antes: expect.objectContaining({
+              id: 'reg-1',
+              nombre: 'Viejo Nombre',
+            }),
+            valores_despues: expect.objectContaining({
+              id: 'reg-1',
+              nombre: 'Nuevo Nombre',
+            }),
           })
         })
       );

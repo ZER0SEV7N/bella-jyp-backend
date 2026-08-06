@@ -8,9 +8,7 @@ export class agregarAportacionUseCase {
   async execute(dto: AportacionesDto) {
     //crear aportacion
     try {
-      const AportacionCreada = await this.prisma.aportaciones.create({
-        data: { id: crypto.randomUUID(), ...dto },
-      });
+      const AportacionCreada = await this.prisma.aportaciones.create({data: { id: crypto.randomUUID(), ...dto }});
       return AportacionCreada;
     } catch (error) {
       throw new InternalServerErrorException(

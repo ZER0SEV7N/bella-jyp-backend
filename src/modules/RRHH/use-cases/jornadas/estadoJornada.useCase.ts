@@ -18,15 +18,12 @@ export class EstadoJornadaUseCase {
       throw new NotFoundException('La jornada no existe o ya está eliminada.');
 
     //No permitir desactivar la jornada si hay empleados activos asociados a ella
-    const empleadosUsando = await this.prisma.empleados.count({
-      where: { jornada_id: id, activo: true, deleted_at: null },
-    });
+    const empleadosUsando = await this.prisma.empleados.count({ where: { jornada_id: id, activo: true, deleted_at: null }});
 
-    if (empleadosUsando > 0)
-      throw new BadRequestException({
-        title: 'Eliminación Bloqueada',
-        detail: `Hay ${empleadosUsando} empleado(s) usando este turno. Reasígnalos primero.`,
-      });
+    if (empleadosUsando > 0) throw new BadRequestException({
+      title: 'Eliminación Bloqueada',
+      detail: `Hay ${empleadosUsando} empleado(s) usando este turno. Reasígnalos primero.`,
+    });
 
     //Desactivar la jornada laboral
     return await this.prisma.jornada.update({

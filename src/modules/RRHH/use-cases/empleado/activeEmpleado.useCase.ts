@@ -9,10 +9,10 @@ export class ActiveEmpleadoUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(idEmpleado: string) {
-    //Validar que el ID proporcionado sea un UUID válido
-    const idValidado = z.uuid().parse(idEmpleado);
-
     try {
+      //Validar que el ID proporcionado sea un UUID válido
+      const idValidado = z.uuid().parse(idEmpleado);
+
       const data = await this.prisma.empleados.update({
         where: { id: idValidado },
         data: {
@@ -26,15 +26,13 @@ export class ActiveEmpleadoUseCase {
 
       return {
         state: true,
-        message:
-          'Colaborador reactivado correctamente. Verifique sus contratos y AFP.',
+        message: 'Colaborador reactivado correctamente. Verifique sus contratos y AFP.',
         data: data,
       };
     } catch (error) {
       throw new BadRequestException({
         title: 'Error al reactivar',
-        detail:
-          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }
