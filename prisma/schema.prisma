@@ -96,12 +96,12 @@ model regimen_pension {
 model comisiones_afp {
   id                 String    @id @db.Uuid
   afp_id             String    @db.Uuid
+  periodo_inicio     DateTime  @db.Date
+  periodo_final      DateTime? @db.Date
   aporte_obligatorio Decimal   @default(0) @db.Decimal(6, 4)
   comision_sobre_ra  Decimal   @default(0) @db.Decimal(6, 4)
   prima_seguro       Decimal   @default(0) @db.Decimal(6, 4)
   comision_mixta     Decimal   @default(0) @db.Decimal(6, 4)
-  periodo_final      DateTime? @db.Date
-  periodo_inicio     DateTime  @db.Date
   tipo_afp           tipo_afp  @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
 
   @@index([afp_id, periodo_inicio], map: "idx_comisiones_afp_fechas")
@@ -111,6 +111,7 @@ model contratos {
   id              String          @id @db.Uuid
   empleado_id     String          @db.Uuid
   id_estado       String          @db.Uuid
+  url             String          @db.VarChar(225)
   tipo_modalidad  String?         @db.VarChar(100)
   fecha_inicio    DateTime        @db.Date
   fecha_fin       DateTime?       @db.Date
@@ -118,7 +119,6 @@ model contratos {
   observacion     String?
   deleted_at      DateTime?       @db.Timestamptz(6)
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
-  url             String          @db.VarChar(225)
   empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
   estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
 
@@ -127,25 +127,22 @@ model contratos {
 }
 
 model dato_financiero {
-  id                String          @id @db.Uuid
-  empleado_id       String          @unique @db.Uuid
-  id_regimen        String          @db.Uuid
-  id_tipo_afp       String?         @db.Uuid
-  id_banco          String?         @db.Uuid
-  cuenta_bancaria   String?         @db.VarChar(30)
-  sueldo_basico     Decimal         @default(0) @db.Decimal(12, 4)
-  cuspp             String?         @db.VarChar(20)
-  tipo_comision     String?         @db.VarChar(50)
-  nro_cuenta_sueldo String?         @db.VarChar(30)
-  cci               String?         @db.VarChar(30)
-  banco_cts         String?         @db.VarChar(50)
-  nro_cuenta_cts    String?         @db.VarChar(30)
-  deleted_at        DateTime?       @db.Timestamptz(6)
-  //relaciones
-  bancos            bancos?         @relation(fields: [id_banco], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_banco")
-  empleados         empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
-  regimen_pension   regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
-  tipo_afp          tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
+  id              String          @id @db.Uuid
+  empleado_id     String          @unique @db.Uuid
+  id_regimen      String          @db.Uuid
+  id_tipo_afp     String?         @db.Uuid
+  id_banco        String?         @db.Uuid
+  cuenta_bancaria String?         @db.VarChar(30)
+  sueldo_basico   Decimal         @default(0) @db.Decimal(12, 4)
+  cuspp           String?         @db.VarChar(20)
+  tipo_comision   String?         @db.VarChar(50)
+  cci             String?         @db.VarChar(30)
+  nro_cuenta_cts  String?         @db.VarChar(30)
+  deleted_at      DateTime?       @db.Timestamptz(6)
+  bancos          bancos?         @relation(fields: [id_banco], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_banco")
+  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
+  regimen_pension regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
+  tipo_afp        tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
 
   @@index([empleado_id], map: "idx_dato_fin_empleado")
 }
@@ -157,9 +154,9 @@ model CargaMasivaJob {
   procesados      Int             @default(0)
   fallidos        Int             @default(0)
   errores_detalle Json?
+  estado          estado_job_enum @default(EN_COLA)
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
   updated_at      DateTime        @default(now()) @db.Timestamptz(6)
-  estado          estado_job_enum @default(EN_COLA)
 
   @@map("carga_masiva_jobs")
 }
@@ -170,6 +167,7 @@ model empleados {
   area_id               String                     @db.Uuid
   documento_id          String                     @db.Uuid
   estado_empleado_id    String                     @db.Uuid
+  jornada_id            String?                    @db.Uuid
   nombre                String?                    @db.VarChar(100)
   apellido              String?                    @db.VarChar(100)
   nro_documento         String                     @unique @db.VarChar(20)
@@ -182,7 +180,6 @@ model empleados {
   deleted_at            DateTime?                  @db.Timestamptz(6)
   created_at            DateTime                   @default(now()) @db.Timestamptz(6)
   updated_at            DateTime                   @default(now()) @db.Timestamptz(6)
-  jornada_id            String?                    @db.Uuid
   estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
   asistencias           asistencia_marcacion[]
   contratos             contratos[]
@@ -364,12 +361,12 @@ enum estado_tarea_enum {
 }
 
 enum rol_usuario_enum {
+  JYP
   ADMIN
   CONTADOR
   RRHH
   ASISTENTE
   EMPLEADO
-  JYP
 }
 
 enum estado_job_enum {
