@@ -1,2 +1,6 @@
 $kind: collection
 name: Planilla
+variables:
+  - key: json_web_token_0d33
+    secret: true
+    disabled: false

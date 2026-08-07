@@ -13,9 +13,7 @@ export class EliminarEmpleadoUseCase {
   async execute(id: string) {
     try {
       //Buscar el empleado por su ID
-      const empleado = await this.prisma.empleados.findUnique({
-        where: { id },
-      });
+      const empleado = await this.prisma.empleados.findUnique({ where: { id } });
 
       if (!empleado || empleado.deleted_at !== null)
         throw new NotFoundException({
@@ -39,8 +37,7 @@ export class EliminarEmpleadoUseCase {
 
       throw new BadRequestException({
         title: 'Error al eliminar legajo',
-        detail:
-          'Ocurrió un error al intentar procesar la baja del colaborador.',
+        detail: 'Ocurrió un error al intentar procesar la baja del colaborador.',
       });
     }
   }

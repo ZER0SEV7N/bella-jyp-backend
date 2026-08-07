@@ -1,36 +1,13 @@
 //src/modules/tareas/controller/tareas.controller.ts
 //Controlador de Tareas: Este controlador maneja las solicitudes HTTP relacionadas con la gestión de tareas,
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Query,
-  Patch,
-  Param,
-  ParseUUIDPipe,
-  UseGuards,
-  UsePipes,
-  Req,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Patch, Param, ParseUUIDPipe, UseGuards, UsePipes, Req} from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import type { FastifyRequest } from 'fastify';
-
-import type {
-  CrearTareaDto,
-  ObtenerTareasQueryDto,
-  CambiarEstadoTareaDto,
-  CrearAnotacionDto,
-} from '@jyp/shared-contracts';
-import {
-  CrearTareaSchema,
-  ObtenerTareasQuerySchema,
-  CambiarEstadoTareaSchema,
-  CrearAnotacionSchema,
-} from '@jyp/shared-contracts';
+import type {CrearTareaDto, ObtenerTareasQueryDto, CambiarEstadoTareaDto,CrearAnotacionDto } from '@jyp/shared-contracts';
+import {CrearTareaSchema, ObtenerTareasQuerySchema, CambiarEstadoTareaSchema, CrearAnotacionSchema} from '@jyp/shared-contracts';
 import { CrearTareaUseCase } from '../use-cases/crearTarea.useCase';
 import { ObtenerTareasUseCase } from '../use-cases/obtenerTareas.useCase';
 import { FlujoTareasUseCase } from '../use-cases/flujoTareas.useCase';

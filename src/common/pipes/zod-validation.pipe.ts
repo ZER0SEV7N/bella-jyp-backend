@@ -10,14 +10,16 @@ import { ZodType } from 'zod';
 
 @Injectable()
 export class ZodValidationPipe implements PipeTransform {
-  // Inyección del contrato base
+  //Inyección del contrato base
   constructor(private readonly schema: any) {}
 
   transform(value: unknown, metadata: ArgumentMetadata) {
-    // Excluimos parámetros de ruta o query params (solo validamos el Body)
-    if (metadata.type !== 'body') return value;
+    //Excluir parámetros de ruta o query params (solo validamos el Body)
+    if (metadata.type !== 'body' && metadata.type !== 'query') return value;
 
-    const parsedValue = this.schema.safeParse(value);
+    //Validar el valor entrante usando el esquema Zod proporcionado
+    const dataToValidate = value || {};
+    const parsedValue = this.schema.safeParse(dataToValidate);
 
     if (!parsedValue.success) {
       throw new BadRequestException({

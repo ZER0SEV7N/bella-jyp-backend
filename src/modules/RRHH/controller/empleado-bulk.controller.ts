@@ -21,8 +21,14 @@ import { CLS_USER_ID } from '@/common/cls/cls.constants';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { ConsultarEstadoCargaMasivaUseCase } from '@/modules/RRHH/use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ClsService } from 'nestjs-cls';
+import {
+  ApiSwaggerEmpleadosBulkController,
+  ApiSwaggerUploadBulk,
+  ApiSwaggerGetBulkStatus,
+} from '../decorators/empleado-bulk-swagger.decorator';
 
 //Decorador para definir el controlador y la ruta base
+@ApiSwaggerEmpleadosBulkController()
 @Controller('api/rrhh/empleados/bulk')
 @UseGuards(JwtAccessGuard, RolesGuard) //Protege el endpoint con JWT y roles
 @Roles('ADMIN', 'RRHH') //Define los roles permitidos para acceder a este endpoint
@@ -39,27 +45,21 @@ export class EmpleadoBulkController {
    * @param req FastifyRequest - La solicitud HTTP entrante, que contiene el archivo CSV en el cuerpo.
    * @param res FastifyReply - La respuesta HTTP que se enviará al cliente.
    */
+  @ApiSwaggerUploadBulk()
   @Post()
   async uploadBulk(
     @Req() request: FastifyRequest, //Request que contiene el archivo CSV
     @Res({ passthrough: true }) response: FastifyReply, //Response con passthrough para permitir la manipulación de cookies y cabeceras
   ) {
     //Verificacion JIT de protocola
-    if (!request.isMultipart())
-      throw new BadRequestException(
-        'El formato de la petición debe ser multipart/form-data.',
-      );
+    if (!request.isMultipart()) throw new BadRequestException('El formato de la petición debe ser multipart/form-data.', { cause: 'Invalid request format' });
 
     //Extraer el archivo en formato Stream (Cero Buffers Masivos en RAM)
     const data = await request.file();
-    if (!data)
-      throw new BadRequestException(
-        'No se encontró ningún archivo en la petición.',
-      );
+    if (!data) throw new BadRequestException('No se encontró ningún archivo en la petición.', { cause: 'No file found' });
 
     //Verificar que el archivo sea de tipo CSV
-    if (data.mimetype !== 'text/csv')
-      throw new BadRequestException('El archivo debe ser de tipo CSV.');
+    if (data.mimetype !== 'text/csv') throw new BadRequestException('El archivo debe ser de tipo CSV.', { cause: 'Invalid file type' });
 
     const jobId = IdentityGenerator.generateId(); //Generar un ID único para el job de carga masiva
     const usuarioId = this.cls.get(CLS_USER_ID); //Obtener el ID del usuario desde el contexto CLS
@@ -92,18 +92,15 @@ export class EmpleadoBulkController {
    * @param jobId string - El ID del job de carga masiva que se desea consultar.
    * @returns Un objeto con el estado actual del job, incluyendo total de registros, procesados y fallidos.
    */
+  @ApiSwaggerGetBulkStatus()
   @Get(':jobId')
   async getBulkStatus(@Param('jobId') jobId: string) {
-    // Extraemos la identidad de forma segura desde la memoria CLS del hilo[cite: 2]
+    //Obtener el ID del usuario desde el contexto CLS para asegurar que solo el usuario que inició la carga pueda consultar su estado
     const usuarioId = this.cls.get(CLS_USER_ID);
+    if (!jobId)throw new BadRequestException('El parámetro jobId es obligatorio.');
 
-    if (!jobId)
-      throw new BadRequestException('El parámetro jobId es obligatorio.');
-
-    const status = await this.consultarEstadoCargaMasiva.execute(
-      jobId,
-      usuarioId,
-    );
+    //Consultar el estado del job de carga masiva utilizando el caso de uso correspondiente
+    const status = await this.consultarEstadoCargaMasiva.execute( jobId, usuarioId );
 
     return {
       data: status,

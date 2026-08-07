@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, UsePipes } from '@nestjs/common';
 import { AgregarAportacionUseCase } from '../use-cases/aportaciones/agregarAportacion.useCse';
 import { AgregarComisionUseCase } from '../use-cases/comisiones/agregarComision.useCase';
 import { AgregarTipoAfpUseCase } from '../use-cases/tipoAfp/agregarAfp.useCase';
@@ -13,8 +13,11 @@ import {
   crearComisionSchema,
   crearTipo_AfpSchema,
 } from '@jyp/shared-contracts';
+import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
 
 @Controller('api/afp')
+@UseGuards(JwtAccessGuard, RolesGuard)
 export class afpController {
   constructor(
     //aportaciones

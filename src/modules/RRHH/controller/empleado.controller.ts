@@ -1,39 +1,28 @@
 //src/modules/RRHH/controller/empleado.controller.ts
 //Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH
-import {
-  Controller,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
-  Delete,
-  Param,
-  Patch,
-  UseGuards,
-  UsePipes,
-  Get,
-  Query,
-} from '@nestjs/common';
+import {Controller, Post, Body, HttpCode, HttpStatus, Delete, Param, Patch, UseGuards, UsePipes, Get, Query} from '@nestjs/common';
 //validacion de estructura de datos mediate el zod
-import {
-  CrearEmpleadoSchema,
-  ObtenerEmpleadosQuerySchema,
-} from '@jyp/shared-contracts';
-import type {
-  CrearEmpleadoDto,
-  EditarEmpleadoDto,
-  ObtenerEmpleadosQueryDto,
-} from '@jyp/shared-contracts';
+import { CrearEmpleadoSchema, EditarEmpleadoSchema, ListarEmpleadosQuerySchema } from '@jyp/shared-contracts';
+import type { CrearEmpleadoDto, EditarEmpleadoDto, ListarEmpleadosQueryDto } from '@jyp/shared-contracts';
 //casos de uso
-import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.UseCase';
+import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.useCase';
 import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
-import { ObtenerEmpleadosUseCase } from '../use-cases/empleado/obtenerEmpleados.useCase';
+import { ListarEmpleadosUseCase } from '../use-cases/empleado/listarEmpleados.useCase';
 import { Roles } from '@/common/decorators/roles.decorator';
+import {
+  ApiSwaggerEmpleadosController,
+  ApiSwaggerCrearEmpleado,
+  ApiSwaggerActualizarEmpleado,
+  ApiSwaggerDesactivarEmpleado,
+  ApiSwaggerReactivarEmpleado,
+  ApiSwaggerListarEmpleados,
+} from '../decorators/empleado-swagger.decorator';
 
+@ApiSwaggerEmpleadosController()
 @Controller('api/rrhh/empleado')
 @UseGuards(JwtAccessGuard)
 export class EmpleadoController {
@@ -42,7 +31,7 @@ export class EmpleadoController {
     private readonly editarEmpleadoUseCase: EditarEmpleadoUseCase,
     private readonly eliminarEmpleadoUseCase: EliminarEmpleadoUseCase,
     private readonly activeEmpleadoUseCase: ActiveEmpleadoUseCase,
-    private readonly obtenerEmpleadosUseCase: ObtenerEmpleadosUseCase,
+    private readonly listarEmpleadosUseCase: ListarEmpleadosUseCase,
   ) {}
 
   /**
@@ -60,8 +49,12 @@ export class EmpleadoController {
    *                     "fecha_inicio": "date (ISO 8601)",
    *                     "asig_familiar": "Boolean"
    *                  }
-   * @URL : http://localhost:3000/api/rrhh/empleado/crear
+   * @returns 201 Created - El empleado ha sido creado exitosamente.
+   *          400 Bad Request - Los datos proporcionados son inválidos.
+   *          401 Unauthorized - El usuario no tiene un token válido.
+   *          403 Forbidden - El usuario no tiene los permisos necesarios.
    */
+  @ApiSwaggerCrearEmpleado()
   @Post('crear')
   //@Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(CrearEmpleadoSchema))
@@ -72,7 +65,7 @@ export class EmpleadoController {
   /**
    * Listar colaboradores con paginación y filtros
    * GET - /api/rrhh/empleados
-   * @Query queryParams : ObtenerEmpleadosQueryDto {
+   * @Query queryParams : ListarEmpleadosQueryDto {
    *    "page": 1,
    *    "limit": 10,
    *    "area_id": "uuid",
@@ -80,11 +73,12 @@ export class EmpleadoController {
    *    "activo": "Boolean"
    * }
    */
+  @ApiSwaggerListarEmpleados()
   @Get()
   //@Roles('ADMIN', 'RRHH', 'CONTADOR')
-  @UsePipes(new ZodValidationPipe(ObtenerEmpleadosQuerySchema)) // Aplica validación a los Query Params
-  async obtenerTodos(@Query() queryParams: ObtenerEmpleadosQueryDto) {
-    return await this.obtenerEmpleadosUseCase.execute(queryParams);
+  @UsePipes(new ZodValidationPipe(ListarEmpleadosQuerySchema)) // Aplica validación a los Query Params
+  async obtenerTodos(@Query() queryParams: ListarEmpleadosQueryDto) {
+    return await this.listarEmpleadosUseCase.execute(queryParams);
   }
 
   /**
@@ -94,6 +88,9 @@ export class EmpleadoController {
    * @param payload : EditarEmpleadoDto{
    *   "nombres" : "Nombres-Nro1",
    */
+  @ApiSwaggerActualizarEmpleado()
+  //@Roles('ADMIN', 'RRHH')
+  @UsePipes(new ZodValidationPipe(EditarEmpleadoSchema))
   @Patch(':id/actualizar')
   @HttpCode(HttpStatus.OK)
   async actualizarEmpleado(
@@ -108,8 +105,10 @@ export class EmpleadoController {
    * DELETE - /api/rrhh/empleado/:id/desactive
    * @param id : string - uuid
    */
+  @ApiSwaggerDesactivarEmpleado()
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
+  //@Roles('ADMIN', 'RRHH')
   async deletedEmpleado(@Param('id') id: string) {
     return await this.eliminarEmpleadoUseCase.execute(id);
   }
@@ -119,8 +118,10 @@ export class EmpleadoController {
    * PATCH - /api/rrhh/empleado/:id/reactive
    * @param id - string - uuid
    */
+  @ApiSwaggerReactivarEmpleado()
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
+  //@Roles('ADMIN', 'RRHH')
   async reactive(@Param('id') id: string) {
     return await this.activeEmpleadoUseCase.execute(id);
   }

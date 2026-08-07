@@ -52,12 +52,21 @@ export class ObtenerLogsUseCase {
         skip: skip,
         take: limit,
         orderBy: { created_at: 'desc' }, //Ordenar los resultados por fecha de creación en orden descendente
+        //Traer información del usuario que realizó la acción
         include: {
           usuarios: {
             select: {
               email: true,
               rol: true,
-            },
+              //Traer información del empleado asociado al usuario
+              empleados: {
+                select: {
+                  nro_documento: true,
+                  nombre: true,
+                  apellido: true
+                }
+              }
+            }
           },
         },
       }),

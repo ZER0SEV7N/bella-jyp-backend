@@ -39,15 +39,31 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
 
     //Transformar la respuesta
     return next.handle().pipe(
-      map((data) => ({
-        statusCode: statusCode,
-        data: (data || null) as T,
-        meta: {
-          message: this.obtenerMensaje(statusCode),
-          path: request.url,
-          timestamp: new Date().toISOString(),
-        },
-      })),
+      map((data: any) => {
+        //En caso de que la data tenga la estructura {data: [], meta: {}} se respeta esa estructura
+        if (data && data.data && data.meta) {
+          return {
+            statusCode,
+            data: data.data,
+            meta: {
+              ...data.meta,
+              message: 'Operación exitosa.',
+              path: request.url,
+              timestamp: new Date().toISOString(),
+            },
+          };
+        }
+
+        return {
+          statusCode,
+          data: (data || null) as T,
+          meta: {
+            message: this.obtenerMensaje(statusCode),
+            path: request.url,
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }),
     );
   }
 

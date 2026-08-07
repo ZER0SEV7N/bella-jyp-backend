@@ -13,9 +13,9 @@ import { BullModule } from '@nestjs/bullmq';
         password: process.env.REDIS_PASSWORD || undefined,
       },
       defaultJobOptions: {
-        attempts: 3, // Número de reintentos por defecto para los jobs
-        backoff: { type: 'exponential', delay: 2000 }, // Estrategia de reintento exponencial con un retraso inicial de 2 segundos
-        removeOnComplete: true, // Eliminar automáticamente los jobs completados
+        attempts: 3, //Número de reintentos por defecto para los jobs
+        backoff: { type: 'exponential', delay: 2000 }, //Estrategia de reintento exponencial con un retraso inicial de 2 segundos
+        removeOnComplete: true, //Eliminar automáticamente los jobs completados
       },
     }),
   ],

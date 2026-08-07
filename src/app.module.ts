@@ -11,11 +11,12 @@ import { ContratoModule } from './modules/contrato/contrato.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WebSocketsModule } from './common/websockets/webSockets.module';
 import { AlertModule } from './common/alert/aler.Module';
-import { afpModule } from './modules/afp/afp.module';
+import { AfpModule } from './modules/afp/afp.module';
+import { UsuariosModule } from './modules/usuarios/usuarios.module';
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
-    afpModule,
+    AfpModule,
     AuthModule,
     RRHHModule,
     PrismaModule,
@@ -25,6 +26,8 @@ import { afpModule } from './modules/afp/afp.module';
     ContratoModule,
     AlertModule,
     WebSocketsModule,
+    UsuariosModule,
+    AfpModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,16 +13,16 @@ import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from './use-cases/area/actualizarArea.useCase';
 import { EliminarAreaUseCase } from './use-cases/area/eliminarArea.useCase';
 import { ActiveAreaUseCase } from './use-cases/area/activeArea.useCase';
-import { ObtenerAreaUseCase } from './use-cases/area/obtenerArea.useCase';
+import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
 // --- CASOS DE USO: CARGO ---
 import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.UseCase';
 import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.UseCase';
 import { EliminarCargoUseCase } from './use-cases/cargos/eliminarCargo.UseCase';
 import { ActiveCargoUseCase } from './use-cases/cargos/activeCargo.useCase';
-import { ObtenerCargoUseCase } from './use-cases/cargos/obtenerCargo.useCase';
+import { ListarCargosUseCase } from './use-cases/cargos/listarCargos.useCase';
 // --- CASOS DE USO: EMPLEADO ---
-import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.UseCase';
-import { ObtenerEmpleadosUseCase } from './use-cases/empleado/obtenerEmpleados.useCase';
+import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
+import { ListarEmpleadosUseCase } from './use-cases/empleado/listarEmpleados.useCase';
 import { EditarEmpleadoUseCase } from './use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from './use-cases/empleado/eliminarEmpleado.useCase';
 import { ActiveEmpleadoUseCase } from './use-cases/empleado/activeEmpleado.useCase';
@@ -59,16 +59,16 @@ import { CargaMasivaProcessor } from '../../workers/carga-masiva/carga-masiva.pr
     ActualizarAreaUseCase,
     EliminarAreaUseCase,
     ActiveAreaUseCase,
-    ObtenerAreaUseCase,
+    ListarAreasUseCase,
     //Cargos
     CrearCargoUseCase,
     ActualizarCargoUseCase,
     EliminarCargoUseCase,
     ActiveCargoUseCase,
-    ObtenerCargoUseCase,
+    ListarCargosUseCase,
     //Empleados
     CrearEmpleadoUseCase,
-    ObtenerEmpleadosUseCase,
+    ListarEmpleadosUseCase,
     EditarEmpleadoUseCase,
     EliminarEmpleadoUseCase,
     ActiveEmpleadoUseCase,

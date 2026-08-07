@@ -1,4 +1,4 @@
--- Active: 1783116194814@@127.0.0.1@5432@planillas_db
+-- Active: 1785200169721@@localhost@5432@planillas_db
 -- =========================================================================
 -- SCRIPT DE MOCK DATA - SISTEMA DE PLANILLAS JYP
 -- Limpia datos existentes y carga catálogos base y un par de empleados
@@ -15,6 +15,8 @@ TRUNCATE TABLE estado_contrato CASCADE;
 TRUNCATE TABLE regimen_pension CASCADE;
 TRUNCATE TABLE tipo_afp CASCADE;
 TRUNCATE TABLE bancos CASCADE;
+TRUNCATE TABLE tokens_seguridad CASCADE;
+TRUNCATE TABLE audit_log CASCADE;
 
 -- 2. Catálogos Base (Usamos UUIDs genéricos deterministas para mantener FKs intactas)
 

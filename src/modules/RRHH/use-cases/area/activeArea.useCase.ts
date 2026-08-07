@@ -11,29 +11,24 @@ export class ActiveAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
   //Método para ejecutar el caso de uso
   async execute(idArea: string) {
-    //validar que el ID proporcionado sea un UUID válido
-    const idValidado = z.uuid().parse(idArea);
     try {
+      //validar que el ID proporcionado sea un UUID válido
+      const idValidado = z.uuid().parse(idArea);
       //ejecutar con prisma
       const data = await this.prisma.area.update({
-        where: {
-          id: idValidado,
-        },
-        data: {
-          activo: true,
-        },
+        where: { id: idValidado },
+        data: { activo: true, deleted_at: null },
       });
       return {
         state: true,
-        message: 'Área eliminada correctamente',
+        message: 'Área reactivada correctamente',
         data: data,
       };
     } catch (error) {
       //Manejo de error para evitar que el sistema falle silenciosamente
       throw new BadRequestException({
         title: 'Error al activar el área',
-        detail:
-          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }

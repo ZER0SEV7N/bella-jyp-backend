@@ -14,9 +14,7 @@ export class ActiveCargoUseCase {
 
     try {
       const data = await this.prisma.cargo.update({
-        where: {
-          id: idValidado,
-        },
+        where: { id: idValidado },
         data: {
           activo: true,
           deleted_at: null, //Limpiar la fecha de eliminación para restaurar el cargo
@@ -31,8 +29,7 @@ export class ActiveCargoUseCase {
     } catch (error) {
       throw new BadRequestException({
         title: 'Error al activar el cargo',
-        detail:
-          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }
