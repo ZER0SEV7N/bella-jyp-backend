@@ -29,7 +29,10 @@ describe('EmpleadoBulkController', () => {
       controllers: [EmpleadoBulkController],
       providers: [
         { provide: ProcesarCargaMasivaUseCase, useValue: mockProcesarUseCase },
-        { provide: ConsultarEstadoCargaMasivaUseCase, useValue: mockConsultarUseCase },
+        {
+          provide: ConsultarEstadoCargaMasivaUseCase,
+          useValue: mockConsultarUseCase,
+        },
         { provide: ClsService, useValue: mockClsService },
       ],
     }).compile();
@@ -49,7 +52,9 @@ describe('EmpleadoBulkController', () => {
       const mockResponse = { status: jest.fn() } as unknown as FastifyReply;
 
       //Act & Assert: Llamamos al endpoint y esperamos que lance BadRequestException
-      await expect(controller.uploadBulk(mockRequest, mockResponse)).rejects.toThrow(BadRequestException);
+      await expect(
+        controller.uploadBulk(mockRequest, mockResponse),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('Deberia lanzar BadRequestException si no se encontró ningún archivo en la petición', async () => {
@@ -61,7 +66,9 @@ describe('EmpleadoBulkController', () => {
       const mockResponse = { status: jest.fn() } as unknown as FastifyReply;
 
       //Act & Assert: Llamamos al endpoint y esperamos que lance BadRequestException
-      await expect(controller.uploadBulk(mockRequest, mockResponse)).rejects.toThrow('No se encontró ningún archivo en la petición.');
+      await expect(
+        controller.uploadBulk(mockRequest, mockResponse),
+      ).rejects.toThrow('No se encontró ningún archivo en la petición.');
     });
 
     it('Deberia lanzar BadRequestException si el archivo no es de tipo CSV', async () => {
@@ -77,7 +84,9 @@ describe('EmpleadoBulkController', () => {
       const mockResponse = { status: jest.fn() } as unknown as FastifyReply;
 
       //Act & Assert: Llamar al endpoint y esperamos que lance BadRequestException
-      await expect(controller.uploadBulk(mockRequest, mockResponse)).rejects.toThrow('El archivo debe ser de tipo CSV.');
+      await expect(
+        controller.uploadBulk(mockRequest, mockResponse),
+      ).rejects.toThrow('El archivo debe ser de tipo CSV.');
     });
 
     it('Deberia retornar 202 Accepted e invocar el caso de uso correctamente', async () => {
@@ -110,12 +119,14 @@ describe('EmpleadoBulkController', () => {
   describe('getBulkStatus', () => {
     it('Deberia lanzar BadRequestException si no se proporciona jobId', async () => {
       //Act & Assert: Llamamos al endpoint GET sin jobId y esperamos que lance BadRequestException
-      await expect(controller.getBulkStatus('')).rejects.toThrow('El parámetro jobId es obligatorio.');
+      await expect(controller.getBulkStatus('')).rejects.toThrow(
+        'El parámetro jobId es obligatorio.',
+      );
     });
   });
 
   it('Deberia retornar la data del estado del job y el timestamp correctamente', async () => {
-    //Arrange: Configurar el mock para simular la respuesta del caso de uso    
+    //Arrange: Configurar el mock para simular la respuesta del caso de uso
     const mockJobId = 'job-12345';
     const mockStatusData = {
       id: mockJobId,
@@ -132,7 +143,10 @@ describe('EmpleadoBulkController', () => {
     const result = await controller.getBulkStatus(mockJobId);
 
     //Assert: Validar que el caso de uso fue invocado correctamente y que la respuesta contiene los datos esperados
-    expect(mockConsultarUseCase.execute).toHaveBeenCalledWith(mockJobId, 'user-uuid-123');
+    expect(mockConsultarUseCase.execute).toHaveBeenCalledWith(
+      mockJobId,
+      'user-uuid-123',
+    );
     expect(result.data).toEqual(mockStatusData);
     expect(result).toHaveProperty('timestamp');
   });

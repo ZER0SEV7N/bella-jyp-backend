@@ -12,9 +12,12 @@ export class CrearJornadaUseCase {
   async execute(payload: CrearJornadaDto) {
     try {
       //Verificar si ya existe una jornada con el mismo nombre
-      const jornadaExistente = await this.prisma.jornada.findFirst({ where: { nombre: payload.nombre } });
+      const jornadaExistente = await this.prisma.jornada.findFirst({
+        where: { nombre: payload.nombre },
+      });
 
-      if (jornadaExistente) throw new BadRequestException({
+      if (jornadaExistente)
+        throw new BadRequestException({
           title: 'Jornada duplicada',
           detail: `Ya existe una jornada/turno con el nombre '${payload.nombre}'.`,
         });

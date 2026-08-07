@@ -29,7 +29,7 @@ import { ListarTiposAfpUseCase } from './use-cases/tipo-afp/listarTipoAfp.useCas
     ListarComisionesUseCase,
     //afps
     AgregarTipoAfpUseCase,
-    ListarTiposAfpUseCase
+    ListarTiposAfpUseCase,
   ],
   exports: [
     AgregarAportacionUseCase,
@@ -37,7 +37,7 @@ import { ListarTiposAfpUseCase } from './use-cases/tipo-afp/listarTipoAfp.useCas
     AgregarComisionUseCase,
     ListarComisionesUseCase,
     AgregarTipoAfpUseCase,
-    ListarTiposAfpUseCase
-  ]
+    ListarTiposAfpUseCase,
+  ],
 })
 export class AfpModule {}

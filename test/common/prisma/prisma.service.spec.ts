@@ -13,8 +13,8 @@ jest.mock('@prisma/client', () => {
     $connect = jest.fn();
     $disconnect = jest.fn();
     $extends = jest.fn().mockImplementation(function (this: any, config) {
-      if (config?.query?.$allModels?.$allOperations) mockAuditMiddleware = config.query.$allModels.$allOperations;
-      
+      if (config?.query?.$allModels?.$allOperations)
+        mockAuditMiddleware = config.query.$allModels.$allOperations;
 
       // Retornamos un objeto falso que simula tener las tablas para que el middleware no explote
       return Object.assign(this, {
@@ -45,7 +45,8 @@ describe('PrismaService', () => {
     originalEnv = process.env;
     process.env = {
       ...originalEnv,
-      DATABASE_URL: 'postgresql://postgres:testpass@localhost:5432/planillas_db_test?schema=public',
+      DATABASE_URL:
+        'postgresql://postgres:testpass@localhost:5432/planillas_db_test?schema=public',
       NODE_ENV: 'test',
     };
     const module: TestingModule = await Test.createTestingModule({
@@ -127,12 +128,12 @@ describe('PrismaService', () => {
   describe('Middleware de Auditoría (Audit Log)', () => {
     it('Debería ignorar las operaciones de lectura (findMany, findUnique)', async () => {
       const mockQuery = jest.fn().mockResolvedValue([{ id: 1 }]);
-      
+
       const result = await mockAuditMiddleware({
         model: 'empleados',
         operation: 'findMany',
         args: {},
-        query: mockQuery
+        query: mockQuery,
       });
 
       expect(result).toEqual([{ id: 1 }]);
@@ -142,19 +143,21 @@ describe('PrismaService', () => {
 
     it('Debería ignorar cambios en las propias tablas de auditoría o tokens', async () => {
       const mockQuery = jest.fn().mockResolvedValue({ id: 1 });
-      
+
       await mockAuditMiddleware({
-        model: 'audit_log', 
+        model: 'audit_log',
         operation: 'create',
         args: {},
-        query: mockQuery
+        query: mockQuery,
       });
 
       expect(service.audit_log.create).not.toHaveBeenCalled();
     });
 
     it('Debería registrar un INSERT (create) correctamente obteniendo el usuario del CLS', async () => {
-      const mockQuery = jest.fn().mockResolvedValue({ id: 'nuevo-registro', nombre: 'Test' });
+      const mockQuery = jest
+        .fn()
+        .mockResolvedValue({ id: 'nuevo-registro', nombre: 'Test' });
       mockClsService.get.mockImplementation((key) => {
         if (key === 'CLS_USER_ID') return 'user-123';
         if (key === 'CLS_IP_ADDRESS') return '192.168.1.100';
@@ -164,7 +167,7 @@ describe('PrismaService', () => {
         model: 'area',
         operation: 'create',
         args: { data: { nombre: 'Test' } },
-        query: mockQuery
+        query: mockQuery,
       });
 
       expect(service.audit_log.create).toHaveBeenCalledWith(
@@ -180,26 +183,31 @@ describe('PrismaService', () => {
               id: 'nuevo-registro',
               nombre: 'Test',
             }),
-          })
-        })
+          }),
+        }),
       );
     });
 
     it('Debería intentar capturar el estado previo antes de un UPDATE', async () => {
-      const mockQuery = jest.fn().mockResolvedValue({ id: 'reg-1', nombre: 'Nuevo Nombre' });
-      
+      const mockQuery = jest
+        .fn()
+        .mockResolvedValue({ id: 'reg-1', nombre: 'Nuevo Nombre' });
+
       // Simulamos que Prisma encuentra el estado previo
-      service.dummy_table.findUnique.mockResolvedValue({ id: 'reg-1', nombre: 'Viejo Nombre' });
+      service.dummy_table.findUnique.mockResolvedValue({
+        id: 'reg-1',
+        nombre: 'Viejo Nombre',
+      });
 
       await mockAuditMiddleware({
         model: 'dummy_table',
         operation: 'update',
         args: { where: { id: 'reg-1' }, data: { nombre: 'Nuevo Nombre' } },
-        query: mockQuery
+        query: mockQuery,
       });
 
       expect(service.dummy_table.findUnique).toHaveBeenCalled();
-      
+
       // Verificamos que se guardó el "Antes" y el "Después"
       expect(service.audit_log.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -213,22 +221,24 @@ describe('PrismaService', () => {
               id: 'reg-1',
               nombre: 'Nuevo Nombre',
             }),
-          })
-        })
+          }),
+        }),
       );
     });
 
     it('No debe interrumpir la operación si la auditoría falla', async () => {
       const mockQuery = jest.fn().mockResolvedValue({ id: 'exito' });
       // Simulamos que la tabla de auditoría se cayó y da error
-      service.audit_log.create.mockRejectedValue(new Error('Fallo al guardar log'));
+      service.audit_log.create.mockRejectedValue(
+        new Error('Fallo al guardar log'),
+      );
 
       // Act: Ejecutamos el middleware
       const result = await mockAuditMiddleware({
         model: 'area',
         operation: 'create',
         args: {},
-        query: mockQuery
+        query: mockQuery,
       });
 
       // Assert: La operación principal (el query real) debió retornar con éxito a pesar del fallo del log

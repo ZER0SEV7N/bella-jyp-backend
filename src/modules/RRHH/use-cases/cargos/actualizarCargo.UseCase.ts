@@ -22,10 +22,12 @@ export class ActualizarCargoUseCase {
     try {
       const cargoActual = await this.prisma.cargo.findUnique({ where: { id } });
 
-      if (!cargoActual || cargoActual.deleted_at !== null) throw new NotFoundException({
-        title: 'Cargo no encontrado',
-        detail:'El cargo que intenta actualizar no existe o ha sido eliminado.',
-      });
+      if (!cargoActual || cargoActual.deleted_at !== null)
+        throw new NotFoundException({
+          title: 'Cargo no encontrado',
+          detail:
+            'El cargo que intenta actualizar no existe o ha sido eliminado.',
+        });
 
       //Si el payload incluye un id_area nuevo, verificar que el area destino exista y esté activa antes de proceder con la actualización
       if (payload.id_area && payload.id_area !== cargoActual.id_area) {
@@ -33,21 +35,27 @@ export class ActualizarCargoUseCase {
           where: { id: payload.id_area },
         });
 
-        if (!areaDestino || !areaDestino.activo) throw new BadRequestException({
-          title: 'Área destino inválida',
-          detail: 'El área a la que intenta mover el cargo no existe o está inactiva.',
-        });
+        if (!areaDestino || !areaDestino.activo)
+          throw new BadRequestException({
+            title: 'Área destino inválida',
+            detail:
+              'El área a la que intenta mover el cargo no existe o está inactiva.',
+          });
       }
 
       //Actualizar el cargo con los nuevos datos proporcionados en el payload
       const cargoActualizado = await this.prisma.cargo.update({
         where: { id },
-        data: {...payload}
+        data: { ...payload },
       });
 
       return cargoActualizado;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
 
       throw new BadRequestException({
         title: 'Error de Actualización',

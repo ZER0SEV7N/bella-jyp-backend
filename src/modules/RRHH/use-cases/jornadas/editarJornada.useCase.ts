@@ -16,10 +16,11 @@ export class EditarJornadaUseCase {
     //Verificar si la jornada laboral existe y no está eliminada
     const jornada = await this.prisma.jornada.findUnique({ where: { id } });
 
-    if (!jornada || jornada.deleted_at !== null) throw new NotFoundException({
-      title: 'Jornada no encontrada',
-      detail: 'El turno no existe o ha sido eliminado.',
-    });
+    if (!jornada || jornada.deleted_at !== null)
+      throw new NotFoundException({
+        title: 'Jornada no encontrada',
+        detail: 'El turno no existe o ha sido eliminado.',
+      });
 
     return await this.prisma.jornada.update({
       where: { id },

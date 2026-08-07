@@ -63,10 +63,10 @@ export class ObtenerLogsUseCase {
                 select: {
                   nro_documento: true,
                   nombre: true,
-                  apellido: true
-                }
-              }
-            }
+                  apellido: true,
+                },
+              },
+            },
           },
         },
       }),

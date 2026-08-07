@@ -141,6 +141,7 @@ model dato_financiero {
   banco_cts         String?         @db.VarChar(50)
   nro_cuenta_cts    String?         @db.VarChar(30)
   deleted_at        DateTime?       @db.Timestamptz(6)
+  //relaciones
   bancos            bancos?         @relation(fields: [id_banco], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_banco")
   empleados         empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
   regimen_pension   regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")

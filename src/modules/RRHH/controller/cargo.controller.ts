@@ -1,6 +1,21 @@
 //src/modules/RRHH/controller/cargo.controller.ts
 //Controlador para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
-import { Controller,Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query, } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Put,
+  Param,
+  Patch,
+  Delete,
+  UseGuards,
+  UsePipes,
+  ParseUUIDPipe,
+  Get,
+  Query,
+} from '@nestjs/common';
 //casos de uso
 import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.UseCase';
 import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.UseCase';
@@ -9,7 +24,11 @@ import { ActiveCargoUseCase } from '../use-cases/cargos/activeCargo.useCase';
 import { ListarCargosUseCase } from '../use-cases/cargos/listarCargos.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
-import type { CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto } from '@jyp/shared-contracts';
+import type {
+  CrearCargoDto,
+  ActualizarCargoDto,
+  ListarCargosQueryDto,
+} from '@jyp/shared-contracts';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import {
   ApiSwaggerCargosController,
@@ -33,7 +52,6 @@ export class CargoController {
     private readonly activeCargoUseCase: ActiveCargoUseCase,
   ) {}
 
-
   /**
    * Crear un nuevo cargo
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden crear un nuevo cargo.
@@ -45,7 +63,7 @@ export class CargoController {
    * }
    * @returns: 201 Created - El cargo ha sido creado exitosamente.
    *          400 Bad Request - Los datos proporcionados son inválidos.
-   *           
+   *
    */
   @ApiSwaggerCrearCargo()
   @Post('crear')
@@ -120,10 +138,10 @@ export class CargoController {
    * }
    * @returns Un objeto con los cargos encontrados y metadatos de paginación.
    */
-    @ApiSwaggerListarCargos()
-    @Get()
-    // @Roles('ADMIN', 'RRHH')
-    async listarCargos(@Query() queryParams: ListarCargosQueryDto) {
-       return await this.listarCargosUseCase.listar(queryParams);
-    }
+  @ApiSwaggerListarCargos()
+  @Get()
+  // @Roles('ADMIN', 'RRHH')
+  async listarCargos(@Query() queryParams: ListarCargosQueryDto) {
+    return await this.listarCargosUseCase.listar(queryParams);
+  }
 }

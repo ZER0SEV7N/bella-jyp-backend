@@ -12,34 +12,34 @@ import type { ListarTiposAfpQueryDto } from '@jyp/shared-contracts';
 
 @Injectable()
 export class ListarTiposAfpUseCase {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    // Maneja la lógica para listar los tipos de AFP con paginación y filtrado
-    async listar(query: ListarTiposAfpQueryDto) {
-        const { page, limit } = query;
-        const skip = (page - 1) * limit;
+  // Maneja la lógica para listar los tipos de AFP con paginación y filtrado
+  async listar(query: ListarTiposAfpQueryDto) {
+    const { page, limit } = query;
+    const skip = (page - 1) * limit;
 
-        //Realizar la consulta a la base de datos para obtener el total de tipos de AFP y los tipos de AFP paginados
-        const [total, tipos] = await this.prisma.$transaction([
-            this.prisma.tipo_afp.count(),
-            this.prisma.tipo_afp.findMany({
-                skip,
-                take: limit,
-                orderBy: { nombre: 'asc' },
-                include: {
-                    regimen_pension: { select: { nombre: true } } //AFP: Incluir el nombre del régimen de pensión asociado
-                }
-            }),
-        ]);
+    //Realizar la consulta a la base de datos para obtener el total de tipos de AFP y los tipos de AFP paginados
+    const [total, tipos] = await this.prisma.$transaction([
+      this.prisma.tipo_afp.count(),
+      this.prisma.tipo_afp.findMany({
+        skip,
+        take: limit,
+        orderBy: { nombre: 'asc' },
+        include: {
+          regimen_pension: { select: { nombre: true } }, //AFP: Incluir el nombre del régimen de pensión asociado
+        },
+      }),
+    ]);
 
-        return {
-            data: tipos,
-            meta: { 
-                total, 
-                page, 
-                limit, 
-                totalPages: Math.ceil(total / limit) 
-            }
-        };
-    }
+    return {
+      data: tipos,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }

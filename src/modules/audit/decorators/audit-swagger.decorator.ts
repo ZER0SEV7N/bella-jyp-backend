@@ -1,12 +1,12 @@
 //src/modules/audit/decorators/audit-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
 import {
-    ApiTags,
-    ApiOperation,
-    ApiBody,
-    ApiResponse,
-    ApiBearerAuth,
-    ApiQuery
+  ApiTags,
+  ApiOperation,
+  ApiBody,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 
 /**
@@ -17,7 +17,10 @@ import {
  * @requires - Roles: ADMIN, CONTADOR para autorización.
  */
 export function ApiSwaggerAuditoriaController() {
-    return applyDecorators(ApiTags('Modulo Auditoria'), ApiBearerAuth('JWT-auth'));
+  return applyDecorators(
+    ApiTags('Modulo Auditoria'),
+    ApiBearerAuth('JWT-auth'),
+  );
 }
 
 /**
@@ -26,39 +29,48 @@ export function ApiSwaggerAuditoriaController() {
  * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
  */
 export function ApiSwaggerCrearAuditoria() {
-    return applyDecorators(
-        ApiOperation({
-            summary: 'Crear Registro de Auditoría',
-            description: 'Registra un nuevo evento de auditoría en el sistema. Requiere rol ADMIN o CONTADOR.',
-        }),
-        ApiBody({
-            schema: {
-                type: 'object',
-                required: ['accion', 'usuario_id', 'descripcion'],
-                properties: {
-                    accion: { type: 'string', example: 'CREAR_EMPLEADO' },
-                    usuario_id: { type: 'string', format: 'uuid', example: '123e4567-e89b-12d3-a456-426614174000' },
-                    descripcion: { type: 'string', example: 'Se creó un nuevo empleado con ID 123.' },
-                },
-            },
-        }),
-        ApiResponse({
-            status: 201,
-            description: 'Registro de auditoría creado exitosamente.',
-        }),
-        ApiResponse({
-            status: 400,
-            description: 'Datos inválidos. Devuelve un mensaje de error.',
-        }),
-        ApiResponse({
-            status: 401,
-            description: 'No autorizado. El usuario no tiene un token válido.',
-        }),
-        ApiResponse({
-            status: 403,
-            description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-        })
-    );
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Crear Registro de Auditoría',
+      description:
+        'Registra un nuevo evento de auditoría en el sistema. Requiere rol ADMIN o CONTADOR.',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        required: ['accion', 'usuario_id', 'descripcion'],
+        properties: {
+          accion: { type: 'string', example: 'CREAR_EMPLEADO' },
+          usuario_id: {
+            type: 'string',
+            format: 'uuid',
+            example: '123e4567-e89b-12d3-a456-426614174000',
+          },
+          descripcion: {
+            type: 'string',
+            example: 'Se creó un nuevo empleado con ID 123.',
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 201,
+      description: 'Registro de auditoría creado exitosamente.',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Datos inválidos. Devuelve un mensaje de error.',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado. El usuario no tiene un token válido.',
+    }),
+    ApiResponse({
+      status: 403,
+      description:
+        'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
+    }),
+  );
 }
 /**
  * Decorador para documentar el endpoint de obtención de registros de auditoría en Swagger.
@@ -74,70 +86,75 @@ export function ApiSwaggerCrearAuditoria() {
  * @returns Un objeto con los registros de auditoría filtrados y paginados según los parámetros proporcionados.
  */
 export function ApiSwaggerListarAuditoria() {
-    return applyDecorators(
-        ApiOperation({
-            summary: 'Listar Registros de Auditoría',
-            description: 'Obtiene una lista de registros de auditoría filtrados y paginados según los parámetros proporcionados. Requiere rol ADMIN o CONTADOR.',
-        }),
-        ApiQuery({
-            name: 'page',
-            description: 'Número de página para la paginación.',
-            required: false,
-            type: Number,
-            example: 1,
-        }),
-        ApiQuery({
-            name: 'limit',
-            description: 'Cantidad de registros por página para la paginación.',
-            required: false,
-            type: Number,
-            example: 50,
-        }),
-        ApiQuery({
-            name: 'tabla_afectada',
-            description: 'Nombre de la tabla afectada para filtrar los registros.',
-            required: false,
-            type: String,
-            example: 'empleados',
-        }),
-        ApiQuery({
-            name: 'accion',
-            description: 'Acción realizada para filtrar los registros.',
-            required: false,
-            type: String,
-            example: 'CREAR_EMPLEADO',
-        }),
-        ApiQuery({
-            name: 'usuario_id',
-            description: 'ID del usuario que realizó la acción para filtrar los registros.',
-            required: false,
-            type: String,
-            format: 'uuid',
-            example: '123e4567-e89b-12d3-a456-426614174000',
-        }),
-        ApiQuery({
-            name: 'registro_id',
-            description: 'ID del registro afectado para filtrar los registros.',
-            required: false,
-            type: String,
-            format: 'uuid',
-            example: '123e4567-e89b-12d3-a456-426614174000',
-        }),
-        ApiResponse({
-            status: 200,
-            description: 'Retorna un objeto con los registros de auditoría filtrados y paginados según los parámetros proporcionados.',
-        }),
-        ApiResponse({
-            status: 400,
-            description: 'Solicitud inválida. Devuelve un mensaje de error si los parámetros de consulta no son válidos.',
-        }),
-        ApiResponse({
-            status: 401,
-            description: 'No autorizado. El usuario no tiene un token válido.',
-        }),
-        ApiResponse({
-            status: 403,
-            description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-        })
-    );
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Listar Registros de Auditoría',
+      description:
+        'Obtiene una lista de registros de auditoría filtrados y paginados según los parámetros proporcionados. Requiere rol ADMIN o CONTADOR.',
+    }),
+    ApiQuery({
+      name: 'page',
+      description: 'Número de página para la paginación.',
+      required: false,
+      type: Number,
+      example: 1,
+    }),
+    ApiQuery({
+      name: 'limit',
+      description: 'Cantidad de registros por página para la paginación.',
+      required: false,
+      type: Number,
+      example: 50,
+    }),
+    ApiQuery({
+      name: 'tabla_afectada',
+      description: 'Nombre de la tabla afectada para filtrar los registros.',
+      required: false,
+      type: String,
+      example: 'empleados',
+    }),
+    ApiQuery({
+      name: 'accion',
+      description: 'Acción realizada para filtrar los registros.',
+      required: false,
+      type: String,
+      example: 'CREAR_EMPLEADO',
+    }),
+    ApiQuery({
+      name: 'usuario_id',
+      description:
+        'ID del usuario que realizó la acción para filtrar los registros.',
+      required: false,
+      type: String,
+      format: 'uuid',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiQuery({
+      name: 'registro_id',
+      description: 'ID del registro afectado para filtrar los registros.',
+      required: false,
+      type: String,
+      format: 'uuid',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiResponse({
+      status: 200,
+      description:
+        'Retorna un objeto con los registros de auditoría filtrados y paginados según los parámetros proporcionados.',
+    }),
+    ApiResponse({
+      status: 400,
+      description:
+        'Solicitud inválida. Devuelve un mensaje de error si los parámetros de consulta no son válidos.',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado. El usuario no tiene un token válido.',
+    }),
+    ApiResponse({
+      status: 403,
+      description:
+        'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
+    }),
+  );
 }

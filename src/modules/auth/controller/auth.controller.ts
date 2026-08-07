@@ -1,6 +1,16 @@
 //src/modules/auth/controller/auth.controller.ts
 //Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación
-import { Controller, Post, Body, Res, UsePipes, HttpCode, HttpStatus, UseGuards, UnauthorizedException} from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  UsePipes,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { LoginUseCase } from '../use-cases/login.useCase';
 import { ProvisionarUsuarioUseCase } from '../use-cases/provisionarUsuario.useCase';

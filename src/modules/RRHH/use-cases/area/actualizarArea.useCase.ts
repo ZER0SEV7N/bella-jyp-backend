@@ -14,25 +14,30 @@ export class ActualizarAreaUseCase {
   async execute(areaId: string, dto: ActualizarAreaDto) {
     try {
       //Verificar si el área existe y no está eliminada
-      const existingArea = await this.prisma.area.findUnique({where: { id: areaId }});
+      const existingArea = await this.prisma.area.findUnique({
+        where: { id: areaId },
+      });
 
-      if (!existingArea || existingArea.deleted_at !== null) throw new NotFoundException(
-        `El área con ID ${areaId} no fue encontrada o está eliminada`,
-      );
+      if (!existingArea || existingArea.deleted_at !== null)
+        throw new NotFoundException(
+          `El área con ID ${areaId} no fue encontrada o está eliminada`,
+        );
 
       //Ejecutar la actualización
       const updatedArea = await this.prisma.area.update({
         where: { id: areaId },
         data: {
           nombre: dto.nombre,
-          descripcion: dto.descripcion
-        }
+          descripcion: dto.descripcion,
+        },
       });
 
       return updatedArea;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Error al intentar actualizar el área');
+      throw new InternalServerErrorException(
+        'Error al intentar actualizar el área',
+      );
     }
   }
 }

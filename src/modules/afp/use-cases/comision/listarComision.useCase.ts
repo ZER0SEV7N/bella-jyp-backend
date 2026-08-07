@@ -11,39 +11,39 @@ import type { ListarComisionesQueryDto } from '@jyp/shared-contracts';
  */
 @Injectable()
 export class ListarComisionesUseCase {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    //Maneja la lógica para listar las comisiones de AFP con paginación y filtrado
-    async listar(query: ListarComisionesQueryDto) {
-        const { page, limit, afp_id, solo_vigentes } = query;
-        const skip = (page - 1) * limit;
+  //Maneja la lógica para listar las comisiones de AFP con paginación y filtrado
+  async listar(query: ListarComisionesQueryDto) {
+    const { page, limit, afp_id, solo_vigentes } = query;
+    const skip = (page - 1) * limit;
 
-        const whereClause: any = {};
+    const whereClause: any = {};
 
-        //Si se proporciona un afp_id, filtramos por ese ID
-        if(afp_id) whereClause.afp_id = afp_id;
-        //Si se solicita solo las comisiones vigentes, filtramos por periodo_final nulo
-        if(solo_vigentes) whereClause.periodo_final = null; 
+    //Si se proporciona un afp_id, filtramos por ese ID
+    if (afp_id) whereClause.afp_id = afp_id;
+    //Si se solicita solo las comisiones vigentes, filtramos por periodo_final nulo
+    if (solo_vigentes) whereClause.periodo_final = null;
 
-        const [total, comisiones] = await this.prisma.$transaction([
-            this.prisma.comisiones_afp.count({ where: whereClause }),
-            this.prisma.comisiones_afp.findMany({
-                where: whereClause,
-                skip,
-                take: limit,
-                orderBy: { periodo_inicio: 'desc' },
-                include: { tipo_afp: { select: { nombre: true } } } //AFP: Incluir el nombre del tipo de AFP asociado
-            }),
-        ]);
+    const [total, comisiones] = await this.prisma.$transaction([
+      this.prisma.comisiones_afp.count({ where: whereClause }),
+      this.prisma.comisiones_afp.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: { periodo_inicio: 'desc' },
+        include: { tipo_afp: { select: { nombre: true } } }, //AFP: Incluir el nombre del tipo de AFP asociado
+      }),
+    ]);
 
-        return {
-            data: comisiones,
-            meta: { 
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            }
-        };
-    }
+    return {
+      data: comisiones,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }

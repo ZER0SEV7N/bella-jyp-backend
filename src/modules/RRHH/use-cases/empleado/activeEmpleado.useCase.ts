@@ -26,13 +26,15 @@ export class ActiveEmpleadoUseCase {
 
       return {
         state: true,
-        message: 'Colaborador reactivado correctamente. Verifique sus contratos y AFP.',
+        message:
+          'Colaborador reactivado correctamente. Verifique sus contratos y AFP.',
         data: data,
       };
     } catch (error) {
       throw new BadRequestException({
         title: 'Error al reactivar',
-        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail:
+          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }

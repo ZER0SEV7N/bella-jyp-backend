@@ -29,7 +29,8 @@ export class ActiveCargoUseCase {
     } catch (error) {
       throw new BadRequestException({
         title: 'Error al activar el cargo',
-        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail:
+          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
       });
     }
   }

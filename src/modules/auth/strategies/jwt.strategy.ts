@@ -29,17 +29,24 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(req: any, payload: any) {
     const userId = payload.sub || payload.id;
 
-    const user = await this.prisma.usuarios.findUnique({ where: { id: userId } });
+    const user = await this.prisma.usuarios.findUnique({
+      where: { id: userId },
+    });
 
-    if (!user || !user.activo || user.deleted_at !== null) throw new UnauthorizedException( 'Su acceso ha sido revocado o la cuenta ya no existe.' );
-    
+    if (!user || !user.activo || user.deleted_at !== null)
+      throw new UnauthorizedException(
+        'Su acceso ha sido revocado o la cuenta ya no existe.',
+      );
 
     // ---------------------------------------------------------
     // EL PUENTE MÁGICO: Guardamos el ID y la IP en el contexto
     // para que PrismaService los lea al auditar.
     // ---------------------------------------------------------
     this.cls.set(CLS_USER_ID, user.id);
-    this.cls.set(CLS_IP_ADDRESS, req.ip || req.socket?.remoteAddress || '127.0.0.1',);
+    this.cls.set(
+      CLS_IP_ADDRESS,
+      req.ip || req.socket?.remoteAddress || '127.0.0.1',
+    );
 
     return {
       id: user.id,

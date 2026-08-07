@@ -70,6 +70,6 @@ export class AuditController {
   @Roles('ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH')
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async registrarAuditoria(@Body() payload: AuditLogDto) {
-      return await this.registroAuditoriaUseCase.execute(payload);
+    return await this.registroAuditoriaUseCase.execute(payload);
   }
 }

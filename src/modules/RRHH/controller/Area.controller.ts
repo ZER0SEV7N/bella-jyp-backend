@@ -1,6 +1,21 @@
 //src/modules/RRHH/controller/Area.controller.ts
 //Controlador para manejar las operaciones relacionadas con las areas en el módulo de RRHH
-import { Controller, Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Put,
+  Param,
+  Patch,
+  Delete,
+  UseGuards,
+  UsePipes,
+  ParseUUIDPipe,
+  Get,
+  Query,
+} from '@nestjs/common';
 //casos de uso
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from '../use-cases/area/actualizarArea.useCase';
@@ -9,8 +24,16 @@ import { ActiveAreaUseCase } from '../use-cases/area/activeArea.useCase';
 import { ListarAreasUseCase } from '../use-cases/area/listarAreas.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { CrearAreaSchema, ActualizarAreaSchema, ListarAreasQuerySchema } from '@jyp/shared-contracts';
-import type { CrearAreaDto, ActualizarAreaDto, ListarAreasQueryDto } from '@jyp/shared-contracts';
+import {
+  CrearAreaSchema,
+  ActualizarAreaSchema,
+  ListarAreasQuerySchema,
+} from '@jyp/shared-contracts';
+import type {
+  CrearAreaDto,
+  ActualizarAreaDto,
+  ListarAreasQueryDto,
+} from '@jyp/shared-contracts';
 import {
   ApiSwaggerAreasController,
   ApiSwaggerCrearArea,
@@ -30,9 +53,8 @@ export class AreaController {
     private readonly actualizarAreaUseCase: ActualizarAreaUseCase,
     private readonly eliminarAreaUseCase: EliminarAreaUseCase,
     private readonly activeAreaUseCase: ActiveAreaUseCase,
-    private readonly listarAreasUseCase: ListarAreasUseCase
+    private readonly listarAreasUseCase: ListarAreasUseCase,
   ) {}
-
 
   /**
    * Crear un nuevo area
@@ -99,7 +121,7 @@ export class AreaController {
   async eliminar(@Param('id') id: string) {
     return await this.eliminarAreaUseCase.execute(id);
   }
-  
+
   /**
    * Listar areas con paginación y filtros
    * GET - /api/rrhh/area

@@ -33,10 +33,12 @@ export class FlujoTareasUseCase {
 
     //Regla de negocio: Un asistente no puede auto-aprobarse una tarea
     //Solo puede pasar a REVISION, y el CONTADOR debe aprobarla
-    if (rol == 'ASISTENTE' && ['APROBADO', 'AUDITADO'].includes(payload.estado))throw new BadRequestException({
-      title: 'Accion no permitida',
-      detail: 'Los asistentes solo pueden marcar las tareas como "En Revisión". La aprobación es exclusiva del Contador/Admin.',
-    });
+    if (rol == 'ASISTENTE' && ['APROBADO', 'AUDITADO'].includes(payload.estado))
+      throw new BadRequestException({
+        title: 'Accion no permitida',
+        detail:
+          'Los asistentes solo pueden marcar las tareas como "En Revisión". La aprobación es exclusiva del Contador/Admin.',
+      });
 
     return await this.prisma.tareas_asistente.update({
       where: { id: idTarea },
@@ -50,7 +52,9 @@ export class FlujoTareasUseCase {
     payload: CrearAnotacionDto,
     userId: string,
   ) {
-    const tarea = await this.prisma.tareas_asistente.findUnique({where: { id: idTarea }});
+    const tarea = await this.prisma.tareas_asistente.findUnique({
+      where: { id: idTarea },
+    });
     if (!tarea || tarea.deleted_at !== null)
       throw new NotFoundException('La tarea no existe o fue eliminada.');
 

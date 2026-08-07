@@ -52,14 +52,25 @@ export class EmpleadoBulkController {
     @Res({ passthrough: true }) response: FastifyReply, //Response con passthrough para permitir la manipulación de cookies y cabeceras
   ) {
     //Verificacion JIT de protocola
-    if (!request.isMultipart()) throw new BadRequestException('El formato de la petición debe ser multipart/form-data.', { cause: 'Invalid request format' });
+    if (!request.isMultipart())
+      throw new BadRequestException(
+        'El formato de la petición debe ser multipart/form-data.',
+        { cause: 'Invalid request format' },
+      );
 
     //Extraer el archivo en formato Stream (Cero Buffers Masivos en RAM)
     const data = await request.file();
-    if (!data) throw new BadRequestException('No se encontró ningún archivo en la petición.', { cause: 'No file found' });
+    if (!data)
+      throw new BadRequestException(
+        'No se encontró ningún archivo en la petición.',
+        { cause: 'No file found' },
+      );
 
     //Verificar que el archivo sea de tipo CSV
-    if (data.mimetype !== 'text/csv') throw new BadRequestException('El archivo debe ser de tipo CSV.', { cause: 'Invalid file type' });
+    if (data.mimetype !== 'text/csv')
+      throw new BadRequestException('El archivo debe ser de tipo CSV.', {
+        cause: 'Invalid file type',
+      });
 
     const jobId = IdentityGenerator.generateId(); //Generar un ID único para el job de carga masiva
     const usuarioId = this.cls.get(CLS_USER_ID); //Obtener el ID del usuario desde el contexto CLS
@@ -97,10 +108,14 @@ export class EmpleadoBulkController {
   async getBulkStatus(@Param('jobId') jobId: string) {
     //Obtener el ID del usuario desde el contexto CLS para asegurar que solo el usuario que inició la carga pueda consultar su estado
     const usuarioId = this.cls.get(CLS_USER_ID);
-    if (!jobId)throw new BadRequestException('El parámetro jobId es obligatorio.');
+    if (!jobId)
+      throw new BadRequestException('El parámetro jobId es obligatorio.');
 
     //Consultar el estado del job de carga masiva utilizando el caso de uso correspondiente
-    const status = await this.consultarEstadoCargaMasiva.execute( jobId, usuarioId );
+    const status = await this.consultarEstadoCargaMasiva.execute(
+      jobId,
+      usuarioId,
+    );
 
     return {
       data: status,

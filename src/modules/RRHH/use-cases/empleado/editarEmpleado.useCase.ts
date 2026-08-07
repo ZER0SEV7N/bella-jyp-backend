@@ -20,19 +20,26 @@ export class EditarEmpleadoUseCase {
         where: { id },
       });
 
-      if (!empleado || empleado.deleted_at !== null) throw new NotFoundException({
-        title: 'Colaborador no encontrado',
-        detail: 'El legajo no existe o ha sido eliminado (cesado).',
-      });
+      if (!empleado || empleado.deleted_at !== null)
+        throw new NotFoundException({
+          title: 'Colaborador no encontrado',
+          detail: 'El legajo no existe o ha sido eliminado (cesado).',
+        });
 
       // Si intenta cambiar el documento, validamos que no colisione con otro
-      if ( payload.nro_documento && payload.nro_documento !== empleado.nro_documento) {
-        const docExistente = await this.prisma.empleados.findUnique({ where: { nro_documento: payload.nro_documento } });
-
-        if (docExistente) throw new BadRequestException({
-          title: 'Documento Duplicado',
-          detail: `El DNI/Documento ${payload.nro_documento} ya pertenece a otro colaborador.`,
+      if (
+        payload.nro_documento &&
+        payload.nro_documento !== empleado.nro_documento
+      ) {
+        const docExistente = await this.prisma.empleados.findUnique({
+          where: { nro_documento: payload.nro_documento },
         });
+
+        if (docExistente)
+          throw new BadRequestException({
+            title: 'Documento Duplicado',
+            detail: `El DNI/Documento ${payload.nro_documento} ya pertenece a otro colaborador.`,
+          });
       }
 
       const empleadoActualizado = await this.prisma.empleados.update({
@@ -57,11 +64,16 @@ export class EditarEmpleadoUseCase {
 
       return empleadoActualizado;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException)throw error;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
 
       throw new BadRequestException({
         title: 'Error de Actualización',
-        detail: 'Fallo interno al intentar modificar el legajo del colaborador.',
+        detail:
+          'Fallo interno al intentar modificar el legajo del colaborador.',
       });
     }
   }

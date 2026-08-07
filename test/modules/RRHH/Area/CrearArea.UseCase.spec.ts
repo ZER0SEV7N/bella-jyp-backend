@@ -1,6 +1,9 @@
 //test/RRHH/Area/crearArea.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { CrearAreaUseCase } from '@/modules/RRHH/use-cases/area/crearArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
@@ -22,12 +25,12 @@ describe('CrearAreaUseCase', () => {
       },
     };
 
-  const module: TestingModule = await Test.createTestingModule({
-    providers: [
-      CrearAreaUseCase,
-      { provide: PrismaService, useValue: mockPrisma },
-    ],
-  }).compile();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CrearAreaUseCase,
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
+    }).compile();
     useCase = module.get<CrearAreaUseCase>(CrearAreaUseCase);
   });
 
@@ -75,8 +78,12 @@ describe('CrearAreaUseCase', () => {
     const payloadInvalido = { descripcion: 'Área sin nombre' } as any;
 
     //Act & Assert
-    await expect(useCase.execute(payloadInvalido)).rejects.toThrow(BadRequestException);
-    await expect(useCase.execute(payloadInvalido)).rejects.toThrow('El nombre del área es estrictamente obligatorio.',);
+    await expect(useCase.execute(payloadInvalido)).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(useCase.execute(payloadInvalido)).rejects.toThrow(
+      'El nombre del área es estrictamente obligatorio.',
+    );
 
     //Verificar que no se haya llamado a la base de datos
     expect(mockPrisma.area.findFirst).not.toHaveBeenCalled();
@@ -86,11 +93,15 @@ describe('CrearAreaUseCase', () => {
   it('Debería lanzar InternalServerErrorException si la base de datos falla al crear', async () => {
     //Arrange: Todo va bien, pero la BD se cae en el momento exacto del insert
     mockPrisma.area.findFirst.mockResolvedValue(null);
-    mockPrisma.area.create.mockRejectedValue(new Error('Database Connection Lost'));
+    mockPrisma.area.create.mockRejectedValue(
+      new Error('Database Connection Lost'),
+    );
 
     const payload = { nombre: 'Sistemas' };
 
     //Act & Assert
-    await expect(useCase.execute(payload)).rejects.toThrow(InternalServerErrorException);
+    await expect(useCase.execute(payload)).rejects.toThrow(
+      InternalServerErrorException,
+    );
   });
 });
