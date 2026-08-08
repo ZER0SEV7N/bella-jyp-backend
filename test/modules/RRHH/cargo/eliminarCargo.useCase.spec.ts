@@ -73,7 +73,9 @@ describe('EliminarCargoUseCase', () => {
     //simular respuesta que retorna empelados activos
     mockPrisma.empleados.count.mockReturnValue(3);
     //ejecutar la tarea
-    await expect(useCase.execute('id-cargo-112')).rejects.toThrow(BadRequestException);
+    await expect(useCase.execute('id-cargo-112')).rejects.toThrow(
+      BadRequestException,
+    );
     //prubas unitarias
     expect(mockPrisma.empleados.count).toHaveBeenCalled();
     expect(mockPrisma.cargo.update).not.toHaveBeenCalled();
