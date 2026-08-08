@@ -3,7 +3,7 @@ import { editarDatoFinancieroDto } from '@jyp/shared-contracts';
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 
 @Injectable()
-export class editarDato_FinancieroUseCase {
+export class editarDatoFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(idEmpleado: string, dto: editarDatoFinancieroDto) {
     const empleado = await this.prisma.empleados.findUnique({
@@ -22,7 +22,7 @@ export class editarDato_FinancieroUseCase {
     try {
       //editar dato de empleado
       const dato_financieroEditado = await this.prisma.dato_financiero.update({
-        where: { empleado_id: idEmpleado },
+        where: { empleado_id: idEmpleado, deleted_at: null },
         data: {
           ...dto,
           deleted_at: new Date(),

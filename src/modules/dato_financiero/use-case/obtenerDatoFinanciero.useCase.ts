@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 
 @Injectable()
-export class obtenerDatosEmpleadoUseCase {
+export class obtenerDatoFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(idEmpleado: string) {
     //validar la existencia y actividad del empleado
