@@ -1,6 +1,10 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { editarDatoFinancieroDto } from '@jyp/shared-contracts';
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 
 @Injectable()
 export class editarDatoFinancieroUseCase {

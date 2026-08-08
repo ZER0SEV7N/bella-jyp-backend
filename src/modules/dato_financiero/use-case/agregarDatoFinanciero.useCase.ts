@@ -8,7 +8,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import type { crearDatoFinancieroDto } from '@jyp/shared-contracts';
 
 @Injectable()
-export class agregarDatosFinanciero {
+export class agregarDatosFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
   async execute(dto: crearDatoFinancieroDto) {
     //validar que el empleado existe
