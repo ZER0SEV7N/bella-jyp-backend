@@ -1,10 +1,6 @@
 //src/modules/RRHH/use-cases/jornadas/editarJornada.useCase.ts
 //Caso de uso para editar una jornada laboral existente
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ActualizarJornadaDto } from '@jyp/shared-contracts';
 
