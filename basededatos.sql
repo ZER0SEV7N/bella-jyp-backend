@@ -8,9 +8,11 @@
 -- -------------------------------------------------------
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TYPE estado_tarea_enum AS ENUM ('pendiente', 'revision', 'aprobado');
+CREATE TYPE estado_tarea_enum AS ENUM ('pendiente', 'revision', 'aprobado', 'rechazado', 'auditado');
 CREATE TYPE estado_planilla_enum AS ENUM ('abierto', 'en_revision', 'congelado', 'declarado');
-CREATE TYPE rol_usuario_enum AS ENUM ('ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE', 'EMPLEADO');
+CREATE TYPE rol_usuario_enum AS ENUM ('JYP','ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE', 'EMPLEADO');
+CREATE TYPE estado_job_enum AS ENUM ('EN_COLA', 'PROCESANDO', 'COMPLETADO', 'FALLIDO');
+CREATE TYPE estado_sincronizacion_enum AS ENUM ('COMPLETO', 'BORRADOR');
 
 -- -------------------------------------------------------
 -- 2. TABLAS CATÁLOGO BASE (Sin dependencias)
@@ -98,14 +100,26 @@ CREATE TABLE aportaciones (
     CONSTRAINT fk_aportaciones_afp FOREIGN KEY (afp_id) REFERENCES tipo_AFP(id)
 );
 
+CREATE TABLE carga_masiva_jobs (
+    id              UUID            PRIMARY KEY,
+    usuario_id      UUID            NOT NULL,
+    total_registros INTEGER         NOT NULL DEFAULT 0,
+    procesados      INTEGER         NOT NULL DEFAULT 0,
+    fallidos        INTEGER         NOT NULL DEFAULT 0,
+    errores_detalle JSONB           DEFAULT NULL,
+    estado          estado_job_enum NOT NULL DEFAULT 'EN_COLA',
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE empleados (
     id                  UUID            PRIMARY KEY,
     cargo_id            UUID            NOT NULL,
     area_id             UUID            NOT NULL,
     documento_id        UUID            NOT NULL,
     estado_empleado_id  UUID            NOT NULL,
-    nombre              VARCHAR(100)    NOT NULL,
-    apellido            VARCHAR(100)    NOT NULL,
+    nombre              VARCHAR(100)    NULL,
+    apellido            VARCHAR(100)    NULL,
     nro_documento       VARCHAR(20)     NOT NULL UNIQUE,
     fecha_nacimiento    DATE,
     fecha_inicio        DATE,
@@ -307,6 +321,9 @@ CREATE INDEX idx_tipo_afp_regimen  ON tipo_AFP(id_regimen);
 CREATE INDEX idx_cargo_area        ON cargo(id_area);
 CREATE INDEX idx_dato_fin_empleado ON dato_financiero(empleado_id);
 
+CREATE INDEX idx_carga_masiva_usuario ON carga_masiva_jobs(usuario_id);
+CREATE INDEX idx_carga_masiva_estado ON carga_masiva_jobs(estado) WHERE estado = 'PROCESANDO';
+
 CREATE INDEX idx_planilla_periodo_estado ON historial_planillas(periodo, estado);
 
 -- Índice optimizado para buscar tokens activos rápidamente
@@ -380,3 +397,20 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_blindar_auditoria
 BEFORE UPDATE OR DELETE ON audit_log
 FOR EACH ROW EXECUTE FUNCTION denegar_manipulacion_auditoria();
+
+-- TRIGGER DE PROTECCIÓN DE DISCO: PREVENCIÓN DE ALTERACIÓN DE TRABAJOS FINALIZADOS
+CREATE OR REPLACE FUNCTION proteger_jobs_finalizados() 
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (OLD.estado = 'COMPLETADO' OR OLD.estado = 'FALLIDO') THEN
+        RAISE EXCEPTION 'CRITICAL ERROR: Transacción denegada. El Job de Carga Masiva ya finalizó con estado %.', OLD.estado
+        USING ERRCODE = 'RESTRICT_VIOLATION';
+    END IF;
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_proteger_jobs
+BEFORE UPDATE ON carga_masiva_jobs
+FOR EACH ROW EXECUTE FUNCTION proteger_estado_job_finalizado();

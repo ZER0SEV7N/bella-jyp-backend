@@ -1,0 +1,9 @@
+$kind: http-request
+name: http://localhost:3000/api/auth/refresh
+url: http://localhost:3000/api/auth/refresh
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: ""
+order: 3486698370323144

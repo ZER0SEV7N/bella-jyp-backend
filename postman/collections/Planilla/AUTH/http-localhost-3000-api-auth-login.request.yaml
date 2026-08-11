@@ -1,0 +1,16 @@
+$kind: http-request
+name: http://localhost:3000/api/auth/login
+url: http://localhost:3000/api/auth/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"tipo_documento\": \"DNI\",\r
+
+    \  \"nro_documento\": \"70112233\",\r
+
+    \  \"password\": \"Password123!\"\r
+
+    }"
+order: 1785197911306
