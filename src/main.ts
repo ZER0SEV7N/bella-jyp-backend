@@ -61,7 +61,7 @@ async function bootstrap() {
     },
   });
 
-  // Habilitar Apagado Seguro (Graceful Shutdown)
+  //Habilitar Apagado Seguro (Graceful Shutdown)
   app.enableShutdownHooks();
 
   await app.listen(process.env.PORT || 3000, '0.0.0.0');

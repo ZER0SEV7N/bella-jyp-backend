@@ -20,10 +20,7 @@ export const EnvSchema = z.object({
 export function validateEnv(config: Record<string, unknown>) {
   const parsed = EnvSchema.safeParse(config);
   if (!parsed.success) {
-    console.error(
-      'Error de validación de variables de entorno:',
-      parsed.error.format(),
-    );
+    console.error('Error de validación de variables de entorno:', parsed.error.format());
     throw new Error('Variables de entorno inválidas');
   }
   return parsed.data;

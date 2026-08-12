@@ -6,10 +6,15 @@ import { EditarContratoUseCase } from './use-cases/editarContrato.useCase';
 import { EliminarContratoUseCase } from './use-cases/eliminarContrato.useCase';
 //controller
 import { ContratoController } from './controller/contarto.controller';
+import { VerificarExpiracionContratosUseCase } from './use-cases/verificarExpiracion.useCase';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ContratosCron } from './cron/contratos.cron';
 @Module({
-  imports: [],
+  imports: [ScheduleModule.forRoot() ],
   controllers: [ContratoController],
   providers: [
+    ContratosCron,
+    VerificarExpiracionContratosUseCase,
     CrearContratoUseCase,
     RenovarContratoUseCase,
     EditarContratoUseCase,

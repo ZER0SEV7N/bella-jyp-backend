@@ -23,7 +23,7 @@
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^10.0.0",
     "@fastify/static": "^10.1.2",
-    "@jyp/shared-contracts": "link:../bella-jyp-shared-contracts",
+    "@jyp/shared-contracts": "link:../shared-contracts",
     "@nest-lab/fastify-multer": "^1.3.0",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.1.24",
