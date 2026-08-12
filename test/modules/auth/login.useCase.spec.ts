@@ -1,7 +1,7 @@
 //test/modules/auth/login.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
-import { LoginUseCase } from '@/modules/auth/use-cases/login.useCase';
+import { LoginUseCase } from '@/modules/core/auth/use-cases/login.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 

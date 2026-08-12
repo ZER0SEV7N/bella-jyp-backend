@@ -1,11 +1,11 @@
 //test/modules/RRHH/area/area.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { AreaController } from '@/modules/RRHH/controller/Area.controller';
-import { CrearAreaUseCase } from '@/modules/RRHH/use-cases/area/crearArea.useCase';
-import { ActualizarAreaUseCase } from '@/modules/RRHH/use-cases/area/actualizarArea.useCase';
-import { EliminarAreaUseCase } from '@/modules/RRHH/use-cases/area/eliminarArea.useCase';
-import { ActiveAreaUseCase } from '@/modules/RRHH/use-cases/area/activeArea.useCase';
-import { ListarAreasUseCase } from '@/modules/RRHH/use-cases/area/listarAreas.useCase';
+import { AreaController } from '@/modules/RRHH/organizacion/controller/Area.controller';
+import { CrearAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/crearArea.useCase';
+import { ActualizarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/actualizarArea.useCase';
+import { EliminarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/eliminarArea.useCase';
+import { ActiveAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/activeArea.useCase';
+import { ListarAreasUseCase } from '@/modules/RRHH/organizacion/use-cases/area/listarAreas.useCase';
 
 //Prueba unitaria para el AreaController
 describe('AreaController', () => {
@@ -28,8 +28,8 @@ describe('AreaController', () => {
         { provide: ActualizarAreaUseCase, useValue: mockActualizarAreaUC },
         { provide: EliminarAreaUseCase, useValue: mockEliminarAreaUC },
         { provide: ActiveAreaUseCase, useValue: mockActiveAreaUC },
-        { provide: ListarAreasUseCase, useValue: mockListarAreasUC },
-      ],
+        { provide: ListarAreasUseCase, useValue: mockListarAreasUC }
+      ]
     }).compile();
     controller = module.get<AreaController>(AreaController);
   });
@@ -78,14 +78,10 @@ describe('AreaController', () => {
     //Arrange
     const id = 'uuid-123';
     const payload = { nombre: 'Sistemas V2' };
-    mockActualizarAreaUC.execute.mockRejectedValue(
-      new Error('Error al actualizar'),
-    );
+    mockActualizarAreaUC.execute.mockRejectedValue(new Error('Error al actualizar'));
 
     //Act & Assert
-    await expect(controller.update(id, payload)).rejects.toThrow(
-      'Error al actualizar',
-    );
+    await expect(controller.update(id, payload)).rejects.toThrow('Error al actualizar');
     expect(mockActualizarAreaUC.execute).toHaveBeenCalledWith(id, payload);
   });
 
@@ -98,7 +94,7 @@ describe('AreaController', () => {
     await expect(controller.update(invalidId, payload)).rejects.toThrow();
     expect(mockActualizarAreaUC.execute).toHaveBeenCalledWith(
       invalidId,
-      payload,
+      payload
     );
   });
 
@@ -110,7 +106,7 @@ describe('AreaController', () => {
     const id = 'uuid-123';
     mockActiveAreaUC.execute.mockResolvedValue({
       state: true,
-      message: 'Reactivado',
+      message: 'Reactivado'
     });
 
     //Act
@@ -134,14 +130,10 @@ describe('AreaController', () => {
   it('reactive(): Deberia lanzar un error si el area esta activada', async () => {
     //Arrange
     const id = 'uuid-123';
-    mockActiveAreaUC.execute.mockRejectedValue(
-      new Error('El área ya está activada'),
-    );
+    mockActiveAreaUC.execute.mockRejectedValue(new Error('El área ya está activada'));
 
     //Act & Assert
-    await expect(controller.reactive(id)).rejects.toThrow(
-      'El área ya está activada',
-    );
+    await expect(controller.reactive(id)).rejects.toThrow('El área ya está activada');
     expect(mockActiveAreaUC.execute).toHaveBeenCalledWith(id);
   });
 
@@ -149,20 +141,22 @@ describe('AreaController', () => {
   //Endpoint: Eliminar Area
   //=============================================
   it('eliminar(): Debería llamar a EliminarAreaUseCase con el ID', async () => {
+    //Arrange
     const id = 'uuid-123';
     mockEliminarAreaUC.execute.mockResolvedValue({ activo: false });
 
+    //Act
     const result = await controller.eliminar(id);
 
+    //Assert
     expect(result.activo).toBe(false);
     expect(mockEliminarAreaUC.execute).toHaveBeenCalledWith(id);
   });
 
   it('eliminar(): Debería lanzar un error si EliminarAreaUseCase falla', async () => {
+    //Arrange: Simular un error en el caso de uso
     const id = 'uuid-123';
-    mockEliminarAreaUC.execute.mockRejectedValue(
-      new Error('Error al eliminar'),
-    );
+    mockEliminarAreaUC.execute.mockRejectedValue(new Error('Error al eliminar'));
 
     //Act & Assert
     await expect(controller.eliminar(id)).rejects.toThrow('Error al eliminar');
@@ -170,15 +164,12 @@ describe('AreaController', () => {
   });
 
   it('eliminar(): Deberia lanzar error si el area ya esta desactivada', async () => {
+    //Arrange: Simular que el área ya está desactivada
     const id = 'uuid-123';
-    mockEliminarAreaUC.execute.mockRejectedValue(
-      new Error('El área ya está desactivada'),
-    );
+    mockEliminarAreaUC.execute.mockRejectedValue(new Error('El área ya está desactivada'));
 
     //Act & Assert
-    await expect(controller.eliminar(id)).rejects.toThrow(
-      'El área ya está desactivada',
-    );
+    await expect(controller.eliminar(id)).rejects.toThrow('El área ya está desactivada');
     expect(mockEliminarAreaUC.execute).toHaveBeenCalledWith(id);
   });
 
@@ -186,35 +177,35 @@ describe('AreaController', () => {
   //Endpoint: Listar Areas
   //=============================================
   it('listarAreas(): Debería llamar a ListarAreasUseCase con los QueryParams', async () => {
+    //Arrange
     const query = { page: 1, limit: 10, activo: true };
     mockListarAreasUC.listar.mockResolvedValue({ data: [], meta: {} });
 
+    //Act
     const result = await controller.listarAreas(query);
 
+    //Assert
     expect(result.data).toBeDefined();
     expect(mockListarAreasUC.listar).toHaveBeenCalledWith(query);
   });
 
   it('listarAreas(): Debería lanzar un error si ListarAreasUseCase falla', async () => {
+    //Arrange
     const query = { page: 1, limit: 10, activo: true };
     mockListarAreasUC.listar.mockRejectedValue(new Error('Error al listar'));
 
     //Act & Assert
-    await expect(controller.listarAreas(query)).rejects.toThrow(
-      'Error al listar',
-    );
+    await expect(controller.listarAreas(query)).rejects.toThrow('Error al listar');
     expect(mockListarAreasUC.listar).toHaveBeenCalledWith(query);
   });
 
   it('listarAreas(): Debería lanzar un error si los QueryParams son inválidos', async () => {
+    //Arrange: Simular parámetros de consulta inválidos
     const invalidQuery = { page: -1, limit: 0 } as any; // Forzando un tipo inválido
-    mockListarAreasUC.listar.mockRejectedValue(
-      new Error('Parámetros de consulta inválidos'),
-    );
+    mockListarAreasUC.listar.mockRejectedValue(new Error('Parámetros de consulta inválidos'));
+
     //Act & Assert
-    await expect(controller.listarAreas(invalidQuery)).rejects.toThrow(
-      'Parámetros de consulta inválidos',
-    );
+    await expect(controller.listarAreas(invalidQuery)).rejects.toThrow('Parámetros de consulta inválidos');
     expect(mockListarAreasUC.listar).toHaveBeenCalledWith(invalidQuery);
   });
 });

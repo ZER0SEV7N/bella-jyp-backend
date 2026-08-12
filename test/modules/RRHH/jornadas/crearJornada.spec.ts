@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { CrearJornadaUseCase } from '@/modules/RRHH/use-cases/jornadas/crearJornada.useCase';
+import { CrearJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/crearJornada.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CrearJornadaDto } from '@jyp/shared-contracts';
 describe('crearJornadaUseCase', () => {

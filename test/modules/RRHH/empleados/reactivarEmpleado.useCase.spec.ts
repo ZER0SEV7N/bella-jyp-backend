@@ -1,7 +1,7 @@
 //test/modules/RRHH/empleados/reactivarEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { ActiveEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/activeEmpleado.useCase';
+import { ActiveEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/activeEmpleado.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**

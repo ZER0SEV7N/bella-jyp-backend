@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { AgregarAportacionUseCase } from '@/modules/afp/use-cases/aportacion/agregarAportacion.useCase';
+import { AgregarAportacionUseCase } from '@/modules/payroll/afp/use-cases/aportacion/agregarAportacion.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 jest.mock('@/common/utils/uuid.util', () => ({

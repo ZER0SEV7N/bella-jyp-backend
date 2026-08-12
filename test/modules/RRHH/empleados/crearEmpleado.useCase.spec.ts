@@ -1,8 +1,8 @@
 //test/modules/RRHH/empleados/crearEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { CrearEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/crearEmpleado.useCase';
+import { CrearEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/crearEmpleado.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { ReniecAdapter } from '@/modules/RRHH/services/reniec.adapter';
+import { ReniecAdapter } from '@/modules/RRHH/organizacion/services/reniec.adapter';
 
 //Mockear la generación de UUID para que siempre devuelva un valor predecible
 jest.mock('@/common/utils/uuid.util', () => ({

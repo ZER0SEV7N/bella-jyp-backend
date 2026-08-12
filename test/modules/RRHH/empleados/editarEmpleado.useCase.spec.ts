@@ -1,7 +1,7 @@
 //test/modules/RRHH/empleados/editarEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { EditarEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/editarEmpleado.useCase';
+import { EditarEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/editarEmpleado.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**

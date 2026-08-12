@@ -1,5 +1,5 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { ListarCargosUseCase } from '@/modules/RRHH/use-cases/cargos/listarCargos.useCase';
+import { ListarCargosUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/listarCargos.useCase';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { ListarCargosQueryDto } from '@jyp/shared-contracts';
 

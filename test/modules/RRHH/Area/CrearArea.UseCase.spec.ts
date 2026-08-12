@@ -2,14 +2,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
-  InternalServerErrorException,
+  InternalServerErrorException
 } from '@nestjs/common';
-import { CrearAreaUseCase } from '@/modules/RRHH/use-cases/area/crearArea.useCase';
+import { CrearAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/crearArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 //Mock de Crypto para simular la generación de UUID
 jest.mock('crypto', () => ({
-  randomUUID: jest.fn(() => 'uuid-1234-5678'),
+  randomUUID: jest.fn(() => 'uuid-1234-5678')
 }));
 
 describe('CrearAreaUseCase', () => {
@@ -21,23 +21,21 @@ describe('CrearAreaUseCase', () => {
     mockPrisma = {
       area: {
         findFirst: jest.fn(),
-        create: jest.fn(),
-      },
+        create: jest.fn()
+      }
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CrearAreaUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
     useCase = module.get<CrearAreaUseCase>(CrearAreaUseCase);
   });
 
   //Limpiar los mocks después de cada prueba
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
   it('Debería crear una nueva área correctamente (Happy Path)', async () => {
     //Arrange: No existe ningún área con ese nombre
@@ -45,7 +43,7 @@ describe('CrearAreaUseCase', () => {
 
     const payload = {
       nombre: 'Recursos Humanos',
-      descripcion: 'Área principal',
+      descripcion: 'Área principal'
     };
     const mockCreatedArea = { id: 'uuid-area-1234', ...payload, activo: true };
     mockPrisma.area.create.mockResolvedValue(mockCreatedArea);
@@ -63,7 +61,7 @@ describe('CrearAreaUseCase', () => {
     //Arrange: Prisma encuentra un área que ya se llama igual
     mockPrisma.area.findFirst.mockResolvedValue({
       id: 'uuid-existente',
-      nombre: 'Recursos Humanos',
+      nombre: 'Recursos Humanos'
     });
 
     const payload = { nombre: 'Recursos Humanos', descripcion: 'Otra área' };
@@ -78,12 +76,8 @@ describe('CrearAreaUseCase', () => {
     const payloadInvalido = { descripcion: 'Área sin nombre' } as any;
 
     //Act & Assert
-    await expect(useCase.execute(payloadInvalido)).rejects.toThrow(
-      BadRequestException,
-    );
-    await expect(useCase.execute(payloadInvalido)).rejects.toThrow(
-      'El nombre del área es estrictamente obligatorio.',
-    );
+    await expect(useCase.execute(payloadInvalido)).rejects.toThrow(BadRequestException);
+    await expect(useCase.execute(payloadInvalido)).rejects.toThrow('El nombre del área es estrictamente obligatorio.');
 
     //Verificar que no se haya llamado a la base de datos
     expect(mockPrisma.area.findFirst).not.toHaveBeenCalled();
@@ -93,15 +87,10 @@ describe('CrearAreaUseCase', () => {
   it('Debería lanzar InternalServerErrorException si la base de datos falla al crear', async () => {
     //Arrange: Todo va bien, pero la BD se cae en el momento exacto del insert
     mockPrisma.area.findFirst.mockResolvedValue(null);
-    mockPrisma.area.create.mockRejectedValue(
-      new Error('Database Connection Lost'),
-    );
-
-    const payload = { nombre: 'Sistemas' };
+    mockPrisma.area.create.mockRejectedValue(new Error('Database Connection Lost'));
 
     //Act & Assert
-    await expect(useCase.execute(payload)).rejects.toThrow(
-      InternalServerErrorException,
-    );
+    const payload = { nombre: 'Sistemas' };
+    await expect(useCase.execute(payload)).rejects.toThrow(InternalServerErrorException);
   });
 });

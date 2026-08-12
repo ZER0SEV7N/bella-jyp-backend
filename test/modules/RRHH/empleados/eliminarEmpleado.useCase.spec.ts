@@ -1,7 +1,7 @@
 //test/modules/RRHH/empleados/eliminarEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { EliminarEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/eliminarEmpleado.useCase';
+import { EliminarEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/eliminarEmpleado.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**

@@ -1,6 +1,6 @@
 //test/RRHH/Bulk-Empleado/procesarCargaMasica.useCase.spec.ts
 //Pruebas unitarias para el caso de uso de procesamiento de carga masiva de empleados
-import { ProcesarCargaMasivaUseCase } from '@/modules/RRHH/use-cases/carga-masiva/procesarCargaMasiva.useCase';
+import { ProcesarCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/procesarCargaMasiva.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Queue } from 'bullmq';
 import { PassThrough, Readable } from 'node:stream';
@@ -12,7 +12,7 @@ jest.mock('@jyp/shared-contracts', () => ({
     safeParse: jest.fn((fila) => {
       if (fila.invalida) return { success: false, error: 'invalido' };
       return { success: true, data: fila };
-    }),
+    })
   },
 }));
 
@@ -20,7 +20,7 @@ jest.mock('@jyp/shared-contracts', () => ({
 jest.mock('csv-parser', () => {
   return {
     __esModule: true,
-    default: jest.fn(),
+    default: jest.fn()
   };
 });
 
@@ -35,8 +35,8 @@ describe('ProcesarCargaMasivaUseCase', () => {
     mockPrisma = {
       cargaMasivaJob: {
         create: jest.fn().mockResolvedValue(true),
-        update: jest.fn().mockResolvedValue(true),
-      },
+        update: jest.fn().mockResolvedValue(true)
+      }
     };
 
     //Mock de la cola de procesamiento para simular la adición de trabajos
@@ -45,7 +45,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
     //Instancia del caso de uso con los mocks inyectados
     useCase = new ProcesarCargaMasivaUseCase(
       mockQueue as unknown as Queue,
-      mockPrisma as unknown as PrismaService,
+      mockPrisma as unknown as PrismaService
     );
 
     //Revisar la console.error para evitar que los errores se muestren en la salida de la prueba
@@ -64,9 +64,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
 
     //El mock del parser simplemente devuelve un conducto (PassThrough) que deja pasar todo tal cual
     const passThroughMock = new PassThrough({ objectMode: true });
-    (csvParser.default as unknown as jest.Mock).mockReturnValue(
-      passThroughMock,
-    );
+    (csvParser.default as unknown as jest.Mock).mockReturnValue(passThroughMock);
 
     //Act: Ejecutamos el caso de uso
     const promise = useCase.execute(jobId, usuarioId, dummyStream);
@@ -88,13 +86,13 @@ describe('ProcesarCargaMasivaUseCase', () => {
       jobId,
       registros: [
         { id: 1, nombre: 'Juan' },
-        { id: 2, nombre: 'Ana' },
-      ],
+        { id: 2, nombre: 'Ana' }
+      ]
     });
 
     expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
       where: { id: jobId },
-      data: { total_registros: 3 },
+      data: { total_registros: 3 }
     });
   });
 
@@ -106,9 +104,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
 
     //Mock del csv-parser para devolver un PassThrough que simula el flujo de datos
     const passThroughMock = new PassThrough({ objectMode: true });
-    (csvParser.default as unknown as jest.Mock).mockReturnValue(
-      passThroughMock,
-    );
+    (csvParser.default as unknown as jest.Mock).mockReturnValue(passThroughMock);
     const promise = useCase.execute('job-123', 'user-123', dummyStream);
 
     //Act: Empujamos 50 filas
@@ -121,18 +117,14 @@ describe('ProcesarCargaMasivaUseCase', () => {
     //Assert
     expect(dummyStream.pause).toHaveBeenCalledTimes(2);
     expect(dummyStream.resume).toHaveBeenCalledTimes(2);
-    expect(mockQueue.add).toHaveBeenCalledWith('lote-0', expect.any(Object), {
-      removeOnComplete: true,
-    });
+    expect(mockQueue.add).toHaveBeenCalledWith('lote-0', expect.any(Object), {removeOnComplete: true});
   });
 
   it('Deberia rechazar la promesa si ocurre un error en el stream de lectura', async () => {
     //Arrange: Crear un stream de lectura simulado y un PassThrough para el csv-parser
     const dummyStream = new Readable({ objectMode: true, read() {} });
     const passThroughMock = new PassThrough({ objectMode: true });
-    (csvParser.default as unknown as jest.Mock).mockReturnValue(
-      passThroughMock,
-    );
+    (csvParser.default as unknown as jest.Mock).mockReturnValue(passThroughMock);
 
     //Iniciar la ejecución (la promesa queda en estado "pending")
     const promise = useCase.execute('job-123', 'user-123', dummyStream);
@@ -153,7 +145,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
       //Act & Assert: Verificar que la actualización a FALLIDO se haya llamado con el mensaje del error
       expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
         where: { id: 'job-404' },
-        data: { estado: 'FALLIDO' },
+        data: { estado: 'FALLIDO' }
       });
     });
 
@@ -164,7 +156,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
       //Act & Assert: Verificar que la actualización a FALLIDO se haya llamado con un mensaje generico
       expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
         where: { id: 'job-404' },
-        data: { estado: 'FALLIDO' },
+        data: { estado: 'FALLIDO' }
       });
     });
 
@@ -181,9 +173,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       //Assert: Verificar que console.error haya sido llamado con el mensaje de error
-      expect(console.error).toHaveBeenCalledWith(
-        'Error al actualizar el estado del job job-404 a FALLIDO: Connection Refused',
-      );
+      expect(console.error).toHaveBeenCalledWith('Error al actualizar el estado del job job-404 a FALLIDO: Connection Refused');
     });
   });
 });

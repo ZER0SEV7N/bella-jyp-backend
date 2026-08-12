@@ -1,22 +1,18 @@
 //test/modules/auth/provisionarUsuario.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
-import { ProvisionarUsuarioUseCase } from '@/modules/auth/use-cases/provisionarUsuario.useCase';
+import { NotFoundException, ConflictException } from '@nestjs/common';
+import { ProvisionarUsuarioUseCase } from '@/modules/core/auth/use-cases/provisionarUsuario.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 //Mock de Argon2 para simular el hash de contraseñas
 jest.mock('argon2', () => ({
   hash: jest.fn(async () => 'hashed_password_mock'),
-  argon2id: 2, //Constante requerida por tu código real
+  argon2id: 2 //Constante requerida por tu código real
 }));
 
 //Mock de Crypto para simular la generación de UUID
 jest.mock('crypto', () => ({
-  randomUUID: jest.fn(() => 'uuid-1234-5678'),
+  randomUUID: jest.fn(() => 'uuid-1234-5678')
 }));
 
 describe('ProvisionarUsuarioUseCase', () => {
@@ -27,14 +23,14 @@ describe('ProvisionarUsuarioUseCase', () => {
   beforeEach(async () => {
     mockPrisma = {
       empleados: { findUnique: jest.fn() },
-      usuarios: { findUnique: jest.fn(), create: jest.fn() },
+      usuarios: { findUnique: jest.fn(), create: jest.fn() }
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProvisionarUsuarioUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
 
     useCase = module.get<ProvisionarUsuarioUseCase>(ProvisionarUsuarioUseCase);
@@ -50,7 +46,7 @@ describe('ProvisionarUsuarioUseCase', () => {
       nro_documento: '12345678',
       email: 'test@jyp.com',
       password: 'password123',
-      rol: 'ASISTENTE',
+      rol: 'ASISTENTE'
     };
 
     mockPrisma.empleados.findUnique.mockResolvedValue({ id: 'empleado-1' });
@@ -58,7 +54,7 @@ describe('ProvisionarUsuarioUseCase', () => {
     mockPrisma.usuarios.create.mockResolvedValue({
       id: 'user-123',
       rol: 'ASISTENTE',
-      empleados: { nro_documento: '12345678', tipo_documento: 'DNI' },
+      empleados: { nro_documento: '12345678', tipo_documento: 'DNI' }
     });
 
     //Act: Ejecutar el caso de uso
@@ -68,9 +64,7 @@ describe('ProvisionarUsuarioUseCase', () => {
     expect(result.id).toBe('user-123');
     expect(result.rol).toBe('ASISTENTE');
     expect(result.nro_documento).toBe('12345678');
-    expect(mockPrisma.usuarios.findUnique).toHaveBeenCalledWith({
-      where: { empleado_id: 'empleado-1' },
-    });
+    expect(mockPrisma.usuarios.findUnique).toHaveBeenCalledWith({where: { empleado_id: 'empleado-1' }});
     expect(mockPrisma.usuarios.create).toHaveBeenCalled();
   });
 
@@ -81,7 +75,7 @@ describe('ProvisionarUsuarioUseCase', () => {
       nro_documento: '99999999',
       email: 'test@jyp.com',
       password: 'password123',
-      rol: 'ASISTENTE',
+      rol: 'ASISTENTE'
     };
     mockPrisma.empleados.findUnique.mockResolvedValue(null); //Simular que el empleado no existe
 
@@ -96,14 +90,15 @@ describe('ProvisionarUsuarioUseCase', () => {
       nro_documento: '12345678',
       email: 'test@jyp.com',
       password: 'password123',
-      rol: 'ASISTENTE',
+      rol: 'ASISTENTE'
     };
+
     //Simular que el empleado existe y que ya hay un usuario con el mismo email
     mockPrisma.empleados.findUnique.mockResolvedValue({ id: 'empleado-1' });
     mockPrisma.usuarios.findUnique.mockResolvedValue({
       id: 'user-123',
       rol: 'ASISTENTE',
-      empleados: { nro_documento: '12345678', tipo_documento: 'DNI' },
+      empleados: { nro_documento: '12345678', tipo_documento: 'DNI' }
     });
 
     //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada

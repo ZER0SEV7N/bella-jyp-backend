@@ -4,7 +4,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { AgregarComisionUseCase } from '@/modules/afp/use-cases/comision/agregarComision.useCase';
+import { AgregarComisionUseCase } from '@/modules/payroll/afp/use-cases/comision/agregarComision.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 //Mockear el generador de UUID para que siempre devuelva un valor predecible

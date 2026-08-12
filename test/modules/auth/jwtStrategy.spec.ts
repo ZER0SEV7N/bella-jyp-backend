@@ -1,7 +1,7 @@
 //test/modules/auth/jwtStrategy.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
-import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
+import { JwtStrategy } from '@/modules/core/auth/strategies/jwt.strategy';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ClsService } from 'nestjs-cls';
 

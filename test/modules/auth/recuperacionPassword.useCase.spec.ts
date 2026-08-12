@@ -1,7 +1,7 @@
 //test/modules/auth/recuperacionPassword.useCase.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { RecuperacionPasswordUseCases } from '@/modules/auth/use-cases/recuperacionPassword.useCases';
+import { RecuperacionPasswordUseCases } from '@/modules/core/auth/use-cases/recuperacionPassword.useCases';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import axios from 'axios';
 
@@ -12,7 +12,7 @@ jest.mock('axios');
 jest.mock('argon2', () => ({
   hash: jest.fn(async () => 'hashed_mock_value'),
   verify: jest.fn(async (hash, plain) => plain === 'token_correcto_mock'),
-  argon2id: 2,
+  argon2id: 2
 }));
 
 //Mock de Crypto para simular la generación de bytes aleatorios y UUIDs
@@ -21,9 +21,9 @@ jest.mock('crypto', () => ({
   randomUUID: jest.fn(() => 'uuid-1234'),
   createHmac: jest.fn().mockReturnValue({
     update: jest.fn().mockReturnValue({
-      digest: jest.fn().mockReturnValue('mocked-signature'),
-    }),
-  }),
+      digest: jest.fn().mockReturnValue('mocked-signature')
+    })
+  })
 }));
 
 //Pruebas unitarias para el caso de uso de recuperación de contraseña
@@ -39,9 +39,9 @@ describe('RecuperacionPasswordUseCases', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
-        updateMany: jest.fn(),
+        updateMany: jest.fn()
       },
-      $transaction: jest.fn(async (queries) => Promise.all(queries)), // Simula la ejecución de la transacción
+      $transaction: jest.fn(async (queries) => Promise.all(queries)) // Simula la ejecución de la transacción
     };
 
     //Configuración de la variable de entorno para el webhook de n8n
@@ -51,13 +51,11 @@ describe('RecuperacionPasswordUseCases', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecuperacionPasswordUseCases,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
 
-    useCase = module.get<RecuperacionPasswordUseCases>(
-      RecuperacionPasswordUseCases,
-    );
+    useCase = module.get<RecuperacionPasswordUseCases>(RecuperacionPasswordUseCases);
   });
 
   //Limpiar los mocks después de cada prueba
@@ -75,9 +73,7 @@ describe('RecuperacionPasswordUseCases', () => {
       const result = await useCase.solicitar({ nro_documento: '0000' });
 
       //Assert: Verificar que se retorne el mensaje genérico y que no se haya intentado crear un token
-      expect(result.message).toBe(
-        'Si el documento es válido, se enviarán las instrucciones.',
-      );
+      expect(result.message).toBe('Si el documento es válido, se enviarán las instrucciones.');
       expect(mockPrisma.tokens_seguridad.create).not.toHaveBeenCalled(); // Verifica que no se guarde nada
     });
 
@@ -89,29 +85,24 @@ describe('RecuperacionPasswordUseCases', () => {
       });
 
       //Act & Assert: Ejecutar el método solicitar y esperar que lance BadRequestException
-      await expect(
-        useCase.solicitar({ nro_documento: '7011' }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(useCase.solicitar({ nro_documento: '7011' })).rejects.toThrow(BadRequestException);
     });
 
     it('Debería crear el token, disparar el webhook y retornar el mensaje de éxito (Happy Path)', async () => {
       //Arrange: Simular que existe un usuario con el documento proporcionado y con email
       mockPrisma.usuarios.findFirst.mockResolvedValue({
         id: 'user-1',
-        email: 'test@jyp.com',
+        email: 'test@jyp.com'
       });
-      mockPrisma.tokens_seguridad.create.mockResolvedValue({
-        id: 'token-uuid-1',
-      });
+
+      mockPrisma.tokens_seguridad.create.mockResolvedValue({id: 'token-uuid-1'});
       (axios.post as jest.Mock).mockResolvedValue({}); //Simular que el webhook de n8n responde correctamente
 
       //Act: Ejecutar el método solicitar con un documento válido
       const result = await useCase.solicitar({ nro_documento: '7011' });
 
       //Assert: Verificar que se retorne el mensaje genérico, que se haya creado el token y que se haya disparado el webhook
-      expect(result.message).toBe(
-        'Si el documento es válido, se enviarán las instrucciones.',
-      );
+      expect(result.message).toBe('Si el documento es válido, se enviarán las instrucciones.');
       expect(mockPrisma.tokens_seguridad.create).toHaveBeenCalled();
       expect(axios.post).toHaveBeenCalled(); //Verifica que se haya disparado el webhook a n8n
     });
@@ -135,7 +126,7 @@ describe('RecuperacionPasswordUseCases', () => {
         token_hash: 'hashed_mock',
         usado: false,
         proposito: 'RESET_PASSWORD',
-        expira_en: new Date(Date.now() + 10000), // Vence en el futuro
+        expira_en: new Date(Date.now() + 10000) // Vence en el futuro
       };
       mockPrisma.tokens_seguridad.findUnique.mockResolvedValue(mockTokenRecord);
 
@@ -152,23 +143,21 @@ describe('RecuperacionPasswordUseCases', () => {
       //Arrange: Simular que no existe un token con el ID proporcionado
       mockPrisma.tokens_seguridad.findUnique.mockResolvedValue({
         usado: true,
-        proposito: 'RESET_PASSWORD',
+        proposito: 'RESET_PASSWORD'
       });
+      
       //Act & Assert: Ejecutar el método restablecer y esperar que lance BadRequestException
-      await expect(useCase.restablecer(payload)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(useCase.restablecer(payload)).rejects.toThrow(BadRequestException);
 
       //Caso: Propósito incorrecto (Ej. intentan usar un Refresh Token para cambiar la clave)
       //Arrange: Simular que el token existe pero es de propósito incorrecto
       mockPrisma.tokens_seguridad.findUnique.mockResolvedValue({
         usado: false,
-        proposito: 'REFRESH_TOKEN',
+        proposito: 'REFRESH_TOKEN'
       });
+
       //Act & Assert: Ejecutar el método restablecer y esperar que lance BadRequestException
-      await expect(useCase.restablecer(payload)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(useCase.restablecer(payload)).rejects.toThrow(BadRequestException);
     });
 
     it('Debería lanzar error si el token está expirado', async () => {
@@ -176,14 +165,12 @@ describe('RecuperacionPasswordUseCases', () => {
       const mockTokenRecord = {
         usado: false,
         proposito: 'RESET_PASSWORD',
-        expira_en: new Date(Date.now() - 10000), // Venció en el pasado
+        expira_en: new Date(Date.now() - 10000) // Venció en el pasado
       };
       mockPrisma.tokens_seguridad.findUnique.mockResolvedValue(mockTokenRecord);
 
       //Act & Assert: Ejecutar el método restablecer y esperar que lance BadRequestException
-      await expect(useCase.restablecer(payload)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(useCase.restablecer(payload)).rejects.toThrow(BadRequestException);
     });
 
     it('Debería lanzar error si la firma (hash) del token no coincide', async () => {
@@ -191,17 +178,16 @@ describe('RecuperacionPasswordUseCases', () => {
       const mockTokenRecord = {
         usado: false,
         proposito: 'RESET_PASSWORD',
-        expira_en: new Date(Date.now() + 10000),
+        expira_en: new Date(Date.now() + 10000)
       };
       mockPrisma.tokens_seguridad.findUnique.mockResolvedValue(mockTokenRecord);
+
       //Act & Assert: Ejecutar el método restablecer y esperar que lance BadRequestException
       const invalidPayload = {
         token_compuesto: 'tokenId.token_HACKER_mock',
-        nueva_password: 'hack',
+        nueva_password: 'hack'
       };
-      await expect(useCase.restablecer(invalidPayload)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(useCase.restablecer(invalidPayload)).rejects.toThrow(BadRequestException);
     });
   });
 });

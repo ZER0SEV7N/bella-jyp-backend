@@ -1,6 +1,6 @@
 //test/modules/RRHH/Area/listarArea.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { ListarAreasUseCase } from '@/modules/RRHH/use-cases/area/listarAreas.useCase';
+import { ListarAreasUseCase } from '@/modules/RRHH/organizacion/use-cases/area/listarAreas.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 //Test Unitario para el caso de uso ListarAreasUseCase
@@ -11,14 +11,14 @@ describe('ListarAreasUseCase', () => {
   beforeEach(async () => {
     mockPrisma = {
       area: { count: jest.fn(), findMany: jest.fn() },
-      $transaction: jest.fn(async (queries) => Promise.all(queries)),
+      $transaction: jest.fn(async (queries) => Promise.all(queries))
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ListarAreasUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
     useCase = module.get<ListarAreasUseCase>(ListarAreasUseCase);
   });
@@ -31,7 +31,7 @@ describe('ListarAreasUseCase', () => {
     const query = { page: 2, limit: 5 };
     const mockAreas = [
       { id: '1', nombre: 'A1' },
-      { id: '2', nombre: 'A2' },
+      { id: '2', nombre: 'A2' }
     ];
 
     mockPrisma.area.count.mockResolvedValue(12);
@@ -46,9 +46,7 @@ describe('ListarAreasUseCase', () => {
     expect(result.meta.page).toBe(2);
     expect(result.meta.limit).toBe(5);
     expect(result.meta.totalPages).toBe(3); // 12 / 5 = 2.4 => 3 pages
-    expect(mockPrisma.area.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 5, take: 5 }),
-    );
+    expect(mockPrisma.area.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 5, take: 5 }));
   });
 
   it('Debería aplicar el filtro de estado "activo" si es proporcionado', async () => {
@@ -60,9 +58,7 @@ describe('ListarAreasUseCase', () => {
     await useCase.listar({ page: 1, limit: 10, activo: true });
 
     //Assert
-    expect(mockPrisma.area.count).toHaveBeenCalledWith({
-      where: { deleted_at: null, activo: true },
-    });
+    expect(mockPrisma.area.count).toHaveBeenCalledWith({where: { deleted_at: null, activo: true }});
   });
 
   it('Debería aplicar el filtro de estado "inactivo" si es proporcionado', async () => {
@@ -74,8 +70,6 @@ describe('ListarAreasUseCase', () => {
     await useCase.listar({ page: 1, limit: 10, activo: false });
 
     //Assert
-    expect(mockPrisma.area.count).toHaveBeenCalledWith({
-      where: { deleted_at: null, activo: false },
-    });
+    expect(mockPrisma.area.count).toHaveBeenCalledWith({where: { deleted_at: null, activo: false }});
   });
 });

@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { EditarJornadaUseCase } from '@/modules/RRHH/use-cases/jornadas/editarJornada.useCase';
+import { EditarJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/editarJornada.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { ActualizarJornadaDto } from '@jyp/shared-contracts';

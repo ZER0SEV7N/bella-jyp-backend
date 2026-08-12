@@ -1,6 +1,6 @@
 //test/modules/RRHH/Area/EliminarArea.UseCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { EliminarAreaUseCase } from '@/modules/RRHH/use-cases/area/eliminarArea.useCase';
+import { EliminarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/eliminarArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import {
   BadRequestException,
@@ -11,18 +11,19 @@ import {
 describe('EliminarAreaUseCase', () => {
   let useCase: EliminarAreaUseCase;
   let mockPrisma: any;
+
   //Configurar el módulo de prueba antes de cada prueba
   beforeEach(async () => {
     mockPrisma = {
       area: { findUnique: jest.fn(), update: jest.fn() },
-      cargo: { count: jest.fn() },
+      cargo: { count: jest.fn() }
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EliminarAreaUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
 
     useCase = module.get<EliminarAreaUseCase>(EliminarAreaUseCase);
@@ -36,11 +37,12 @@ describe('EliminarAreaUseCase', () => {
     mockPrisma.area.findUnique = jest
       .fn()
       .mockResolvedValue({ id: 'area-1', deleted_at: null });
+
     mockPrisma.cargo.count.mockResolvedValue(0);
     mockPrisma.area.update = jest.fn().mockResolvedValue({
       id: 'area-1',
       nombre: 'Área de Prueba',
-      activo: false,
+      activo: false
     });
 
     //Act: Ejecutar el caso de uso
@@ -50,13 +52,12 @@ describe('EliminarAreaUseCase', () => {
     expect(result).toEqual({
       id: 'area-1',
       nombre: 'Área de Prueba',
-      activo: false,
+      activo: false
     });
+
     expect(result.activo).toBe(false);
     expect(mockPrisma.area.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ activo: false }),
-      }),
+      expect.objectContaining({ data: expect.objectContaining({ activo: false }) })
     );
   });
 
@@ -64,33 +65,27 @@ describe('EliminarAreaUseCase', () => {
     //Arrange: Configurar el mock para simular que el área no existe
     mockPrisma.area.findUnique.mockResolvedValue(null);
     //Act & Assert: Ejecutar el caso de uso y verificar que lance NotFoundException
-    await expect(useCase.execute('area-404')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(useCase.execute('area-404')).rejects.toThrow(NotFoundException);
 
     //Arrange: Configurar el mock para simular que el área ya fue eliminada
     mockPrisma.area.findUnique.mockResolvedValue({
       id: 'area-123',
-      deleted_at: new Date(),
+      deleted_at: new Date()
     });
     //Act & Assert: Ejecutar el caso de uso y verificar que lance NotFoundException
-    await expect(useCase.execute('area-123')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(useCase.execute('area-123')).rejects.toThrow(NotFoundException);
   });
 
   it('Debería lanzar BadRequestException si el área tiene cargos activos', async () => {
     //Arrange: Configurar el mock para simular que el área tiene cargos activos
     mockPrisma.area.findUnique.mockResolvedValue({
       id: 'area-123',
-      deleted_at: null,
+      deleted_at: null
     });
     mockPrisma.cargo.count.mockResolvedValue(5);
 
     //Act & Assert: Ejecutar el caso de uso y verificar que lance BadRequestException
-    await expect(useCase.execute('area-123')).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(useCase.execute('area-123')).rejects.toThrow(BadRequestException);
     expect(mockPrisma.area.update).not.toHaveBeenCalled();
   });
 
@@ -98,14 +93,12 @@ describe('EliminarAreaUseCase', () => {
     //Arrange: Configurar el mock para simular un fallo en la base de datos
     mockPrisma.area.findUnique.mockResolvedValue({
       id: 'area-123',
-      deleted_at: null,
+      deleted_at: null
     });
     mockPrisma.cargo.count.mockResolvedValue(0);
     mockPrisma.area.update.mockRejectedValue(new Error('DB Down'));
 
     //Act & Assert: Ejecutar el caso de uso y verificar que lance InternalServerErrorException
-    await expect(useCase.execute('area-123')).rejects.toThrow(
-      InternalServerErrorException,
-    );
+    await expect(useCase.execute('area-123')).rejects.toThrow(InternalServerErrorException);
   });
 });

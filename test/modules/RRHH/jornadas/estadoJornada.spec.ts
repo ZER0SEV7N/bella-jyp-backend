@@ -1,5 +1,5 @@
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { EstadoJornadaUseCase } from '@/modules/RRHH/use-cases/jornadas/estadoJornada.useCase';
+import { EstadoJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/estadoJornada.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

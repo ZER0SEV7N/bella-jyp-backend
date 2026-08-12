@@ -1,7 +1,7 @@
 // src/modules/RRHH/use-cases/cargos/crearCargo.UseCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { CrearCargoUseCase } from '@/modules/RRHH/use-cases/cargos/crearCargo.UseCase';
+import { CrearCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/crearCargo.UseCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { CrearCargoDto } from '@jyp/shared-contracts';
@@ -12,13 +12,11 @@ describe('CrearCargoUseCase', () => {
 
   // Mock del PrismaService: solo los métodos/modelos que usa el use case
   const mockPrismaService = {
-    area: {
-      findUnique: jest.fn(),
-    },
+    area: {findUnique: jest.fn()},
     cargo: {
       findFirst: jest.fn(),
-      create: jest.fn(),
-    },
+      create: jest.fn()
+    }
   };
 
   const payload: CrearCargoDto = {
@@ -31,18 +29,15 @@ describe('CrearCargoUseCase', () => {
     id: 'area-uuid-1',
     nombre: 'Sistemas',
     activo: true,
-    deleted_at: null,
+    deleted_at: null
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CrearCargoUseCase,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-      ],
+        {provide: PrismaService, useValue: mockPrismaService}
+      ]
     }).compile();
 
     useCase = module.get<CrearCargoUseCase>(CrearCargoUseCase);

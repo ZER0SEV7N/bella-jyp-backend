@@ -4,7 +4,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ActualizarAreaUseCase } from '@/modules/RRHH/use-cases/area/actualizarArea.useCase';
+import { ActualizarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/actualizarArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 //Prueba unitaria para el caso de uso ActualizarAreaUseCase

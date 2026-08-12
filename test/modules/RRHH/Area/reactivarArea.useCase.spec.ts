@@ -1,6 +1,6 @@
 //test/modules/RRHH/Area/reactivarArea.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { ActiveAreaUseCase } from '@/modules/RRHH/use-cases/area/activeArea.useCase';
+import { ActiveAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/activeArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 

@@ -1,17 +1,17 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { afpController } from '@/modules/afp/controller/afp.controller';
+import { afpController } from '@/modules/payroll/afp/controller/afp.controller';
 
 // Casos de Uso (Escritura)
-import { AgregarAportacionUseCase } from '@/modules/afp/use-cases/aportacion/agregarAportacion.useCase';
-import { AgregarComisionUseCase } from '@/modules/afp/use-cases/comision/agregarComision.useCase';
-import { AgregarTipoAfpUseCase } from '@/modules/afp/use-cases/tipo-afp/agregarTipoAfp.useCase';
+import { AgregarAportacionUseCase } from '@/modules/payroll/afp/use-cases/aportacion/agregarAportacion.useCase';
+import { AgregarComisionUseCase } from '@/modules/payroll/afp/use-cases/comision/agregarComision.useCase';
+import { AgregarTipoAfpUseCase } from '@/modules/payroll/afp/use-cases/tipo-afp/agregarTipoAfp.useCase';
 
 // Casos de Uso (Lectura)
-import { ListarAportacionesUseCase } from '@/modules/afp/use-cases/aportacion/listarAportacion.useCase';
-import { ListarComisionesUseCase } from '@/modules/afp/use-cases/comision/listarComision.useCase';
-import { ListarTiposAfpUseCase } from '@/modules/afp/use-cases/tipo-afp/listarTipoAfp.useCase';
+import { ListarAportacionesUseCase } from '@/modules/payroll/afp/use-cases/aportacion/listarAportacion.useCase';
+import { ListarComisionesUseCase } from '@/modules/payroll/afp/use-cases/comision/listarComision.useCase';
+import { ListarTiposAfpUseCase } from '@/modules/payroll/afp/use-cases/tipo-afp/listarTipoAfp.useCase';
 
 describe('AfpController', () => {
   let controller: afpController;

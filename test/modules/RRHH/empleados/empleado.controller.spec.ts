@@ -5,12 +5,12 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { EmpleadoController } from '@/modules/RRHH/controller/empleado.controller';
-import { CrearEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/crearEmpleado.useCase';
-import { EditarEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/editarEmpleado.useCase';
-import { EliminarEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/eliminarEmpleado.useCase';
-import { ActiveEmpleadoUseCase } from '@/modules/RRHH/use-cases/empleado/activeEmpleado.useCase';
-import { ListarEmpleadosUseCase } from '@/modules/RRHH/use-cases/empleado/listarEmpleados.useCase';
+import { EmpleadoController } from '@/modules/RRHH/organizacion/controller/empleado.controller';
+import { CrearEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/crearEmpleado.useCase';
+import { EditarEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/editarEmpleado.useCase';
+import { EliminarEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/eliminarEmpleado.useCase';
+import { ActiveEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/activeEmpleado.useCase';
+import { ListarEmpleadosUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/listarEmpleados.useCase';
 
 describe('EmpleadoController', () => {
   let controller: EmpleadoController;

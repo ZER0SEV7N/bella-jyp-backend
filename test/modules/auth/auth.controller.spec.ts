@@ -1,11 +1,11 @@
 //test/modules/auth/auth.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { AuthController } from '@/modules/auth/controller/auth.controller';
-import { LoginUseCase } from '@/modules/auth/use-cases/login.useCase';
-import { ProvisionarUsuarioUseCase } from '@/modules/auth/use-cases/provisionarUsuario.useCase';
-import { RefrescarTokenUseCase } from '@/modules/auth/use-cases/refrescarToken.useCase';
-import { RecuperacionPasswordUseCases } from '@/modules/auth/use-cases/recuperacionPassword.useCases';
+import { AuthController } from '@/modules/core/auth/controller/auth.controller';
+import { LoginUseCase } from '@/modules/core/auth/use-cases/login.useCase';
+import { ProvisionarUsuarioUseCase } from '@/modules/core/auth/use-cases/provisionarUsuario.useCase';
+import { RefrescarTokenUseCase } from '@/modules/core/auth/use-cases/refrescarToken.useCase';
+import { RecuperacionPasswordUseCases } from '@/modules/core/auth/use-cases/recuperacionPassword.useCases';
 
 describe('AuthController', () => {
   let controller: AuthController;

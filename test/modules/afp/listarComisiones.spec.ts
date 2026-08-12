@@ -1,6 +1,6 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { ListarComisionesUseCase } from '@/modules/afp/use-cases/comision/listarComision.useCase';
+import { ListarComisionesUseCase } from '@/modules/payroll/afp/use-cases/comision/listarComision.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 describe('ListarComisionesUseCase', () => {

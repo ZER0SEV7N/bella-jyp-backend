@@ -1,6 +1,6 @@
 //test/modules/RRHH/empleados/listarEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { ListarEmpleadosUseCase } from '@/modules/RRHH/use-cases/empleado/listarEmpleados.useCase';
+import { ListarEmpleadosUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/listarEmpleados.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**

@@ -2,7 +2,7 @@
 //Pruebas unitarias para el caso de uso de consulta de estado de carga masiva de empleados
 //Importaciones necesarias para las pruebas
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConsultarEstadoCargaMasivaUseCase } from '@/modules/RRHH/use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
+import { ConsultarEstadoCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
@@ -19,14 +19,12 @@ describe('ConsultarEstadoCargaMasivaUseCase', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ConsultarEstadoCargaMasivaUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
 
     //Obtiene las instancias del caso de uso y del servicio Prisma
-    useCase = module.get<ConsultarEstadoCargaMasivaUseCase>(
-      ConsultarEstadoCargaMasivaUseCase,
-    );
+    useCase = module.get<ConsultarEstadoCargaMasivaUseCase>(ConsultarEstadoCargaMasivaUseCase);
     prisma = module.get<PrismaService>(PrismaService);
   });
 
@@ -85,12 +83,8 @@ describe('ConsultarEstadoCargaMasivaUseCase', () => {
     mockPrisma.cargaMasivaJob.findFirst.mockResolvedValue(null);
 
     //Act & Assert: Esperamos que la promesa sea rechazada y lance la excepción exacta
-    await expect(useCase.execute(jobId, usuarioId)).rejects.toThrow(
-      NotFoundException,
-    );
-    await expect(useCase.execute(jobId, usuarioId)).rejects.toThrow(
-      `El lote de carga masiva con ID ${jobId} no existe o no te pertenece.`,
-    );
+    await expect(useCase.execute(jobId, usuarioId)).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute(jobId, usuarioId)).rejects.toThrow(`El lote de carga masiva con ID ${jobId} no existe o no te pertenece.`);
 
     //Validamos que la consulta a base de datos sí intentó ejecutarse
     expect(mockPrisma.cargaMasivaJob.findFirst).toHaveBeenCalledTimes(2); //Se llama dos veces por los dos expects
