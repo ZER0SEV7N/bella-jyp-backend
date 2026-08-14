@@ -1,5 +1,5 @@
 //src/modules/RRHH/organizacion/use-cases/carga-masiva/procesarCargaMasiva.useCase.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -15,8 +15,11 @@ import { Readable } from 'node:stream';
  */
 @Injectable()
 export class ProcesarCargaMasivaUseCase {
+  private readonly logger = new Logger(ProcesarCargaMasivaUseCase.name);
+
   constructor(
-    @InjectQueue('rrhh-bulk-queue') private readonly rrhhBulkQueue: Queue, //Inyecta la cola de procesamiento de carga masiva
+    @InjectQueue('rrhh-bulk-queue') 
+    private readonly rrhhBulkQueue: Queue, //Inyecta la cola de procesamiento de carga masiva
     private readonly prisma: PrismaService, //Inyecta el servicio de Prisma para interactuar con la base de datos
   ) {}
 
@@ -24,9 +27,9 @@ export class ProcesarCargaMasivaUseCase {
   async execute(
     jobId: string,
     usuarioId: string,
-    archivoStream: Readable,
+    archivoStream: Readable
   ): Promise<void> {
-    // Inicializar el Job en la tabla física de la base de datos
+    //Inicializar el Job en la tabla física de la base de datos
     await this.prisma.cargaMasivaJob.create({
       data: {
         id: jobId,
@@ -69,19 +72,18 @@ export class ProcesarCargaMasivaUseCase {
         .on('end', async () => {
           if (loteActual.length > 0)
             //Si hay registros restantes en el último lote, se envían a la cola para su procesamiento
-            await this.rrhhBulkQueue.add(`lote-final`, {jobId,
-              registros: loteActual
-            });
+            await this.rrhhBulkQueue.add(`lote-final`, {jobId, registros: loteActual}, { removeOnComplete: true });
 
           //Actualizar el total de registros en la tabla de jobs
           await this.prisma.cargaMasivaJob.update({
             where: { id: jobId },
-            data: { total_registros: registrosContados },
+            data: { total_registros: registrosContados }
           });
 
           resolve();
         })
         .on('error', (error) => {
+          console.error(`Error al procesar la carga masiva: ${error.message}`, error);
           reject(error);
         });
     });
@@ -94,11 +96,11 @@ export class ProcesarCargaMasivaUseCase {
         where: { id: jobId },
         data: {
           estado: 'FALLIDO',
-          mensaje_error: error.message || 'Error desconocido durante el procesamiento de la carga masiva.',
-        },
+          errores_detalle: { error_critico: error.message || 'Error desconocido durante la lectura del CSV.' }
+        }
       })
       .catch((err) => {
-        console.error(`Error al actualizar el estado del job ${jobId} a FALLIDO: ${err.message}`, err);
+        this.logger.error(`Error al actualizar el estado del job ${jobId} a FALLIDO: ${err.message}`, err);
       });
   }
 }

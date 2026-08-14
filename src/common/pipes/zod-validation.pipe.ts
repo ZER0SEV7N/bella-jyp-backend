@@ -26,9 +26,8 @@ export class ZodValidationPipe implements PipeTransform {
         type: 'https://api.jyp.com/errors/validation',
         title: 'Payload Inválido',
         status: 400,
-        detail:
-          'Los datos enviados no cumplen con el contrato estricto del sistema.',
-        errores: parsedValue.error.flatten().fieldErrors,
+        detail:'Los datos enviados no cumplen con el contrato estricto del sistema.',
+        errores: parsedValue.error.flatten().fieldErrors
       });
     }
 

@@ -22,14 +22,14 @@ async function bootstrap() {
 
   //Cookies seguras
   await app.register(fastifyCookie, {
-    secret: process.env.COOKIE_SECRET,
+    secret: process.env.COOKIE_SECRET
   });
 
   //Registro de multipart para manejar archivos grandes
   await app.register(fastifyMultipart, {
     limits: {
       fileSize: 50 * 1024 * 1024, //50 MB
-      files: 1,
+      files: 1
     },
   });
 
@@ -44,11 +44,10 @@ async function bootstrap() {
         scheme: 'bearer',
         bearerFormat: 'JWT',
         name: 'JWT',
-        description:
-          'Pega aquí el Access Token devuelto por el endpoint de Login',
-        in: 'header',
+        description: 'Pega aquí el Access Token devuelto por el endpoint de Login',
+        in: 'header'
       },
-      'JWT-auth',
+      'JWT-auth'
     )
     .build();
 
@@ -57,13 +56,13 @@ async function bootstrap() {
   //Ruta para acceder a la documentación de Swagger
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
-      persistAuthorization: true, //Mantener el token de autorización en la interfaz de Swagger después de recargar la página
+      persistAuthorization: true //Mantener el token de autorización en la interfaz de Swagger después de recargar la página
     },
   });
 
   //Habilitar Apagado Seguro (Graceful Shutdown)
   app.enableShutdownHooks();
-
   await app.listen(process.env.PORT || 3000, '0.0.0.0');
+
 }
 bootstrap();

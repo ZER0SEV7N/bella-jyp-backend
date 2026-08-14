@@ -12,6 +12,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificacionesModule } from './common/alertas/notificaciones.module';
 import { AfpModule } from './modules/payroll/afp/afp.module';
 import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
+
 @Module({
   imports: [
     EventEmitterModule.forRoot(),

@@ -16,7 +16,10 @@ export class ListarAreasUseCase {
 
     const where: any = { deleted_at: null }; //Solo áreas no eliminadas
 
-    if (activo !== undefined) where.activo = activo; //Agregar filtro de estado si se proporciona
+    if (activo !== undefined) {
+      // Acepta 'true'/'false' desde la URL y booleanos desde código
+      where.activo = typeof activo === 'string' ? activo === 'true' : activo === true;
+    }
 
     //Ejecutar la consulta a la base de datos utilizando Prisma
     const [total, areas] = await this.prisma.$transaction([
@@ -29,9 +32,9 @@ export class ListarAreasUseCase {
         include: {
           _count: {
             select: { cargo: { where: { deleted_at: null } } }, // Incluir el conteo de cargos asociados a cada área
-          },
-        },
-      }),
+          }
+        }
+      })
     ]);
 
     return {
@@ -40,8 +43,8 @@ export class ListarAreasUseCase {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-      },
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 }

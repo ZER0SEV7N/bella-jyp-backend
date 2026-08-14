@@ -31,7 +31,7 @@ export class PrismaService
 
     //Defensa Perimetral (Fail-Fast)
     if (!connectionString) throw new Error(
-      'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
+      'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env'
     );
 
     //Instanciar el Pool nativo de conexiones de PostgreSQL
@@ -104,7 +104,7 @@ export class PrismaService
                   valores_despues: valoresDespues
                     ? JSON.parse(JSON.stringify(valoresDespues))
                     : null,
-                  direccion_ip: ipAddress,
+                  direccion_ip: ipAddress
                 },
               });
             } catch (error) {
@@ -131,14 +131,9 @@ export class PrismaService
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log(
-        'Conexión ACID establecida vía Driver Adapter nativo (pg).',
-      );
+      this.logger.log('Conexión ACID establecida vía Driver Adapter nativo (pg).');
     } catch (error) {
-      this.logger.error(
-        'Fallo crítico al inicializar la base de datos.',
-        error,
-      );
+      this.logger.error('Fallo crítico al inicializar la base de datos.',error);
       throw error;
     }
   }
@@ -146,8 +141,6 @@ export class PrismaService
   //Cerrar la conexión de forma segura al destruir el módulo
   async onModuleDestroy() {
     await this.$disconnect();
-    this.logger.log(
-      'Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).',
-    );
+    this.logger.log('Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).');
   }
 }

@@ -41,7 +41,7 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
     return next.handle().pipe(
       map((data: any) => {
         //En caso de que la data tenga la estructura {data: [], meta: {}} se respeta esa estructura
-        if (data && data.data && data.meta) {
+        if (data && data.data && data.meta) 
           return {
             statusCode,
             data: data.data,
@@ -49,10 +49,10 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
               ...data.meta,
               message: 'Operación exitosa.',
               path: request.url,
-              timestamp: new Date().toISOString(),
+              timestamp: new Date().toISOString()
             },
           };
-        }
+        
 
         return {
           statusCode,
@@ -60,8 +60,8 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
           meta: {
             message: this.obtenerMensaje(statusCode),
             path: request.url,
-            timestamp: new Date().toISOString(),
-          },
+            timestamp: new Date().toISOString()
+          }
         };
       }),
     );

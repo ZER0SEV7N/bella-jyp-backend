@@ -115,3 +115,30 @@ export function ApiSwaggerGetBulkStatus() {
     }),
   );
 }
+
+/**
+ * Decorador para documentar el endpoint de descarga de plantilla CSV para carga masiva de empleados en Swagger.
+ * @param summary - Resumen de la operación para mostrar en Swagger.
+ * @returns Un archivo CSV de plantilla para la carga masiva de empleados.
+ * @description Este endpoint permite descargar una plantilla CSV con la estructura necesaria para la carga masiva de empleados.
+ */
+export function ApiSwaggerDownloadTemplate() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Descargar plantilla CSV para carga masiva de empleados',
+      description: 'Permite descargar un archivo CSV de plantilla con la estructura necesaria para la carga masiva de empleados. Requiere rol ADMIN o RRHH.',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Retorna un archivo CSV de plantilla para la carga masiva de empleados.',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado. El usuario no tiene un token válido.',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
+    }),
+  );
+}
