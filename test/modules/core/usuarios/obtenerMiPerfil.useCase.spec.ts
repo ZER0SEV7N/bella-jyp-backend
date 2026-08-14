@@ -1,10 +1,10 @@
-//test/modules/usuarios/obtenerMiPerfil.useCase.spec.ts
+//test/modules/core/usuarios/obtenerMiPerfil.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ObtenerMiPerfilUseCase } from '@/modules/usuarios/use-cases/obtenerMiPerfil.useCase';
+import { ObtenerMiPerfilUseCase } from '@/modules/core/usuarios/use-cases/obtenerMiPerfil.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**

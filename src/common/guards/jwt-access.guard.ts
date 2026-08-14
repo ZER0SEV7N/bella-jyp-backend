@@ -3,6 +3,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
+/**
+ * Guard que protege las rutas que requieren autenticación con JWT.
+ * Extiende de AuthGuard('jwt') para utilizar la estrategia de Passport para JWT.
+ * Sobrescribe el método handleRequest para lanzar una excepción personalizada en caso de que el token no sea válido.
+ */
 @Injectable()
 export class JwtAccessGuard extends AuthGuard('jwt') {
   //Sobrescribe el método handleRequest para lanzar una excepción personalizada en caso de que el token no sea válido

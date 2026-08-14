@@ -34,6 +34,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ListarContratoUseCase,
     AnularContratoUseCase,
     SubirContratoPdfUseCase,
+    ContratosCron,
     RenovarContratoUseCase,
     VerificarExpiracionContratosUseCase
   ],

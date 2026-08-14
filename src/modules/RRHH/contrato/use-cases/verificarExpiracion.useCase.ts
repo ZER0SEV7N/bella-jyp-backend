@@ -24,7 +24,6 @@ export class VerificarExpiracionContratosUseCase {
     //Realizar la consulta a la base de datos para contar los contratos que expiran entre hoy y la fecha límite
     const cantidad = await this.prisma.contratos.count({
       where: {
-        activo: true,
         renovado: false,
         fecha_fin: {
           gte: hoy,

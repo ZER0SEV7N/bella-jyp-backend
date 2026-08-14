@@ -30,7 +30,7 @@ export class ListarContratoUseCase {
 
     try {
       //Buscar los contratos asociado al empleado en la base de datos utilizando Prisma
-      const contratos = this.prisma.contratos.findMany({
+      const contratos = await this.prisma.contratos.findMany({
           where: {
             empleado_id: idEmpleado,
             deleted_at: null

@@ -1,7 +1,7 @@
-//test/modules/usuarios/usuarios.controller.useCase.spec.ts
+//test/modules/core/usuarios/usuarios.controller.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsuariosController } from '@/modules/usuarios/controller/usuarios.controller';
-import { ObtenerMiPerfilUseCase } from '@/modules/usuarios/use-cases/obtenerMiPerfil.useCase';
+import { UsuariosController } from '@/modules/core/usuarios/controller/usuarios.controller';
+import { ObtenerMiPerfilUseCase } from '@/modules/core/usuarios/use-cases/obtenerMiPerfil.useCase';
 
 /**
  * Pruebas unitarias para el controlador UsuariosController
