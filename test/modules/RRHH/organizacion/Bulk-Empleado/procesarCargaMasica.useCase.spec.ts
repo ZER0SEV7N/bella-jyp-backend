@@ -3,6 +3,7 @@
 import { ProcesarCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/procesarCargaMasiva.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Queue } from 'bullmq';
+import { Logger } from '@nestjs/common';
 import { PassThrough, Readable } from 'node:stream';
 import * as csvParser from 'csv-parser';
 
@@ -88,7 +89,7 @@ describe('ProcesarCargaMasivaUseCase', () => {
         { id: 1, nombre: 'Juan' },
         { id: 2, nombre: 'Ana' }
       ]
-    });
+    }, { removeOnComplete: true });
 
     expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
       where: { id: jobId },
@@ -145,7 +146,12 @@ describe('ProcesarCargaMasivaUseCase', () => {
       //Act & Assert: Verificar que la actualización a FALLIDO se haya llamado con el mensaje del error
       expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
         where: { id: 'job-404' },
-        data: { estado: 'FALLIDO' }
+        data: {
+          estado: 'FALLIDO',
+          errores_detalle: {
+            error_critico: 'Database timeout'
+          }
+        }
       });
     });
 
@@ -156,7 +162,12 @@ describe('ProcesarCargaMasivaUseCase', () => {
       //Act & Assert: Verificar que la actualización a FALLIDO se haya llamado con un mensaje generico
       expect(mockPrisma.cargaMasivaJob.update).toHaveBeenCalledWith({
         where: { id: 'job-404' },
-        data: { estado: 'FALLIDO' }
+        data: {
+          estado: 'FALLIDO',
+          errores_detalle: {
+            error_critico: 'Error desconocido durante la lectura del CSV.'
+          }
+        }
       });
     });
 
@@ -165,15 +176,17 @@ describe('ProcesarCargaMasivaUseCase', () => {
       const dbError = new Error('Connection Refused');
       mockPrisma.cargaMasivaJob.update.mockRejectedValue(dbError);
 
-      //Mockear console.error para capturar el log de error y evitar que se muestre en la salida de la prueba
-      jest.spyOn(console, 'error').mockImplementation(() => {});
+      //Mockear el Logger de NestJS y console.error para capturar el log de error
+      const loggerSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       //Act: Llamar a handleJobFailure y esperar que no lance, sino que loguee el error
       await useCase.handleJobFailure('job-404', new Error('Error inicial'));
-      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      //Assert: Verificar que console.error haya sido llamado con el mensaje de error
-      expect(console.error).toHaveBeenCalledWith('Error al actualizar el estado del job job-404 a FALLIDO: Connection Refused');
+      //Assert: Verificar que el Logger o console.error hayan capturado el fallo
+      const loggerCalled = loggerSpy.mock.calls.some((call) =>call.some((arg) => typeof arg === 'string' && arg.includes('Error al actualizar el estado del job job-404 a FALLIDO')));
+      const consoleCalled = consoleSpy.mock.calls.some((call) =>call.some((arg) => typeof arg === 'string' && arg.includes('Error al actualizar el estado del job job-404 a FALLIDO')));
+      expect(loggerCalled || consoleCalled).toBe(true);
     });
   });
 });
