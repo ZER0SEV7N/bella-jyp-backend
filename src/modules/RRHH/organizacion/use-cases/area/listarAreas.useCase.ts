@@ -14,12 +14,12 @@ export class ListarAreasUseCase {
     const { page, limit, activo } = query; //Desestructurar los parámetros de consulta
     const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
 
-    const where: any = { deleted_at: null }; //Solo áreas no eliminadas
+    //Construir el objeto de filtros dinámicos para la consulta
+    const where: any = { deleted_at: null };
 
-    if (activo !== undefined) {
+    if (activo !== undefined) 
       // Acepta 'true'/'false' desde la URL y booleanos desde código
       where.activo = typeof activo === 'string' ? activo === 'true' : activo === true;
-    }
 
     //Ejecutar la consulta a la base de datos utilizando Prisma
     const [total, areas] = await this.prisma.$transaction([

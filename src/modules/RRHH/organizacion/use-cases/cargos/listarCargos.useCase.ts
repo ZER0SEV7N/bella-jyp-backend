@@ -17,7 +17,7 @@ export class ListarCargosUseCase {
 
     const where: any = { deleted_at: null }; //Solo cargos no eliminados
     if (query?.id_area) where.id_area = query.id_area;
-    if (query?.activo !== undefined) where.activo = query.activo === true;
+    if (typeof query?.activo === 'boolean') where.activo = query.activo;
 
     //Ejecutar la consulta a la base de datos utilizando Prisma
     const [total, cargos] = await this.prisma.$transaction([
