@@ -62,9 +62,7 @@ describe('ActualizarAreaUseCase', () => {
     mockPrisma.area.findUnique.mockResolvedValue(null);
 
     //Act & Assert
-    await expect(
-      useCase.execute('uuid-404', { nombre: 'Test' }),
-    ).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('uuid-404', { nombre: 'Test' })).rejects.toThrow(NotFoundException);
     expect(mockPrisma.area.update).not.toHaveBeenCalled();
   });
 
@@ -72,13 +70,11 @@ describe('ActualizarAreaUseCase', () => {
     //Arrange: Prisma encuentra el área, pero deleted_at tiene una fecha
     mockPrisma.area.findUnique.mockResolvedValue({
       id: 'uuid-123',
-      deleted_at: new Date(),
+      deleted_at: new Date()
     });
 
     //Act & Assert
-    await expect(
-      useCase.execute('uuid-123', { nombre: 'Test' }),
-    ).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute('uuid-123', { nombre: 'Test' })).rejects.toThrow(NotFoundException);
     expect(mockPrisma.area.update).not.toHaveBeenCalled();
   });
 
@@ -92,8 +88,6 @@ describe('ActualizarAreaUseCase', () => {
     mockPrisma.area.update.mockRejectedValue(new Error('Connection timeout'));
 
     //Act & Assert
-    await expect(
-      useCase.execute('uuid-123', { nombre: 'Test' }),
-    ).rejects.toThrow(InternalServerErrorException);
+    await expect(useCase.execute('uuid-123', { nombre: 'Test' })).rejects.toThrow(InternalServerErrorException);
   });
 });

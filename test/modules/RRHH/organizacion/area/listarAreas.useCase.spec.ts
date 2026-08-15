@@ -3,7 +3,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ListarAreasUseCase } from '@/modules/RRHH/organizacion/use-cases/area/listarAreas.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
-//Test Unitario para el caso de uso ListarAreasUseCase
+/**
+ * Pruebas unitarias para el caso de uso ListarAreasUseCase
+ * Contiene pruebas exhaustivas para verificar el comportamiento del caso de uso de listado de áreas en el módulo de RRHH.
+ * Se encarga de probar la lógica de negocio para listar áreas en la base de datos utilizando Prisma.
+ * Incluye pruebas para verificar la paginación, el filtrado por estado y el manejo de errores.
+ */
 describe('ListarAreasUseCase', () => {
   let useCase: ListarAreasUseCase;
   let mockPrisma: any;

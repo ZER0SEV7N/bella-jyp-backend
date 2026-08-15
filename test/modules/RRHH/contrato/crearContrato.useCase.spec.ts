@@ -33,13 +33,13 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
     //Mock del servicio Prisma para simular la interacción con la base de datos
     const mockPrismaService = {
         empleados: {
-            findUnique: jest.fn(),
+            findUnique: jest.fn()
         },
         estado_contrato: {
-            findUnique: jest.fn(),
+            findUnique: jest.fn()
         },
         contratos: {
-            create: jest.fn(),
+            create: jest.fn()
         },
     };
 
@@ -60,61 +60,69 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
     describe('execute()', () => {
         it('Debe registrar un contrato correctamente asignando un UUIDv7', async () => {
-            
+            //Arrange: Configuración de los mocks para simular la existencia del empleado y el estado del contrato
             mockPrismaService.empleados.findUnique.mockResolvedValue({
                 id: mockEmpleadoId,
                 activo: true,
-                deleted_at: null,
+                deleted_at: null
             });
             mockPrismaService.estado_contrato.findUnique.mockResolvedValue({
                 id: mockEstadoId,
-                nombre: 'ACTIVO',
+                nombre: 'ACTIVO'
             });
 
+            //Simular la creación del contrato y generar un UUIDv7 para el contrato
             const uuidGenerado = IdentityGenerator.generateId();
-            mockPrismaService.contratos.create.mockImplementation(({ data }) =>
-                Promise.resolve({ ...data, id: uuidGenerado })
-            );
+            mockPrismaService.contratos.create.mockImplementation(({ data }) => Promise.resolve({ ...data, id: uuidGenerado }));
 
+            //Act: Ejecutar el caso de uso para crear un contrato
             const result = await useCase.execute(dtoCrear, 'https://s3.jyp.com/temp.pdf');
 
+            //Assert: Verificar que los métodos de Prisma se llamaron con los parámetros correctos y que el resultado contiene un ID
             expect(prismaService.empleados.findUnique).toHaveBeenCalledWith({ where: { id: mockEmpleadoId } });
             expect(prismaService.estado_contrato.findUnique).toHaveBeenCalledWith({ where: { id: mockEstadoId } });
             expect(prismaService.contratos.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                data: expect.objectContaining({
-                    empleado_id: mockEmpleadoId,
-                    id_estado: mockEstadoId,
-                    url: 'https://s3.jyp.com/temp.pdf',
-                }),
+                    data: expect.objectContaining({
+                        empleado_id: mockEmpleadoId,
+                        id_estado: mockEstadoId,
+                        url: 'https://s3.jyp.com/temp.pdf'
+                    })
                 })
             );
             expect(result).toHaveProperty('id');
         });
 
         it('Excepción: Debe lanzar NotFoundException si el empleado especificado no existe en la BD', async () => {
-        mockPrismaService.empleados.findUnique.mockResolvedValue(null);
+            //Arrange: Configuración del mock para simular que el empleado no existe
+            mockPrismaService.empleados.findUnique.mockResolvedValue(null);
 
-        await expect(useCase.execute(dtoCrear)).rejects.toThrow(NotFoundException);
+            //Act: Ejecutar el caso de uso para crear un contrato
+            await expect(useCase.execute(dtoCrear)).rejects.toThrow(NotFoundException);
+            await expect(useCase.execute(dtoCrear)).rejects.toMatchObject({ 
+                response: expect.objectContaining({ message: 'No se encontró un empleado activo con el ID proporcionado' })
+            });
         });
 
         it('Excepción: Debe lanzar NotFoundException si el estado_contrato no existe en el catálogo', async () => {
-        mockPrismaService.empleados.findUnique.mockResolvedValue({
-            id: mockEmpleadoId,
-            activo: true,
-            deleted_at: null,
-        });
-        mockPrismaService.estado_contrato.findUnique.mockResolvedValue(null);
+            //Arrange: Configuración del mock para simular que el empleado existe pero el estado del contrato no
+            mockPrismaService.empleados.findUnique.mockResolvedValue({
+                id: mockEmpleadoId,
+                activo: true,
+                deleted_at: null
+            });
+            mockPrismaService.estado_contrato.findUnique.mockResolvedValue(null);
 
-        await expect(useCase.execute(dtoCrear)).rejects.toThrow(
-            new NotFoundException('El estado de contrato especificado no existe en el catálogo.')
-        );
+            //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
+            await expect(useCase.execute(dtoCrear)).rejects.toThrow(new NotFoundException('El estado de contrato especificado no existe en el catálogo.'));
         });
 
         it('Resiliencia: Debe transformar cualquier error imprevisto a InternalServerErrorException', async () => {
-        mockPrismaService.empleados.findUnique.mockRejectedValue(new Error('Fatal DB failure'));
+           //Arrange: Configuración del mock para simular un error inesperado en la base de datos
+            mockPrismaService.empleados.findUnique.mockRejectedValue(new Error('Fatal DB failure'));
 
-        await expect(useCase.execute(dtoCrear)).rejects.toThrow(InternalServerErrorException);
+            //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
+            await expect(useCase.execute(dtoCrear)).rejects.toThrow(InternalServerErrorException);
         });
     });
 });

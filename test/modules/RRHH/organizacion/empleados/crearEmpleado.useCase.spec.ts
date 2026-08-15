@@ -84,9 +84,9 @@ describe('CrearEmpleadoUseCase', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           nombre: 'Carlos',
-          apellido: 'Lopez Gomez',
-        }),
-      }),
+          apellido: 'Lopez Gomez'
+        })
+      })
     );
   });
 
@@ -98,9 +98,7 @@ describe('CrearEmpleadoUseCase', () => {
 
     //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
     await expect(useCase.execute(payload as any)).rejects.toMatchObject({
-      response: expect.objectContaining({
-        title: 'Fallo de Verificación de Identidad',
-      }),
+      response: expect.objectContaining({title: 'Fallo de Verificación de Identidad'})
     });
     expect(mockReniec.consultarDni).toHaveBeenCalledWith('70112233');
     expect(mockPrisma.empleados.create).not.toHaveBeenCalled();

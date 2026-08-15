@@ -80,7 +80,7 @@ describe('AnularContratoUseCase', () => {
             //Arrange: Prisma devuelve un contrato con deleted_at distinto de null
             mockPrisma.contratos.findUnique.mockResolvedValue({
                 id: mockContratoId,
-                deleted_at: new Date('2026-01-01'),
+                deleted_at: new Date('2026-01-01')
             });
 
             //Act & Assert
