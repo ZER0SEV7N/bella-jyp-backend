@@ -35,7 +35,7 @@ describe('DatoFinancieroController - Cobertura HTTP y RBAC', () => {
             providers: [
                 { provide: AgregarDatoFinancieroUseCase, useValue: mockAgregarUseCase },
                 { provide: EditarDatoFinancieroUseCase, useValue: mockEditarUseCase },
-                { provide: ObtenerDatoFinancieroUseCase, useValue: mockObtenerUseCase },
+                { provide: ObtenerDatoFinancieroUseCase, useValue: mockObtenerUseCase }
             ]
         }).compile();
 
@@ -81,14 +81,14 @@ describe('DatoFinancieroController - Cobertura HTTP y RBAC', () => {
                 cci: '******************2388',
                 cuspp: '********CDEF',
                 cuenta_bancaria: '191-12345678-0-12',
-                sueldo_basico: 2500,
+                sueldo_basico: 2500
             };
 
             const mockResponse = {
                 id: 'df-created-uuid',
                 empleado_id: mockEmpleadoId,
                 nombre: 'Juan Pérez',
-                mensaje: 'Datos financieros registrados y cifrados exitosamente.',
+                mensaje: 'Datos financieros registrados y cifrados exitosamente.'
             };
 
             mockAgregarUseCase.execute.mockResolvedValue(mockResponse);
@@ -106,7 +106,7 @@ describe('DatoFinancieroController - Cobertura HTTP y RBAC', () => {
                 cci: '******************2388',
                 cuspp: '********CDEF',
                 cuenta_bancaria: '191-12345678-0-12',
-                sueldo_basico: 2500,
+                sueldo_basico: 2500
             };
 
             mockAgregarUseCase.execute.mockRejectedValue(new NotFoundException('Empleado no encontrado o ha sido eliminado recientemente.'));
@@ -121,9 +121,7 @@ describe('DatoFinancieroController - Cobertura HTTP y RBAC', () => {
                 password_confirmacion: 'PasswordActual123!'
             };
 
-            const mockRequest = {
-                user: { id: mockUsuarioId },
-            } as FastifyRequest & { user: { id: string } };
+            const mockRequest = { user: { id: mockUsuarioId } } as FastifyRequest & { user: { id: string } };
 
             const mockResponse = {
                 id: 'df-uuid-1',
@@ -150,9 +148,7 @@ describe('DatoFinancieroController - Cobertura HTTP y RBAC', () => {
                 password_confirmacion: 'PasswordActual123!'
             };
 
-            const mockRequest = {
-                user: { id: mockUsuarioId },
-            } as FastifyRequest & { user: { id: string } };
+            const mockRequest = { user: { id: mockUsuarioId } } as FastifyRequest & { user: { id: string } };
 
             mockEditarUseCase.execute.mockRejectedValue(new NotFoundException('El dato financiero del empleado no existe o ha sido desactivado.'));
             await expect(controller.actualizar(mockEmpleadoId, payload, mockRequest)).rejects.toThrow(NotFoundException);

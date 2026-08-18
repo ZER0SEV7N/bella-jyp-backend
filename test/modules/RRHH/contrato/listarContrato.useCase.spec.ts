@@ -46,7 +46,7 @@ describe('ListarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
                 id: mockEmpleadoId,
                 nombre: 'Carlos',
                 apellido: 'Mendoza',
-                numero_documento: '72345678'
+                nro_documento: '72345678'
             };
 
             //Mock de contratos asociados al empleado
@@ -67,7 +67,7 @@ describe('ListarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             //Assert: Verificación de que los métodos del servicio Prisma fueron llamados con los parámetros correctos
             expect(prismaService.empleados.findUnique).toHaveBeenCalledWith({
                 where: { id: mockEmpleadoId, deleted_at: null },
-                select: { id: true, nombre: true, apellido: true, numero_documento: true },
+                select: { id: true, nombre: true, apellido: true, nro_documento: true },
             });
             expect(result.empleado).toBe('Carlos Mendoza');
             expect(result.documento).toBe('72345678');
@@ -87,7 +87,7 @@ describe('ListarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
                 id: mockEmpleadoId,
                 nombre: 'Carlos',
                 apellido: 'Mendoza',
-                numero_documento: '72345678'
+                nro_documento: '72345678'
             };
 
             //Act & Assert: Verificación de que se lanza la excepción InternalServerErrorException al ejecutar el caso de uso

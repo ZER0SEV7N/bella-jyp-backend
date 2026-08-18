@@ -26,10 +26,7 @@ describe('SubirContratoPdfUseCase - Pruebas Unitarias Exhaustivas', () => {
 
     //Mock del servicio Prisma para simular la interacción con la base de datos
     const mockPrismaService = {
-        contratos: {
-            findUnique: jest.fn(),
-            update: jest.fn()
-        },
+        contratos: {findUnique: jest.fn(), update: jest.fn() },
     };
 
     //Configuración del módulo de pruebas antes de cada prueba

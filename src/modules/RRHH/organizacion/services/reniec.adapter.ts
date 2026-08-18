@@ -18,8 +18,7 @@ export interface CiudadanoReniec {
 @Injectable()
 export class ReniecAdapter {
   private readonly logger = new Logger(ReniecAdapter.name); //Logger para registrar información y errores
-  private readonly RENIEC_API_URL =
-    process.env.RENIEC_API_URL || 'https://api.reniec.gob.pe'; //URL del servicio de RENIEC
+  private readonly RENIEC_API_URL = process.env.RENIEC_API_URL || 'https://api.reniec.gob.pe'; //URL del servicio de RENIEC
   private readonly RENIEC_API_KEY = process.env.RENIEC_API_KEY;
 
   async consultarDni(dni: string): Promise<CiudadanoReniec> {
@@ -28,40 +27,31 @@ export class ReniecAdapter {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // Timeout estricto de 5s
 
-      const res = await fetch(`${this.RENIEC_API_URL}/dni/${dni}`, {
+      const res = await fetch(`${this.RENIEC_API_URL}/dni/${dni}?token=${this.RENIEC_API_KEY}`, {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${this.RENIEC_API_KEY}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        signal: controller.signal,
+        signal: controller.signal
       });
 
       clearTimeout(timeoutId); //Limpiar el timeout si la respuesta llega a tiempo
 
       if (!res.ok)
-        throw new BadGatewayException(
-          `La API de RENIEC respondió con status: ${res.status}`,
-        );
+        throw new BadGatewayException(`La API de RENIEC respondió con status: ${res.status}`);
 
       const data = await res.json();
 
       return {
         nombre: data.nombres || data.nombre || '',
         apellido_paterno: data.apellidoPaterno || data.apellido_paterno || '',
-        apellido_materno: data.apellidoMaterno || data.apellido_materno || '',
+        apellido_materno: data.apellidoMaterno || data.apellido_materno || ''
       };
     } catch (error: any) {
-      this.logger.error(
-        `Fallo al consultar DNI ${dni} en RENIEC: ${error.message}`,
-      );
+      this.logger.error(`Fallo al consultar DNI ${dni} en RENIEC: ${error.message}`, error.stack);
       if (error.name === 'AbortError')
-        throw new RequestTimeoutException(
-          'Timeout: La API de RENIEC tardó demasiado en responder.',
-        );
-      throw new BadGatewayException(
-        'Servicio de RENIEC no disponible temporalmente.',
-      );
+        throw new RequestTimeoutException('Timeout: La API de RENIEC tardó demasiado en responder.',);
+      throw new BadGatewayException('Servicio de RENIEC no disponible temporalmente.');
     }
   }
 }

@@ -23,7 +23,7 @@ export class ListarContratoUseCase {
   async execute(idEmpleado: string) {
 
     const empleado = await this.prisma.empleados.findUnique({ where: { id: idEmpleado, deleted_at: null }, 
-      select: { id: true, nombre: true, apellido: true, numero_documento: true }
+      select: { id: true, nombre: true, apellido: true, nro_documento: true }
     });
 
     if(!empleado) throw new NotFoundException('Empleado no encontrado o eliminado de la db');
@@ -42,7 +42,7 @@ export class ListarContratoUseCase {
       });
       return {
         empleado: `${empleado.nombre} ${empleado.apellido}`.trim(),
-        documento: empleado.numero_documento,
+        documento: empleado.nro_documento,
         contratos: contratos
       };
     } catch (error) {
