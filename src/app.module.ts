@@ -12,6 +12,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificacionesModule } from './common/alertas/notificaciones.module';
 import { AfpModule } from './modules/payroll/afp/afp.module';
 import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
+import { DatosFinancieroModule } from './modules/payroll/datoFinanciero/datosFinanciero.module';
 
 @Module({
   imports: [
@@ -27,8 +28,9 @@ import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
     NotificacionesModule,
     UsuariosModule,
     AfpModule,
+    DatosFinancieroModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService]
 })
 export class AppModule {}

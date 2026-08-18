@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CrearDatoFinancieroDto } from '@jyp/shared-contracts';
-import { CryptoUtil } from '@/common/utils/crypto.Util';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 
 /**
@@ -17,7 +17,7 @@ import { IdentityGenerator } from '@/common/utils/uuid.util';
  * Retorna el registro creado o lanza excepciones en caso de errores.
  */
 @Injectable()
-export class AgregarDatosFinancieroUseCase {
+export class AgregarDatoFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -27,7 +27,7 @@ export class AgregarDatosFinancieroUseCase {
    * @throws NotFoundException si el empleado, banco o régimen no existen o no son válidos.
    * @throws InternalServerErrorException si ocurre un error al intentar crear el registro.
    */
-  async create(dto: CrearDatoFinancieroDto) {
+  async execute(dto: CrearDatoFinancieroDto) {
     //Validar que el empleado exista
     const empleado = await this.prisma.empleados.findUnique({ where: { id: dto.empleado_id , deleted_at: null }});
 

@@ -1,7 +1,12 @@
 //test/common/utils/crypto.util.spec.ts
 import { InternalServerErrorException } from '@nestjs/common';
-import { CryptoUtil } from '@/common/utils/crypto.Util';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 
+/**
+ * Pruebas unitarias para la utilidad de cifrado CryptoUtil.
+ * Estas pruebas validan el comportamiento del cifrado AES-256-GCM en diferentes escenarios,
+ * incluyendo la encriptación, desencriptación y detección de alteraciones en los datos.
+ */
 describe('CyptoUtil - Pruebas Unitarias de Cifrado AES-256-GCM', () => {
     const ORIGINAL_ENV = process.env;
     const TEST_MASTER_KEY = 'jyp_financial_master_key_super_secret_32_bytes_2026!';
