@@ -18,6 +18,8 @@ TRUNCATE TABLE bancos CASCADE;
 TRUNCATE TABLE tokens_seguridad CASCADE;
 TRUNCATE TABLE audit_log CASCADE;
 
+TRUNCATE TABLE carga_masiva_jobs
+
 -- 2. Catálogos Base (Usamos UUIDs genéricos deterministas para mantener FKs intactas)
 
 -- Estados de Empleado

@@ -1,0 +1,19 @@
+$kind: http-request
+name: "Listar: http://localhost:3000/api/rrhh/empleado"
+url: http://localhost:3000/api/rrhh/empleado?activo='false'
+method: GET
+queryParams:
+  - key: activo
+    value: "'false'"
+    disabled: false
+    description: Activo o Inactivo
+  - key: area_id
+    value: 018f4a7c-7777-7000-1111-000000000001
+    disabled: true
+    description: El id del area
+auth:
+  type: bearer
+  credentials:
+    token: ""
+examples: .resources/Listar- http-localhost-3000-api-rrhh-empleado.resources/examples
+order: 3121697721851318

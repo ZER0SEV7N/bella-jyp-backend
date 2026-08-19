@@ -1,0 +1,45 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/auth/login
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \  \"tipo_documento\": \"DNI\",\r
+
+      \  \"nro_documento\": \"70112233\",\r
+
+      \  \"password\": \"Password123!\"\r
+
+      }"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    set-cookie: jyp_rt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNmUzMTA1My00OTI5LTQ5NGYtODNiZC01YmM2YTY5ZGNmYTMiLCJyb2wiOiJBRE1JTiIsImRvYyI6IjcwMTEyMjMzIiwiZW1wSWQiOiIwMThmNGE3Yy05OTk5LTcwMDAtMzMzMy0wMDAwMDAwMDAwMDEiLCJpYXQiOjE3ODcwNzA3NjQsImV4cCI6MTc4NzY3NTU2NH0.n9YPbKpVfQiIjkRb9CZuCKK2p4N61ogKroOaljkH4As; Max-Age=604800; Path=/api/auth/refresh; HttpOnly; SameSite=Strict
+    content-length: "538"
+    date: Tue, 18 Aug 2026 16:32:44 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNmUzMTA1My00OTI5LTQ5NGYtODNiZC01YmM2YTY5ZGNmYTMiLCJyb2wiOiJBRE1JTiIsImRvYyI6IjcwMTEyMjMzIiwiZW1wSWQiOiIwMThmNGE3Yy05OTk5LTcwMDAtMzMzMy0wMDAwMDAwMDAwMDEiLCJpYXQiOjE3ODcwNzA3NjQsImV4cCI6MTc4NzA3MTY2NH0.-Yu5GbKjf7Ve8VCYwqmYDl7kbaNLmMWhm-p6Gz1Ursw",
+          "usuario": {
+            "id": "26e31053-4929-494f-83bd-5bc6a69dcfa3",
+            "nro_documento": "70112233",
+            "rol": "ADMIN"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/auth/login",
+          "timestamp": "2026-08-18T16:32:44.486Z"
+        }
+      }
+order: 3586805681054758

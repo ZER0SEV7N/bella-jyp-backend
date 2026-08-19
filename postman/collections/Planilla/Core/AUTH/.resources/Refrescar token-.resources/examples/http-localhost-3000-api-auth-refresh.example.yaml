@@ -1,0 +1,29 @@
+$kind: http-example
+name: http://localhost:3000/api/auth/refresh
+request:
+  url: http://localhost:3000/api/auth/refresh
+  method: POST
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "478"
+    date: Tue, 18 Aug 2026 16:49:17 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNmUzMTA1My00OTI5LTQ5NGYtODNiZC01YmM2YTY5ZGNmYTMiLCJlbWFpbCI6ImFkbWluQGp5cC5jb20iLCJyb2xlcyI6IkFETUlOIiwiZG9jIjoiNzAxMTIyMzMiLCJlbXBJZCI6IjAxOGY0YTdjLTk5OTktNzAwMC0zMzMzLTAwMDAwMDAwMDAwMSIsImlhdCI6MTc4NzA3MTc1NywiZXhwIjoxNzg3MDcyNjU3fQ.sXlJ5wOEztHySlFkX6WXsXNdCS65HVOgczP4K3VYjG8"
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/auth/refresh",
+          "timestamp": "2026-08-18T16:49:17.836Z"
+        }
+      }
+order: 1787071762028

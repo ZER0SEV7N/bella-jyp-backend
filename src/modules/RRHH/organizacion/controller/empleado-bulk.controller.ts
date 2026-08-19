@@ -71,19 +71,34 @@ export class EmpleadoBulkController {
     if (!data) throw new BadRequestException('No se encontró ningún archivo en la petición.');
 
     //Verificar que el archivo sea de tipo CSV
-    if (data.mimetype !== 'text/csv') throw new BadRequestException('El archivo debe ser de tipo CSV.');
+    const mimetypesCsvValidos = [
+      'text/csv',
+      'application/csv',
+      'text/plain',
+      'application/vnd.ms-excel',
+      'text/x-csv',
+      'application/x-csv',
+      'text/comma-separated-values',
+      'text/x-comma-separated-values',
+    ];
 
+    const esExtensionCsv = data.filename.toLowerCase().endsWith('.csv');
+    const esMimetypeValido = mimetypesCsvValidos.includes(data.mimetype);
+
+    if (!esExtensionCsv && !esMimetypeValido) throw new BadRequestException('El archivo debe ser de tipo CSV.');
+    
     const jobId = IdentityGenerator.generateId(); //Generar un ID único para el job de carga masiva
     const usuarioId = this.cls.get(CLS_USER_ID); //Obtener el ID del usuario desde el contexto CLS
 
     //Enviar el Readable Stream del archivo CSV al caso de uso para su procesamiento en segundo plano
-    this.procesarCargaMasiva
-      .execute(jobId, usuarioId, data.file)
-      .catch((error) => {
-        //Loguear el error y actualizar el estado del job a FALLIDO en la base de datos
-        console.error(`Error al procesar la carga masiva: ${error.message}`);
-        this.procesarCargaMasiva.handleJobFailure(jobId, error);
-      });
+    try {
+      // Se espera la lectura completa del stream para evitar que Fastify destruya el socket prematuramente
+      await this.procesarCargaMasiva.execute(jobId, usuarioId, data.file);
+    } catch (error: any) {
+      console.error(`Error al procesar la carga masiva: ${error.message}`);
+      await this.procesarCargaMasiva.handleJobFailure(jobId, error);
+      throw new BadRequestException(`Fallo en el procesamiento del archivo: ${error.message}`);
+    }
 
     //Retornar una respuesta inmediata al cliente indicando que la solicitud ha sido aceptada para procesamiento
     response.status(HttpStatus.ACCEPTED);
@@ -94,7 +109,7 @@ export class EmpleadoBulkController {
       status: HttpStatus.ACCEPTED,
       detail: 'El archivo ha sido encolado para su procesamiento.',
       jobId: jobId, // El cliente usará este ID para el Polling Inteligente
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     };
   }
 
@@ -133,11 +148,11 @@ export class EmpleadoBulkController {
   descargarPlantilla(@Res() res: FastifyReply) {
     const cabeceras = 'tipo_documento,nro_documento,nombre,apellido,area,cargo,jornada,fecha_nacimiento,asig_familiar\n';
 
+
     //Filas de ejemplo para la plantilla
     const filasEjemplo = [
-      'DNI,12345678,Juan,Perez,Recursos Humanos,Analista,Tiempo Completo,1990-01-01,true',
-      'CE,87654321,Maria,Gomez,Finanzas,Contador,Medio Tiempo,1985-05-15,false',
-      'PASAPORTE,AB1234567,,,TI,Desarrollador,Tiempo Completo,1992-07-20,true',
+      'DNI,70998877,Roberto,Flores Gomez,Oficina Central,Contador Principal,Turno Mañana (Oficina),1992-04-10,true',
+      'CE,002233445,Luis,Paredes Soto,Seguridad Física,Vigilante Nocturno,Turno Madrugada (Seguridad),1988-11-25,false',
     ];
 
     const csvContent = cabeceras + filasEjemplo.join('\n');

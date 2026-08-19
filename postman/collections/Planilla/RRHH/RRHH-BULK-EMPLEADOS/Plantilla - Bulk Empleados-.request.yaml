@@ -1,0 +1,10 @@
+$kind: http-request
+name: "Plantilla - Bulk Empleados:"
+url: http://localhost:3000/api/rrhh/empleados/bulk/plantilla
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: ""
+examples: .resources/Plantilla - Bulk Empleados-.resources/examples
+order: 1787070251079

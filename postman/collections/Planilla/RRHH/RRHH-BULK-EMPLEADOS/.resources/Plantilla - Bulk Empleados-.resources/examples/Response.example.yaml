@@ -1,0 +1,22 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/rrhh/empleados/bulk/plantilla
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: text/csv; charset=UTF-8
+    content-disposition: attachment; filename="plantilla_carga_masiva_empleados.csv"
+    content-length: "319"
+    date: Tue, 18 Aug 2026 16:18:14 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: text
+    content: |-
+      tipo_documento,nro_documento,nombre,apellido,area,cargo,jornada,fecha_nacimiento,asig_familiar
+      DNI,12345678,Juan,Perez,Recursos Humanos,Analista,Tiempo Completo,1990-01-01,true
+      CE,87654321,Maria,Gomez,Finanzas,Contador,Medio Tiempo,1985-05-15,false
+      PASAPORTE,AB1234567,,,TI,Desarrollador,Tiempo Completo,1992-07-20,true
+order: 1787070207787

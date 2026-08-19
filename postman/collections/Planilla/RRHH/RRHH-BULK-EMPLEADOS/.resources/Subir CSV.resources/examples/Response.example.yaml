@@ -1,0 +1,42 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/rrhh/empleados/bulk
+  method: POST
+  body:
+    type: formdata
+    content:
+      - type: file
+        key: file
+        src:
+          - /C:/Users/ZER0SEV7N/Documents/Senati/JyP/planillas doc/Prueba de CSV.csv
+        description: ""
+        disabled: false
+response:
+  statusCode: 202
+  statusText: Accepted
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "401"
+    date: Tue, 18 Aug 2026 16:30:39 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "type": "https://api.jyp.com/jobs/accepted",
+          "title": "Procesamiento en Cola",
+          "status": 202,
+          "detail": "El archivo ha sido encolado para su procesamiento.",
+          "jobId": "01a015b5-edbb-759e-a228-1212d672c1ea",
+          "timestamp": "2026-08-18T16:30:39.550Z"
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/rrhh/empleados/bulk",
+          "timestamp": "2026-08-18T16:30:39.553Z"
+        }
+      }
+order: 1787070658057

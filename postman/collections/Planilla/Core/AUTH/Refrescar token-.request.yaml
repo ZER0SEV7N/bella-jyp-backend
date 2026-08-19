@@ -1,9 +1,10 @@
 $kind: http-request
-name: http://localhost:3000/api/auth/refresh
+name: "Refrescar token:"
 url: http://localhost:3000/api/auth/refresh
 method: POST
 auth:
   type: bearer
   credentials:
-    token: ""
+    token: 01a015c5-5b19-7668-8113-06e31ff5e5d3
+examples: .resources/Refrescar token-.resources/examples
 order: 3486698370323144

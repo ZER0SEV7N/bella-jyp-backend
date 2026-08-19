@@ -1,0 +1,27 @@
+$kind: http-request
+name: "Crear: http://localhost:3000/api/rrhh/empleado/crear"
+url: http://localhost:3000/api/rrhh/empleado/crear
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"cargo_id\": \"018f4a7c-8888-7000-2222-000000000001\",\r
+
+    \  \"area_id\": \"018f4a7c-7777-7000-1111-000000000001\",\r
+
+    \  \"documento_id\": \"018f4a7c-2222-7000-b000-000000000001\",\r
+
+    \  \"estado_empleado_id\": \"018f4a7c-1111-7000-a000-000000000001\",\r
+
+    \  \"nro_documento\": \"60858072\",\r
+
+    \  \"asig_familiar\": false\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: ""
+examples: .resources/Crear- http-localhost-3000-api-rrhh-empleado-crear.resources/examples
+order: 1787068685105

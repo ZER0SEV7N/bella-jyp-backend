@@ -1,5 +1,4 @@
 $kind: http-request
-name: http://localhost:3000/api/auth/login
 url: http://localhost:3000/api/auth/login
 method: POST
 body:
@@ -13,4 +12,5 @@ body:
     \  \"password\": \"Password123!\"\r
 
     }"
+examples: .resources/Login.resources/examples
 order: 1785197911306

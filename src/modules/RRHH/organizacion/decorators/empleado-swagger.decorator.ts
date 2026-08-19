@@ -221,7 +221,7 @@ export function ApiSwaggerListarEmpleados() {
   return applyDecorators(
     ApiOperation({
       summary: 'Listar Empleados',
-      description: 'Obtiene el maestro de empleados.',
+      description: 'Obtiene la lista de empleados con filtros y paginación.',
     }),
     ApiQuery({
       name: 'page',

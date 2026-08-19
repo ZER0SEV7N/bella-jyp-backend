@@ -1,0 +1,13 @@
+$kind: http-request
+name: http://localhost:3000/api/audit/logs?page=1&limit=10
+url: http://localhost:3000/api/audit/logs?page=1&limit=10&usuario_id:26e31053-4929-494f-83bd-5bc6a69dcfa3
+method: GET
+queryParams:
+  page: "1"
+  limit: "10"
+  usuario_id:26e31053-4929-494f-83bd-5bc6a69dcfa3: ""
+auth:
+  type: bearer
+  credentials:
+    token: ""
+order: 1785532472133

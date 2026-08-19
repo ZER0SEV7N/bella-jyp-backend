@@ -1,5 +1,5 @@
 $kind: http-request
-name: http://localhost:3000/api/auth/provisionar
+name: Provisionar / Registrar un usuario
 url: http://localhost:3000/api/auth/provisionar
 method: POST
 body:
@@ -17,5 +17,5 @@ body:
     \  \"rol\": \"ADMIN\"\r
 
     }"
-examples: .resources/http-localhost-3000-api-auth-provisionar.resources/examples
+examples: .resources/Provisionar - Registrar un usuario.resources/examples
 order: 2351554840367431
