@@ -1,0 +1,36 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/auth/login
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \  \"tipo_documento\": \"DNI\",\r
+
+      \  \"nro_documento\": \"70112233\",\r
+
+      \  \"password\": \"Password123\"\r
+
+      }"
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "222"
+    date: Wed, 19 Aug 2026 03:18:20 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "type": "https://api.jyp.com/errors/invalid-credentials",
+        "title": "Acceso Denegado",
+        "status": 401,
+        "detail": "El documento o la contraseña son incorrectos.",
+        "instance": "/api/auth/login",
+        "timestamp": "2026-08-19T03:18:20.221Z"
+      }
+order: 4428279264240280

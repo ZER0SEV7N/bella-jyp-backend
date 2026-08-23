@@ -5,6 +5,7 @@ import { ReniecAdapter } from '../../services/reniec.adapter';
 import { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 
+
 /**
  * Caso de uso para procesar una fila individual de empleado durante la carga masiva.
  * Este caso de uso realiza un Upsert (Actualizar o Crear) de un empleado basado en el DNI.
@@ -24,38 +25,103 @@ export class ProcesarFilaEmpleadoUseCase {
    * Operación atómica gobernada por la extensión de auditoría de Prisma.
    */
   async execute(fila: CargaMasivaFilaDTO, jobId: string): Promise<void> {
-    let nombreValidado = fila.nombre || null;
-    let apellidoValidado = fila.apellido || null;
-    let estadoSincronizacion: 'COMPLETO' | 'BORRADOR' = 'COMPLETO';
+    //Nro de documento y tipo de documento son obligatorios
+    const nroDoc = ( fila.nro_documento || (fila as any).numero_documento || (fila as any).dni || (fila as any).nro_doc || (fila as any).documento || '' ).toString().trim();
 
-    //Validar el tipo de documento proporcionado en la fila
-    const tipoDoc = await this.prisma.tipo_documento.findFirst({
-      where: { tipo_documento: { equals: fila.tipo_documento, mode: 'insensitive' } } 
-    });
+    //Validar que el número de documento no esté vacío
+    const tipoDocStr = (fila.tipo_documento || 'DNI').toString().trim();
+
+    if (!nroDoc) throw new Error('El número de documento es obligatorio en la fila.');
+    
+    //Buscar el tipo de documento en la base de datos para validar su existencia
+    const tipoDoc = await this.prisma.tipo_documento.findFirst({where: {tipo_documento: { equals: tipoDocStr, mode: 'insensitive' }}});
 
     if (!tipoDoc)throw new Error(`El tipo de documento '${fila.tipo_documento}' no existe en la base de datos.`);
 
-    //Buscar el área y cargo proporcionados en la fila, asegurando que existan y estén activos
-    const area = await this.prisma.area.findFirst({
-      where: { nombre: { equals: fila.area, mode: 'insensitive' }, deleted_at: null }
+    // 3. Resolución de Área (Búsqueda o Auto-Creación On-The-Fly)
+    const areaNombre = (fila.area || (fila as any).departamento || 'General').toString().trim();
+
+    let area = await this.prisma.area.findFirst({
+      where: {
+        nombre: { equals: areaNombre, mode: 'insensitive' },
+        deleted_at: null,
+      },
     });
 
-    if (!area) throw new Error(`El área '${fila.area}' no existe o está desactivada.`);
+    if (!area) {
+      // Fallback tolerante a tildes (ej: 'Seguridad Fisica' vs 'Seguridad Física')
+      const areasActivas = await this.prisma.area.findMany({
+        where: { deleted_at: null },
+      });
+      const areaNormInput = normalizarTexto(areaNombre);
+      area = areasActivas.find((a) => normalizarTexto(a.nombre) === areaNormInput) || null;
+    }
 
-    //buscar el cargo dentro del área especificada, asegurando que exista y esté activo
-    const cargo = await this.prisma.cargo.findFirst({
-      where: { nombre: { equals: fila.cargo, mode: 'insensitive' }, id_area: area.id, deleted_at: null }
+    // AUTO-CREACIÓN DE ÁREA si no existe
+    if (!area) {
+      this.logger.log(`[CargaMasiva] Área '${areaNombre}' no encontrada. Creándola automáticamente...`);
+      area = await this.prisma.area.create({
+        data: {
+          id: IdentityGenerator.generateId(),
+          nombre: areaNombre,
+          descripcion: 'Área creada automáticamente vía Carga Masiva CSV',
+          activo: true,
+        },
+      });
+    }
+
+    // 4. Resolución de Cargo pertenecientes al Área (Búsqueda o Auto-Creación On-The-Fly)
+    const cargoNombre = (fila.cargo || (fila as any).puesto || 'Operativo').toString().trim();
+
+    let cargo = await this.prisma.cargo.findFirst({
+      where: {
+        nombre: { equals: cargoNombre, mode: 'insensitive' },
+        id_area: area.id,
+        deleted_at: null,
+      },
     });
 
-    if (!cargo) throw new Error(`El cargo '${fila.cargo}' no existe dentro del área '${fila.area}'.`);
+    if (!cargo) {
+      const cargosArea = await this.prisma.cargo.findMany({
+        where: { id_area: area.id, deleted_at: null },
+      });
+      const cargoNormInput = normalizarTexto(cargoNombre);
+      cargo = cargosArea.find((c) => normalizarTexto(c.nombre) === cargoNormInput) || null;
+    }
 
-    //Buscar la jornada proporcionada en la fila, asegurando que exista y esté activa
-    let jornadaId = null;
+    // AUTO-CREACIÓN DE CARGO en el Área correspondiente si no existe
+    if (!cargo) {
+      this.logger.log(`[CargaMasiva] Cargo '${cargoNombre}' no encontrado en área '${area.nombre}'. Creándolo automáticamente...`);
+      cargo = await this.prisma.cargo.create({
+        data: {
+          id: IdentityGenerator.generateId(),
+          id_area: area.id,
+          nombre: cargoNombre,
+          descripcion: 'Cargo creado automáticamente vía Carga Masiva CSV',
+          activo: true,
+        },
+      });
+    }
+
+    //Validar Jornada / Turno (Opcional)
+    let jornadaId: string | null = null;
     if (fila.jornada) {
-      const jornada = await this.prisma.jornada.findFirst({where: { nombre: { equals: fila.jornada, mode: 'insensitive' }, deleted_at: null }});
-      if (!jornada) throw new Error(`El turno/jornada '${fila.jornada}' no existe.`);
+      const jornadaNombre = fila.jornada.toString().trim();
+      const jornada = await this.prisma.jornada.findFirst({where: { nombre: { equals: jornadaNombre, mode: 'insensitive' }, deleted_at: null }});
+
+      if (!jornada) throw new Error(`El turno/jornada '${jornadaNombre}' no existe.`);
+      
       jornadaId = jornada.id;
     }
+
+    //Obtener Estado de Empleado ACTIVO
+    const estadoActivo = await this.prisma.estado_empleado.findFirst({where: { descripcion: 'ACTIVO' }});
+
+    if (!estadoActivo) throw new Error('Catálogo de estado ACTIVO no configurado.');
+    
+    let nombre = fila.nombre || null;
+    let apellido = fila.apellido || null;
+    let estadoSincronizacion: 'COMPLETO' | 'BORRADOR' = 'COMPLETO';
 
     //Obtener el estado base de empleado (ACTIVO) para asignarlo al nuevo registro
     const estadoBase = await this.prisma.estado_empleado.findFirst({where: { descripcion: 'ACTIVO' }});
@@ -63,55 +129,67 @@ export class ProcesarFilaEmpleadoUseCase {
     if (!estadoBase) throw new Error('Catálogo de estado ACTIVO no configurado.');
 
     //Si el CSV no trae nombres, intentamos obtenerlos de RENIEC
-    if (!nombreValidado || !apellidoValidado) {
+    if ((!nombre || !apellido) && tipoDocStr.toUpperCase() === 'DNI') {
       try {
-        const ciudadano = await this.reniecAdapter.consultarDni(fila.nro_documento);
-
-        nombreValidado = ciudadano.nombre;
-        apellidoValidado = `${ciudadano.apellido_paterno} ${ciudadano.apellido_materno}`;
-      } catch (error) {
-        this.logger.warn(`Degradando legajo ${fila.nro_documento} a BORRADOR. RENIEC inaccesible.`, error);
-        //El empleado se guarda, pero RRHH tendrá que revisarlo manualmente
+        this.logger.log(`Nombres no provistos en CSV para DNI ${nroDoc}. Consultando RENIEC...`);
+        const ciudadano = await this.reniecAdapter.consultarDni(nroDoc);
+        nombre = ciudadano.nombre;
+        apellido = `${ciudadano.apellido_paterno} ${ciudadano.apellido_materno}`.trim();
+      } catch (error: any) {
+        this.logger.warn(`Degradando legajo DNI ${nroDoc} a BORRADOR. RENIEC inaccesible: ${error.message}`);
+        nombre = nombre || 'NO_REGISTRADO';
+        apellido = apellido || 'NO_REGISTRADO';
         estadoSincronizacion = 'BORRADOR';
       }
     }
 
-    //Si a pesar de RENIEC seguimos sin nombre, la fila es estructuralmente inválida
-    if (!nombreValidado || !apellidoValidado)
-      throw new Error(`Imposible registrar DNI ${fila.nro_documento}: Nombres ausentes y RENIEC inoperativo.`);
+    if (!nombre || !apellido) {
+      nombre = nombre || 'NO_REGISTRADO';
+      apellido = apellido || 'NO_REGISTRADO';
+      estadoSincronizacion = 'BORRADOR';
+    }
 
-    //Obtenemos el estado base de empleado (ACTIVO) para asignarlo al nuevo registro
-
-    if (!estadoBase)
-      throw new Error('No existe el estado de empleado base en el catálogo.');
+    //Inserción o Actualización (Upsert) del Empleado
+    const fechaNac = fila.fecha_nacimiento ? new Date(fila.fecha_nacimiento) : null;
 
     //Persistencia Transaccional (Upsert para garantizar Idempotencia)
     await this.prisma.empleados.upsert({
-      where: { nro_documento: fila.nro_documento },
+      where: { nro_documento: nroDoc },
       update: {
+        nombre,
+        apellido,
         area_id: area.id,
         cargo_id: cargo.id,
         jornada_id: jornadaId,
-        fecha_nacimiento: fila.fecha_nacimiento ? new Date(fila.fecha_nacimiento) : undefined,
-        asig_familiar: fila.asig_familiar,
-        //Actualizamos estado de sincronización si se procesa nuevamente
-        estado_sincronizacion: estadoSincronizacion
+        asig_familiar: Boolean(fila.asig_familiar),
+        estado_sincronizacion: estadoSincronizacion,
+        activo: true
       },
       create: {
         id: IdentityGenerator.generateId(),
         documento_id: tipoDoc.id,
-        nro_documento: fila.nro_documento,
-        nombre: nombreValidado,
-        apellido: apellidoValidado,
+        nro_documento: nroDoc,
+        nombre,
+        apellido,
         area_id: area.id,
         cargo_id: cargo.id,
+        estado_empleado_id: estadoActivo.id,
         jornada_id: jornadaId,
-        fecha_nacimiento: fila.fecha_nacimiento ? new Date(fila.fecha_nacimiento) : undefined,
-        asig_familiar: fila.asig_familiar,
-        estado_empleado_id: estadoBase.id,
+        asig_familiar: Boolean(fila.asig_familiar),
         estado_sincronizacion: estadoSincronizacion,
         activo: true
       }
     });
   }
+}
+
+/**
+ * Normaliza cadenas de texto removiendo tildes y diacríticos para búsquedas tolerantes.
+ */
+function normalizarTexto(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }

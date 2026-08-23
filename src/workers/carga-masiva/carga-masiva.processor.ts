@@ -32,7 +32,6 @@ export class CargaMasivaProcessor extends WorkerHost {
    * @returns - Promesa que se resuelve cuando todas las filas han sido procesadas.
    * @throws - Actualiza el estado del job a "FALLIDO" si ocurre un error durante el procesamiento.
    */
- 
   async process(job: Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }> ): Promise<void> {
     const { jobId, registros } = job.data;
     this.logger.log(`[Job ${jobId}] Procesando lote '${job.name}' con ${registros.length} registros...`);
@@ -56,9 +55,14 @@ export class CargaMasivaProcessor extends WorkerHost {
         exitososEnEsteLote++;
       } catch (error: any) {
         fallidosEnEsteLote++;
+        const dniRow = fila.nro_documento || (fila as any).dni || (fila as any).numero_documento || 'SIN_DOCUMENTO';
+        const causaError = error.message || 'Fallo transaccional durante la inserción';
+        
+        this.logger.warn(`[Job ${jobId}] Error en fila (DNI: ${dniRow}): ${causaError}`);
+        
         nuevosErrores.push({
-          Dni: fila.nro_documento || 'SIN_DOCUMENTO',
-          causa: error.message || 'Fallo transaccional durante la inserción',
+          Dni: dniRow,
+          causa: causaError
         });
       }
     }
@@ -73,7 +77,6 @@ export class CargaMasivaProcessor extends WorkerHost {
 
     //Verificar si con este lote ya se cubrio la totalidad de registros y actualizar el estado del job en consecuencia
     const finalizado = jobActual.total_registros > 0 && totalAtendidos >= jobActual.total_registros;
-
 
     //Mantener el historial de errores previos y agregar los nuevos errores ocurridos en este lote
     const erroresPrevios = Array.isArray(jobActual.errores_detalle) ? (jobActual.errores_detalle as Array<any>) : [];
