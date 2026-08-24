@@ -19,7 +19,7 @@ export function NormalizarTexto(texto: string): string {
 /**
  * Metodo que parsea cadenas de fecha en formatos YYYY-MM-DD o DD/MM/YYYY a objetos Date.
  */
-export function NormalizarFechaNacimiento(valor: any): Date | null {
+export function NormalizarFecha(valor: any): Date | null {
   if (!valor) return null;
 
   if (valor instanceof Date && !isNaN(valor.getTime())) 
@@ -81,6 +81,7 @@ export function MapearFilaRaw(filaRaw: Record<string, any>): Record<string, any>
   const cargo = (filaRaw.cargo || filaRaw.puesto || '' ).toString().trim();
   const jornada = (filaRaw.jornada ||filaRaw.turno ||filaRaw.horario ||'').toString().trim();
   const fechaNac = (filaRaw.fecha_nacimiento || filaRaw.fec_nac || filaRaw.cumpleaños || filaRaw.cumpleanios || '' ).toString().trim();
+  const fechaInicio = (filaRaw.fecha_inicio || filaRaw.fec_inicio || filaRaw.fecha_ingreso || filaRaw.fec_ingreso || filaRaw.start_date || '' ).toString().trim();
   const rawAsig = filaRaw.asig_familiar;
   const asigVal = typeof rawAsig === 'string' ? rawAsig.toLowerCase().trim() : rawAsig;
   const esAsigFamiliar = asigVal === 'true' || asigVal === '1' || asigVal === true || asigVal === 'si' || asigVal === 'V';
@@ -94,6 +95,7 @@ export function MapearFilaRaw(filaRaw: Record<string, any>): Record<string, any>
     cargo: cargo || undefined,
     jornada: jornada || undefined,
     fecha_nacimiento: fechaNac || undefined,
+    fecha_inicio: fechaInicio || undefined,
     asig_familiar: esAsigFamiliar
   };
 }

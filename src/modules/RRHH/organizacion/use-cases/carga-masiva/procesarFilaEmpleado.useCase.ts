@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { ReniecAdapter } from '../../services/reniec.adapter';
 import { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { NormalizarTexto, NormalizarFechaNacimiento } from './helpers/cargaMasiva.helpers';
+import { NormalizarTexto, NormalizarFecha } from './helpers/cargaMasiva.helpers';
 
 /**
  * Caso de uso para procesar la fila individual de un empleado en la carga masiva.
@@ -131,8 +131,9 @@ export class ProcesarFilaEmpleadoUseCase {
     if (!estadoActivo) throw new Error('Catálogo de estado ACTIVO no configurado.');
 
     //Parsear la fecha de nacimiento usando el helper NormalizarFechaNacimiento
-    const fechaNacimiento = NormalizarFechaNacimiento(fila.fecha_nacimiento || (fila as any).fec_nac || (fila as any).cumpleaños || (fila as any).cumpleanios);
+    const fechaNacimiento = NormalizarFecha(fila.fecha_nacimiento || (fila as any).fec_nac || (fila as any).cumpleaños || (fila as any).cumpleanios);
     
+    const fechaInicio = NormalizarFecha((fila as any).fecha_inicio || (fila as any).fec_inicio || (fila as any).fecha_ingreso || (fila as any).fec_ingreso);
     //Determinar nombres y apellidos, consultando RENIEC si es necesario
     let nombre = fila.nombre || null;
     let apellido = fila.apellido || null;
