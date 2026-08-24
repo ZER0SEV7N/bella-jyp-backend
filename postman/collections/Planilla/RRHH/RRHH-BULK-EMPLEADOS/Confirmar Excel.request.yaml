@@ -1,0 +1,63 @@
+$kind: http-request
+name: Confirmar Excel
+url: http://localhost:3000/api/rrhh/empleados/bulk/confirmar
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"filas_validas_data\": [\r
+
+    \    {\r
+
+    \      \"tipo_documento\": \"DNI\",\r
+
+    \      \"nro_documento\": \"70998877\",\r
+
+    \      \"nombre\": \"Roberto\",\r
+
+    \      \"apellido\": \"Flores Gomez\",\r
+
+    \      \"area\": \"Oficina Central\",\r
+
+    \      \"cargo\": \"Contador Principal\",\r
+
+    \      \"jornada\": \"Turno Mañana (Oficina)\",\r
+
+    \      \"fecha_nacimiento\": \"1992-04-10\",\r
+
+    \      \"asig_familiar\": false\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"tipo_documento\": \"CE\",\r
+
+    \      \"nro_documento\": \"002233445\",\r
+
+    \      \"nombre\": \"Luis\",\r
+
+    \      \"apellido\": \"Paredes Soto\",\r
+
+    \      \"area\": \"Seguridad Física\",\r
+
+    \      \"cargo\": \"Vigilante Nocturno\",\r
+
+    \      \"jornada\": \"Turno Madrugada (Seguridad)\",\r
+
+    \      \"fecha_nacimiento\": \"1988-11-25\",\r
+
+    \      \"asig_familiar\": false\r
+
+    \    }\r
+
+    \  ]\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: ""
+examples: .resources/Confirmar Excel.resources/examples
+order: 2809

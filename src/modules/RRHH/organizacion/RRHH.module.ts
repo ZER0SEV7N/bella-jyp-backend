@@ -30,6 +30,8 @@ import { ActiveEmpleadoUseCase } from './use-cases/empleado/activeEmpleado.useCa
 import { ProcesarCargaMasivaUseCase } from './use-cases/carga-masiva/procesarCargaMasiva.useCase';
 import { ConsultarEstadoCargaMasivaUseCase } from './use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ProcesarFilaEmpleadoUseCase } from './use-cases/carga-masiva/procesarFilaEmpleado.useCase';
+import { ValidarCargaMasivaUseCase } from './use-cases/carga-masiva/validarCargaMasiva.useCase';
+import { ConfirmarCargaMasivaUseCase } from './use-cases/carga-masiva/confirmarCargaMasiva.useCase';
 // --- CASOS DE USO: JORNADAS ---
 import { CrearJornadaUseCase } from './use-cases/jornadas/crearJornada.useCase';
 import { EditarJornadaUseCase } from './use-cases/jornadas/editarJornada.useCase';
@@ -77,6 +79,8 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     ConsultarEstadoCargaMasivaUseCase,
     ProcesarFilaEmpleadoUseCase,
     CargaMasivaProcessor,
+    ValidarCargaMasivaUseCase,
+    ConfirmarCargaMasivaUseCase,
     //Jornadas
     CrearJornadaUseCase,
     EditarJornadaUseCase,

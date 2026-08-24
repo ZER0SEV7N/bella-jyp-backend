@@ -32,6 +32,7 @@ import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.
 import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
 import { ListarEmpleadosUseCase } from '../use-cases/empleado/listarEmpleados.useCase';
 import { Roles } from '@/common/decorators/roles.decorator';
 import {
@@ -45,7 +46,7 @@ import {
 
 @ApiSwaggerEmpleadosController()
 @Controller('api/rrhh/empleado')
-@UseGuards(JwtAccessGuard)
+@UseGuards(JwtAccessGuard, RolesGuard)
 export class EmpleadoController {
   constructor(
     private readonly crearEmpleadoUseCase: CrearEmpleadoUseCase,

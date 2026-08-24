@@ -15,6 +15,11 @@ export interface CiudadanoReniec {
   apellido_materno: string;
 }
 
+/**
+ * ReniecAdapter es un servicio que actúa como adaptador para interactuar con la API de RENIEC.
+ * Permite consultar información de un ciudadano peruano a partir de su número de documento (DNI).
+ * Implementa un timeout estricto para evitar que la aplicación se quede colgada si RENIEC no responde.
+ */
 @Injectable()
 export class ReniecAdapter {
   private readonly logger = new Logger(ReniecAdapter.name); //Logger para registrar información y errores
@@ -29,23 +34,23 @@ export class ReniecAdapter {
 
       const res = await fetch(`${this.RENIEC_API_URL}/dni/${dni}?token=${this.RENIEC_API_KEY}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: {'Content-Type': 'application/json'},
         signal: controller.signal
       });
 
       clearTimeout(timeoutId); //Limpiar el timeout si la respuesta llega a tiempo
 
-      if (!res.ok)
-        throw new BadGatewayException(`La API de RENIEC respondió con status: ${res.status}`);
+      //Si la respuesta de RENIEC no es exitosa, lanzar excepcion
+      if (!res.ok)throw new BadGatewayException(`La API de RENIEC respondió con status: ${res.status}`);
 
+      //Parsear la respuesta JSON de RENIEC
       const data = await res.json();
 
+      //Retornar los nombres y apellidos en formato Title Case para consistencia
       return {
-        nombre: data.nombres || data.nombre || '',
-        apellido_paterno: data.apellidoPaterno || data.apellido_paterno || '',
-        apellido_materno: data.apellidoMaterno || data.apellido_materno || ''
+        nombre: toTitleCase(data.nombres || data.nombre || ''),
+        apellido_paterno: toTitleCase(data.apellidoPaterno || data.apellido_paterno || ''),
+        apellido_materno: toTitleCase(data.apellidoMaterno || data.apellido_materno || '')
       };
     } catch (error: any) {
       this.logger.error(`Fallo al consultar DNI ${dni} en RENIEC: ${error.message}`, error.stack);
@@ -54,4 +59,13 @@ export class ReniecAdapter {
       throw new BadGatewayException('Servicio de RENIEC no disponible temporalmente.');
     }
   }
+}
+
+/**
+ * Funcion auxiliar para normalizar texto a formato de Title Case
+ * EJ: "ADRIAN MATIAS" -> "Adrian Matias"
+ */
+function toTitleCase(texto: string): string {
+  if(!texto) return '';
+  return texto.toLowerCase().trim().split(/\s+/).map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1)).join(' ');
 }
