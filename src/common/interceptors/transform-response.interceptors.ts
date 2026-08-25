@@ -1,17 +1,14 @@
 //src/common/inteceptors/transform-response.interceptors.ts
-//Interceptor para transformar la respuesta de las rutas,
-//se puede configurar para que solo transforme ciertas rutas o ciertos tipos de respuestas
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import {Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
-//Interceptor
+/**
+ * Interfaz que define la estructura de la respuesta transformada.
+ * @template T - Tipo de datos que se espera en la respuesta.
+ * @meta - Se compone de un mensaje, la ruta de la solicitud y un timestamp.
+ */
 export interface ResponseFormat<T> {
   statusCode: number;
   data: T;
@@ -22,12 +19,18 @@ export interface ResponseFormat<T> {
   };
 }
 
-//Interceptor para transformar la respuesta de las rutas
+/**
+ * Interceptor que transforma la respuesta de las solicitudes HTTP.
+ * Este interceptor se encarga de envolver la respuesta en un formato estandarizado que incluye:
+ * - El código de estado HTTP.
+ * - Los datos de la respuesta.
+ * - Metadatos adicionales como un mensaje, la ruta de la solicitud y un timestamp.
+ * implementa NestInterceptor para integrarse con el ciclo de vida de las solicitudes en NestJS.
+ * @template T - Tipo de datos que se espera en la respuesta.
+ * @responseFormat - Estructura de la respuesta transformada.
+ */
 @Injectable()
-export class TransformResponseInterceptor<T> implements NestInterceptor<
-  T,
-  ResponseFormat<T>
-> {
+export class TransformResponseInterceptor<T> implements NestInterceptor<T, ResponseFormat<T>> {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
@@ -41,7 +44,7 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
     return next.handle().pipe(
       map((data: any) => {
         //En caso de que la data tenga la estructura {data: [], meta: {}} se respeta esa estructura
-        if (data && data.data && data.meta) 
+        if (data?.data && data?.meta) 
           return {
             statusCode,
             data: data.data,
@@ -50,7 +53,7 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
               message: 'Operación exitosa.',
               path: request.url,
               timestamp: new Date().toISOString()
-            },
+            }
           };
         
 
@@ -63,7 +66,7 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
             timestamp: new Date().toISOString()
           }
         };
-      }),
+      })
     );
   }
 
@@ -81,5 +84,5 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<
       default:
         return 'Petición procesada.';
     }
-  }
+  };
 }

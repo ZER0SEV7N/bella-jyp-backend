@@ -15,7 +15,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         cargo: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn() },
         jornada: { findFirst: jest.fn(), findMany: jest.fn() },
         estado_empleado: { findFirst: jest.fn() },
-        empleados: { upsert: jest.fn() },
+        empleados: { upsert: jest.fn() }
     };
 
     const mockReniecAdapter = {consultarDni: jest.fn()};

@@ -22,26 +22,26 @@ export function NormalizarTexto(texto: string): string {
 export function NormalizarFecha(valor: any): Date | null {
   if (!valor) return null;
 
-  if (valor instanceof Date && !isNaN(valor.getTime())) 
+  if (valor instanceof Date && !Number.isNaN(valor.getTime()))
     return valor;
 
   const str = String(valor).trim();
   if (!str) return null;
 
   //Formato DD/MM/YYYY o DD-MM-YYYY
-  const regexLatino = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/;
-  const matchLatino = str.match(regexLatino);
+  const regexLatino = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/;
+  const matchLatino = regexLatino.exec(str);
   if (matchLatino) {
-    const day = parseInt(matchLatino[1], 10);
-    const month = parseInt(matchLatino[2], 10) - 1;
-    const year = parseInt(matchLatino[3], 10);
+    const day = Number.parseInt(matchLatino[1], 10);
+    const month = Number.parseInt(matchLatino[2], 10) - 1;
+    const year = Number.parseInt(matchLatino[3], 10);
     const date = new Date(year, month, day);
-    return isNaN(date.getTime()) ? null : date;
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   //Formato Estándar YYYY-MM-DD
   const parsed = new Date(str);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 /**
@@ -50,11 +50,16 @@ export function NormalizarFecha(valor: any): Date | null {
  * @returns La cadena normalizada.
  */
 export function NormalizarLlaveHeader(texto: string): string {
+  if (!texto) return '';
   return texto
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+     .replace(/[\s\-/()]+/g, '_')
     .replace(/[^a-z0-9_]/g, '')
+    .replace(/^_+/, '')
+    .replace(/_+$/, '')
+    .replace(/__+/g, '_')
     .trim();
 }
 
@@ -84,7 +89,7 @@ export function MapearFilaRaw(filaRaw: Record<string, any>): Record<string, any>
   const fechaInicio = (filaRaw.fecha_inicio || filaRaw.fec_inicio || filaRaw.fecha_ingreso || filaRaw.fec_ingreso || filaRaw.start_date || '' ).toString().trim();
   const rawAsig = filaRaw.asig_familiar;
   const asigVal = typeof rawAsig === 'string' ? rawAsig.toLowerCase().trim() : rawAsig;
-  const esAsigFamiliar = asigVal === 'true' || asigVal === '1' || asigVal === true || asigVal === 'si' || asigVal === 'V';
+  const esAsigFamiliar = asigVal === 'true' || asigVal === '1' || asigVal === true || asigVal === 'si' || asigVal === 'V' || asigVal === 'v';
 
   return {
     tipo_documento: tipoDoc,
@@ -98,6 +103,55 @@ export function MapearFilaRaw(filaRaw: Record<string, any>): Record<string, any>
     fecha_inicio: fechaInicio || undefined,
     asig_familiar: esAsigFamiliar
   };
+}
+
+/**
+ * Normaliza el valor leido desde una celda de Excel para evitar objetos complejos.
+ */
+function NormalizarValorCeldaExcel(valor: any): any {
+  if (valor == null) return '';
+
+  if (valor instanceof Date) {
+    return valor.toISOString().split('T')[0];
+  }
+
+  if (typeof valor === 'object') {
+    if ((valor as any).result !== undefined) return (valor as any).result;
+    if ((valor as any).text !== undefined) return (valor as any).text;
+  }
+
+  return valor;
+}
+
+/**
+ * Construye los headers de la hoja Excel tomando como referencia la primera fila.
+ */
+function ObtenerHeadersExcel(values: any[]): string[] {
+  return values.slice(1).map((valor, index) => {
+    const texto = valor ? String(valor).trim() : `col_${index + 1}`;
+    return NormalizarLlaveHeader(texto);
+  });
+}
+
+/**
+ * Mapea una fila de Excel a un objeto clave-valor usando los headers ya normalizados.
+ */
+function MapearFilaExcel(values: any[], headers: string[]): Record<string, any> | null {
+  const filaObj: Record<string, any> = {};
+  let tieneDatos = false;
+
+  for (let i = 1; i < values.length; i++) {
+    const key = headers[i - 1];
+    const valor = NormalizarValorCeldaExcel(values[i]);
+    const cleanVal = typeof valor === 'string' ? valor.trim() : valor;
+
+    if (key) {
+      filaObj[key] = cleanVal ?? '';
+      if (cleanVal) tieneDatos = true;
+    }
+  }
+
+  return tieneDatos ? filaObj : null;
 }
 
 /**
@@ -119,40 +173,55 @@ export async function ParseExcelBuffer(buffer: Buffer): Promise<Record<string, a
     const values = row.values as any[];
 
     if (rowNumber === 1) {
-      for (let i = 1; i < values.length; i++) {
-        const valStr = values[i] ? String(values[i]).trim() : `col_${i}`;
-        headers.push(NormalizarLlaveHeader(valStr));
-      }
-    } else {
-      const filaObj: Record<string, any> = {};
-      let tieneDatos = false;
-
-      for (let i = 1; i < values.length; i++) {
-        const key = headers[i - 1];
-        let val = values[i];
-
-        if (val && typeof val === 'object') {
-          if (val instanceof Date) {
-            val = val.toISOString().split('T')[0];
-          } else if ((val as any).result !== undefined) {
-            val = (val as any).result;
-          } else if ((val as any).text !== undefined) {
-            val = (val as any).text;
-          }
-        }
-
-        if (key) {
-          const cleanVal = typeof val === 'string' ? val.trim() : val;
-          filaObj[key] = cleanVal !== undefined && cleanVal !== null ? cleanVal : '';
-          if (cleanVal) tieneDatos = true;
-        }
-      }
-
-      if (tieneDatos) filas.push(filaObj);
+      headers.push(...ObtenerHeadersExcel(values));
+      return;
     }
+
+    const filaMapeada = MapearFilaExcel(values, headers);
+    if (filaMapeada) filas.push(filaMapeada);
   });
 
   return filas;
+}
+
+/**
+ * Convierte cualquier valor crudo de una celda CSV a un string representativo.
+ */
+function NormalizarValorCsv(valor: any): string {
+  if (valor == null) return '';
+
+  if (
+    typeof valor === 'string'
+    || typeof valor === 'number'
+    || typeof valor === 'boolean'
+  ) {
+    return String(valor);
+  }
+
+  return JSON.stringify(valor);
+}
+
+/**
+ * Construye una fila limpia normalizando headers y valores del CSV.
+ */
+function ConstruirFilaLimpia(filaRaw: Record<string, any>): Record<string, any> {
+  const rawKeys = Object.keys(filaRaw);
+  if (rawKeys.length === 1 && rawKeys[0].includes(';')) {
+    const headersArr = rawKeys[0].split(';').map((h) => NormalizarLlaveHeader(h));
+    const valuesArr = NormalizarValorCsv(Object.values(filaRaw)[0]).split(';').map((v) => v.trim());
+
+    return headersArr.reduce<Record<string, any>>((filaLimpia, header, idx) => {
+      filaLimpia[header] = valuesArr[idx] ?? '';
+      return filaLimpia;
+    }, {});
+  }
+
+  return Object.entries(filaRaw).reduce<Record<string, any>>((filaLimpia, [key, val]) => {
+    const cleanKey = NormalizarLlaveHeader(key);
+    const cleanVal = typeof val === 'string' ? val.trim() : val;
+    filaLimpia[cleanKey] = cleanVal;
+    return filaLimpia;
+  }, {});
 }
 
 /**
@@ -161,14 +230,15 @@ export async function ParseExcelBuffer(buffer: Buffer): Promise<Record<string, a
  * @returns Un arreglo de objetos representando las filas del archivo.
  */
 export async function ParseCsvBuffer(buffer: Buffer): Promise<Record<string, any>[]> {
-  let textoDecodificado: string;
-  try {
-    const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
-    textoDecodificado = utf8Decoder.decode(buffer);
-  } catch {
-    const winDecoder = new TextDecoder('windows-1252');
-    textoDecodificado = winDecoder.decode(buffer);
-  }
+  const textoDecodificado = (() => {
+    try {
+      const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+      return utf8Decoder.decode(buffer);
+    } catch {
+      const winDecoder = new TextDecoder('windows-1252');
+      return winDecoder.decode(buffer);
+    }
+  })();
 
   const streamDecodificado = Readable.from([textoDecodificado]);
   const filas: Record<string, any>[] = [];
@@ -181,26 +251,7 @@ export async function ParseCsvBuffer(buffer: Buffer): Promise<Record<string, any
   );
 
   for await (const filaRaw of parser) {
-    const rawKeys = Object.keys(filaRaw);
-    const filaLimpia: Record<string, any> = {};
-
-    if (rawKeys.length === 1 && rawKeys[0].includes(';')) {
-      const headersArr = rawKeys[0].split(';').map((h) => NormalizarLlaveHeader(h));
-      const valString = String(Object.values(filaRaw)[0] || '');
-      const valuesArr = valString.split(';').map((v) => v.trim());
-
-      headersArr.forEach((h, idx) => {
-        filaLimpia[h] = valuesArr[idx] !== undefined ? valuesArr[idx] : '';
-      });
-    } else {
-      for (const [key, val] of Object.entries(filaRaw)) {
-        const cleanKey = NormalizarLlaveHeader(key);
-        const cleanVal = typeof val === 'string' ? val.trim() : val;
-        filaLimpia[cleanKey] = cleanVal;
-      }
-    }
-
-    filas.push(filaLimpia);
+    filas.push(ConstruirFilaLimpia(filaRaw));
   }
 
   return filas;

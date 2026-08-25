@@ -7,10 +7,6 @@ import {
 import { CrearAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/crearArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
-//Mock de Crypto para simular la generación de UUID
-jest.mock('crypto', () => ({
-  randomUUID: jest.fn(() => 'uuid-1234-5678')
-}));
 
 describe('CrearAreaUseCase', () => {
   let useCase: CrearAreaUseCase;
@@ -37,7 +33,7 @@ describe('CrearAreaUseCase', () => {
   //Limpiar los mocks después de cada prueba
   afterEach(() => jest.clearAllMocks());
 
-  it('Debería crear una nueva área correctamente (Happy Path)', async () => {
+  it('Debería crear una nueva área correctamente', async () => {
     //Arrange: No existe ningún área con ese nombre
     mockPrisma.area.findFirst.mockResolvedValue(null);
 

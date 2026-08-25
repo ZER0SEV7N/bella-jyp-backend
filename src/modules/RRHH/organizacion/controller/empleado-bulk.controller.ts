@@ -7,7 +7,6 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { CLS_USER_ID } from '@/common/cls/cls.constants';
-import { IdentityGenerator } from '@/common/utils/uuid.util';
 //Use-Cases para la carga masiva de empleados
 import { ConsultarEstadoCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ValidarCargaMasivaUseCase } from '../use-cases/carga-masiva/validarCargaMasiva.useCase';

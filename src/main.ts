@@ -6,7 +6,7 @@ import {
 import { AppModule } from './app.module';
 import fastifyCookie from '@fastify/cookie';
 import { Rfc7807ExceptionFilter } from './common/filters/rfc7807-exception.filter';
-import { TransformResponseInterceptor } from './common/inteceptors/transform-response.interceptors';
+import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptors';
 import fastifyMultipart from '@fastify/multipart';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 

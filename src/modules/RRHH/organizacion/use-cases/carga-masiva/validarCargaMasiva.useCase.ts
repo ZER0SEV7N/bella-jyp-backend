@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { CargaMasivaFilaSchema } from '@jyp/shared-contracts';
 import { Readable } from 'node:stream';
-import { MapearFilaRaw, NormalizarLlaveHeader, ParseCsvBuffer, ParseExcelBuffer } from './helpers/cargaMasiva.helpers';
+import { MapearFilaRaw, ParseCsvBuffer, ParseExcelBuffer } from './helpers/cargaMasiva.helpers';
 
 /**
  * interfaz de error detectado en una fila durante la pre-validación de la carga masiva.
@@ -50,40 +50,51 @@ export class ValidarCargaMasivaUseCase {
     async execute(filename: string, mimeType: string, stream: Readable): Promise<ReportePreValidacion> {
         this.logger.log(`Iniciando pre-validación de archivo masivo: ${filename} (${mimeType})...`);
 
-        //Leer todo el stream en un Buffer para soportar parseo ExcelJs y fallback a csv-parser
-        const chunks: Buffer[] = [];
-        for await (const chunk of stream) 
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-            
-        const bufferCompleto = Buffer.concat(chunks);
-        if(bufferCompleto.length === 0) throw new BadRequestException('El archivo está vacío.');
+        const bufferCompleto = await this.leerBuffer(stream);
+        const filasSanitizadasRaw = await this.parsearArchivo(filename, mimeType, bufferCompleto);
 
-        //Detectar si el archivo es Excel (.xlsx) o CSV basado en extensión y tipo MIME
-        const esExcel = filename.toLowerCase().endsWith('.xlsx') || mimeType.includes('spreadsheetml') || mimeType.includes('excel');
-        let filasSanitizadasRaw: Record<string, any>[] = [];
-
-        if (esExcel) 
-        filasSanitizadasRaw = await ParseExcelBuffer(bufferCompleto);
-        else 
-        filasSanitizadasRaw = await ParseCsvBuffer(bufferCompleto);
-        
         if (filasSanitizadasRaw.length === 0) throw new BadRequestException('No se encontraron registros de datos en la hoja del archivo.');
-    
-        //Procesar y validar cada fila usando Zod
+
+        const { errores, filasValidas } = this.validarFilas(filasSanitizadasRaw);
+
+        return {
+            total_filas: filasSanitizadasRaw.length,
+            filas_validas: filasValidas.length,
+            filas_invalidas: errores.length,
+            errores_detalle: errores,
+            filas_validas_data: filasValidas
+        };
+    }
+
+    private async leerBuffer(stream: Readable): Promise<Buffer> {
+        const chunks: Buffer[] = [];
+
+        for await (const chunk of stream)
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+
+        const bufferCompleto = Buffer.concat(chunks);
+        if (bufferCompleto.length === 0) throw new BadRequestException('El archivo está vacío.');
+
+        return bufferCompleto;
+    }
+
+    private async parsearArchivo(filename: string, mimeType: string, bufferCompleto: Buffer): Promise<Record<string, any>[]> {
+        const esExcel = filename.toLowerCase().endsWith('.xlsx') || mimeType.includes('spreadsheetml') || mimeType.includes('excel');
+
+        if (esExcel) return ParseExcelBuffer(bufferCompleto);
+
+        return ParseCsvBuffer(bufferCompleto);
+    }
+
+    private validarFilas(filasSanitizadasRaw: Record<string, any>[]): { errores: ErrorPreValidacionDetalle[]; filasValidas: CargaMasivaFilaDTO[] } {
         const errores: ErrorPreValidacionDetalle[] = [];
         const filasValidas: CargaMasivaFilaDTO[] = [];
-
-        //Iterar sobre cada fila y validar usando Zod
         let numeroFila = 1;
 
-        //Iterar sobre cada fila y validar usando Zod
         for (const filaRaw of filasSanitizadasRaw) {
             numeroFila++;
 
-            //Mapear la fila cruda a la estructura estándar de CargaMasivaFilaDTO
             const objetoEstandar = MapearFilaRaw(filaRaw);
-
-            //Validar que el número de documento no esté vacío
             if (!objetoEstandar.nro_documento) {
                 errores.push({
                     fila: numeroFila,
@@ -94,30 +105,34 @@ export class ValidarCargaMasivaUseCase {
                 continue;
             }
 
-            //Corroborar que el tipo de documento exista en la base de datos
             const validacion = CargaMasivaFilaSchema.safeParse(objetoEstandar);
-
-            //Si la validación falla, registrar los errores detallados
-            if (!validacion.success) 
-                for (const issue of validacion.error.issues) 
-                    errores.push({
-                        fila: numeroFila,
-                        columna: issue.path.join('.') || 'general',
-                        valor_recibido: (objetoEstandar as any)[issue.path[0] as string],
-                        mensaje: issue.message
-                    });
-                
-            else 
+            if (validacion.success) {
                 filasValidas.push(validacion.data);
-            
+                continue;
+            }
+
+            this.agregarErroresFila(validacion.error.issues, objetoEstandar, numeroFila, errores);
         }
 
-        return {
-            total_filas: filasSanitizadasRaw.length,
-            filas_validas: filasValidas.length,
-            filas_invalidas: errores.length,
-            errores_detalle: errores,
-            filas_validas_data: filasValidas
-        };
+        return { errores, filasValidas };
+    }
+
+    private agregarErroresFila(
+        issues: { path: (string | number)[]; message: string }[],
+        objetoEstandar: Record<string, any>,
+        numeroFila: number,
+        errores: ErrorPreValidacionDetalle[]
+    ): void {
+        for (const issue of issues) {
+            const columna = issue.path.length > 0 ? issue.path.join('.') : 'general';
+            const valorRecibido = issue.path.length > 0 ? (objetoEstandar as any)[issue.path[0] as string] : undefined;
+
+            errores.push({
+                fila: numeroFila,
+                columna,
+                valor_recibido: valorRecibido,
+                mensaje: issue.message
+            });
+        }
     }
 }

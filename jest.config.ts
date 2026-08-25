@@ -1,14 +1,22 @@
+//jest.config.ts
+/**
+ * Archivo de configuración de Jest para el proyecto.
+ * - preset: 'ts-jest' indica que se utilizará ts-jest para compilar TypeScript.
+ * - testEnvironment: 'node' establece el entorno de prueba como Node.js.
+ * - clearMocks: true asegura que los mocks se limpien automáticamente entre pruebas.
+ * - collectCoverage: true habilita la recolección de cobertura de código.
+ */
 import type { Config } from 'jest';
 
 const config: Config = {
-  // Configuración base de ts-jest y entorno Node.js
+  // Preset de compilación TypeScript con ts-jest
   preset: 'ts-jest',
   testEnvironment: 'node',
 
-  // Limpieza y manejo de Mocks
+  // Limpieza de mocks previa a cada test
   clearMocks: true,
 
-  // Configuración de Cobertura de Código para SonarQube (LCOV)
+  // Configuración de Cobertura de Código para SonarQube
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'clover'],
@@ -23,14 +31,12 @@ const config: Config = {
   // Mapeo del alias '@/' hacia 'src/'
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    // Mapeador explícito para evitar conflictos de resolución ESM/CommonJS en paquetes como uuid
-    '^uuid$': 'uuid',
   },
 
-  // Detección de archivos de pruebas unitarias
-  testRegex: '.*\\.spec\\.ts$',
+  // Expresión regular para encontrar archivos de pruebas (.spec.ts)
+  testRegex: String.raw`.*\.spec\.ts$`,
 
-  // Transformación de código con ts-jest
+  // Transformador de TypeScript
   transform: {
     '^.+\\.(t|j)s$': [
       'ts-jest',
@@ -40,9 +46,6 @@ const config: Config = {
       },
     ],
   },
-
-  // Permitir que Jest transforme paquetes ESM en node_modules como uuid (compatible con pnpm virtual store)
-  transformIgnorePatterns: ['/node_modules/(?!.*uuid)'],
 };
 
 export default config;

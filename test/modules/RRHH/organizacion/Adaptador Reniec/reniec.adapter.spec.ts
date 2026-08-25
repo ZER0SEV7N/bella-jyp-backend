@@ -54,7 +54,7 @@ describe('ReniecAdapter - Pruebas Unitarias de Integración Externa', () => {
             expect(resultado).toEqual({
                 nombre: 'Adrian Matias',
                 apellido_paterno: 'Dueñas',
-                apellido_materno: 'Huertas',
+                apellido_materno: 'Huertas'
             });
         });
 
