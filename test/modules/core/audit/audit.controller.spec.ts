@@ -15,11 +15,11 @@ describe('AuditController - Capa HTTP y Mapeo de Parámetros', () => {
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-        controllers: [AuditController],
-        providers: [
-            { provide: ObtenerLogsUseCase, useValue: mockObtenerLogsUseCase },
-            { provide: RegistroAuditoriaUseCase, useValue: mockRegistroAuditoriaUseCase },
-        ],
+            controllers: [AuditController],
+            providers: [
+                { provide: ObtenerLogsUseCase, useValue: mockObtenerLogsUseCase },
+                { provide: RegistroAuditoriaUseCase, useValue: mockRegistroAuditoriaUseCase }
+            ]
         }).compile();
 
         controller = module.get<AuditController>(AuditController);

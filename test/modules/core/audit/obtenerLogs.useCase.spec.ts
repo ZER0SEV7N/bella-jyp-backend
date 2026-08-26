@@ -28,6 +28,7 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
         prismaService = module.get<PrismaService>(PrismaService);
 
         jest.clearAllMocks();
+        jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     describe('execute() - Evaluación Exhaustiva de Query Params y Paginación', () => {

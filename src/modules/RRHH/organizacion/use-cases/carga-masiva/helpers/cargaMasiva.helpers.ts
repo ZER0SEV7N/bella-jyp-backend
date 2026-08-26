@@ -51,16 +51,20 @@ export function NormalizarFecha(valor: any): Date | null {
  */
 export function NormalizarLlaveHeader(texto: string): string {
   if (!texto) return '';
-  return texto
+  let normalizada = texto
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
      .replace(/[\s\-/()]+/g, '_')
     .replace(/[^a-z0-9_]/g, '')
     .replace(/^_+/, '')
-    .replace(/_+$/, '')
     .replace(/__+/g, '_')
     .trim();
+
+  while (normalizada.endsWith('_')) 
+    normalizada = normalizada.slice(0, -1);
+
+  return normalizada;
 }
 
 /**
@@ -111,9 +115,9 @@ export function MapearFilaRaw(filaRaw: Record<string, any>): Record<string, any>
 function NormalizarValorCeldaExcel(valor: any): any {
   if (valor == null) return '';
 
-  if (valor instanceof Date) {
+  if (valor instanceof Date) 
     return valor.toISOString().split('T')[0];
-  }
+  
 
   if (typeof valor === 'object') {
     if ((valor as any).result !== undefined) return (valor as any).result;
@@ -250,9 +254,8 @@ export async function ParseCsvBuffer(buffer: Buffer): Promise<Record<string, any
     }),
   );
 
-  for await (const filaRaw of parser) {
+  for await (const filaRaw of parser) 
     filas.push(ConstruirFilaLimpia(filaRaw));
-  }
 
   return filas;
 }

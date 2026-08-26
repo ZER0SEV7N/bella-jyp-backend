@@ -27,7 +27,6 @@ import { EditarEmpleadoUseCase } from './use-cases/empleado/editarEmpleado.useCa
 import { EliminarEmpleadoUseCase } from './use-cases/empleado/eliminarEmpleado.useCase';
 import { ActiveEmpleadoUseCase } from './use-cases/empleado/activeEmpleado.useCase';
 // --- CASOS DE USO: CARGA MASIVA ---
-import { ProcesarCargaMasivaUseCase } from './use-cases/carga-masiva/procesarCargaMasiva.useCase';
 import { ConsultarEstadoCargaMasivaUseCase } from './use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ProcesarFilaEmpleadoUseCase } from './use-cases/carga-masiva/procesarFilaEmpleado.useCase';
 import { ValidarCargaMasivaUseCase } from './use-cases/carga-masiva/validarCargaMasiva.useCase';
@@ -75,7 +74,6 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     EliminarEmpleadoUseCase,
     ActiveEmpleadoUseCase,
     //Carga Masiva
-    ProcesarCargaMasivaUseCase,
     ConsultarEstadoCargaMasivaUseCase,
     ProcesarFilaEmpleadoUseCase,
     CargaMasivaProcessor,
