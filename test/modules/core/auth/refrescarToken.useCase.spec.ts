@@ -87,6 +87,6 @@ describe('RefrescarTokenUseCase', () => {
 
     //Act & Assert: Ejecutar el caso de uso y verificar que lance la excepción esperada
     await expect(useCase.execute('valid_token_but_fired_user')).rejects.toThrow(UnauthorizedException);
-    await expect(useCase.execute('valid_token_but_fired_user')).rejects.toThrow('Refresh token inválido o expirado.',);
+    await expect(useCase.execute('valid_token_but_fired_user')).rejects.toThrow('Usuario no encontrado o inactivo.');
   });
 });

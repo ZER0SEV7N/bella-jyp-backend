@@ -28,7 +28,7 @@ export class EditarContratoUseCase {
     //Validar la existencia del contrato antes de intentar actualizarlo
     const contrato = await this.prisma.contratos.findUnique({where: { id: idContrato }});
 
-    if (!contrato || contrato.deleted_at !== null) throw new NotFoundException('El contrato especificado no existe o ha sido eliminado.');
+    if (contrato?.deleted_at !== null) throw new NotFoundException('El contrato especificado no existe o ha sido eliminado.');
     
     //Regla de negocio: Solo se permite actualizar mientras el pdf del contrato no haya sido subido, es decir, si el campo url es null.
     if (contrato.url !== null) throw new BadRequestException('El contrato ha sido sellado. No se puede editar porque ya cuenta con un documento físico adjunto.');

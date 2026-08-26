@@ -30,7 +30,7 @@ export class EditarDatoFinancieroUseCase {
     //Validar que el dato financiero del empleado existe y no ha sido desactivado
     const datoFinanciero = await this.prisma.dato_financiero.findUnique({where: { empleado_id: idEmpleado }});
 
-    if (!datoFinanciero || datoFinanciero.deleted_at !== null) 
+    if (datoFinanciero?.deleted_at !== null) 
       throw new NotFoundException('El dato financiero del empleado no existe o ha sido desactivado.');
     
     //Validar que el usuario autenticado es el mismo que realiza la operación y que su contraseña es correcta

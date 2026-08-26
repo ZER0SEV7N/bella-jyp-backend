@@ -4,16 +4,25 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ObtenerAuditQueryDto } from '@jyp/shared-contracts';
 
+/**
+ * Caso de uso para obtener logs de auditoría con filtros y paginación.
+ * Este caso de uso permite a los usuarios con roles específicos (ADMIN, JYP, CONTADOR)
+ * consultar los logs de auditoría del sistema, aplicando filtros por tabla afectada,
+ * acción, usuario y registro.
+ */
 @Injectable()
 export class ObtenerLogsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(
-    query: ObtenerAuditQueryDto,
-    userRequesting: { id: string; rol: string },
-  ) {
-    const { page, limit, tabla_afectada, accion, usuario_id, registro_id } =
-      query; //Parametros de consulta para filtrar los logs de auditoría
+  /**
+   * Ejecuta la consulta de logs de auditoría según los filtros proporcionados.
+   * @param query - DTO que contiene los parámetros de consulta para filtrar los logs.
+   * @param userRequesting - Información del usuario que realiza la solicitud, incluyendo su ID y rol.
+   * @returns Un objeto que contiene los logs filtrados y la información de paginación.
+   * @throws ForbiddenException si el usuario no tiene los privilegios necesarios para auditar el sistema.
+   */
+  async execute(query: ObtenerAuditQueryDto, userRequesting: { id: string; rol: string }) {
+    const { page, limit, tabla_afectada, accion, usuario_id, registro_id } = query; //Parametros de consulta para filtrar los logs de auditoría
     const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
 
     const where: any = {}; //Objeto para almacenar los filtros de consulta
@@ -40,9 +49,7 @@ export class ObtenerLogsUseCase {
       //validamos que no esté intentando espiar a otro Contador o al Admin.
       if (usuario_id) where.usuario_id = usuario_id; // Prisma unirá este AND con el OR de arriba
     } else
-      throw new ForbiddenException(
-        'No tiene los privilegios para auditar el sistema.',
-      ); //Si por algún motivo otro rol llega aquí (RRHH), le denegamos la vista global
+      throw new ForbiddenException( 'No tiene los privilegios para auditar el sistema.'); //Si por algún motivo otro rol llega aquí (RRHH), le denegamos la vista global
 
     //Ejecutar la consulta
     const [total, logs] = await this.prisma.$transaction([
@@ -63,13 +70,13 @@ export class ObtenerLogsUseCase {
                 select: {
                   nro_documento: true,
                   nombre: true,
-                  apellido: true,
-                },
-              },
-            },
-          },
-        },
-      }),
+                  apellido: true
+                }
+              }
+            }
+          }
+        }
+      })
     ]);
     return {
       data: logs,
@@ -77,8 +84,8 @@ export class ObtenerLogsUseCase {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-      },
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 }

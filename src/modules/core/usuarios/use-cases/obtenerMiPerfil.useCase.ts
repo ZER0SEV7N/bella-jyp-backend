@@ -8,12 +8,20 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import type { MiPerfilResponseDto } from '@jyp/shared-contracts';
 
 /**
- * Caso de uso para obtener el perfil del usuario
+ * Caso de uso para obtener el perfil del usuario autenticado.
+ * Este caso de uso permite obtener la información del perfil del usuario actualmente autenticado,
+ * incluyendo su correo electrónico, rol, último acceso y detalles del empleado asociado.
+ * Se asegura de que el usuario exista y esté activo en la base de datos.
  */
 @Injectable()
 export class ObtenerMiPerfilUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Obtiene el perfil del usuario autenticado.
+   * @param userId - El ID del usuario.
+   * @returns La información del perfil del usuario.
+   */
   async obtenerPerfil(userId: string): Promise<MiPerfilResponseDto> {
     try {
       //Buscar el usuario por su ID

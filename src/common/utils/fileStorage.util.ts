@@ -1,8 +1,8 @@
 //src/common/utils/FileStorageUtil.ts
-import * as fs from 'fs'; //Sistema de archivos
-import * as path from 'path'; //Rutas de archivos
+import fs from 'node:fs'; //Sistema de archivos
+import path from 'node:path'; //Rutas de archivos
 import { BadRequestException } from '@nestjs/common';
-import { pipeline } from 'stream/promises'; //Promesas de flujo de datos
+import { pipeline } from 'node:stream/promises'; //Promesas de flujo de datos
 import { IdentityGenerator } from './uuid.util';
 
 /**

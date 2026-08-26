@@ -2,7 +2,6 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import {
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CryptoUtil } from '@/common/utils/crypto.util';
@@ -29,7 +28,7 @@ export class ObtenerDatoFinancieroUseCase {
       }
     });
 
-    if(!datoFinanciero || datoFinanciero.deleted_at !== null ) throw new NotFoundException("No se encontraron datos financieros registrados para el empleado.");
+    if(datoFinanciero?.deleted_at !== null ) throw new NotFoundException("No se encontraron datos financieros registrados para el empleado.");
 
     //Retornar objeto formateado con enmascaramiento de los campos sensibles
     return {

@@ -1,7 +1,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { afpController } from '@/modules/payroll/afp/controller/afp.controller';
+import { AfpController } from '@/modules/payroll/afp/controller/afp.controller';
 
 // Casos de Uso (Escritura)
 import { AgregarAportacionUseCase } from '@/modules/payroll/afp/use-cases/aportacion/agregarAportacion.useCase';
@@ -14,7 +14,7 @@ import { ListarComisionesUseCase } from '@/modules/payroll/afp/use-cases/comisio
 import { ListarTiposAfpUseCase } from '@/modules/payroll/afp/use-cases/tipo-afp/listarTipoAfp.useCase';
 
 describe('AfpController', () => {
-  let controller: afpController;
+  let controller: AfpController;
 
   const mockUseCase = () => ({
     execute: jest.fn(),
@@ -32,7 +32,7 @@ describe('AfpController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [afpController],
+      controllers: [AfpController],
       providers: [
         { provide: AgregarAportacionUseCase, useValue: mocks.agregarAportaciones },
         { provide: AgregarComisionUseCase, useValue: mocks.agregarComisiones },
@@ -43,7 +43,7 @@ describe('AfpController', () => {
       ],
     }).compile();
 
-    controller = module.get<afpController>(afpController);
+    controller = module.get<AfpController>(AfpController);
   });
 
   afterEach(() => jest.clearAllMocks());

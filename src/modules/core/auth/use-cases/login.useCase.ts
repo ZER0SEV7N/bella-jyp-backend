@@ -4,15 +4,21 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { LoginDTO } from '@jyp/shared-contracts';
 
+/**
+ * Caso de uso para el login de usuarios internos.
+ * Este caso de uso se encarga de autenticar a un usuario interno mediante su número de documento,
+ * tipo de documento y contraseña. Si la autenticación es exitosa, se generan tokens JWT (access y refresh)
+ * y se persiste la sesión en la base de datos.
+ */
 @Injectable()
 export class LoginUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   //Metodo principal para ejecutar el caso de uso
@@ -22,11 +28,11 @@ export class LoginUseCase {
       where: {
         empleados: {
           nro_documento: dto.nro_documento,
-          tipo_documento: { tipo_documento: dto.tipo_documento },
+          tipo_documento: { tipo_documento: dto.tipo_documento }
         },
-        activo: true, //Condición de seguridad a nivel de tabla auth
+        activo: true //Condición de seguridad a nivel de tabla auth
       },
-      include: { empleados: true }, //Traemos al empleado para armar el Payload
+      include: { empleados: true } //Traemos al empleado para armar el Payload
     });
 
     //Validación: Si el usuario no existe, lanzar una excepción UnauthorizedException
@@ -35,7 +41,7 @@ export class LoginUseCase {
     //Verificar la contraseña usando Argon2id
     const isPasswordValid = await argon2.verify(
       usuario.password_hash,
-      dto.password,
+      dto.password
     );
     if (!isPasswordValid) throw this.credencialesInvalidas();
 
@@ -44,16 +50,13 @@ export class LoginUseCase {
       sub: usuario.id,
       rol: usuario.rol,
       doc: usuario.empleados?.nro_documento,
-      empId: usuario.empleado_id,
+      empId: usuario.empleado_id
     };
 
     //Firma en paralelo (Protegiendo el Event Loop)
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, { expiresIn: '15m' }),
-      this.jwtService.signAsync(payload, {
-        expiresIn: '7d',
-        secret: process.env.JWT_REFRESH_SECRET,
-      }),
+      this.jwtService.signAsync(payload, { expiresIn: '7d', secret: process.env.JWT_REFRESH_SECRET })
     ]);
 
     //Persistencia de Sesión (En tu tabla satélite)
@@ -65,8 +68,8 @@ export class LoginUseCase {
         usuario_id: usuario.id,
         token_hash: hashedRT,
         proposito: 'REFRESH_TOKEN',
-        expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 días
-      },
+        expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // +7 días
+      }
     });
 
     //Retorno Estricto
@@ -76,8 +79,8 @@ export class LoginUseCase {
       usuario: {
         id: usuario.id,
         nro_documento: usuario.empleados?.nro_documento,
-        rol: usuario.rol,
-      },
+        rol: usuario.rol
+      }
     };
   }
 
@@ -86,7 +89,7 @@ export class LoginUseCase {
     return new UnauthorizedException({
       type: 'https://api.jyp.com/errors/invalid-credentials',
       title: 'Acceso Denegado',
-      detail: 'El documento o la contraseña son incorrectos.',
+      detail: 'El documento o la contraseña son incorrectos.'
     });
   }
 }

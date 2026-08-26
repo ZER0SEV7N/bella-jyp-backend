@@ -51,7 +51,8 @@ export class PrismaService
     //Middleware para inyectar información de auditoría en cada operación de Prisma
     const clsService = this.cls; //Referencia al servicio de ClsService para uso dentro del middleware
     const localLogger = this.logger; //Referencia al logger para uso dentro del middleware
-    const originalPrisma = this; //Referencia al servicio de Prisma original
+    const getModelClient = (model: string) => (this as any)[model];
+    const createAuditLog = (data: any) => (this as any).audit_log.create({ data });
 
     const extendedClient = this.$extends({
       query: {
@@ -69,7 +70,7 @@ export class PrismaService
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
             if (operation === 'update' || operation === 'delete') {
               try {
-                valoresAntes = await (originalPrisma as any)[model].findUnique({ where: (args as any).where });
+                valoresAntes = await getModelClient(model).findUnique({ where: (args as any).where });
               } catch (error) {
                 localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`, error);
               }
@@ -91,21 +92,19 @@ export class PrismaService
 
             //Registrar la operación en la tabla de auditoría
             try {
-              await (originalPrisma as any).audit_log.create({
-                data: {
+              await createAuditLog({
                   id: IdentityGenerator.generateId(),
                   usuario_id: userId,
                   accion: operation.toUpperCase(),
                   tabla_afectada: model,
                   registro_id: (resultado as any)?.id || (args as any).where?.id || IdentityGenerator.generateId(),
                   valores_antes: valoresAntes
-                    ? JSON.parse(JSON.stringify(valoresAntes))
+                    ? structuredClone(valoresAntes)
                     : null,
                   valores_despues: valoresDespues
-                    ? JSON.parse(JSON.stringify(valoresDespues))
+                    ? structuredClone(valoresDespues)
                     : null,
-                  direccion_ip: ipAddress
-                },
+                  direccion_ip: ipAddress,
               });
             } catch (error) {
               localLogger.error(`Auditoría: No se pudo registrar la operación de ${operation} en ${model}`, error);
@@ -124,7 +123,8 @@ export class PrismaService
     });
 
     //Retornar el cliente extendido con auditoría y ciclo de vida integrado
-    return extendedClient as any;
+    // Prisma requiere retornar el cliente extendido para conservar los interceptores.
+    return extendedClient as any; // NOSONAR
   }
 
   //Implementación del ciclo de vida de NestJS para inicializar la conexión a la base de datos

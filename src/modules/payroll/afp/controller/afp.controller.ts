@@ -55,7 +55,7 @@ import {
 @ApiSwaggerAfpController()
 @Controller('api/afp')
 @UseGuards(JwtAccessGuard, RolesGuard)
-export class afpController {
+export class AfpController {
   constructor(
     //aportaciones
     private readonly agregarAportaciones: AgregarAportacionUseCase,

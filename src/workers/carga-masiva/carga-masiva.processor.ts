@@ -23,7 +23,7 @@ export class CargaMasivaProcessor extends WorkerHost {
     private readonly procesarFilaEmpleadoUseCase: ProcesarFilaEmpleadoUseCase,
   ) {
     super();
-    this.logger.log("🚀 Worker de Carga Masiva (rrhh-bulk-queue) inicializado y escuchando trabajos en Redis.");
+    this.logger.log("Worker de Carga Masiva (rrhh-bulk-queue) inicializado y escuchando trabajos en Redis.");
   }
 
   /**
@@ -85,7 +85,7 @@ export class CargaMasivaProcessor extends WorkerHost {
     let nuevoEstado: 'PROCESANDO' | 'COMPLETADO' | 'FALLIDO' = 'PROCESANDO';
     if (finalizado) {
       nuevoEstado = totalProcesados === 0 && totalFallidos > 0 ? 'FALLIDO' : 'COMPLETADO';
-      this.logger.log(`✅ [Job ${jobId}] Finalizado con estado: ${nuevoEstado}. Procesados: ${totalProcesados}, Fallidos: ${totalFallidos}`);
+      this.logger.log(`[Job ${jobId}] Finalizado con estado: ${nuevoEstado}. Procesados: ${totalProcesados}, Fallidos: ${totalFallidos}`);
     }
 
     await this.prisma.cargaMasivaJob.update({

@@ -5,8 +5,8 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 //DTOs y Schemas
 import { CrearContratoSchema, EditarContratoSchema, RenovarContratoSchema } from '@jyp/shared-contracts';
 import type { CrearContratoDto, EditarContratoDto, RenovarContratoDto } from '@jyp/shared-contracts';

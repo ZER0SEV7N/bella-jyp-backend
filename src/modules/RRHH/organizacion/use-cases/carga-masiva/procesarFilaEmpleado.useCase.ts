@@ -82,10 +82,16 @@ export class ProcesarFilaEmpleadoUseCase {
     });
   }
 
+  /**
+   * Metodo privado para buscar el tipo de documento en la base de datos.
+   * Si no se encuentra, lanza un error indicando que el tipo de documento no existe.
+   * @param tipoDocStr - Nombre del tipo de documento a buscar.
+   * @param tipoDocOriginal - Nombre original del tipo de documento (opcional, para mensajes de error).
+   * @returns Una promesa que se resuelve con el registro del tipo de documento encontrado.
+   * @throws Error si el tipo de documento no existe en la base de datos.
+   */
   private async buscarTipoDocumento(tipoDocStr: string, tipoDocOriginal?: string) {
-    const tipoDoc = await this.prisma.tipo_documento.findFirst({
-      where: { tipo_documento: { equals: tipoDocStr, mode: 'insensitive' } }
-    });
+    const tipoDoc = await this.prisma.tipo_documento.findFirst({where: { tipo_documento: { equals: tipoDocStr, mode: 'insensitive' } }});
 
     if (!tipoDoc) 
       throw new Error(`El tipo de documento '${tipoDocOriginal ?? tipoDocStr}' no existe en la base de datos.`);
@@ -93,6 +99,13 @@ export class ProcesarFilaEmpleadoUseCase {
     return tipoDoc;
   }
 
+  /**
+   * Metodo privado para resolver el ID de un área por su nombre.
+   * Si no se encuentra, lanza un error indicando que el área no existe.
+   * @param areaNombre - Nombre de la área a resolver.
+   * @returns Una promesa que se resuelve con el registro del área encontrada.
+   * @throws Error si el área no existe en la base de datos.
+   */
   private async resolverArea(areaNombre: string) {
     let area = await this.prisma.area.findFirst({
       where: {
@@ -101,12 +114,14 @@ export class ProcesarFilaEmpleadoUseCase {
       }
     });
 
+    //Si no se encuentra el área por nombre exacto, intentamos buscar por normalización de texto (ignora mayúsculas, acentos y espacios)
     if (!area) {
       const areasActivas = await this.prisma.area.findMany({ where: { deleted_at: null } });
       const areaNormInput = NormalizarTexto(areaNombre);
       area = areasActivas.find((a) => NormalizarTexto(a.nombre) === areaNormInput) || null;
     }
 
+    //Si aún no se encuentra, creamos el área automáticamente
     if (!area) {
       this.logger.log(`[CargaMasiva] Área '${areaNombre}' no encontrada. Creándola automáticamente...`);
       area = await this.prisma.area.create({
@@ -122,6 +137,14 @@ export class ProcesarFilaEmpleadoUseCase {
     return area;
   }
 
+  /**
+   * Metodo privado para resolver el ID de un cargo por su nombre y área.
+   * Si no se encuentra, crea el cargo automáticamente en la base de datos.
+   * @param areaId - ID del área a la que pertenece el cargo.
+   * @param cargoNombre - Nombre del cargo a resolver.
+   * @returns Una promesa que se resuelve con el registro del cargo encontrado o creado.
+   * @throws Error si ocurre un problema al crear el cargo automáticamente.
+   */
   private async resolverCargo(areaId: string, cargoNombre: string) {
     let cargo = await this.prisma.cargo.findFirst({
       where: {
@@ -131,12 +154,14 @@ export class ProcesarFilaEmpleadoUseCase {
       }
     });
 
+    //Si no se encuentra el cargo por nombre exacto, intentamos buscar por normalización de texto (ignora mayúsculas, acentos y espacios)
     if (!cargo) {
       const cargosArea = await this.prisma.cargo.findMany({ where: { id_area: areaId, deleted_at: null } });
       const cargoNormInput = NormalizarTexto(cargoNombre);
       cargo = cargosArea.find((c) => NormalizarTexto(c.nombre) === cargoNormInput) || null;
     }
 
+    //Si aún no se encuentra, creamos el cargo automáticamente
     if (!cargo) {
       this.logger.log(`[CargaMasiva] Cargo '${cargoNombre}' no encontrado en área '${cargoNombre}'. Creándolo automáticamente...`);
       cargo = await this.prisma.cargo.create({
@@ -153,6 +178,12 @@ export class ProcesarFilaEmpleadoUseCase {
     return cargo;
   }
 
+  /**
+   * Metodo privado para resolver el ID de una jornada por su nombre.
+   * Si no se encuentra, retorna null y registra una advertencia en el log.
+   * @param jornadaNombre - Nombre de la jornada a resolver.
+   * @returns Una promesa que se resuelve con el ID de la jornada encontrada o null si no existe.
+   */
   private async resolverJornadaId(jornadaNombre: string): Promise<string | null> {
     if (!jornadaNombre) return null;
 
@@ -172,6 +203,16 @@ export class ProcesarFilaEmpleadoUseCase {
     return jornada.id;
   }
 
+  /**
+   * Metodo privado para resolver los nombres y apellidos de un empleado.
+   * Si no se encuentran, intenta consultar RENIEC si el tipo de documento es DNI.
+   * Si aún no se encuentran, asigna valores por defecto y marca el estado de sincronización como BORRADOR.
+   * @param fila - DTO que representa la fila de empleado a procesar.
+   * @param nroDoc - Número de documento del empleado.
+   * @param tipoDocStr - Tipo de documento del empleado (ej. DNI, PASAPORTE).
+   * @returns Una promesa que se resuelve con un objeto que contiene nombre, apellido y estado de sincronización.
+   * @throws Error si ocurre un problema al consultar RENIEC.
+   */
   private async resolverDatosEmpleado(fila: any, nroDoc: string, tipoDocStr: string) {
     let nombre = fila.nombre || null;
     let apellido = fila.apellido || null;

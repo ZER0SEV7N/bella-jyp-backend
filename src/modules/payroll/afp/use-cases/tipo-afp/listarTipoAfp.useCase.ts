@@ -1,5 +1,5 @@
 //src/modules/afp/use-cases/tipo-afp/listarTiposAfp.useCase.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ListarTiposAfpQueryDto } from '@jyp/shared-contracts';
 
@@ -9,12 +9,15 @@ import type { ListarTiposAfpQueryDto } from '@jyp/shared-contracts';
  * @param query - Objeto de transferencia de datos que contiene los parámetros de paginación y filtrado.
  * @returns Una lista de tipos de AFP que cumplen con los criterios especificados en el objeto de consulta.
  */
-
 @Injectable()
 export class ListarTiposAfpUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Maneja la lógica para listar los tipos de AFP con paginación y filtrado
+  /**
+   * Lista los tipos de AFP con paginación y filtrado.
+   * @param query - Objeto de transferencia de datos que contiene los parámetros de paginación y filtrado.
+   * @returns Una lista de tipos de AFP que cumplen con los criterios especificados en el objeto de consulta.
+   */
   async listar(query: ListarTiposAfpQueryDto) {
     const { page, limit } = query;
     const skip = (page - 1) * limit;
@@ -26,10 +29,8 @@ export class ListarTiposAfpUseCase {
         skip,
         take: limit,
         orderBy: { nombre: 'asc' },
-        include: {
-          regimen_pension: { select: { nombre: true } }, //AFP: Incluir el nombre del régimen de pensión asociado
-        },
-      }),
+        include: {regimen_pension: { select: { nombre: true } }} //AFP: Incluir el nombre del régimen de pensión asociado
+      })
     ]);
 
     return {
@@ -38,8 +39,8 @@ export class ListarTiposAfpUseCase {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-      },
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 }

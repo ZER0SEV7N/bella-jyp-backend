@@ -5,6 +5,9 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**
  * Caso de uso para refrescar el token de acceso utilizando un token de actualización válido.
+ * Este caso de uso verifica la validez del token de actualización proporcionado por el cliente,
+ * y si es válido, genera un nuevo token de acceso para el usuario. También se asegura de que el usuario
+ * esté activo y no haya sido eliminado.
  */
 @Injectable()
 export class RefrescarTokenUseCase {
@@ -25,37 +28,34 @@ export class RefrescarTokenUseCase {
 
     try {
       //Verificar la firma del refresh token utilizando el secreto específico para refresh tokens
-      const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234',
-      });
+      const payload = this.jwtService.verify(refreshToken, {secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234'});
 
       const userId = payload.sub || payload.id; //Obtener el ID del usuario desde el payload del token
 
       //Verificacion critica en la base de datos: Comprobar que el refresh token existe y está activo para el usuario
-      const user = await this.prisma.usuarios.findUnique({
-        where: { id: userId },
-      });
+      const user = await this.prisma.usuarios.findUnique({where: { id: userId }});
 
-      if (!user || !user.activo || user.deleted_at !== null)
+      if (!user?.activo || user.deleted_at !== null)
         throw new UnauthorizedException('Usuario no encontrado o inactivo.');
 
       //Emitir el nuevo access token para el usuario
-      const newAccessToken = this.jwtService.sign(
-        {
+      const newAccessToken = this.jwtService.sign({
           sub: user.id,
           email: user.email,
           roles: user.rol,
           doc: payload.doc || user.empleado_id,
-          empId: user.empleado_id,
+          empId: user.empleado_id
         },
         {
           secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234',
-          expiresIn: '15m', //Tiempo de expiración del Access Token
-        },
+          expiresIn: '15m' //Tiempo de expiración del Access Token
+        }
       );
+      
       return { accessToken: newAccessToken };
     } catch (error) {
-      throw new UnauthorizedException('Refresh token inválido o expirado.');
+      if (error instanceof UnauthorizedException) throw error;
+      throw new UnauthorizedException('Refresh token inválido o expirado.', {cause: error});
     }
   }
 }

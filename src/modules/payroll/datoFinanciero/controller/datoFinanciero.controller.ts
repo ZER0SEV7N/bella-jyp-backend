@@ -1,5 +1,4 @@
 //src/modules/payroll/datoFinanciero/controller/datoFinanciero.controller
-import { from } from "rxjs";
 import { Controller, Get, Post, Put, Param, Body, UseGuards, UsePipes, Req, ParseUUIDPipe } from '@nestjs/common'
 import { JwtAccessGuard } from "@/common/guards/jwt-access.guard";
 import { RolesGuard } from "@/common/guards/roles.guard";

@@ -38,6 +38,11 @@ import {
   ApiSwaggerRecuperarPassword,
 } from '../decorators/auth-swagger.decorator';
 
+/**
+ * Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación.
+ * Este controlador expone endpoints para iniciar sesión, refrescar tokens, provisionar usuarios y solicitar recuperación de contraseña.
+ * Utiliza casos de uso específicos para cada operación y aplica validaciones y guardias según sea necesario.
+ */
 @ApiSwaggerController()
 @Controller('api/auth')
 export class AuthController {
@@ -69,15 +74,14 @@ export class AuthController {
     @Body() payload: LoginDTO,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const { accessToken, refreshToken, usuario } =
-      await this.loginUseCase.execute(payload);
+    const { accessToken, refreshToken, usuario } = await this.loginUseCase.execute(payload);
 
     res.setCookie('jyp_rt', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/api/auth/refresh',
-      maxAge: 7 * 24 * 60 * 60, // 7 días
+      maxAge: 7 * 24 * 60 * 60 // 7 días
     });
 
     return { accessToken, usuario };
@@ -112,12 +116,9 @@ export class AuthController {
 
     //Si no se encuentra en las cookies ni en el encabezado, lanzar una excepción de autorización
     if (!refreshToken)
-      throw new UnauthorizedException(
-        'No se encontró el Refresh Token en las cookies o ha expirado.',
-      );
+      throw new UnauthorizedException('No se encontró el Refresh Token en las cookies o ha expirado.');
 
-    const { accessToken } =
-      await this.refrescarTokenUseCase.execute(refreshToken);
+    const { accessToken } = await this.refrescarTokenUseCase.execute(refreshToken);
     return { accessToken };
   }
 
@@ -137,8 +138,8 @@ export class AuthController {
   @Post('provisionar')
   @HttpCode(HttpStatus.CREATED)
   // EL MURO DE DEFENSA: Primero valida el JWT, luego valida el Rol de quien hace la petición
-  // @UseGuards(JwtAccessGuard, RolesGuard) <-- Descomenta en producción
-  // @Roles('ADMIN', 'RRHH')
+  // @UseGuards(JwtAccessGuard, RolesGuard)
+  @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ProvisionarUsuarioSchema))
   async provisionar(@Body() payload: ProvisionarUsuarioDTO) {
     // Retorno directo, cero formateo en el controlador

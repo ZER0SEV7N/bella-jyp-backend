@@ -7,7 +7,12 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ClsService } from 'nestjs-cls';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-//estrategia JWT
+/**
+ * Estrategia de autenticación JWT para validar tokens de acceso.
+ * Esta estrategia se encarga de verificar la validez del token JWT proporcionado por el cliente,
+ * asegurando que el usuario asociado al token esté activo y no haya sido eliminado.
+ * Además, inyecta información de auditoría en el contexto de la solicitud para su posterior uso.
+ */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
@@ -21,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       ignoreExpiration: false,
       //Clave secreta para validar el token, se obtiene del archivo de configuración
       secretOrKey: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234',
-      passReqToCallback: true,
+      passReqToCallback: true
     });
   }
 
@@ -29,29 +34,22 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(req: any, payload: any) {
     const userId = payload.sub || payload.id;
 
-    const user = await this.prisma.usuarios.findUnique({
-      where: { id: userId },
-    });
+    const user = await this.prisma.usuarios.findUnique({where: { id: userId }});
 
-    if (!user || !user.activo || user.deleted_at !== null)
-      throw new UnauthorizedException(
-        'Su acceso ha sido revocado o la cuenta ya no existe.',
-      );
+    if (!user?.activo || user.deleted_at !== null)
+      throw new UnauthorizedException('Su acceso ha sido revocado o la cuenta ya no existe.');
 
     // ---------------------------------------------------------
     // EL PUENTE MÁGICO: Guardamos el ID y la IP en el contexto
     // para que PrismaService los lea al auditar.
     // ---------------------------------------------------------
     this.cls.set(CLS_USER_ID, user.id);
-    this.cls.set(
-      CLS_IP_ADDRESS,
-      req.ip || req.socket?.remoteAddress || '127.0.0.1',
-    );
+    this.cls.set(CLS_IP_ADDRESS, req.ip || req.socket?.remoteAddress || '127.0.0.1');
 
     return {
       id: user.id,
       rol: user.rol,
-      empleado_id: user.empleado_id,
+      empleado_id: user.empleado_id
     };
   }
 }

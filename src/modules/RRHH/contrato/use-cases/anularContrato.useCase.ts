@@ -22,7 +22,7 @@ export class AnularContratoUseCase {
   async execute(idContrato: string) {
     const contrato = await this.prisma.contratos.findUnique({where: { id: idContrato } });
     
-    if (!contrato || contrato.deleted_at !== null) 
+    if (contrato?.deleted_at !== null) 
       throw new NotFoundException('Contrato no encontrado o ya eliminado.');
     
     try {

@@ -1,6 +1,6 @@
 //src/modules/RRHH/contrato/decorators/contrato.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiConsumes, ApiParam } from '@nestjs/swagger';
 
 /**
  * Decorador que agrupa los endpoints del módulo de contratos en la documentación Swagger.

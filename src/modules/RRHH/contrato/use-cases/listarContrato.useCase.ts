@@ -1,7 +1,6 @@
 //src/modules/RRHH/contrato/use-cases/listarContrato.useCase.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
 /**
  * Caso de uso para obtener un contrato por su ID en el módulo de RRHH
  * Contiene la lógica de negocio para buscar un contrato en la base de datos utilizando Prisma.

@@ -3,35 +3,40 @@
 //Se encarga de manejar la lógica de negocio relacionada con la recuperación de contraseña,
 //incluyendo la generación de tokens de seguridad y el envío de correos electrónicos.
 import { Injectable, BadRequestException } from '@nestjs/common';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import {
-  SolicitudRecuperacionDTO,
-  RestablecerPasswordDTO,
-} from '@jyp/shared-contracts';
+import {SolicitudRecuperacionDTO, RestablecerPasswordDTO} from '@jyp/shared-contracts';
 import axios from 'axios';
 
+/**
+ * Caso de uso para la recuperación de contraseña.
+ * Este caso de uso maneja la lógica de negocio relacionada con la recuperación de contraseña,
+ * incluyendo la generación de tokens de seguridad, la validación de tokens y el restablecimiento
+ * de contraseñas. También se encarga de disparar un webhook a n8n para enviar correos electrónicos
+ * con instrucciones de recuperación.
+ */
 @Injectable()
 export class RecuperacionPasswordUseCases {
   constructor(private readonly prisma: PrismaService) {}
 
-  //Metodo para solicitar la recuperacion de contraseña,
-  //genera un token de seguridad y lo almacena en la base de datos
+  /**
+   * Solicita la recuperación de contraseña para un usuario.
+   * @param dto - DTO que contiene el número de documento del usuario que solicita la recuperación.
+   * @returns Un mensaje indicando que se enviarán las instrucciones si el documento es válido.
+   */
   async solicitar(dto: SolicitudRecuperacionDTO) {
     const usuario = await this.prisma.usuarios.findFirst({
       where: {
         empleados: { nro_documento: dto.nro_documento },
-        activo: true,
+        activo: true
       },
-      include: { empleados: true },
+      include: { empleados: true }
     });
 
     //Prevencion de enumeracion de usuarios, no se revela si el usuario existe o no
     if (!usuario)
-      return {
-        message: 'Si el documento es válido, se enviarán las instrucciones.',
-      };
+      return {message: 'Si el documento es válido, se enviarán las instrucciones.'};
 
     //Regla de negocio: Personal activo sin correo electrónico no puede recuperar contraseña
     if (!usuario.email)
@@ -39,8 +44,7 @@ export class RecuperacionPasswordUseCases {
         type: 'https://api.jyp.com/errors/missing-email',
         title: 'Correo No Registrado',
         status: 400,
-        detail:
-          'El usuario no tiene un correo vinculado. Solicite el restablecimiento presencialmente a RRHH.',
+        detail: 'El usuario no tiene un correo vinculado. Solicite el restablecimiento presencialmente a RRHH.'
       });
 
     //Generar el token criptografico
@@ -54,8 +58,8 @@ export class RecuperacionPasswordUseCases {
         usuario_id: usuario.id,
         token_hash: hashedToken,
         proposito: 'RESET_PASSWORD',
-        expira_en: expiration,
-      },
+        expira_en: expiration
+      }
     });
 
     //Token compuesto para enviar al usuario:
@@ -63,9 +67,7 @@ export class RecuperacionPasswordUseCases {
 
     this.dispararWebhookN8n(usuario.email, tokenCompuesto);
 
-    return {
-      message: 'Si el documento es válido, se enviarán las instrucciones.',
-    };
+    return {message: 'Si el documento es válido, se enviarán las instrucciones.'};
   }
 
   //Metodo para restablecer la contraseña usando el token de seguridad
@@ -79,11 +81,7 @@ export class RecuperacionPasswordUseCases {
     });
 
     //Validar que el token exista, no haya sido usado y sea del propósito correcto
-    if (
-      !tokenRecord ||
-      tokenRecord.usado ||
-      tokenRecord.proposito !== 'RESET_PASSWORD'
-    )
+    if (!tokenRecord || tokenRecord.usado || tokenRecord.proposito !== 'RESET_PASSWORD')
       throw this.tokenInvalido();
 
     //Validar que el token no haya expirado
@@ -91,8 +89,7 @@ export class RecuperacionPasswordUseCases {
       throw new BadRequestException({
         type: 'https://api.jyp.com/errors/token-expired',
         title: 'Token Expirado',
-        detail:
-          'El enlace de recuperación ha caducado (15 minutos). Solicite uno nuevo.',
+        detail: 'El enlace de recuperación ha caducado (15 minutos). Solicite uno nuevo.',
       });
 
     //Validar que el token proporcionado coincida con el hash almacenado
@@ -100,27 +97,25 @@ export class RecuperacionPasswordUseCases {
     if (!isValid) throw this.tokenInvalido();
 
     //Regla de negocio: La nueva contraseña debe ser diferente a la anterior
-    const newPasswordHash = await argon2.hash(dto.nueva_password, {
-      type: argon2.argon2id,
-    });
+    const newPasswordHash = await argon2.hash(dto.nueva_password, { type: argon2.argon2id});
 
     //Actualizar la contraseña del usuario y marcar el token como usado en una transacción
     await this.prisma.$transaction([
       this.prisma.tokens_seguridad.update({
         where: { id: tokenId },
-        data: { usado: true },
+        data: { usado: true }
       }),
       this.prisma.usuarios.update({
         where: { id: tokenRecord.usuario_id },
-        data: { password_hash: newPasswordHash },
+        data: { password_hash: newPasswordHash }
       }),
       this.prisma.tokens_seguridad.updateMany({
         where: {
           usuario_id: tokenRecord.usuario_id,
           proposito: 'REFRESH_TOKEN',
-          usado: false,
+          usado: false
         },
-        data: { usado: true },
+        data: { usado: true }
       }),
     ]);
 
@@ -131,8 +126,7 @@ export class RecuperacionPasswordUseCases {
     return new BadRequestException({
       type: 'https://api.jyp.com/errors/invalid-token',
       title: 'Token Inválido',
-      detail:
-        'El token de recuperación es inválido, ya fue usado o está malformado.',
+      detail: 'El token de recuperación es inválido, ya fue usado o está malformado.',
     });
   }
 
@@ -141,31 +135,21 @@ export class RecuperacionPasswordUseCases {
     const payload = JSON.stringify({ email, token_recuperacion: token });
 
     //Firma Criptografica HMAC-SHA256 para validar la integridad del payload
-    const signature = crypto
-      .createHmac(
-        'sha256',
-        process.env.N8N_WEBHOOK_SECRET || 'SECRET_TEMPORAL_DEV',
-      )
+    const signature = crypto.createHmac('sha256', process.env.N8N_WEBHOOK_SECRET || 'SECRET_TEMPORAL_DEV')
       .update(payload)
       .digest('hex');
 
     //URL del webhook de n8n, debe estar configurada en las variables de entorno
     const webHookUrl = process.env.N8N_WEBHOOK_URL_RESET_PASSWORD;
     if (!webHookUrl)
-      throw new Error(
-        'N8N_WEBHOOK_URL_RESET_PASSWORD no está configurado en las variables de entorno.',
-      );
+      throw new Error('N8N_WEBHOOK_URL_RESET_PASSWORD no está configurado en las variables de entorno.');
 
     //Disparo del webhook a n8n con el payload y la firma en los headers
-    axios
-      .post(webHookUrl, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Signature': signature,
-        },
-      })
-      .catch((error) => {
-        console.error('Error al disparar el webhook a n8n:', error.message);
-      });
+    axios.post(webHookUrl, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Signature': signature
+      }})
+    .catch((error) => console.error('Error al disparar el webhook a n8n:', error.message));
   }
 }

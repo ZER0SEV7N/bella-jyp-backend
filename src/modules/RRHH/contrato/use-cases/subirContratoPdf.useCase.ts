@@ -26,7 +26,7 @@ export class SubirContratoPdfUseCase {
         //Verificar que el contrato existe y no ha sido eliminado
         const contrato = await this.prisma.contratos.findUnique({ where: { id: idContrato } });
 
-        if(!contrato || contrato.deleted_at !== null) throw new NotFoundException('Contrato no encontrado o ha sido anulado.');
+        if(contrato?.deleted_at !== null) throw new NotFoundException('Contrato no encontrado o ha sido anulado.');
 
         //Si el contrato ya tiene un PDF asociado, lanzar un error
         if(contrato.url !== null) throw new BadRequestException('El contrato ya tiene un PDF asociado. No se puede subir otro.');
@@ -36,7 +36,7 @@ export class SubirContratoPdfUseCase {
             const fileUrl = await FileStorageUtil.guardarArchivoMultipart(fileData, 'contratos');
 
             //Enlazar la ruta del archivo en la base de datos
-            const contratoActualizado = await this.prisma.contratos.update({
+            await this.prisma.contratos.update({
                 where: { id: idContrato },
                 data: {
                     url: fileUrl,
@@ -45,7 +45,7 @@ export class SubirContratoPdfUseCase {
                         : `PDF adjunto el ${new Date().toISOString()}`
                 }
             });
-               
+
             return {
                 message: 'Documento subido y vinculado correctamente. El contrato ya no puede ser editado.',
                 url: fileUrl

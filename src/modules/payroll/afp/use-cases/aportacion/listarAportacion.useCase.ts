@@ -1,5 +1,5 @@
 //src/modules/afp/use-cases/aportacion/listarAportacion.useCase.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ListarAportacionesQueryDto } from '@jyp/shared-contracts';
 
@@ -29,8 +29,8 @@ export class ListarAportacionesUseCase {
         skip,
         take: limit,
         orderBy: { nombre: 'desc' },
-        include: { tipo_afp: { select: { nombre: true } } }, //AFP: Incluir el nombre del tipo de AFP asociado
-      }),
+        include: { tipo_afp: { select: { nombre: true } } } //AFP: Incluir el nombre del tipo de AFP asociado
+      })
     ]);
 
     return {
@@ -39,8 +39,8 @@ export class ListarAportacionesUseCase {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-      },
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 }

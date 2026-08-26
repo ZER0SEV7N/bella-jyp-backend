@@ -30,7 +30,7 @@ export class RenovarContratoUseCase {
     });
     
     //Validar que el contrato a renovar exista y no haya sido eliminado
-    if (!contratoViejo || contratoViejo.deleted_at !== null) throw new NotFoundException('El contrato a renovar no fue encontrado.');
+    if (contratoViejo?.deleted_at !== null) throw new NotFoundException('El contrato a renovar no fue encontrado.');
     
     if (!contratoViejo.empleados?.activo) throw new BadRequestException('No se puede crear un contrato de renovación para un empleado cesado.');
 

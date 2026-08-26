@@ -12,12 +12,18 @@ import { IdentityGenerator } from '@/common/utils/uuid.util';
 /**
  * Caso de uso para agregar una nueva aportación de AFP.
  * Tiene como objetivo validar que el tipo de AFP exista y crear una nueva aportación en la base de datos.
- *
  * @param dto - Objeto de transferencia de datos que contiene la información de la nueva aportación a crear.
+ * @returns Una promesa que resuelve con la nueva aportación creada.
  */
 @Injectable()
 export class AgregarAportacionUseCase {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Ejecuta el caso de uso para agregar una nueva aportación de AFP.
+   * @param dto - Objeto de transferencia de datos que contiene la información de la nueva aportación a crear.
+   * @returns Una promesa que resuelve con la nueva aportación creada.
+   */
   async execute(dto: AportacionDto) {
     try {
       //Validar que el tipo de AFP exista
@@ -28,27 +34,18 @@ export class AgregarAportacionUseCase {
       if (!tipo_afp)
         throw new NotFoundException({
           title: 'AFP no encontrada',
-          detail:
-            'No se puede registrar la aportación porque la AFP seleccionada no existe.',
+          detail: 'No se puede registrar la aportación porque la AFP seleccionada no existe.'
         });
 
       //Crear la aportación en la base de datos
-      const aportacionCreada = await this.prisma.aportaciones.create({
-        data: { id: IdentityGenerator.generateId(), ...dto },
-      });
+      const aportacionCreada = await this.prisma.aportaciones.create({data: { id: IdentityGenerator.generateId(), ...dto }});
 
       return aportacionCreada;
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      )
+      if (error instanceof NotFoundException || error instanceof BadRequestException)
         throw error;
 
-      throw new InternalServerErrorException(
-        'Ocurrió un error al intentar registrar la aportación',
-        error instanceof Error ? error.message : String(error),
-      );
+      throw new InternalServerErrorException('Ocurrió un error al intentar registrar la aportación', error instanceof Error ? error.message : JSON.stringify(error) ?? 'Error desconocido');
     }
   }
 }
