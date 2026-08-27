@@ -1,41 +1,28 @@
-//src/modules/RRHH/decorators/cargo-swagger.decorator.ts
+//src/modules/RRHH/organizacion/decorators/cargo-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBody,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-  ApiParam,
-  ApiExtension,
-} from '@nestjs/swagger';
+import {ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiExtension} from '@nestjs/swagger';
 
 /**
- * Decorador personalizado para documentar los endpoints de cargos en Swagger.
- * @param tag - Nombre de la etiqueta para agrupar los endpoints en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
+ * Decorador para documentar el controlador de Cargos en Swagger.
  * @requires - JWT Bearer token para autenticación.
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 export function ApiSwaggerCargosController() {
   return applyDecorators(
-    ApiTags('Modulo RRHH - Cargos'),
+    ApiTags('Módulo RRHH - Cargos y Puestos de Trabajo'),
     ApiBearerAuth('JWT-auth'),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
   );
 }
+
 /**
- * Decorador para documentar el endopoint de creación de un cargo en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
+ * Decorador para documentar el endpoint de creación de un cargo en Swagger.
  */
 export function ApiSwaggerCrearCargo() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Crear Cargo',
-      description:
-        'Registra un nuevo cargo o puesto de trabajo en el sistema. Requiere rol ADMIN o RRHH.',
+      summary: 'Crear Cargo / Puesto de Trabajo',
+      description: 'Registra un nuevo cargo dentro de la estructura organizacional, asociándolo a un área y opcionalmente a una jornada laboral sugerida.',
     }),
     ApiBody({
       schema: {
@@ -45,73 +32,97 @@ export function ApiSwaggerCrearCargo() {
           id_area: {
             type: 'string',
             format: 'uuid',
-            example: '123e4567-e89b-12d3-a456-426614174000',
+            example: '018f4a7c-7777-7000-1111-000000000001',
+            description: 'UUID del área organizacional a la que pertenece el cargo.'
           },
-          nombre: { type: 'string', example: 'Gerente de Ventas' },
+          nombre: {
+            type: 'string',
+            example: 'Analista de Nóminas Senior',
+            description: 'Nombre descriptivo del cargo o puesto.'
+          },
           descripcion: {
             type: 'string',
-            example:
-              'Responsable de liderar el equipo de ventas y alcanzar los objetivos comerciales.',
+            nullable: true,
+            example: 'Responsable de la liquidación, fiscalización y cierre de planillas mensuales.',
+            description: 'Descripción opcional de las responsabilidades del puesto.'
           },
-        },
-      },
+          jornada_sugerida_id: {
+            type: 'string',
+            format: 'uuid',
+            nullable: true,
+            example: '018f4a7c-6666-7000-f000-000000000001',
+            description: 'UUID opcional de la jornada/turno sugerido por defecto para colaboradores con este puesto.',
+          }
+        }
+      }
     }),
     ApiResponse({
       status: 201,
-      description: 'Cargo creado exitosamente.',
+      description: 'Cargo registrado exitosamente con sus relaciones asignadas.',
     }),
     ApiResponse({
       status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.',
+      description: 'Datos inválidos, nombre de cargo duplicado en el área o jornada sugerida inactiva/inexistente.',
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. Token JWT ausente o inválido.',
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
+      description: 'Prohibido. Se requieren permisos de ADMIN o RRHH.',
     }),
+    ApiResponse({
+      status: 404,
+      description: 'El área especificada no existe o se encuentra inactiva/eliminada.',
+    })
   );
 }
+
 /**
- * Decorador para documentar el endopoint de actualización de un cargo en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param idParam - Parámetro de ruta que representa el ID del cargo a actualizar.
- * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
+ * Decorador para documentar el endpoint de actualización de un cargo en Swagger.
  */
 export function ApiSwaggerActualizarCargo() {
   return applyDecorators(
     ApiOperation({
       summary: 'Actualizar Cargo',
-      description:
-        'Actualiza los detalles de un cargo existente en el sistema. Requiere rol ADMIN o RRHH.',
+      description:'Actualiza los datos de un cargo existente (área, nombre, descripción o jornada sugerida). Soporta modificaciones parciales.'
     }),
     ApiParam({
       name: 'id',
-      description: 'ID del cargo a actualizar (UUID).',
+      description: 'UUID del cargo a actualizar.',
       required: true,
-      schema: { type: 'string', format: 'uuid' },
+      schema: { type: 'string', format: 'uuid' }
     }),
     ApiBody({
       schema: {
         type: 'object',
-        required: ['id_area', 'nombre'],
         properties: {
           id_area: {
             type: 'string',
             format: 'uuid',
-            example: '123e4567-e89b-12d3-a456-426614174000',
+            example: '018f4a7c-7777-7000-1111-000000000001',
+            description: 'UUID de la nueva área destino (si se desea transferir el cargo).'
           },
-          nombre: { type: 'string', example: 'Gerente de Ventas' },
+          nombre: {
+            type: 'string',
+            example: 'Especialista Contable y Tributario',
+            description: 'Nuevo nombre para el cargo.'
+          },
           descripcion: {
             type: 'string',
-            example:
-              'Responsable de liderar el equipo de ventas y alcanzar los objetivos comerciales.',
+            nullable: true,
+            example: 'Encargado de declaraciones tributarias PLAME y auditoría de beneficios sociales.'
           },
-        },
-      },
+          jornada_sugerida_id: {
+            type: 'string',
+            format: 'uuid',
+            nullable: true,
+            example: '018f4a7c-6666-7000-f000-000000000001',
+            description: 'UUID de la jornada sugerida (o null para desvincular).'
+          }
+        }
+      }
     }),
     ApiResponse({
       status: 200,
@@ -119,152 +130,146 @@ export function ApiSwaggerActualizarCargo() {
     }),
     ApiResponse({
       status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.',
+      description: 'Datos inválidos, nombre duplicado en el área destino o jornada sugerida no disponible.',
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado.',
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
+      description: 'Prohibido. Privilegios insuficientes.',
     }),
     ApiResponse({
       status: 404,
-      description: 'No encontrado. El cargo con el ID proporcionado no existe.',
-    }),
-  );
-}
-/**
- * Decorador para documentar el endopoint de eliminación de un cargo en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param idParam - Parámetro de ruta que representa el ID del cargo a eliminar.
- */
-export function ApiSwaggerDesactivarCargo() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Desactivar Cargo',
-      description:
-        'Desactiva un cargo existente en el sistema. Requiere rol ADMIN o RRHH.',
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'ID del cargo a desactivar (UUID).',
-      required: true,
-      schema: { type: 'string', format: 'uuid' },
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Cargo desactivado exitosamente.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
-    }),
-    ApiResponse({
-      status: 403,
-      description:
-        'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'No encontrado. El cargo con el ID proporcionado no existe.',
+      description: 'Cargo o área destino no encontrados.',
     }),
   );
 }
 
 /**
- * Decorador para documentar el endopoint de reactivación de un cargo en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param idParam - Parámetro de ruta que representa el ID del cargo a reactivar.
- */
-export function ApiSwaggerReactivarCargo() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Reactivar Cargo',
-      description:
-        'Reactiva un cargo previamente desactivado en el sistema. Requiere rol ADMIN o RRHH.',
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'ID del cargo a reactivar (UUID).',
-      required: true,
-      schema: { type: 'string', format: 'uuid' },
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Cargo reactivado exitosamente.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
-    }),
-    ApiResponse({
-      status: 403,
-      description:
-        'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'No encontrado. El cargo con el ID proporcionado no existe.',
-    }),
-  );
-}
-/**
- * Decorador para documentar el endpoint de listado de cargos en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param queryParams - Parámetros de consulta para filtrar y paginar los resultados.
- * @param optionalFilters - Filtros opcionales para la consulta, como estado de actividad.
- * @param pagination - Parámetros de paginación, como página y límite de resultados.
- * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
- * @returns - Un objeto con los cargos encontrados y metadatos de paginación.
+ * Decorador para documentar el endpoint de consulta paginada y filtrada de cargos en Swagger.
  */
 export function ApiSwaggerListarCargos() {
   return applyDecorators(
     ApiOperation({
       summary: 'Listar Cargos',
-      description: 'Obtiene el listado de cargos con filtros opcionales.',
+      description:'Obtiene el catálogo de cargos paginado, permitiendo filtrar por área organizacional, jornada sugerida y estado activo.'
     }),
+    ApiExtension('x-roles', ['ADMIN', 'RRHH', 'CONTADOR']),
     ApiQuery({
       name: 'page',
-      description: 'Número de página para la paginación.',
+      description: 'Número de página.',
       required: false,
-      type: Number,
-      example: 1,
+      schema: { type: 'number', default: 1 }
     }),
     ApiQuery({
       name: 'limit',
-      description: 'Límite de resultados por página.',
+      description: 'Cantidad de registros por página.',
       required: false,
-      type: Number,
-      example: 50,
+      schema: { type: 'number', default: 50 }
     }),
     ApiQuery({
       name: 'id_area',
-      description: 'ID del área para filtrar los resultados.',
+      description: 'Filtra cargos pertenecientes a un área específica.',
       required: false,
-      type: 'string',
-      format: 'uuid',
+      schema: { type: 'string', format: 'uuid' }
+    }),
+    ApiQuery({
+      name: 'jornada_sugerida_id',
+      description: 'Filtra cargos que tengan asignada una jornada laboral sugerida específica.',
+      required: false,
+      schema: { type: 'string', format: 'uuid' }
     }),
     ApiQuery({
       name: 'activo',
-      description: 'Estado de actividad del cargo.',
+      description: 'Filtra por estado activo o inactivo.',
       required: false,
-      type: Boolean,
+      schema: { type: 'boolean' }
     }),
     ApiResponse({
       status: 200,
-      description: 'Listado de cargos obtenido exitosamente.',
+      description: 'Listado de cargos paginado obtenido exitosamente.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
+      description: 'Prohibido.'
+    }),
+  );
+}
+
+/**
+ * Decorador para documentar la desactivación lógica (Soft Delete) de un cargo.
+ */
+export function ApiSwaggerDesactivarCargo() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Desactivar Cargo (Baja Lógica)',
+      description: 'Desactiva un cargo organizacional. Bloquea la acción si existen colaboradores activos asignados actualmente a este puesto.'
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'UUID del cargo a desactivar.',
+      required: true,
+      schema: { type: 'string', format: 'uuid' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Cargo desactivado exitosamente.'
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Operación bloqueada. Existen empleados activos asignados a este cargo.'
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado.'
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido.'
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Cargo no encontrado o ya eliminado.'
+    }),
+  );
+}
+
+/**
+ * Decorador para documentar la reactivación de un cargo previamente desactivado.
+ */
+export function ApiSwaggerReactivarCargo() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Reactivar Cargo',
+      description: 'Reactiva un cargo previamente dado de baja lógica en el catálogo organizacional.'
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'UUID del cargo a reactivar.',
+      required: true,
+      schema: { type: 'string', format: 'uuid' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Cargo reactivado exitosamente.'
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado.'
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido.'
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Cargo no encontrado.'
     }),
   );
 }

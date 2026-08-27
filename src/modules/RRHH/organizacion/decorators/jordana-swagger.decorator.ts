@@ -1,4 +1,4 @@
-//src/modules/RRHH/decorators/jordana-swagger.decorator.ts
+//src/modules/RRHH/organizacion/decorators/jordana-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiTags,
@@ -12,237 +12,267 @@ import {
 } from '@nestjs/swagger';
 
 /**
- * Decorador personalizado para documentar los endpoints de Jordana en Swagger.
+ * Decorador para documentar el controlador de Jornadas en Swagger.
  * @requires - JWT Bearer token para autenticación.
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
-export function ApiSwaggerJordanaController() {
+export function ApiSwaggerJornadaController() {
   return applyDecorators(
-    ApiTags('Modulo RRHH - Jordana y Turnos'),
+    ApiTags('Módulo RRHH - Jornadas y Horarios Laborales'),
     ApiBearerAuth('JWT-auth'),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH']),
+    ApiExtension('x-roles', ['ADMIN', 'RRHH'])
   );
 }
 
 /**
- * Decorador para documentar el endpoint de creación de una jordana en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
+ * Decorador para documentar el endpoint de creación de una jornada/turno en Swagger.
  */
-export function ApiSwaggerCrearJordana() {
+export function ApiSwaggerCrearJornada() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Crear Jordana',
-      description:
-        'Registra una nueva jordana o turno de trabajo en el sistema.',
+      summary: 'Crear Jornada / Turno',
+      description: 'Registra una nueva jornada o turno laboral en el sistema, definiendo horas de entrada/salida y tolerancia.',
     }),
     ApiBody({
       schema: {
         type: 'object',
         required: ['nombre', 'hora_entrada', 'hora_salida'],
         properties: {
-          nombre: { type: 'string', example: 'Jornada Matutina' },
-          hora_entrada: { type: 'string', example: '08:00' },
-          hora_salida: { type: 'string', example: '17:00' },
-          activo: { type: 'boolean', example: true },
-          tolerancia_minutos: { type: 'number', example: 15 },
-        },
-      },
+          nombre: {
+            type: 'string',
+            example: 'Turno Mañana (Oficina Central)',
+            description: 'Nombre descriptivo de la jornada'
+          },
+          tipo_jornada: {
+            type: 'string',
+            enum: ['FIJA', 'ROTATIVA', 'FLEXIBLE', 'PART_TIME'],
+            default: 'FIJA',
+            example: 'FIJA',
+            description: 'Modalidad de la jornada laboral'
+          },
+          hora_entrada: {
+            type: 'string',
+            example: '08:00',
+            description: 'Hora de inicio de la jornada (HH:mm o HH:mm:ss)'
+          },
+          hora_salida: {
+            type: 'string',
+            example: '17:00',
+            description: 'Hora de finalización de la jornada (HH:mm o HH:mm:ss)'
+          },
+          tolerancia_minutos: {
+            type: 'number',
+            example: 15,
+            default: 0,
+            description: 'Minutos de tolerancia antes de computar tardanza'
+          },
+          activo: {
+            type: 'boolean',
+            default: true,
+            example: true
+          }
+        }
+      }
     }),
     ApiResponse({
       status: 201,
-      description: 'Jordana creada exitosamente.',
+      description: 'Jornada creada exitosamente.'
     }),
     ApiResponse({
       status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.',
+      description: 'Datos inválidos o nombre de jornada duplicado.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. Token JWT ausente o expirado.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
+      description: 'Prohibido. Se requieren permisos de ADMIN o RRHH.'
     }),
   );
 }
+
 /**
- * Decorador para documentar el endpoint de obtención de información de una jordana en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param id - ID de la jordana a obtener.
+ * Decorador para documentar el endpoint de consulta paginada de jornadas en Swagger.
  */
-export function ApiSwaggerListarJordana() {
+export function ApiSwaggerListarJornada() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Listar Jordanas',
-      description:
-        'Obtiene una lista de todas las jordanas o turnos de trabajo registrados en el sistema.',
+      summary: 'Listar Jornadas y Turnos',
+      description: 'Obtiene una lista paginada de las jornadas laborales registradas con filtros por estado y modalidad.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH', 'CONTADOR']),
     ApiQuery({
       name: 'page',
       description: 'Número de página para la paginación.',
       required: false,
-      schema: { type: 'number', default: 1 },
+      schema: { type: 'number', default: 1 }
     }),
     ApiQuery({
       name: 'limit',
-      description: 'Cantidad de elementos por página para la paginación.',
+      description: 'Cantidad de elementos por página.',
       required: false,
-      schema: { type: 'number', default: 10 },
+      schema: { type: 'number', default: 50 }
     }),
     ApiQuery({
       name: 'activo',
-      description: 'Filtra las jordanas por estado activo o inactivo.',
+      description: 'Filtra las jornadas por estado activo o inactivo.',
       required: false,
-      schema: { type: 'boolean' },
+      schema: { type: 'boolean' }
+    }),
+    ApiQuery({
+      name: 'tipo_jornada',
+      description: 'Filtra por modalidad de jornada.',
+      required: false,
+      enum: ['FIJA', 'ROTATIVA', 'FLEXIBLE', 'PART_TIME']
     }),
     ApiResponse({
       status: 200,
-      description: 'Lista de jordanas obtenida exitosamente.',
+      description: 'Lista de jornadas obtenida exitosamente.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. Token JWT inválido.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
-    }),
+      description: 'Prohibido. El rol autenticado no posee privilegios de consulta.'
+    })
   );
 }
 
 /**
- * Decorador para documentar el endpoint de actualización de una jordana en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param id - ID de la jordana a actualizar.
+ * Decorador para documentar el endpoint de actualización de una jornada en Swagger.
  */
-export function ApiSwaggerActualizarJordana() {
+export function ApiSwaggerActualizarJornada() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Actualizar Jordana',
-      description:
-        'Actualiza la información de una jordana o turno de trabajo existente en el sistema.',
+      summary: 'Actualizar Jornada',
+      description:'Actualiza los parámetros y horarios de una jornada existente identificada por su UUID.',
     }),
     ApiParam({
       name: 'id',
-      description: 'ID de la jordana a actualizar (UUID).',
+      description: 'ID único de la jornada a actualizar (UUIDv7).',
       required: true,
-      schema: { type: 'string', format: 'uuid' },
+      schema: { type: 'string', format: 'uuid' }
     }),
     ApiBody({
       schema: {
         type: 'object',
         properties: {
-          nombre: { type: 'string', example: 'Jornada Vespertina' },
-          hora_entrada: { type: 'string', example: '14:00' },
-          hora_salida: { type: 'string', example: '22:00' },
-          activo: { type: 'boolean', example: true },
+          nombre: { type: 'string', example: 'Turno Noche (Seguridad)' },
+          tipo_jornada: {
+            type: 'string',
+            enum: ['FIJA', 'ROTATIVA', 'FLEXIBLE', 'PART_TIME'],
+            example: 'ROTATIVA'
+          },
+          hora_entrada: { type: 'string', example: '19:00' },
+          hora_salida: { type: 'string', example: '07:00' },
           tolerancia_minutos: { type: 'number', example: 10 },
-        },
-      },
+          activo: { type: 'boolean', example: true },
+        }
+      }
     }),
     ApiResponse({
       status: 200,
-      description: 'Jordana actualizada exitosamente.',
+      description: 'Jornada actualizada exitosamente.'
     }),
     ApiResponse({
       status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.',
+      description: 'Datos inválidos o nombre duplicado en otra jornada.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
+      description: 'Prohibido. Permisos insuficientes.'
     }),
     ApiResponse({
       status: 404,
-      description:
-        'No encontrado. La jordana con el ID proporcionado no existe.',
-    }),
-  );
-}
-/**
- * Decorador para documentar el endpoint de eliminación de una jordana en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param id - ID de la jordana a eliminar.
- */
-export function ApiSwaggerDesactivarJordana() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Desactivar Jordana',
-      description:
-        'Desactiva una jordana o turno de trabajo existente en el sistema.',
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'ID de la jordana a desactivar (UUID).',
-      required: true,
-      schema: { type: 'string', format: 'uuid' },
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Jordana desactivada exitosamente.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
-    }),
-    ApiResponse({
-      status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 404,
-      description:
-        'No encontrado. La jordana con el ID proporcionado no existe.',
+      description: 'Jornada no encontrada o previamente eliminada.'
     }),
   );
 }
 
 /**
- * Decorador para documentar el endpoint de reactivación de una jordana en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param id - ID de la jordana a reactivar.
+ * Decorador para documentar la desactivación lógica (Soft Delete) de una jornada.
  */
-export function ApiSwaggerReactivarJordana() {
+export function ApiSwaggerDesactivarJornada() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Reactivar Jordana',
-      description:
-        'Reactiva una jordana o turno de trabajo que se encuentra desactivada en el sistema.',
+      summary: 'Desactivar Jornada (Baja Lógica)',
+      description:'Desactiva una jornada laboral del catálogo. Bloquea la acción si existen colaboradores activos asignados a ella.',
     }),
     ApiParam({
       name: 'id',
-      description: 'ID de la jordana a reactivar (UUID).',
+      description: 'UUID de la jornada a desactivar.',
       required: true,
-      schema: { type: 'string', format: 'uuid' },
+      schema: { type: 'string', format: 'uuid' }
     }),
     ApiResponse({
       status: 200,
-      description: 'Jordana reactivada exitosamente.',
+      description: 'Jornada desactivada exitosamente.'
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Operación bloqueada. Existen colaboradores activos usando este turno.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
+      description: 'Prohibido.'
     }),
     ApiResponse({
       status: 404,
-      description:
-        'No encontrado. La jordana con el ID proporcionado no existe.',
+      description: 'Jornada no encontrada o ya desactivada.'
     }),
   );
 }
+
+/**
+ * Decorador para documentar la reactivación de una jornada previamente desactivada.
+ */
+export function ApiSwaggerReactivarJornada() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Reactivar Jornada',
+      description: 'Reactiva una jornada laboral desactivada previamente en el sistema.',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'UUID de la jornada a reactivar.',
+      required: true,
+      schema: { type: 'string', format: 'uuid' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Jornada reactivada exitosamente.'
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado.'
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido.'
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Jornada no encontrada.'
+    }),
+  );
+}
+
+// Aliases de retrocompatibilidad para evitar roturas de importación
+export const ApiSwaggerJordanaController = ApiSwaggerJornadaController;
+export const ApiSwaggerCrearJordana = ApiSwaggerCrearJornada;
+export const ApiSwaggerListarJordana = ApiSwaggerListarJornada;
+export const ApiSwaggerActualizarJordana = ApiSwaggerActualizarJornada;
+export const ApiSwaggerDesactivarJordana = ApiSwaggerDesactivarJornada;
+export const ApiSwaggerReactivarJordana = ApiSwaggerReactivarJornada;

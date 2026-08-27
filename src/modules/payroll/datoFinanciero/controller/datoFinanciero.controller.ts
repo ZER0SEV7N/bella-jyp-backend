@@ -44,7 +44,11 @@ export class DatoFinancieroController {
    * Registra la informacion financiera inicial de un empleado.
    * POST: /api/dato-financiero
    * @payload - CrearDatoFinancieroDto {
-   *    
+   *    - empleado_id: string (UUID) - ID del empleado al que se le registrarán los datos financieros
+   *    - id_regimen: string (UUID) - ID del régimen laboral del empleado
+   *    - id_tipo_afp: string (UUID) - ID del tipo de AFP del empleado (opcional)
+   *    - id_banco: string (UUID) - ID del banco del empleado (opcional)
+   *    - 
    * }
    */
   @Post()

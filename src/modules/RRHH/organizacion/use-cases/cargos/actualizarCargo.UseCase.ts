@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ActualizarCargoDto } from '@jyp/shared-contracts';
@@ -28,35 +29,77 @@ export class ActualizarCargoUseCase {
     try {
       const cargoActual = await this.prisma.cargo.findUnique({ where: { id } });
 
-      if (!cargoActual || cargoActual.deleted_at !== null) throw new NotFoundException({
+      if (cargoActual?.deleted_at !== null) throw new NotFoundException({
         title: 'Cargo no encontrado',
         detail: 'El cargo que intenta actualizar no existe o ha sido eliminado.'
       });
 
-      //Si el payload incluye un id_area nuevo, verificar que el area destino exista y esté activa antes de proceder con la actualización
+      //Si el payload incluye un id_area nuevo, 
+      //verificar que el area destino exista y esté activa antes de proceder con la actualización
+      const idAreaTarget = payload.id_area ?? cargoActual.id_area;
       if (payload.id_area && payload.id_area !== cargoActual.id_area) {
         const areaDestino = await this.prisma.area.findUnique({where: { id: payload.id_area }});
 
-        if (!areaDestino || !areaDestino.activo) throw new BadRequestException({
+        if (!areaDestino?.activo || areaDestino.deleted_at !== null) throw new BadRequestException({
           title: 'Área destino inválida',
-          detail:'El área a la que intenta mover el cargo no existe o está inactiva.'
+          detail: 'El área a la que intenta mover el cargo no existe o está inactiva.'
         });
       }
 
-      //Actualizar el cargo con los nuevos datos proporcionados en el payload
-      const cargoActualizado = await this.prisma.cargo.update({
+      //Si el payload incluye un id_jornada_sugerida nuevo, 
+      //verificar que la jornada sugerida exista y esté activa antes de proceder con la actualización
+      if (payload.jornada_sugerida_id !== undefined && payload.jornada_sugerida_id !== null) {
+        const jornadaSugerida = await this.prisma.jornada.findUnique({where: { id: payload.jornada_sugerida_id }});
+
+        if (!jornadaSugerida?.activo || jornadaSugerida.deleted_at !== null) throw new BadRequestException({
+          title: 'Jornada sugerida inválida',
+          detail: 'La jornada laboral a vincular como sugerida no existe o está inactiva.',
+        });
+      }
+
+      //Verificar si el nombre del cargo está siendo modificado o si el área destino es diferente1
+      if ((payload.nombre && payload.nombre.trim() !== cargoActual.nombre) || payload.id_area !== undefined) {
+        const nombreTarget = payload.nombre ? payload.nombre.trim() : cargoActual.nombre;
+        const duplicado = await this.prisma.cargo.findFirst({where: {
+          nombre: { equals: nombreTarget, mode: 'insensitive' },
+          id_area: idAreaTarget,
+          id: { not: id },
+          deleted_at: null
+        }});
+
+        if (duplicado) throw new BadRequestException({
+          title: 'Nombre de cargo duplicado',
+          detail: `Ya existe otro cargo llamado '${nombreTarget}' en el área destino.`,
+        });
+      }
+
+      return await this.prisma.cargo.update({
         where: { id },
-        data: { ...payload }
+        data: {
+          id_area: payload.id_area ?? undefined,
+          jornada_sugerida_id: payload.jornada_sugerida_id,
+          nombre: payload.nombre ? payload.nombre.trim() : undefined,
+          descripcion: payload.descripcion ?? undefined
+        },
+        include: {
+          area: { select: { id: true, nombre: true } },
+          jornada_sugerida: {
+            select: {
+              id: true,
+              nombre: true,
+              tipo_jornada: true,
+              hora_entrada: true,
+              hora_salida: true
+            }
+          }
+        }
       });
-
-      return cargoActualizado;
     } catch (error) {
-      if (error instanceof NotFoundException ||error instanceof BadRequestException)
-        throw error;
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
 
-      throw new BadRequestException({
+      throw new InternalServerErrorException({
         title: 'Error de Actualización',
-        detail: 'No se pudo actualizar el registro del cargo.'
+        detail: error instanceof Error ? error.message : 'No se pudo actualizar el registro del cargo.',
       });
     }
   }

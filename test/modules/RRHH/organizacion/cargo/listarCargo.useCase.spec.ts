@@ -1,3 +1,4 @@
+
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ListarCargosUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/listarCargos.useCase';
 import { Test, TestingModule } from '@nestjs/testing';

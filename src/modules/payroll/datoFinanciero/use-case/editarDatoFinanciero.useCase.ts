@@ -83,7 +83,8 @@ export class EditarDatoFinancieroUseCase {
       };
 
     } catch (error) {
-      throw new InternalServerErrorException('Error al actualizar los datos financieros del empleado.', error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : JSON.stringify(error);
+      throw new InternalServerErrorException(`Error al actualizar los datos financieros del empleado. ${message}`);
     }
   }
 }

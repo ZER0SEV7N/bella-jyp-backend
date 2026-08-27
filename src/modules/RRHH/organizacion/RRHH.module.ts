@@ -17,7 +17,7 @@ import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
 // --- CASOS DE USO: CARGO ---
 import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.UseCase';
 import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.UseCase';
-import { EliminarCargoUseCase } from './use-cases/cargos/eliminarCargo.UseCase';
+import { EliminarCargoUseCase } from './use-cases/cargos/estadoCargo.UseCase';
 import { ActiveCargoUseCase } from './use-cases/cargos/activeCargo.useCase';
 import { ListarCargosUseCase } from './use-cases/cargos/listarCargos.useCase';
 // --- CASOS DE USO: EMPLEADO ---

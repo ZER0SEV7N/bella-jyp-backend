@@ -1,5 +1,5 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { EliminarCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/eliminarCargo.UseCase';
+import { Estado } from '@/modules/RRHH/organizacion/use-cases/cargos/estadoCargo.UseCase';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
