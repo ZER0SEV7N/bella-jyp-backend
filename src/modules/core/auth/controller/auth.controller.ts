@@ -1,16 +1,6 @@
 //src/modules/core/auth/controller/auth.controller.ts
 //Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación
-import {
-  Controller,
-  Post,
-  Body,
-  Res,
-  UsePipes,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-  UnauthorizedException,
-} from '@nestjs/common';
+import {Controller, Post, Body, Res, UsePipes, HttpCode, HttpStatus, UseGuards, UnauthorizedException} from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { LoginUseCase } from '../use-cases/login.useCase';
 import { ProvisionarUsuarioUseCase } from '../use-cases/provisionarUsuario.useCase';
@@ -20,16 +10,8 @@ import { RefrescarTokenUseCase } from '../use-cases/refrescarToken.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
-import {
-  LoginSchema,
-  ProvisionarUsuarioSchema,
-  SolicitudRecuperacionSchema,
-} from '@jyp/shared-contracts';
-import type {
-  LoginDTO,
-  ProvisionarUsuarioDTO,
-  SolicitudRecuperacionDTO,
-} from '@jyp/shared-contracts';
+import { LoginSchema, ProvisionarUsuarioSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
+import type {LoginDTO, ProvisionarUsuarioDTO, SolicitudRecuperacionDTO } from '@jyp/shared-contracts';
 import {
   ApiSwaggerController,
   ApiSwaggerLogin,
@@ -96,6 +78,7 @@ export class AuthController {
   @ApiSwaggerRefresh()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAccessGuard)
   async refreshToken(@Res({ passthrough: true }) res: FastifyReply) {
     //Obtener el refresh token de las cookies de la solicitud
     let refreshToken = res.cookies?.['jyp_rt'];
@@ -137,12 +120,11 @@ export class AuthController {
   @ApiSwaggerProvisionar()
   @Post('provisionar')
   @HttpCode(HttpStatus.CREATED)
-  // EL MURO DE DEFENSA: Primero valida el JWT, luego valida el Rol de quien hace la petición
   // @UseGuards(JwtAccessGuard, RolesGuard)
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ProvisionarUsuarioSchema))
   async provisionar(@Body() payload: ProvisionarUsuarioDTO) {
-    // Retorno directo, cero formateo en el controlador
+    //Retorno directo, cero formateo en el controlador
     return await this.provisionarUsuarioUseCase.execute(payload);
   }
 

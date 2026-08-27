@@ -39,12 +39,10 @@ export class CrearCargoUseCase {
       }
 
       //Evitar que se creen dos cargos con el mismo nombre en la misma área
-      const cargoExistente = await this.prisma.cargo.findFirst({
-        where: {
-          nombre: payload.nombre,
-          id_area: payload.id_area
-        }
-      });
+      const cargoExistente = await this.prisma.cargo.findFirst({where: {
+        nombre: payload.nombre,
+        id_area: payload.id_area
+      }});
 
       if (cargoExistente)throw new BadRequestException({
         title: 'Cargo duplicado',

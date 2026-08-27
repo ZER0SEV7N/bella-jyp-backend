@@ -62,16 +62,20 @@ model bancos {
 }
 
 model cargo {
-  id          String      @id @db.Uuid
-  id_area     String      @db.Uuid
-  nombre      String      @db.VarChar(100)
-  descripcion String?     @db.VarChar(255)
-  activo      Boolean     @default(true)
-  deleted_at  DateTime?   @db.Timestamptz(6)
-  area        area        @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
-  empleados   empleados[]
+  id                  String     @id @db.Uuid
+  id_area             String     @db.Uuid
+  jornada_sugerida_id String?    @db.Uuid
+  nombre              String     @db.VarChar(100)
+  descripcion         String?    @db.VarChar(255)
+  activo              Boolean    @default(true)
+  deleted_at          DateTime?  @db.Timestamptz(6)
+  
+  area                area       @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
+  jornada_sugerida    jornada?   @relation("CargoJornadaSugerida", fields: [jornada_sugerida_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_jornada_sugerida")
+  empleados           empleados[]
 
   @@index([id_area], map: "idx_cargo_area")
+  @@index([jornada_sugerida_id], map: "idx_cargo_jornada_sugerida")
 }
 
 model estado_contrato {
@@ -308,14 +312,17 @@ model audit_log {
 }
 
 model jornada {
-  id                 String      @id @db.Uuid
-  nombre             String      @db.VarChar(100)
-  hora_entrada       DateTime    @db.Time(6)
-  hora_salida        DateTime    @db.Time(6)
-  tolerancia_minutos Int         @default(0)
-  activo             Boolean     @default(true)
-  deleted_at         DateTime?   @db.Timestamptz(6)
+  id                 String     @id @db.Uuid
+  nombre             String     @db.VarChar(100)
+  tipo_jornada       String     @default("FIJA") @db.VarChar(50)
+  hora_entrada       DateTime   @db.Time(6)
+  hora_salida        DateTime   @db.Time(6)
+  tolerancia_minutos Int        @default(0)
+  activo             Boolean    @default(true)
+  deleted_at         DateTime?  @db.Timestamptz(6)
+  
   empleados          empleados[]
+  cargos_sugeridos   cargo[]    @relation("CargoJornadaSugerida")
 }
 
 model asistencia_marcacion {

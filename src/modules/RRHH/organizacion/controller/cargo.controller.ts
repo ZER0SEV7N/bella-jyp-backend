@@ -2,9 +2,9 @@
 //Controlador para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
 import { Controller, Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query} from '@nestjs/common';
 //casos de uso
-import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.UseCase';
-import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.UseCase';
-import { EstadoCargoUseCase } from '../use-cases/cargos/estadoCargo.UseCase';
+import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.useCase';
+import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.useCase';
+import { EstadoCargoUseCase } from '../use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from '../use-cases/cargos/listarCargos.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';

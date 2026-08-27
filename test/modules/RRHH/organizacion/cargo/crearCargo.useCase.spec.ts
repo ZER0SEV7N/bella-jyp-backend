@@ -1,7 +1,7 @@
 //test/modules/RRHH/organizacion/cargo/crearCargo.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { CrearCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/crearCargo.UseCase';
+import { CrearCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/crearCargo.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { CrearCargoDto } from '@jyp/shared-contracts';
@@ -70,10 +70,10 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
   describe('Validación del Área Asignada', () => {
     it('Debe lanzar NotFoundException si el área especificada no existe', async () => {
-      //Arrange: Simulamos que el área no existe en la base de datos
+      //Arrange: Simular que el área no existe en la base de datos
       mockPrismaService.area.findUnique.mockResolvedValue(null);
 
-      //Act & Assert
+      //Act & Assert: Ejecutar la use case y verificar que se lance la excepción
       await expect(useCase.execute(payload)).rejects.toThrow(NotFoundException);
       expect(prisma.area.findUnique).toHaveBeenCalledWith({ where: { id: payload.id_area } });
       expect(prisma.cargo.findFirst).not.toHaveBeenCalled();
@@ -84,16 +84,16 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
       //Arrange: Simulamos que el área existe pero está inactiva
       mockPrismaService.area.findUnique.mockResolvedValue({...areaActiva, activo: false});
 
-      //Act & Assert
+      //Act & Assert: Ejecutar la use case y verificar que se lance la excepción
       await expect(useCase.execute(payload)).rejects.toThrow(NotFoundException);
       expect(prisma.cargo.create).not.toHaveBeenCalled();
     });
 
     it('Debe lanzar NotFoundException si el área posee baja lógica (deleted_at !== null)', async () => {
-      //Arrange: Simulamos que el área existe pero tiene baja lógica
+      //Arrange: Simular que el área existe pero tiene baja lógica
       mockPrismaService.area.findUnique.mockResolvedValue({...areaActiva, deleted_at: new Date() });
 
-      //Act & Assert
+      //Act & Assert: Ejecutar la use case y verificar que se lance la excepción
       await expect(useCase.execute(payload)).rejects.toThrow(NotFoundException);
       expect(prisma.cargo.create).not.toHaveBeenCalled();
     });
@@ -101,7 +101,7 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
   describe('Validación de la Jornada Laboral Sugerida', () => {
     it('Debe lanzar NotFoundException si se proporciona una jornada sugerida que no existe en BD', async () => {
-      //Arrange: Simulamos que la jornada sugerida no existe en la base de datos
+      //Arrange: Simular que la jornada sugerida no existe en la base de datos
       mockPrismaService.area.findUnique.mockResolvedValue(areaActiva);
       mockPrismaService.jornada.findUnique.mockResolvedValue(null);
 
@@ -112,7 +112,7 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
     });
 
     it('Debe lanzar NotFoundException si la jornada sugerida está inactiva o deshabilitada', async () => {
-      //Arrange: Simulamos que la jornada sugerida existe pero está inactiva
+      //Arrange: Simular que la jornada sugerida existe pero está inactiva
       mockPrismaService.area.findUnique.mockResolvedValue(areaActiva);
       mockPrismaService.jornada.findUnique.mockResolvedValue({...jornadaActiva, activo: false});
 
@@ -123,28 +123,28 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
   describe('Validación de Nombre Duplicado y Creación Exitosa', () => {
     it('Debe lanzar BadRequestException si ya existe un cargo con el mismo nombre en el área', async () => {
-      //Arrange: Simulamos que ya existe un cargo con el mismo nombre en el área
+      //Arrange: Simular que ya existe un cargo con el mismo nombre en el área
       mockPrismaService.area.findUnique.mockResolvedValue(areaActiva);
       mockPrismaService.jornada.findUnique.mockResolvedValue(jornadaActiva);
       mockPrismaService.cargo.findFirst.mockResolvedValue({
         id: 'cargo-existente-id',
         nombre: 'Analista de Sistemas Senior',
-        id_area: payload.id_area,
+        id_area: payload.id_area
       });
 
       //Act & Assert
       await expect(useCase.execute(payload)).rejects.toThrow(BadRequestException);
-      expect(prisma.cargo.findFirst).toHaveBeenCalledWith({
-        where: {nombre: payload.nombre.trim(), id_area: payload.id_area,}
-      });
+      expect(prisma.cargo.findFirst).toHaveBeenCalledWith({where: {nombre: payload.nombre.trim(), id_area: payload.id_area }});
       expect(prisma.cargo.create).not.toHaveBeenCalled();
     });
 
     it('Happy Path: Debe crear el cargo vinculando área y jornada sugerida con éxito', async () => {
+      //Arrange: Simular que el área y la jornada sugerida existen y están activas, y que no hay duplicados
       mockPrismaService.area.findUnique.mockResolvedValue(areaActiva);
       mockPrismaService.jornada.findUnique.mockResolvedValue(jornadaActiva);
       mockPrismaService.cargo.findFirst.mockResolvedValue(null);
 
+      //Mock de la respuesta esperada al crear el cargo
       const cargoCreadoEsperado = {
         id: 'generated-uuid-123',
         id_area: payload.id_area,
@@ -153,13 +153,16 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
         descripcion: payload.descripcion,
         activo: true,
         area: { id: areaActiva.id, nombre: areaActiva.nombre },
-        jornada_sugerida: jornadaActiva,
+        jornada_sugerida: jornadaActiva
       };
 
+      //Simular la creación del cargo en la base de datos
       mockPrismaService.cargo.create.mockResolvedValue(cargoCreadoEsperado);
 
+      //Act: Ejecutar la use case para crear el cargo
       const result = await useCase.execute(payload);
 
+      //Assert: Verificar que el resultado sea el esperado y que se hayan llamado los métodos de Prisma con los parámetros correctos
       expect(result).toEqual(cargoCreadoEsperado);
       expect(prisma.cargo.create).toHaveBeenCalledWith({
         data: {
@@ -168,7 +171,7 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
           jornada_sugerida_id: payload.jornada_sugerida_id,
           nombre: payload.nombre.trim(),
           descripcion: payload.descripcion,
-          activo: true,
+          activo: true
         },
         include: {
           area: { select: { id: true, nombre: true } },
@@ -178,30 +181,34 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
               nombre: true,
               tipo_jornada: true,
               hora_entrada: true,
-              hora_salida: true,
-            },
-          },
-        },
+              hora_salida: true
+            }
+          }
+        }
       });
     });
 
     it('Happy Path (Opcional): Debe crear el cargo sin jornada sugerida si no se envía el campo', async () => {
+      //Arrange: Simular que el área existe y está activa, y que no hay duplicados, sin jornada sugerida
       const payloadSinJornada: CrearCargoDto = {
         id_area: 'area-uuid-1',
-        nombre: 'Practicante Pre Profesional',
+        nombre: 'Practicante Pre Profesional'
       };
 
+      //Simular que el área existe y está activa, y que no hay duplicados
       mockPrismaService.area.findUnique.mockResolvedValue(areaActiva);
       mockPrismaService.cargo.findFirst.mockResolvedValue(null);
       mockPrismaService.cargo.create.mockResolvedValue({
         id: 'generated-uuid-123',
         ...payloadSinJornada,
         jornada_sugerida_id: null,
-        jornada_sugerida: null,
+        jornada_sugerida: null
       });
 
+      //Act: Ejecutar la use case para crear el cargo sin jornada sugerida
       const result = await useCase.execute(payloadSinJornada);
 
+      //Assert: Verificar que el resultado sea el esperado y que se hayan llamado los métodos de Prisma con los parámetros correctos
       expect(prisma.jornada.findUnique).not.toHaveBeenCalled();
       expect(result.jornada_sugerida).toBeNull();
     });
@@ -209,11 +216,13 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
   describe('Manejo de Errores Inesperados', () => {
     it('Debe capturar errores del motor de base de datos y lanzar InternalServerErrorException', async () => {
+      //Arrange: Simular un error inesperado en la base de datos durante la creación del cargo
       mockPrismaService.area.findUnique.mockResolvedValue(areaActiva);
       mockPrismaService.jornada.findUnique.mockResolvedValue(jornadaActiva);
       mockPrismaService.cargo.findFirst.mockResolvedValue(null);
       mockPrismaService.cargo.create.mockRejectedValue(new Error('Deadlock en PostgreSQL'));
 
+      //Act & Assert
       await expect(useCase.execute(payload)).rejects.toThrow(InternalServerErrorException);
     });
   });

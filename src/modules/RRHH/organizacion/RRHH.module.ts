@@ -15,10 +15,9 @@ import { EliminarAreaUseCase } from './use-cases/area/eliminarArea.useCase';
 import { ActiveAreaUseCase } from './use-cases/area/activeArea.useCase';
 import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
 // --- CASOS DE USO: CARGO ---
-import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.UseCase';
-import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.UseCase';
-import { EliminarCargoUseCase } from './use-cases/cargos/estadoCargo.UseCase';
-import { ActiveCargoUseCase } from './use-cases/cargos/activeCargo.useCase';
+import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.useCase';
+import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.useCase';
+import { EstadoCargoUseCase } from './use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from './use-cases/cargos/listarCargos.useCase';
 // --- CASOS DE USO: EMPLEADO ---
 import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
@@ -64,8 +63,7 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     //Cargos
     CrearCargoUseCase,
     ActualizarCargoUseCase,
-    EliminarCargoUseCase,
-    ActiveCargoUseCase,
+    EstadoCargoUseCase,
     ListarCargosUseCase,
     //Empleados
     CrearEmpleadoUseCase,

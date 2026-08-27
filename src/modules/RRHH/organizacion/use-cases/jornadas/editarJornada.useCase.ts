@@ -48,6 +48,7 @@ export class EditarJornadaUseCase {
       return await this.prisma.jornada.update({where: { id },
         data: {
           nombre: payload.nombre,
+          activo: payload.activo ?? undefined,
           tipo_jornada: payload.tipo_jornada ?? undefined,
           hora_entrada: payload.hora_entrada ? NormalizarTimeToDate(payload.hora_entrada) : undefined,
           hora_salida: payload.hora_salida ? NormalizarTimeToDate(payload.hora_salida) : undefined,
