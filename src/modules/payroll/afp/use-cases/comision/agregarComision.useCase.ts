@@ -1,10 +1,5 @@
 //src/modules/afp/use-cases/agregarComision.useCase.ts
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { CrearComisionDto } from '@jyp/shared-contracts';
@@ -29,11 +24,10 @@ export class AgregarComisionUseCase {
       //validar que el tipo de afp exista
       const tipo_afp = await this.prisma.tipo_afp.findUnique({where: { id: dto.tipo_afp_id }});
       //validar si es valido
-      if (!tipo_afp)
-        throw new NotFoundException({
-          title: 'AFP no encontrada',
-          detail: 'La AFP seleccionada no existe en el sistema.'
-        });
+      if (!tipo_afp) throw new NotFoundException({
+        title: 'AFP no encontrada',
+        detail: 'La AFP seleccionada no existe en el sistema.'
+      });
 
       //Preparar las transacciones a realizar en la base de datos
       const transacciones = [];
@@ -81,7 +75,6 @@ export class AgregarComisionUseCase {
         errorMessage = error;
       else 
         errorMessage = JSON.stringify(error);
-      
 
       throw new InternalServerErrorException('Ocurrió un error al intentar registrar la comisión de la AFP', errorMessage);
     }

@@ -13,6 +13,11 @@ import type { ListarAportacionesQueryDto } from '@jyp/shared-contracts';
 export class ListarAportacionesUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Ejecuta el caso de uso para listar las aportaciones de AFP.
+   * @param query - Objeto de transferencia de datos que contiene los parámetros de paginación y filtrado.
+   * @returns Una lista de aportaciones de AFP que cumplen con los criterios especificados en el objeto de consulta.
+   */
   async listar(query: ListarAportacionesQueryDto) {
     const { page, limit, afp_id } = query;
     const skip = (page - 1) * limit;
@@ -35,12 +40,7 @@ export class ListarAportacionesUseCase {
 
     return {
       data: aportaciones,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     };
   }
 }

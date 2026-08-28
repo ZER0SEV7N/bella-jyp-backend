@@ -35,12 +35,7 @@ export class ListarTiposAfpUseCase {
 
     return {
       data: tipos,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     };
   }
 }

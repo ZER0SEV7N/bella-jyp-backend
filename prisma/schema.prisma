@@ -62,17 +62,17 @@ model bancos {
 }
 
 model cargo {
-  id                  String     @id @db.Uuid
-  id_area             String     @db.Uuid
-  jornada_sugerida_id String?    @db.Uuid
-  nombre              String     @db.VarChar(100)
-  descripcion         String?    @db.VarChar(255)
-  activo              Boolean    @default(true)
-  deleted_at          DateTime?  @db.Timestamptz(6)
-  
-  area                area       @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
-  jornada_sugerida    jornada?   @relation("CargoJornadaSugerida", fields: [jornada_sugerida_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_jornada_sugerida")
-  empleados           empleados[]
+  id                  String    @id @db.Uuid
+  id_area             String    @db.Uuid
+  jornada_sugerida_id String?   @db.Uuid
+  nombre              String    @db.VarChar(100)
+  descripcion         String?   @db.VarChar(255)
+  activo              Boolean   @default(true)
+  deleted_at          DateTime? @db.Timestamptz(6)
+
+  area             area        @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
+  jornada_sugerida jornada?    @relation("CargoJornadaSugerida", fields: [jornada_sugerida_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_jornada_sugerida")
+  empleados        empleados[]
 
   @@index([id_area], map: "idx_cargo_area")
   @@index([jornada_sugerida_id], map: "idx_cargo_jornada_sugerida")
@@ -176,6 +176,7 @@ model empleados {
   nombre                String?                    @db.VarChar(100)
   apellido              String?                    @db.VarChar(100)
   nro_documento         String                     @unique @db.VarChar(20)
+  email                 String?                    @db.VarChar(150)
   fecha_nacimiento      DateTime?                  @db.Date
   fecha_inicio          DateTime?                  @db.Date
   fecha_cese            DateTime?                  @db.Date
@@ -198,6 +199,7 @@ model empleados {
   historial_planillas   historial_planillas[]
   incidencias           incidencias_mes[]
   usuarios              usuarios?
+  solicitudes           solicitud[]
 
   @@index([activo], map: "idx_empleados_activo", where: raw("(activo = true)"))
   @@index([area_id], map: "idx_empleados_area")
@@ -273,6 +275,7 @@ model usuarios {
   tareas_asistente_tareas_asistente_asignado_porTousuarios tareas_asistente[] @relation("tareas_asistente_asignado_porTousuarios")
   tokens_seguridad                                         tokens_seguridad[]
   empleados                                                empleados          @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuarios_empleado")
+  solicitudes                                              solicitud[]
 
   @@index([activo], map: "idx_usuarios_activo", where: raw("(activo = true)"))
   @@index([deleted_at], map: "idx_usuarios_deleted", where: raw("(deleted_at IS NULL)"))
@@ -312,17 +315,17 @@ model audit_log {
 }
 
 model jornada {
-  id                 String     @id @db.Uuid
-  nombre             String     @db.VarChar(100)
-  tipo_jornada       String     @default("FIJA") @db.VarChar(50)
-  hora_entrada       DateTime   @db.Time(6)
-  hora_salida        DateTime   @db.Time(6)
-  tolerancia_minutos Int        @default(0)
-  activo             Boolean    @default(true)
-  deleted_at         DateTime?  @db.Timestamptz(6)
-  
-  empleados          empleados[]
-  cargos_sugeridos   cargo[]    @relation("CargoJornadaSugerida")
+  id                 String    @id @db.Uuid
+  nombre             String    @db.VarChar(100)
+  tipo_jornada       String    @default("FIJA") @db.VarChar(50)
+  hora_entrada       DateTime  @db.Time(6)
+  hora_salida        DateTime  @db.Time(6)
+  tolerancia_minutos Int       @default(0)
+  activo             Boolean   @default(true)
+  deleted_at         DateTime? @db.Timestamptz(6)
+
+  empleados        empleados[]
+  cargos_sugeridos cargo[]     @relation("CargoJornadaSugerida")
 }
 
 model asistencia_marcacion {
@@ -352,6 +355,38 @@ model incidencias_mes {
   empleados        empleados              @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_empleado")
 
   @@unique([empleado_id, periodo], map: "uq_incidencia_periodo")
+}
+
+model solicitud {
+  id          String          @id @db.Uuid
+  codigo      String          @unique @db.VarChar(20) // Ej: "SOL-2026-002"
+  empleado_id String          @db.Uuid
+  tipo        TipoSolicitud
+  estado      EstadoSolicitud @default(PENDIENTE)
+
+  fecha_inicio     DateTime? @db.Date
+  fecha_fin        DateTime? @db.Date
+  dias_solicitados Int?      @default(1)
+
+  motivo      String  @db.Text
+  observacion String? @db.Text
+
+  sustento_url    String? @db.VarChar(255)
+  sustento_nombre String? @db.VarChar(150)
+
+  responsable_id String?   @db.Uuid
+  fecha_limite   DateTime? @db.Date
+  origen         String    @default("PORTAL_EMPLEADO") @db.VarChar(50)
+
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime  @updatedAt @db.Timestamptz(6)
+  deleted_at  DateTime? @db.Timestamptz(6)
+  empleado    empleados @relation(fields: [empleado_id], references: [id])
+  responsable usuarios? @relation(fields: [responsable_id], references: [id])
+
+  @@index([empleado_id])
+  @@index([estado])
+  @@index([tipo])
 }
 
 enum estado_planilla_enum {
@@ -399,4 +434,21 @@ enum estado_incidencia_enum {
   PENDIENTE
   APROBADO
   RECHAZADO
+}
+
+enum TipoSolicitud {
+  VACACIONES
+  LICENCIA_MEDICA
+  PERMISO
+  JUSTIFICACION_ASISTENCIA
+  ACTUALIZACION_DATOS
+  ADELANTO_SUELDO
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  EN_REVISION
+  APROBADA
+  RECHAZADA
+  ANULADA
 }

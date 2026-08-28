@@ -38,12 +38,7 @@ export class ListarComisionesUseCase {
 
     return {
       data: comisiones,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     };
   }
 }

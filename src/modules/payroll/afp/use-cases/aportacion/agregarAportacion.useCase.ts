@@ -1,6 +1,5 @@
 //src/modules/afp/use-cases/aportacion/agregarAportacion.useCase.ts
-import {
-  BadRequestException,
+import { BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -31,11 +30,10 @@ export class AgregarAportacionUseCase {
         where: { id: dto.afp_id },
       });
 
-      if (!tipo_afp)
-        throw new NotFoundException({
-          title: 'AFP no encontrada',
-          detail: 'No se puede registrar la aportación porque la AFP seleccionada no existe.'
-        });
+      if (!tipo_afp) throw new NotFoundException({
+        title: 'AFP no encontrada',
+        detail: 'No se puede registrar la aportación porque la AFP seleccionada no existe.'
+      });
 
       //Crear la aportación en la base de datos
       const aportacionCreada = await this.prisma.aportaciones.create({data: { id: IdentityGenerator.generateId(), ...dto }});
