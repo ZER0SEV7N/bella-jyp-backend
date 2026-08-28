@@ -21,8 +21,8 @@ describe('EliminarEmpleadoUseCase', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EliminarEmpleadoUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
 
     useCase = module.get<EliminarEmpleadoUseCase>(EliminarEmpleadoUseCase);
@@ -34,11 +34,11 @@ describe('EliminarEmpleadoUseCase', () => {
     //Arrange: Simulamos que el empleado existe y que la actualización es exitosa
     mockPrisma.empleados.findUnique.mockResolvedValue({
       id: 'emp-123',
-      deleted_at: null,
+      deleted_at: null
     });
     mockPrisma.empleados.update.mockResolvedValue({
       id: 'emp-123',
-      activo: false,
+      activo: false
     });
 
     //Act: Ejecutamos el caso de uso para eliminar el empleado
@@ -51,8 +51,8 @@ describe('EliminarEmpleadoUseCase', () => {
       data: {
         activo: false,
         fecha_cese: expect.any(Date),
-        deleted_at: expect.any(Date),
-      },
+        deleted_at: expect.any(Date)
+      }
     });
   });
 
@@ -67,13 +67,11 @@ describe('EliminarEmpleadoUseCase', () => {
     //Arrange: Simulamos que el empleado existe y que la base de datos falla al actualizar
     mockPrisma.empleados.findUnique.mockResolvedValue({
       id: 'emp-123',
-      deleted_at: null,
+      deleted_at: null
     });
     mockPrisma.empleados.update.mockRejectedValue(new Error('DB Error'));
 
     //Act & Assert: Ejecutamos el caso de uso y verificamos que se lance la excepción esperada
-    await expect(useCase.execute('emp-123')).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(useCase.execute('emp-123')).rejects.toThrow(BadRequestException);
   });
 });

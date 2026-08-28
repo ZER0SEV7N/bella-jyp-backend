@@ -21,8 +21,8 @@ describe('EditarEmpleadoUseCase', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EditarEmpleadoUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
 
     useCase = module.get<EditarEmpleadoUseCase>(EditarEmpleadoUseCase);
@@ -36,11 +36,11 @@ describe('EditarEmpleadoUseCase', () => {
     mockPrisma.empleados.findUnique.mockResolvedValue({
       id: 'emp-123',
       nro_documento: '7011',
-      deleted_at: null,
+      deleted_at: null
     });
     mockPrisma.empleados.update.mockResolvedValue({
       id: 'emp-123',
-      nombre: 'Juan Editado',
+      nombre: 'Juan Editado'
     });
 
     //Act: Ejecutamos el caso de uso con los datos de actualización
@@ -58,7 +58,7 @@ describe('EditarEmpleadoUseCase', () => {
     mockPrisma.empleados.findUnique.mockResolvedValueOnce({
       id: 'emp-123',
       nro_documento: '7011',
-      deleted_at: null,
+      deleted_at: null
     });
     //Buscar si el 9999 choca con alguien más. Devuelve null (está libre)
     mockPrisma.empleados.findUnique.mockResolvedValueOnce(null);
@@ -71,8 +71,8 @@ describe('EditarEmpleadoUseCase', () => {
     expect(mockPrisma.empleados.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ id: 'emp-123' }),
-        data: expect.objectContaining({ nro_documento: '9999' }),
-      }),
+        data: expect.objectContaining({ nro_documento: '9999' })
+      })
     );
   });
 
@@ -82,16 +82,12 @@ describe('EditarEmpleadoUseCase', () => {
     mockPrisma.empleados.findUnique.mockResolvedValueOnce({
       id: 'emp-123',
       nro_documento: '7011',
-      deleted_at: null,
+      deleted_at: null
     });
     mockPrisma.empleados.findUnique.mockResolvedValueOnce({ id: 'emp-456' });
 
     //Act & Assert: Ejecutamos el caso de uso y verificamos que se lance la excepción esperada
-    await expect(
-      useCase.execute('emp-123', payload as any),
-    ).rejects.toMatchObject({
-      response: expect.objectContaining({ title: 'Documento Duplicado' }),
-    });
+    await expect(useCase.execute('emp-123', payload as any)).rejects.toMatchObject({response: expect.objectContaining({ title: 'Documento Duplicado' })});
     expect(mockPrisma.empleados.update).not.toHaveBeenCalled();
   });
 
@@ -99,12 +95,10 @@ describe('EditarEmpleadoUseCase', () => {
     //Arrange: Simulamos que el empleado no existe o está eliminado
     mockPrisma.empleados.findUnique.mockResolvedValue({
       id: 'emp-123',
-      deleted_at: new Date(),
+      deleted_at: new Date()
     });
 
     //Act & Assert: Ejecutamos el caso de uso y verificamos que se lance la excepción esperada
-    await expect(useCase.execute('emp-123', {} as any)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(useCase.execute('emp-123', {} as any)).rejects.toThrow(NotFoundException);
   });
 });

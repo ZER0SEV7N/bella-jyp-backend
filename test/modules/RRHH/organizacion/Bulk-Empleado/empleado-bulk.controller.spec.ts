@@ -100,6 +100,7 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
         file: {}
       };
 
+      //Simular una solicitud multipart/form-data con un archivo de extensión no permitida
       const mockRequest = {
         isMultipart: jest.fn().mockReturnValue(true),
         file: jest.fn().mockResolvedValue(mockFileData),
@@ -119,11 +120,13 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
         file: {}
       };
 
+      //Simular una solicitud multipart/form-data con un archivo CSV válido
       const mockRequest = {
         isMultipart: jest.fn().mockReturnValue(true),
         file: jest.fn().mockResolvedValue(mockFileData)
       } as unknown as FastifyRequest;
 
+      //Simular un reporte de pre-validación que será retornado por el caso de uso ValidarCargaMasivaUseCase
       const mockReporte = {
         total_filas: 2,
         filas_validas: 2,
@@ -132,7 +135,7 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
         filas_validas_data: [],
       };
 
-
+      //Act: Simular la ejecución del caso de uso ValidarCargaMasivaUseCase para retornar el reporte de pre-validación
       mockValidarUseCase.execute.mockResolvedValue(mockReporte);
 
       const result = await controller.validateBulk(mockRequest);
@@ -149,21 +152,26 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
 
 
     it('Debe procesar archivos Excel sin lanzar excepciones de formato', async () => {
+      //Arrange: Simular una solicitud multipart/form-data con un archivo Excel válido
       const mockFileData = {
         filename: 'nomina.xlsx',
         mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         file: {}
       };
 
+      //Simular una solicitud multipart/form-data con un archivo Excel válido
       const mockRequest = {
         isMultipart: jest.fn().mockReturnValue(true),
         file: jest.fn().mockResolvedValue(mockFileData)
       } as unknown as FastifyRequest;
 
+      //Simular un reporte de pre-validación que será retornado por el caso de uso ValidarCargaMasivaUseCase
       mockValidarUseCase.execute.mockResolvedValue({ total_filas: 5, filas_validas: 5 });
 
+      //Act: Ejecutar el método validateBulk con el archivo Excel simulado
       const result = await controller.validateBulk(mockRequest);
 
+      //Assert: Verificar que el caso de uso ValidarCargaMasivaUseCase fue llamado correctamente y que la respuesta es 200 OK
       expect(mockValidarUseCase.execute).toHaveBeenCalledWith(
         'nomina.xlsx',
         mockFileData.mimetype,
@@ -176,30 +184,32 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
 
   describe('confirmBulk (POST /api/rrhh/empleados/bulk/confirmar)', () => {
     it('Debe aceptar el payload de filas confirmadas, fijar status 202 ACCEPTED y retornar jobId', async () => {
+      //Arrange: Simular un payload válido de filas confirmadas y un FastifyReply simulado
       const mockReply = {status: jest.fn().mockReturnThis()} as unknown as FastifyReply;
 
+      //Simular un payload válido de filas confirmadas
       const mockPayload = {
         total_filas: 2,
         filas_validas: 2,
         filas_invalidas: 0,
         errores_detalle: [],
-        filas_validas_data: [
-          {
-            tipo_documento: 'DNI' as const,
-            nro_documento: '70998877',
-            nombre: 'Roberto',
-            apellido: 'Flores Gomez',
-            asig_familiar: false,
-            cargo: 'Analista',
-            area: 'Recursos Humanos'
-          }
-        ]
+        filas_validas_data: [{
+          tipo_documento: 'DNI' as const,
+          nro_documento: '70998877',
+          nombre: 'Roberto',
+          apellido: 'Flores Gomez',
+          asig_familiar: false,
+          cargo: 'Analista',
+          area: 'Recursos Humanos'
+        }]
       };
 
       mockConfirmarUseCase.execute.mockResolvedValue({ jobId: 'job-confirm-999' });
 
+      //Act: Ejecutar el método confirmBulk con el payload simulado y el FastifyReply simulado
       const result = await controller.confirmBulk(mockPayload, mockReply);
 
+      //Assert: Verificar que el caso de uso ConfirmarCargaMasivaUseCase fue llamado correctamente y que la respuesta es 202 ACCEPTED con jobId
       expect(mockConfirmarUseCase.execute).toHaveBeenCalledWith('user-uuid-123', mockPayload);
       expect(mockReply.status).toHaveBeenCalledWith(HttpStatus.ACCEPTED);
       expect(result.jobId).toBe('job-confirm-999');
@@ -209,10 +219,13 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
 
 
     it('Debe propagar BadRequestException si el caso de uso la arroja por payload vacío o inválido', async () => {
+      //Arrange: Simular un payload vacío y un FastifyReply simulado
       const mockReply = {status: jest.fn().mockReturnThis() } as unknown as FastifyReply;
 
+      //Simular que el caso de uso ConfirmarCargaMasivaUseCase arroja una BadRequestException por payload vacío
       mockConfirmarUseCase.execute.mockRejectedValue(new BadRequestException('No hay filas válidas proporcionadas para procesar.'));
 
+      //Act & Assert: Se espera que la llamada al método confirmBulk lance una excepción BadRequestException
       await expect(controller.confirmBulk({}, mockReply)).rejects.toThrow(new BadRequestException('No hay filas válidas proporcionadas para procesar.'));
     });
   });
@@ -220,13 +233,13 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
   
   describe('descargarPlantilla (GET /api/rrhh/empleados/bulk/plantilla)', () => {
     it('Debe enviar las cabeceras de adjunto CSV correctamente', () => {
-      const mockReply = {
-        header: jest.fn().mockReturnThis(),
-        send: jest.fn()
-      } as unknown as FastifyReply;
+      //Arrange: Simular un FastifyReply para capturar las cabeceras y el contenido enviado
+      const mockReply = { header: jest.fn().mockReturnThis(), send: jest.fn() } as unknown as FastifyReply;
 
+      //Act: Ejecutar el método descargarPlantilla con el FastifyReply simulado
       controller.descargarPlantilla(mockReply);
 
+      //Assert: Verificar que las cabeceras de respuesta sean correctas para un archivo CSV adjunto
       expect(mockReply.header).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=UTF-8');
       expect(mockReply.header).toHaveBeenCalledWith(
         'content-disposition',

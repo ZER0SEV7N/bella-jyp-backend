@@ -29,8 +29,8 @@ describe('CrearEmpleadoUseCase', () => {
       providers: [
         CrearEmpleadoUseCase,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: ReniecAdapter, useValue: mockReniec },
-      ],
+        { provide: ReniecAdapter, useValue: mockReniec }
+      ]
     }).compile();
 
     useCase = module.get<CrearEmpleadoUseCase>(CrearEmpleadoUseCase);
@@ -44,13 +44,10 @@ describe('CrearEmpleadoUseCase', () => {
       nro_documento: '70112233',
       nombre: 'Juan',
       apellido: 'Perez',
-      asig_familiar: false,
+      asig_familiar: false
     };
     mockPrisma.empleados.findUnique.mockResolvedValue(null);
-    mockPrisma.empleados.create.mockResolvedValue({
-      id: 'uuid-emp-123',
-      ...payload,
-    });
+    mockPrisma.empleados.create.mockResolvedValue({id: 'uuid-emp-123', ...payload});
 
     //Act: Ejecutar el caso de uso con los datos completos
     const result = await useCase.execute(payload as any);
@@ -71,7 +68,7 @@ describe('CrearEmpleadoUseCase', () => {
     mockReniec.consultarDni.mockResolvedValue({
       nombre: 'Carlos',
       apellido_paterno: 'Lopez',
-      apellido_materno: 'Gomez',
+      apellido_materno: 'Gomez'
     });
     mockPrisma.empleados.create.mockResolvedValue({});
 
@@ -80,13 +77,11 @@ describe('CrearEmpleadoUseCase', () => {
 
     //Assert: Verificar que RENIEC fue llamado y que los datos fueron completados correctamente
     expect(mockReniec.consultarDni).toHaveBeenCalledWith('70112233');
-    expect(mockPrisma.empleados.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          nombre: 'Carlos',
-          apellido: 'Lopez Gomez'
-        })
-      })
+    expect(mockPrisma.empleados.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        nombre: 'Carlos',
+        apellido: 'Lopez Gomez'
+      })})
     );
   });
 
@@ -97,9 +92,7 @@ describe('CrearEmpleadoUseCase', () => {
     mockReniec.consultarDni.mockRejectedValue(new Error('RENIEC Timeout'));
 
     //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
-    await expect(useCase.execute(payload as any)).rejects.toMatchObject({
-      response: expect.objectContaining({title: 'Fallo de Verificación de Identidad'})
-    });
+    await expect(useCase.execute(payload as any)).rejects.toMatchObject({response: expect.objectContaining({title: 'Fallo de Verificación de Identidad'})});
     expect(mockReniec.consultarDni).toHaveBeenCalledWith('70112233');
     expect(mockPrisma.empleados.create).not.toHaveBeenCalled();
   });
@@ -110,8 +103,6 @@ describe('CrearEmpleadoUseCase', () => {
     mockPrisma.empleados.findUnique.mockResolvedValue({ id: 'emp-existente' });
 
     //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
-    await expect(useCase.execute(payload as any)).rejects.toMatchObject({
-      response: expect.objectContaining({ title: 'Documento Duplicado' }),
-    });
+    await expect(useCase.execute(payload as any)).rejects.toMatchObject({response: expect.objectContaining({ title: 'Documento Duplicado' })});
   });
 });

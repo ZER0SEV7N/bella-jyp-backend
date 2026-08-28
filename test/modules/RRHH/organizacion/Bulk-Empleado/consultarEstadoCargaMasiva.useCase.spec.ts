@@ -44,7 +44,7 @@ describe('ConsultarEstadoCargaMasivaUseCase', () => {
       procesados: 50,
       fallidos: 2,
       errores_detalle: null,
-      updated_at: new Date(),
+      updated_at: new Date()
     };
 
     //Simulamos que Prisma encuentra el registro
