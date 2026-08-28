@@ -1,6 +1,6 @@
 //src/modules/RRHH/use-cases/jornadas/crearJornada.useCase.ts
 //Caso de uso para crear una nueva jornada laboral
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException,InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { NormalizarTimeToDate } from './helper/fechaTiempo.helper';
@@ -47,7 +47,7 @@ export class CrearJornadaUseCase {
         }
       });
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
+      if (error instanceof InternalServerErrorException) throw error;
       throw new BadRequestException('Error al crear la jornada laboral.');
     }
   }
