@@ -3,7 +3,7 @@
 import { Injectable, BadRequestException,InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { NormalizarTimeToDate } from './helper/fechaTiempo.helper';
+import { normalizarTimeToDate } from './helper/fechaTiempo.helper';
 import type { CrearJornadaDto } from '@jyp/shared-contracts';
 
 /**
@@ -40,8 +40,8 @@ export class CrearJornadaUseCase {
           id: IdentityGenerator.generateId(),
           nombre: payload.nombre,
           tipo_jornada: payload.tipo_jornada ?? 'FIJA',
-          hora_entrada: NormalizarTimeToDate(payload.hora_entrada),
-          hora_salida: NormalizarTimeToDate(payload.hora_salida),
+          hora_entrada: normalizarTimeToDate(payload.hora_entrada),
+          hora_salida: normalizarTimeToDate(payload.hora_salida),
           tolerancia_minutos: payload.tolerancia_minutos ?? 0,
           activo: payload.activo ?? true
         }

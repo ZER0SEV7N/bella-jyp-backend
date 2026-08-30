@@ -3,7 +3,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ActualizarJornadaDto } from '@jyp/shared-contracts';
-import { NormalizarTimeToDate } from './helper/fechaTiempo.helper';
+import { normalizarTimeToDate } from './helper/fechaTiempo.helper';
 
 /**
  * Caso de uso para editar una jornada laboral existente en el sistema.
@@ -50,8 +50,8 @@ export class EditarJornadaUseCase {
           nombre: payload.nombre,
           activo: payload.activo ?? undefined,
           tipo_jornada: payload.tipo_jornada ?? undefined,
-          hora_entrada: payload.hora_entrada ? NormalizarTimeToDate(payload.hora_entrada) : undefined,
-          hora_salida: payload.hora_salida ? NormalizarTimeToDate(payload.hora_salida) : undefined,
+          hora_entrada: payload.hora_entrada ? normalizarTimeToDate(payload.hora_entrada) : undefined,
+          hora_salida: payload.hora_salida ? normalizarTimeToDate(payload.hora_salida) : undefined,
           tolerancia_minutos: payload.tolerancia_minutos
         }
       });

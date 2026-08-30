@@ -443,6 +443,7 @@ enum TipoSolicitud {
   JUSTIFICACION_ASISTENCIA
   ACTUALIZACION_DATOS
   ADELANTO_SUELDO
+  RENUNCIA
 }
 
 enum EstadoSolicitud {

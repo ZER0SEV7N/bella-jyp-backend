@@ -6,7 +6,7 @@
  * @throws Error si el string de tiempo no tiene un formato válido.
  */
 
-export function NormalizarTimeToDate(time: string | Date): Date {
+export function normalizarTimeToDate(time: string | Date): Date {
     //Si el tiempo ya es un objeto Date, simplemente lo devolvemos
     if (time instanceof Date) return time;
     

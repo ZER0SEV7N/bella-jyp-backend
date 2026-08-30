@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { ReniecAdapter } from '../../services/reniec.adapter';
 import { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { NormalizarTexto, NormalizarFecha } from './helpers/cargaMasiva.helpers';
+import { normalizarTexto, normalizarFecha } from './helpers/cargaMasiva.helpers';
 
 /**
  * Caso de uso para procesar la fila individual de un empleado en la carga masiva.
@@ -45,8 +45,8 @@ export class ProcesarFilaEmpleadoUseCase {
     const estadoActivo = await this.prisma.estado_empleado.findFirst({ where: { descripcion: 'ACTIVO' } });
     if (!estadoActivo) throw new Error('Catálogo de estado ACTIVO no configurado.');
 
-    const fechaNacimiento = NormalizarFecha(fila.fecha_nacimiento || (fila as any).fec_nac || (fila as any).cumpleaños || (fila as any).cumpleanios);
-    const fechaInicio = NormalizarFecha((fila as any).fecha_inicio || (fila as any).fec_inicio || (fila as any).fecha_ingreso || (fila as any).fec_ingreso);
+    const fechaNacimiento = normalizarFecha(fila.fecha_nacimiento || (fila as any).fec_nac || (fila as any).cumpleaños || (fila as any).cumpleanios);
+    const fechaInicio = normalizarFecha((fila as any).fecha_inicio || (fila as any).fec_inicio || (fila as any).fecha_ingreso || (fila as any).fec_ingreso);
     const { nombre, apellido, estadoSincronizacion } = await this.resolverDatosEmpleado(fila, nroDoc, tipoDocStr);
 
     await this.prisma.empleados.upsert({
@@ -117,8 +117,8 @@ export class ProcesarFilaEmpleadoUseCase {
     //Si no se encuentra el área por nombre exacto, intentamos buscar por normalización de texto (ignora mayúsculas, acentos y espacios)
     if (!area) {
       const areasActivas = await this.prisma.area.findMany({ where: { deleted_at: null } });
-      const areaNormInput = NormalizarTexto(areaNombre);
-      area = areasActivas.find((a) => NormalizarTexto(a.nombre) === areaNormInput) || null;
+      const areaNormInput = normalizarTexto(areaNombre);
+      area = areasActivas.find((a) => normalizarTexto(a.nombre) === areaNormInput) || null;
     }
 
     //Si aún no se encuentra, creamos el área automáticamente
@@ -157,8 +157,8 @@ export class ProcesarFilaEmpleadoUseCase {
     //Si no se encuentra el cargo por nombre exacto, intentamos buscar por normalización de texto (ignora mayúsculas, acentos y espacios)
     if (!cargo) {
       const cargosArea = await this.prisma.cargo.findMany({ where: { id_area: areaId, deleted_at: null } });
-      const cargoNormInput = NormalizarTexto(cargoNombre);
-      cargo = cargosArea.find((c) => NormalizarTexto(c.nombre) === cargoNormInput) || null;
+      const cargoNormInput = normalizarTexto(cargoNombre);
+      cargo = cargosArea.find((c) => normalizarTexto(c.nombre) === cargoNormInput) || null;
     }
 
     //Si aún no se encuentra, creamos el cargo automáticamente
@@ -191,8 +191,8 @@ export class ProcesarFilaEmpleadoUseCase {
 
     if (!jornada) {
       const jornadasActivas = await this.prisma.jornada.findMany({ where: { deleted_at: null } });
-      const jornadaNormInput = NormalizarTexto(jornadaNombre);
-      jornada = jornadasActivas.find((j) => NormalizarTexto(j.nombre) === jornadaNormInput) || null;
+      const jornadaNormInput = normalizarTexto(jornadaNombre);
+      jornada = jornadasActivas.find((j) => normalizarTexto(j.nombre) === jornadaNormInput) || null;
     }
 
     if (!jornada) {

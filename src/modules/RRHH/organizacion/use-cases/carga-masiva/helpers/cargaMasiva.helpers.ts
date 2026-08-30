@@ -8,7 +8,7 @@ import { Readable } from "node:stream";
 /**
  * Normaliza cadenas de texto removiendo tildes y diacríticos para búsquedas tolerantes.
  */
-export function NormalizarTexto(texto: string): string {
+export function normalizarTexto(texto: string): string {
   return texto
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -19,7 +19,7 @@ export function NormalizarTexto(texto: string): string {
 /**
  * Metodo que parsea cadenas de fecha en formatos YYYY-MM-DD o DD/MM/YYYY a objetos Date.
  */
-export function NormalizarFecha(valor: any): Date | null {
+export function normalizarFecha(valor: any): Date | null {
   if (!valor) return null;
 
   if (valor instanceof Date && !Number.isNaN(valor.getTime()))
@@ -49,7 +49,7 @@ export function NormalizarFecha(valor: any): Date | null {
  * @param texto - La cadena de texto a normalizar.
  * @returns La cadena normalizada.
  */
-export function NormalizarLlaveHeader(texto: string): string {
+export function normalizarLlaveHeader(texto: string): string {
   if (!texto) return '';
   let normalizada = texto
     .normalize('NFD')
@@ -72,7 +72,7 @@ export function NormalizarLlaveHeader(texto: string): string {
  * @param filaRaw - La fila cruda a mapear.
  * @returns La fila mapeada y sanitizada.
  */
-export function MapearFilaRaw(filaRaw: Record<string, any>): Record<string, any> {
+export function mapearFilaRaw(filaRaw: Record<string, any>): Record<string, any> {
   //Normalizar y mapear campos de la fila
   let nroDoc = (filaRaw.nro_documento || filaRaw.numero_documento || filaRaw.dni || filaRaw.nro_doc || filaRaw.documento || '' ).toString().trim();
   const tipoDoc = (filaRaw.tipo_documento || filaRaw.tipo_doc || 'DNI' ).toString().trim();
@@ -112,7 +112,7 @@ export function MapearFilaRaw(filaRaw: Record<string, any>): Record<string, any>
 /**
  * Normaliza el valor leido desde una celda de Excel para evitar objetos complejos.
  */
-function NormalizarValorCeldaExcel(valor: any): any {
+function normalizarValorCeldaExcel(valor: any): any {
   if (valor == null) return '';
 
   if (valor instanceof Date) 
@@ -130,23 +130,23 @@ function NormalizarValorCeldaExcel(valor: any): any {
 /**
  * Construye los headers de la hoja Excel tomando como referencia la primera fila.
  */
-function ObtenerHeadersExcel(values: any[]): string[] {
+function obtenerHeadersExcel(values: any[]): string[] {
   return values.slice(1).map((valor, index) => {
     const texto = valor ? String(valor).trim() : `col_${index + 1}`;
-    return NormalizarLlaveHeader(texto);
+    return normalizarLlaveHeader(texto);
   });
 }
 
 /**
  * Mapea una fila de Excel a un objeto clave-valor usando los headers ya normalizados.
  */
-function MapearFilaExcel(values: any[], headers: string[]): Record<string, any> | null {
+function mapearFilaExcel(values: any[], headers: string[]): Record<string, any> | null {
   const filaObj: Record<string, any> = {};
   let tieneDatos = false;
 
   for (let i = 1; i < values.length; i++) {
     const key = headers[i - 1];
-    const valor = NormalizarValorCeldaExcel(values[i]);
+    const valor = normalizarValorCeldaExcel(values[i]);
     const cleanVal = typeof valor === 'string' ? valor.trim() : valor;
 
     if (key) {
@@ -163,7 +163,7 @@ function MapearFilaExcel(values: any[], headers: string[]): Record<string, any> 
  * @param buffer - El buffer del archivo `.xlsx` a parsear.
  * @returns Un arreglo de objetos representando las filas del archivo.
  */
-export async function ParseExcelBuffer(buffer: Buffer): Promise<Record<string, any>[]> {
+export async function mapearExcelBuffer(buffer: Buffer): Promise<Record<string, any>[]> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as any);
 
@@ -177,11 +177,11 @@ export async function ParseExcelBuffer(buffer: Buffer): Promise<Record<string, a
     const values = row.values as any[];
 
     if (rowNumber === 1) {
-      headers.push(...ObtenerHeadersExcel(values));
+      headers.push(...obtenerHeadersExcel(values));
       return;
     }
 
-    const filaMapeada = MapearFilaExcel(values, headers);
+    const filaMapeada = mapearFilaExcel(values, headers);
     if (filaMapeada) filas.push(filaMapeada);
   });
 
@@ -191,7 +191,7 @@ export async function ParseExcelBuffer(buffer: Buffer): Promise<Record<string, a
 /**
  * Convierte cualquier valor crudo de una celda CSV a un string representativo.
  */
-function NormalizarValorCsv(valor: any): string {
+function normalizarValorCsv(valor: any): string {
   if (valor == null) return '';
 
   if (
@@ -208,11 +208,11 @@ function NormalizarValorCsv(valor: any): string {
 /**
  * Construye una fila limpia normalizando headers y valores del CSV.
  */
-function ConstruirFilaLimpia(filaRaw: Record<string, any>): Record<string, any> {
+function construirFilaLimpia(filaRaw: Record<string, any>): Record<string, any> {
   const rawKeys = Object.keys(filaRaw);
   if (rawKeys.length === 1 && rawKeys[0].includes(';')) {
-    const headersArr = rawKeys[0].split(';').map((h) => NormalizarLlaveHeader(h));
-    const valuesArr = NormalizarValorCsv(Object.values(filaRaw)[0]).split(';').map((v) => v.trim());
+    const headersArr = rawKeys[0].split(';').map((h) => normalizarLlaveHeader(h));
+    const valuesArr = normalizarValorCsv(Object.values(filaRaw)[0]).split(';').map((v) => v.trim());
 
     return headersArr.reduce<Record<string, any>>((filaLimpia, header, idx) => {
       filaLimpia[header] = valuesArr[idx] ?? '';
@@ -221,7 +221,7 @@ function ConstruirFilaLimpia(filaRaw: Record<string, any>): Record<string, any> 
   }
 
   return Object.entries(filaRaw).reduce<Record<string, any>>((filaLimpia, [key, val]) => {
-    const cleanKey = NormalizarLlaveHeader(key);
+    const cleanKey = normalizarLlaveHeader(key);
     const cleanVal = typeof val === 'string' ? val.trim() : val;
     filaLimpia[cleanKey] = cleanVal;
     return filaLimpia;
@@ -233,7 +233,7 @@ function ConstruirFilaLimpia(filaRaw: Record<string, any>): Record<string, any> 
  * @param buffer - El buffer del archivo CSV a parsear.
  * @returns Un arreglo de objetos representando las filas del archivo.
  */
-export async function ParseCsvBuffer(buffer: Buffer): Promise<Record<string, any>[]> {
+export async function mapearCsvBuffer(buffer: Buffer): Promise<Record<string, any>[]> {
   const textoDecodificado = (() => {
     try {
       const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
@@ -250,12 +250,12 @@ export async function ParseCsvBuffer(buffer: Buffer): Promise<Record<string, any
   const parser = streamDecodificado.pipe(
     csvParser({
       separator: ',',
-      mapHeaders: ({ header }) => NormalizarLlaveHeader(header),
+      mapHeaders: ({ header }) => normalizarLlaveHeader(header),
     }),
   );
 
   for await (const filaRaw of parser) 
-    filas.push(ConstruirFilaLimpia(filaRaw));
+    filas.push(construirFilaLimpia(filaRaw));
 
   return filas;
 }
