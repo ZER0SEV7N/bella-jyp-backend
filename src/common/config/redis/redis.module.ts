@@ -2,6 +2,7 @@
 //Módulo de configuración de Redis para la aplicación
 import { Module, Global } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { ResdisClientProvider } from './redis-cliente.provider';
 
 @Global()
 @Module({
@@ -19,6 +20,7 @@ import { BullModule } from '@nestjs/bullmq';
       },
     }),
   ],
-  exports: [BullModule], //Exporta el módulo de Bull para que pueda ser utilizado en otros módulos de la aplicación
+  providers: [ResdisClientProvider],
+  exports: [BullModule, ResdisClientProvider], //Exporta el módulo de Bull para que pueda ser utilizado en otros módulos de la aplicación
 })
 export class RedisModule {}
