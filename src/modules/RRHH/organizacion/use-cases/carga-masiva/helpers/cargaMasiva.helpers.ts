@@ -120,8 +120,8 @@ function normalizarValorCeldaExcel(valor: any): any {
   
 
   if (typeof valor === 'object') {
-    if ((valor as any).result !== undefined) return (valor as any).result;
-    if ((valor as any).text !== undefined) return (valor as any).text;
+    if (valor.result !== undefined) return valor.result;
+    if (valor.text !== undefined) return valor.text;
   }
 
   return valor;
@@ -194,13 +194,8 @@ export async function mapearExcelBuffer(buffer: Buffer): Promise<Record<string, 
 function normalizarValorCsv(valor: any): string {
   if (valor == null) return '';
 
-  if (
-    typeof valor === 'string'
-    || typeof valor === 'number'
-    || typeof valor === 'boolean'
-  ) {
+  if (typeof valor === 'string' || typeof valor === 'number'|| typeof valor === 'boolean') 
     return String(valor);
-  }
 
   return JSON.stringify(valor);
 }

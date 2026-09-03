@@ -77,7 +77,7 @@ export class CrearCargoUseCase {
 
       throw new InternalServerErrorException({
         title: 'Error al crear el Cargo',
-        detail: error instanceof Error ? error.message : 'Fallo interno al intentar registrar el cargo.',
+        detail: error instanceof Error ? error.message : 'Fallo interno al intentar registrar el cargo.'
       });
     }
   }

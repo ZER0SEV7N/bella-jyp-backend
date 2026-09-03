@@ -33,8 +33,7 @@ export class ActiveEmpleadoUseCase {
     } catch (error) {
       throw new BadRequestException({
         title: 'Error al reactivar',
-        detail:
-          'No se pudo realizar la operación, asegúrate de que el ID sea correcto.',
+        detail: 'No se pudo realizar la operación, asegúrate de que el ID sea correcto.'
       });
     }
   }

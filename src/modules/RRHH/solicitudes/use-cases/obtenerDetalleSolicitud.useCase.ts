@@ -44,7 +44,7 @@ export class ObtenerDetalleSolicitudUseCase {
                 deleted_at: null
             },
             include: {
-                empleado: {
+                empleados: {
                     select: {
                         id: true,
                         nombre: true,
@@ -60,7 +60,7 @@ export class ObtenerDetalleSolicitudUseCase {
                         id: true,
                         email: true,
                         rol: true,
-                        empleado: { select: { nombre: true, apellido: true } }
+                        empleados: { select: { nombre: true, apellido: true } }
                     }
                 }
             }
@@ -81,12 +81,12 @@ export class ObtenerDetalleSolicitudUseCase {
         return {
             ...solicitud,
             colaborador_resumen: {
-                id: solicitud.empleado.id,
-                nombre_completo: `${solicitud.empleado.nombre} ${solicitud.empleado.apellido}`.trim(),
-                documento: solicitud.empleado.nro_documento,
-                area: solicitud.empleado.area.nombre ?? 'No registrada',
-                cargo: solicitud.empleado.cargo.nombre ?? 'No registrado',
-                antiguedad: calcularAntiguedad(solicitud.empleado.fecha_inicio)
+                id: solicitud.empleados.id,
+                nombre_completo: `${solicitud.empleados.nombre} ${solicitud.empleados.apellido}`.trim(),
+                documento: solicitud.empleados.nro_documento,
+                area: solicitud.empleados.area.nombre ?? 'No registrada',
+                cargo: solicitud.empleados.cargo.nombre ?? 'No registrado',
+                antiguedad: calcularAntiguedad(solicitud.empleados.fecha_inicio)
             },
             alerta_urgencia: requiereAtencionInmediata ? {
                 mensaje: 'Atención inmediata: el período inicia hoy o ya ha comenzado.',

@@ -28,13 +28,14 @@ model aportaciones {
 }
 
 model area {
-  id          String      @id @db.Uuid
-  nombre      String      @db.VarChar(100)
-  descripcion String?     @db.VarChar(255)
-  activo      Boolean     @default(true)
-  deleted_at  DateTime?   @db.Timestamptz(6)
-  cargo       cargo[]
-  empleados   empleados[]
+  id            String         @id @db.Uuid
+  nombre        String         @db.VarChar(100)
+  descripcion   String?        @db.VarChar(255)
+  activo        Boolean        @default(true)
+  deleted_at    DateTime?      @db.Timestamptz(6)
+  cargo         cargo[]
+  empleados     empleados[]
+  jornada_areas jornada_area[]
 }
 
 model tipo_afp {
@@ -62,20 +63,17 @@ model bancos {
 }
 
 model cargo {
-  id                  String    @id @db.Uuid
-  id_area             String    @db.Uuid
-  jornada_sugerida_id String?   @db.Uuid
-  nombre              String    @db.VarChar(100)
-  descripcion         String?   @db.VarChar(255)
-  activo              Boolean   @default(true)
-  deleted_at          DateTime? @db.Timestamptz(6)
+  id          String    @id @db.Uuid
+  id_area     String    @db.Uuid
+  nombre      String    @db.VarChar(100)
+  descripcion String?   @db.VarChar(255)
+  activo      Boolean   @default(true)
+  deleted_at  DateTime? @db.Timestamptz(6)
 
-  area             area        @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
-  jornada_sugerida jornada?    @relation("CargoJornadaSugerida", fields: [jornada_sugerida_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_jornada_sugerida")
-  empleados        empleados[]
+  area      area        @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
+  empleados empleados[]
 
   @@index([id_area], map: "idx_cargo_area")
-  @@index([jornada_sugerida_id], map: "idx_cargo_jornada_sugerida")
 }
 
 model estado_contrato {
@@ -161,7 +159,7 @@ model CargaMasivaJob {
   fallidos        Int             @default(0)
   errores_detalle Json?
   created_at      DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
   estado          estado_job_enum @default(EN_COLA)
 
   @@map("carga_masiva_jobs")
@@ -177,6 +175,7 @@ model empleados {
   apellido              String?                    @db.VarChar(100)
   nro_documento         String                     @unique @db.VarChar(20)
   email                 String?                    @db.VarChar(150)
+  telefono              String?                    @db.VarChar(20)
   fecha_nacimiento      DateTime?                  @db.Date
   fecha_inicio          DateTime?                  @db.Date
   fecha_cese            DateTime?                  @db.Date
@@ -185,27 +184,28 @@ model empleados {
   activo                Boolean                    @default(true)
   deleted_at            DateTime?                  @db.Timestamptz(6)
   created_at            DateTime                   @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
   jornada_id            String?                    @db.Uuid
   estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
-  asistencias           asistencia_marcacion[]
-  contratos             contratos[]
-  dato_financiero       dato_financiero?
-  area                  area                       @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_area")
-  cargo                 cargo                      @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_cargo")
-  estado_empleado       estado_empleado            @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_estado")
-  jornada               jornada?                   @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_jornada")
-  tipo_documento        tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleados_tipo_documento")
-  historial_planillas   historial_planillas[]
-  incidencias           incidencias_mes[]
-  usuarios              usuarios?
-  solicitudes           solicitud[]
 
-  @@index([activo], map: "idx_empleados_activo", where: raw("(activo = true)"))
-  @@index([area_id], map: "idx_empleados_area")
-  @@index([cargo_id], map: "idx_empleados_cargo")
-  @@index([deleted_at], map: "idx_empleados_deleted", where: raw("(deleted_at IS NULL)"))
-  @@map("empleados")
+  asistencias         asistencia_marcacion[]
+  contratos           contratos[]
+  dato_financiero     dato_financiero?
+  area                area                       @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_area")
+  cargo               cargo                      @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_cargo")
+  estado_empleado     estado_empleado            @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_estado")
+  jornada             jornada?                   @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_jornada")
+  tipo_documento      tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_tipo_documento")
+  historial_planillas historial_planillas[]
+  incidencias         incidencias_mes[]
+  usuarios            usuarios?
+  solicitudes         solicitud[]
+
+  @@index([activo], map: "idx_empleado_activo", where: raw("(activo = true)"))
+  @@index([area_id], map: "idx_empleado_area")
+  @@index([cargo_id], map: "idx_empleado_cargo")
+  @@index([deleted_at], map: "idx_empleado_deleted", where: raw("(deleted_at IS NULL)"))
+  @@map("empleado")
 }
 
 model historial_planillas {
@@ -230,7 +230,7 @@ model historial_planillas {
   comentarios            String?
   activo                 Boolean              @default(true)
   created_at             DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
   deleted_at             DateTime?            @db.Timestamptz(6)
   empleados              empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_empleado")
 
@@ -239,19 +239,19 @@ model historial_planillas {
 }
 
 model tareas_asistente {
-  id                                               String             @id @db.Uuid
-  asignado_a                                       String             @db.Uuid
-  asignado_por                                     String             @db.Uuid
-  titulo                                           String             @db.VarChar(200)
-  descripcion                                      String?
-  fecha_entrega                                    DateTime?          @db.Date
-  estado                                           estado_tarea_enum  @default(PENDIENTE)
-  anotaciones                                      String?
-  deleted_at                                       DateTime?          @db.Timestamptz(6)
-  created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
-  anotacion_tareas                                 anotacion_tareas[]
-  usuarios_tareas_asistente_asignado_aTousuarios   usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
-  usuarios_tareas_asistente_asignado_porTousuarios usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
+  id                                                       String             @id @db.Uuid
+  asignado_a                                               String             @db.Uuid
+  asignado_por                                             String             @db.Uuid
+  titulo                                                   String             @db.VarChar(200)
+  descripcion                                              String?
+  fecha_entrega                                            DateTime?          @db.Date
+  estado                                                   estado_tarea_enum  @default(PENDIENTE)
+  anotaciones                                              String?
+  deleted_at                                               DateTime?          @db.Timestamptz(6)
+  created_at                                               DateTime           @default(now()) @db.Timestamptz(6)
+  anotacion_tareas                                         anotacion_tareas[]
+  usuarios_tareas_asistente_asignado_aTousuarios           usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
+  usuarios_tareas_asistente_asignado_porTousuarios         usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
 
   @@index([asignado_a], map: "idx_tareas_asignado_a")
   @@index([deleted_at], map: "idx_tareas_deleted", where: raw("(deleted_at IS NULL)"))
@@ -268,14 +268,14 @@ model usuarios {
   deleted_at                                               DateTime?          @db.Timestamptz(6)
   ultimo_acceso                                            DateTime?          @db.Timestamptz(6)
   created_at                                               DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at                                               DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at                                               DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
   anotacion_tareas                                         anotacion_tareas[]
   audit_log                                                audit_log[]
   tareas_asistente_tareas_asistente_asignado_aTousuarios   tareas_asistente[] @relation("tareas_asistente_asignado_aTousuarios")
   tareas_asistente_tareas_asistente_asignado_porTousuarios tareas_asistente[] @relation("tareas_asistente_asignado_porTousuarios")
   tokens_seguridad                                         tokens_seguridad[]
   empleados                                                empleados          @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuarios_empleado")
-  solicitudes                                              solicitud[]
+  solicitudes_revisadas                                    solicitud[]        @relation("ResponsableRevision")
 
   @@index([activo], map: "idx_usuarios_activo", where: raw("(activo = true)"))
   @@index([deleted_at], map: "idx_usuarios_deleted", where: raw("(deleted_at IS NULL)"))
@@ -315,17 +315,43 @@ model audit_log {
 }
 
 model jornada {
-  id                 String    @id @db.Uuid
-  nombre             String    @db.VarChar(100)
-  tipo_jornada       String    @default("FIJA") @db.VarChar(50)
-  hora_entrada       DateTime  @db.Time(6)
-  hora_salida        DateTime  @db.Time(6)
-  tolerancia_minutos Int       @default(0)
-  activo             Boolean   @default(true)
-  deleted_at         DateTime? @db.Timestamptz(6)
+  id                 String                 @id @db.Uuid
+  nombre             String                 @db.VarChar(100)
+  descripcion        String?                @db.VarChar(255)
+  duracion           duracion_jornada_enum  @default(TIEMPO_COMPLETO)
+  turno              turno_jornada_enum     @default(MANANA)
+  modalidad          modalidad_jornada_enum @default(PRESENCIAL)
+  tolerancia_minutos Int                    @default(5)
+  total_horas_semana Decimal                @default(40.00) @db.Decimal(5, 2)
 
-  empleados        empleados[]
-  cargos_sugeridos cargo[]     @relation("CargoJornadaSugerida")
+  horario_semanal    Json
+  patron_rotacion    Json?
+
+  activo             Boolean                @default(true)
+  deleted_at         DateTime?              @db.Timestamptz(6)
+  created_at         DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+
+  empleados          empleados[]
+  jornada_areas      jornada_area[]
+
+  @@index([activo], map: "idx_jornada_activo", where: raw("(activo = true)"))
+  @@index([modalidad], map: "idx_jornada_modalidad")
+  @@index([turno], map: "idx_jornada_turno")
+  @@index([duracion], map: "idx_jornada_duracion")
+  @@map("jornada")
+}
+
+model jornada_area {
+  jornada_id String  @db.Uuid
+  area_id    String  @db.Uuid
+
+  jornada    jornada @relation(fields: [jornada_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_jornada")
+  area       area    @relation(fields: [area_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_area")
+
+  @@id([jornada_id, area_id])
+  @@index([area_id], map: "idx_jornada_area_area")
+  @@map("jornada_area")
 }
 
 model asistencia_marcacion {
@@ -351,42 +377,63 @@ model incidencias_mes {
   horas_extras_35  Decimal                @default(0.0000) @db.Decimal(12, 4)
   estado           estado_incidencia_enum @default(PENDIENTE)
   creado_en        DateTime               @default(now()) @db.Timestamptz(6)
-  actualizado_en   DateTime               @default(now()) @db.Timestamptz(6)
+  actualizado_en   DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
   empleados        empleados              @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_empleado")
 
   @@unique([empleado_id, periodo], map: "uq_incidencia_periodo")
 }
 
 model solicitud {
-  id          String          @id @db.Uuid
-  codigo      String          @unique @db.VarChar(20) // Ej: "SOL-2026-002"
-  empleado_id String          @db.Uuid
-  tipo        TipoSolicitud
-  estado      EstadoSolicitud @default(PENDIENTE)
+  id              String          @id @db.Uuid
+  codigo          String          @unique @db.VarChar(20)
+  empleado_id     String          @db.Uuid
+  tipo            TipoSolicitud
+  estado          EstadoSolicitud @default(PENDIENTE)
 
-  fecha_inicio     DateTime? @db.Date
-  fecha_fin        DateTime? @db.Date
-  dias_solicitados Int?      @default(1)
+  fecha_inicio     DateTime?      @db.Date
+  fecha_fin        DateTime?      @db.Date
+  dias_solicitados Int?           @default(1)
 
-  motivo      String  @db.Text
-  observacion String? @db.Text
+  motivo          String          @db.Text
+  observacion     String?         @db.Text
 
-  sustento_url    String? @db.VarChar(255)
-  sustento_nombre String? @db.VarChar(150)
+  sustento_url    String?         @db.VarChar(255)
+  sustento_nombre String?         @db.VarChar(150)
 
-  responsable_id String?   @db.Uuid
-  fecha_limite   DateTime? @db.Date
-  origen         String    @default("PORTAL_EMPLEADO") @db.VarChar(50)
+  responsable_id  String?         @db.Uuid
+  fecha_limite    DateTime?       @db.Date
+  origen          String          @default("PORTAL_EMPLEADO") @db.VarChar(50)
 
-  created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime  @updatedAt @db.Timestamptz(6)
-  deleted_at  DateTime? @db.Timestamptz(6)
-  empleado    empleados @relation(fields: [empleado_id], references: [id])
-  responsable usuarios? @relation(fields: [responsable_id], references: [id])
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+  deleted_at      DateTime?       @db.Timestamptz(6)
 
-  @@index([empleado_id])
-  @@index([estado])
-  @@index([tipo])
+  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_empleado")
+  responsable     usuarios?       @relation("ResponsableRevision", fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_responsable")
+
+  @@index([empleado_id], map: "idx_solicitud_empleado")
+  @@index([estado], map: "idx_solicitud_estado")
+  @@index([tipo], map: "idx_solicitud_tipo")
+  @@map("solicitud")
+}
+
+enum duracion_jornada_enum {
+  TIEMPO_COMPLETO
+  TIEMPO_PARCIAL
+}
+
+enum turno_jornada_enum {
+  MANANA
+  TARDE
+  NOCHE
+  MIXTO
+  ROTATIVO
+}
+
+enum modalidad_jornada_enum {
+  PRESENCIAL
+  REMOTO
+  HIBRIDO
 }
 
 enum estado_planilla_enum {

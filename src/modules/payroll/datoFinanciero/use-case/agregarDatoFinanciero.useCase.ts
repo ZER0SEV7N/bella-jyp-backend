@@ -76,7 +76,7 @@ export class AgregarDatoFinancieroUseCase {
           nro_cuenta_cts: ctsEncrypted,
           sueldo_basico: dto.sueldo_basico,
           cuspp: dto.cuspp || null,
-          tipo_comision: dto.tipo_comision || null,
+          tipo_comision: dto.tipo_comision || null
         }
       });
 

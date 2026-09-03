@@ -1,4 +1,9 @@
 $kind: http-request
-url: ""
+name: Comprobar la cola de la subida-masiva
+url: http://localhost:3000/api/rrhh/empleados/bulk/01a015d2-42dd-74d2-b050-2dbd35eeb362
 method: GET
+auth:
+  type: bearer
+  credentials:
+    token: ""
 order: 4000

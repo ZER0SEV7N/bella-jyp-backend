@@ -92,7 +92,7 @@ export class CrearSolicitudUseCase {
                 origen: dto.origen || 'PORTAL_EMPLEADO'
             },
             include: {
-                empleado: {
+                empleados: {
                     select: {
                         id: true,
                         nombre: true,
