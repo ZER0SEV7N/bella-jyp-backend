@@ -80,7 +80,6 @@ export class EstadoCargoUseCase {
         data: { activo: true, deleted_at: null },
         include: {
           area: { select: { id: true, nombre: true } },
-          jornada_sugerida: { select: { id: true, nombre: true, tipo_jornada: true } }
         }
       });
     } catch (error) {

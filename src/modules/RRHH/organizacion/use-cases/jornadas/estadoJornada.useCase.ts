@@ -25,24 +25,38 @@ export class EstadoJornadaUseCase {
    * @throws {BadRequestException} Si hay empleados activos asociados a la jornada laboral.
    */
   async desactivar(id: string) {
-    //Verificar si la jornada laboral existe y no está eliminada
-    const jornada = await this.prisma.jornada.findUnique({ where: { id } });
-    if (jornada?.deleted_at !== null)
-      throw new NotFoundException('La jornada no existe o ya está eliminada.');
+    try {
+      //Verificar si la jornada laboral existe y no está eliminada
+      const jornada = await this.prisma.jornada.findUnique({
+        where: { id, deleted_at: null },
+        include: {_count: { select: { empleados: {where: { activo: true, deleted_at: null } } } } }
+      });
 
-    //No permitir desactivar la jornada si hay empleados activos asociados a ella
-    const empleadosUsando = await this.prisma.empleados.count({where: { jornada_id: id, activo: true, deleted_at: null }});
+      //Si no existe, lanzar excepción
+      if (!jornada) throw new NotFoundException({
+        title: 'Jornada no encontrada',
+        detail: 'La jornada que intenta desactivar no existe o ya fue dada de baja.',
+      });
 
-    if (empleadosUsando > 0)throw new BadRequestException({
-      title: 'Eliminación Bloqueada',
-      detail: `Hay ${empleadosUsando} empleado(s) usando este turno. Reasígnalos primero.`
-    });
-
-    //Desactivar la jornada laboral
-    return await this.prisma.jornada.update({
-      where: { id },
-      data: { activo: false, deleted_at: new Date() },
-    });
+      //Regla de negocio: No desactivar si hay colaboradores activos con este turno
+      if (jornada._count.empleados > 0) throw new BadRequestException({
+        title: 'Jornada en Uso',
+        detail: `No se puede desactivar la jornada '${jornada.nombre}' 
+                porque actualmente está asignada a ${jornada._count.empleados} empleado(s) activo(s). 
+                Reasigne a los colaboradores antes de proceder.`
+      });
+      
+      //Desactivar la jornada laboral
+      return await this.prisma.jornada.update({
+        where: { id },
+        data: { activo: false, deleted_at: new Date() }
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) 
+        throw error;
+      
+      throw new InternalServerErrorException('Error al intentar desactivar la jornada.');
+    }
   }
 
   /**
@@ -55,24 +69,31 @@ export class EstadoJornadaUseCase {
   async reactivar(id: string) {
     try {
       //Verificar si la jornada laboral existe
-      const jornada = await this.prisma.jornada.findUnique({ where: { id } });
+      const jornada = await this.prisma.jornada.findUnique({where: { id }});
 
+      //Si no existe, lanzar excepción
       if (!jornada) throw new NotFoundException({
         title: 'Jornada no encontrada',
-        detail: 'La jornada especificada no existe.'
+        detail: 'La jornada especificada no existe en los registros.'
       });
       
+      //Regla de negocio: No reactivar si ya está activa
+      if (jornada.activo && jornada.deleted_at === null) throw new BadRequestException({
+        title: 'Jornada ya activa',
+        detail: `La jornada '${jornada.nombre}' ya se encuentra activa en el sistema.`
+      });
+      
+
       //Reactivar la jornada laboral
       return await this.prisma.jornada.update({
         where: { id },
-        data: { activo: true, deleted_at: null }
+        data: {activo: true, deleted_at: null }
       });
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException({
-        title: 'Error al reactivar jornada',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al reactivar la jornada.',
-      });
+      if (error instanceof BadRequestException || error instanceof NotFoundException) 
+        throw error;
+      
+      throw new InternalServerErrorException('Error al reactivar la jornada.');
     }
   }
 }

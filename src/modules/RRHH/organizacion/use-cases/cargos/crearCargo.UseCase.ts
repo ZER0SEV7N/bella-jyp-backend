@@ -54,21 +54,11 @@ export class CrearCargoUseCase {
         data: {
           id: IdentityGenerator.generateId(),
           id_area: payload.id_area,
-          jornada_sugerida_id: payload.jornada_sugerida_id || null,
           nombre: payload.nombre.trim(),
           descripcion: payload.descripcion ? payload.descripcion.trim() : null,
           activo: true
         }, include: {
-          area: { select: { id: true, nombre: true } },
-          jornada_sugerida: {
-            select: {
-              id: true,
-              nombre: true,
-              tipo_jornada: true,
-              hora_entrada: true,
-              hora_salida: true
-            }
-          }
+          area: { select: { id: true, nombre: true } }
         }
       });
     } catch (error) {

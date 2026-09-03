@@ -12,7 +12,7 @@ import type { ListarJornadasQueryDto } from '@jyp/shared-contracts';
 @Injectable()
 export class ListarJornadaUseCase {
   constructor(private readonly prisma: PrismaService) {}
-
+  
   /**
    * Ejecuta el caso de uso para listar las jornadas laborales con paginación y filtrado.
    * @param query - Parámetros de consulta para la paginación y filtrado de las jornadas laborales.
@@ -22,41 +22,72 @@ export class ListarJornadaUseCase {
   async execute(query: ListarJornadasQueryDto) {
     try {
       //Desestructurar los parámetros de consulta y establecer valores predeterminados
-      const { page = 1, limit = 50, activo, tipo_jornada } = query;
+     const page = Number(query.page) || 1;
+      const limit = Number(query.limit) || 10;
       const skip = (page - 1) * limit;
+
       const where: Record<string, any> = { deleted_at: null };
 
-      if (activo !== undefined) where.activo = activo;
-      if (tipo_jornada) where.tipo_jornada = tipo_jornada;
+      if (query.activo !== undefined) where.activo = query.activo;
+      if (query.turno) where.turno = query.turno;
+      if (query.modalidad) where.modalidad = query.modalidad;
+      if (query.duracion) where.duracion = query.duracion;
       
-      //Ejecutar la transacción para contar el total de jornadas y obtener la lista de jornadas con paginación
+      //Filtrado por búsqueda de texto en nombre o descripción de la jornada laboral
+      if (query.search && query.search.trim() !== '')
+        where.OR = [
+          { nombre: { contains: query.search.trim(), mode: 'insensitive' } },
+          { descripcion: { contains: query.search.trim(), mode: 'insensitive' } },
+        ];
+      
+      //Filtrado directo por área aplicable a través de la tabla pivote
+      if (query.area_id) 
+        where.jornada_areas = {some: { area_id: query.area_id } };
+      
+      //Realizar la consulta a la base de datos con transacción para obtener el total y los registros paginados
       const [total, jornadas] = await this.prisma.$transaction([
         this.prisma.jornada.count({ where }),
         this.prisma.jornada.findMany({
           where,
           skip,
           take: limit,
-          orderBy: { nombre: 'asc' },
+          orderBy: { created_at: 'desc' },
           include: {
             _count: {
               select: {
                 empleados: { where: { activo: true, deleted_at: null } },
-                cargos_sugeridos: { where: { activo: true, deleted_at: null } }
+                jornada_areas: true
               }
-            }
+            },
+            jornada_areas: {include: { area: { select: { id: true, nombre: true } } } }
           }
         })
       ]);
 
+      //Mapeo estructurado para la tabla del prototipo
+      const data = jornadas.map((j) => ({
+        id: j.id,
+        nombre: j.nombre,
+        descripcion: j.descripcion,
+        duracion: j.duracion,
+        turno: j.turno,
+        modalidad: j.modalidad,
+        tolerancia_minutos: j.tolerancia_minutos,
+        total_horas_semana: Number(j.total_horas_semana),
+        horario_semanal: j.horario_semanal,
+        patron_rotacion: j.patron_rotacion,
+        activo: j.activo,
+        total_empleados: j._count.empleados,
+        total_areas: j._count.jornada_areas,
+        areas: j.jornada_areas.map((ja) => ja.area)
+      }));
+
       return {
-        data: jornadas,
-        meta: { total, page, limit, totalPages: Math.ceil(total / limit)}
+        data,
+        meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
       };
     } catch (error) {
-      throw new InternalServerErrorException({
-        title: 'Error al listar jornadas',
-          detail: error instanceof Error ? error.message : 'Fallo inesperado al consultar las jornadas.',
-      });
+     throw new InternalServerErrorException( 'Ocurrió un error al obtener la lista de jornadas.', error instanceof Error ? error.message : undefined);
     }
   }
 }

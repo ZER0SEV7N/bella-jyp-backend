@@ -46,29 +46,17 @@ export class ActualizarCargoUseCase {
         where: { id },
         data: {
           id_area: payload.id_area ?? undefined,
-          jornada_sugerida_id: payload.jornada_sugerida_id,
           nombre: payload.nombre ? payload.nombre.trim() : undefined,
           descripcion: payload.descripcion ?? undefined
         },
-        include: {
-          area: { select: { id: true, nombre: true } },
-          jornada_sugerida: {
-            select: {
-              id: true,
-              nombre: true,
-              tipo_jornada: true,
-              hora_entrada: true,
-              hora_salida: true
-            }
-          }
-        }
+        include: { area: { select: { id: true, nombre: true } } }
       });
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
 
       throw new InternalServerErrorException({
         title: 'Error de Actualización',
-        detail: error instanceof Error ? error.message : 'No se pudo actualizar el registro del cargo.',
+        detail: error instanceof Error ? error.message : 'No se pudo actualizar el registro del cargo.'
       });
     }
   }

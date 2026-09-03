@@ -42,15 +42,6 @@ export class ListarCargosUseCase {
           orderBy: { nombre: 'asc' },
           include: {
             area: { select: { id: true, nombre: true } },
-            jornada_sugerida: {
-              select: {
-                id: true,
-                nombre: true,
-                tipo_jornada: true,
-                hora_entrada: true,
-                hora_salida: true
-              }
-            },
             _count: { select: {empleados: { where: { activo: true, deleted_at: null } } } }
           }
         })
