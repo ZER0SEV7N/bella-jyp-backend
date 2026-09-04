@@ -1,93 +1,153 @@
-//test/modules/RRHH/Area/actualizarArea.useCase.spec.ts
+//test/modules/RRHH/organizacion/area/actualizarArea.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ActualizarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/actualizarArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import type { ActualizarAreaDto } from '@jyp/shared-contracts';
 
-//Prueba unitaria para el caso de uso ActualizarAreaUseCase
-describe('ActualizarAreaUseCase', () => {
+/**
+ * Pruebas unitarias exhaustivas para el caso de uso ActualizarAreaUseCase.
+ * Estas pruebas verifican el comportamiento del caso de uso en escenarios de éxito y manejo de errores.
+ * Se simula la interacción con la base de datos utilizando un mock del servicio Prisma.
+ */
+describe('ActualizarAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: ActualizarAreaUseCase;
-  let mockPrisma: any;
+  let prisma: PrismaService;
 
-  //Configuración inicial antes de cada prueba
+  //Mock del servicio Prisma para simular la interacción con la base de datos
+  const mockPrisma = {
+    area: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn()
+    }
+  };
+
+  //Datos de prueba para un área existente
+  const idArea = '018f4a7c-area-0000-0000-000000000001';
+
+  //Payload de prueba para actualizar un área
+  const areaExistente = {
+    id: idArea,
+    nombre: 'Tecnología',
+    descripcion: 'Soporte y sistemas',
+    activo: true,
+    deleted_at: null
+  };
+
+  //Configuración del módulo de pruebas antes de cada test
   beforeEach(async () => {
-    mockPrisma = {
-      area: {
-        findUnique: jest.fn(),
-        update: jest.fn(),
-      },
-    };
-
-    //Crear un módulo de prueba para inyectar dependencias
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ActualizarAreaUseCase,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+        { provide: PrismaService, useValue: mockPrisma }
+      ]
     }).compile();
+
     useCase = module.get<ActualizarAreaUseCase>(ActualizarAreaUseCase);
+    prisma = module.get<PrismaService>(PrismaService);
   });
 
-  afterEach(() => jest.clearAllMocks()); //Limpiar los mocks después de cada prueba
+  afterEach(() => jest.resetAllMocks());
 
-  it('Debería actualizar el área exitosamente', async () => {
-    //Arrange
-    const idArea = 'uuid-area-123';
-    const payload = { nombre: 'Nuevo Nombre', descripcion: 'Nueva Desc' };
+  describe('Casos de Éxito (Happy Path)', () => {
+    it('Debe actualizar el nombre y descripción si el nuevo nombre no colisiona', async () => {
+      //Arrange: Simular que el área existe y que no hay colisión de nombres
+      const dto: ActualizarAreaDto = {
+        nombre: 'Tecnología y Cloud',
+        descripcion: 'Infraestructura y arquitectura'
+      };
 
-    //El área existe y está activa
-    mockPrisma.area.findUnique.mockResolvedValue({
-      id: idArea,
-      deleted_at: null,
+      //Simular la existencia del área y que no hay otra área con el mismo nombre
+      mockPrisma.area.findUnique.mockResolvedValue(areaExistente);
+      mockPrisma.area.findFirst.mockResolvedValue(null);
+      mockPrisma.area.update.mockResolvedValue({ ...areaExistente, ...dto });
+
+      //Act: Ejecutar el caso de uso con el ID del área y el DTO de actualización
+      const result = await useCase.execute(idArea, dto);
+
+      //Assert: Verificar que se llamaron los métodos de Prisma con los parámetros correctos y que el resultado es el esperado
+      expect(prisma.area.findFirst).toHaveBeenCalledWith({
+        where: {
+          nombre: { equals: 'Tecnología y Cloud', mode: 'insensitive' },
+          id: { not: idArea },
+          deleted_at: null
+        }
+      });
+
+      //Verificar que se llamó a la función de actualización con los datos correctos
+      expect(prisma.area.update).toHaveBeenCalledWith({
+        where: { id: idArea },
+        data: {
+          nombre: 'Tecnología y Cloud',
+          descripcion: 'Infraestructura y arquitectura'
+        }
+      });
+      expect(result.nombre).toBe('Tecnología y Cloud');
     });
-    //Simular el retorno de la BD al actualizar
-    mockPrisma.area.update.mockResolvedValue({ id: idArea, ...payload });
 
-    //Act
-    const result = await useCase.execute(idArea, payload);
+    it('Debe actualizar solo la descripción sin verificar duplicados si no se modifica el nombre', async () => {
+      //Arrange: Simular que el área existe y que no se modifica el nombre
+      const dto: ActualizarAreaDto = { descripcion: 'Solo actualización de descripción' };
 
-    //Assert
-    expect(result.nombre).toBe('Nuevo Nombre');
-    expect(mockPrisma.area.update).toHaveBeenCalledWith({
-      where: { id: idArea },
-      data: { nombre: payload.nombre, descripcion: payload.descripcion },
+      //Simular la existencia del área y que no hay otra área con el mismo nombre
+      mockPrisma.area.findUnique.mockResolvedValue(areaExistente);
+      mockPrisma.area.update.mockResolvedValue({ ...areaExistente, descripcion: dto.descripcion });
+
+      //Act: Ejecutar el caso de uso con el ID del área y el DTO de actualización
+      const result = await useCase.execute(idArea, dto);
+
+      //Assert: Verificar que se llamaron los métodos de Prisma con los parámetros correctos y que el resultado es el esperado
+      expect(prisma.area.findFirst).not.toHaveBeenCalled();
+      expect(prisma.area.update).toHaveBeenCalledWith({
+        where: { id: idArea },
+        data: {
+          nombre: undefined,
+          descripcion: 'Solo actualización de descripción'
+        }
+      });
+      expect(result.descripcion).toBe('Solo actualización de descripción');
     });
   });
 
-  it('Debería lanzar NotFoundException si el área no existe', async () => {
-    //Arrange: Prisma devuelve null porque no la encontró
-    mockPrisma.area.findUnique.mockResolvedValue(null);
+  describe('Validaciones de Negocio y Excepciones', () => {
+    it('Debe lanzar NotFoundException si el área no existe en la base de datos', async () => {
+      //Arrange: Simular que el área no existe
+      mockPrisma.area.findUnique.mockResolvedValue(null);
 
-    //Act & Assert
-    await expect(useCase.execute('uuid-404', { nombre: 'Test' })).rejects.toThrow(NotFoundException);
-    expect(mockPrisma.area.update).not.toHaveBeenCalled();
-  });
-
-  it('Debería lanzar NotFoundException si el área existe pero tiene Soft Delete', async () => {
-    //Arrange: Prisma encuentra el área, pero deleted_at tiene una fecha
-    mockPrisma.area.findUnique.mockResolvedValue({
-      id: 'uuid-123',
-      deleted_at: new Date()
+      //Act & Assert: Verificar que se lanza la excepción y que no se llama a la función de actualización
+      await expect(useCase.execute(idArea, { nombre: 'Prueba' })).rejects.toThrow(NotFoundException);
+      expect(prisma.area.update).not.toHaveBeenCalled();
     });
 
-    //Act & Assert
-    await expect(useCase.execute('uuid-123', { nombre: 'Test' })).rejects.toThrow(NotFoundException);
-    expect(mockPrisma.area.update).not.toHaveBeenCalled();
-  });
+    it('Debe lanzar NotFoundException si el área posee soft-delete (deleted_at !== null)', async () => {
+      //Arrange: La consulta del caso de uso excluye registros con soft-delete
+      mockPrisma.area.findUnique.mockResolvedValue(null);
 
-  it('Debería lanzar InternalServerErrorException si la base de datos falla en el update', async () => {
-    //Arrange
-    mockPrisma.area.findUnique.mockResolvedValue({
-      id: 'uuid-123',
-      deleted_at: null,
+      //Act & Assert: Verificar que se lanza la excepción y que no se llama a la función de actualización
+      await expect(useCase.execute(idArea, { nombre: 'Prueba' })).rejects.toThrow(NotFoundException);
+      expect(prisma.area.update).not.toHaveBeenCalled();
     });
-    //Simular una caída de red o error de Prisma
-    mockPrisma.area.update.mockRejectedValue(new Error('Connection timeout'));
 
-    //Act & Assert
-    await expect(useCase.execute('uuid-123', { nombre: 'Test' })).rejects.toThrow(InternalServerErrorException);
+    it('Debe lanzar BadRequestException si el nombre colisiona con otra área registrada', async () => {
+      //Arrange: Simular que el área existe y que hay otra área con el mismo nombre
+      mockPrisma.area.findUnique.mockResolvedValue(areaExistente);
+      mockPrisma.area.findFirst.mockResolvedValue({
+        id: 'otra-area-existente',
+        nombre: 'Contabilidad'
+      });
+
+      //Act & Assert: Verificar que se lanza la excepción y que no se llama a la función de actualización
+      await expect(useCase.execute(idArea, { nombre: 'Contabilidad' })).rejects.toThrow(BadRequestException);
+      expect(prisma.area.update).not.toHaveBeenCalled();
+    });
+
+    it('Debe propagar InternalServerErrorException en fallos no controlados', async () => {
+      //Arrange: Simular que ocurre un error inesperado al buscar el área
+      mockPrisma.area.findUnique.mockRejectedValue(new Error('Conexión perdida a PostgreSQL'));
+
+      //Act & Assert: Verificar que se lanza la excepción de error interno y que se propaga correctamente
+      await expect(useCase.execute(idArea, { nombre: 'Prueba' })).rejects.toThrow(InternalServerErrorException);
+    });
   });
 });

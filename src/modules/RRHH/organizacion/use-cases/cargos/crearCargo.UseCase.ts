@@ -4,6 +4,7 @@ import {Injectable, BadRequestException,NotFoundException, InternalServerErrorEx
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { CrearCargoDto } from '@jyp/shared-contracts';
+import { validarAreaActiva, validarNombreUnico, validarBandaSalarial } from './helpers/validaciones.helper';
 
 /**
  * Clase que representa el caso de uso para crear un cargo en el módulo de RRHH.
@@ -21,53 +22,32 @@ export class CrearCargoUseCase {
    */
   async execute(payload: CrearCargoDto) {
     try {
-      //El area asignada debe existir y estar activa.
-      const areaAsignada = await this.prisma.area.findUnique({where: { id: payload.id_area }});
+      // 1. Validaciones previas reutilizadas
+      await validarAreaActiva(this.prisma, payload.id_area);
+      await validarNombreUnico(this.prisma, payload.nombre, payload.id_area);
+      validarBandaSalarial(payload.sueldo_minimo ?? 1130.0, payload.sueldo_maximo ?? null);
 
-      if (!areaAsignada?.activo || areaAsignada.deleted_at !== null) throw new NotFoundException({  
-        title: 'Área inválida',
-        detail: 'El área especificada no existe o se encuentra inactiva/eliminada.'
-      });
-      
-      if (payload.jornada_sugerida_id) {
-        const jornadaSugerida = await this.prisma.jornada.findUnique({where: { id: payload.jornada_sugerida_id }});
-
-        if (!jornadaSugerida?.activo || jornadaSugerida.deleted_at !== null) throw new NotFoundException({
-          title: 'Jornada sugerida inválida',
-          detail: 'La jornada laboral sugerida especificada no existe o se encuentra inactiva.'
-        });
-      }
-
-      //Evitar que se creen dos cargos con el mismo nombre en la misma área
-      const cargoExistente = await this.prisma.cargo.findFirst({where: {
-        nombre: payload.nombre,
-        id_area: payload.id_area
-      }});
-
-      if (cargoExistente)throw new BadRequestException({
-        title: 'Cargo duplicado',
-        detail: `Ya existe un cargo llamado '${payload.nombre}' dentro de esta área.`
-      });
-
-      //Crear el cargo en la base de datos
+      // 2. Inserción en base de datos
       return await this.prisma.cargo.create({
         data: {
           id: IdentityGenerator.generateId(),
           id_area: payload.id_area,
           nombre: payload.nombre.trim(),
-          descripcion: payload.descripcion ? payload.descripcion.trim() : null,
+          descripcion: payload.descripcion?.trim() || null,
+          sueldo_minimo: payload.sueldo_minimo ?? 1130.0,
+          sueldo_maximo: payload.sueldo_maximo ?? null,
           activo: true
-        }, include: {
-          area: { select: { id: true, nombre: true } }
-        }
+        },
+        include: { area: { select: { id: true, nombre: true } } }
       });
     } catch (error) {
-      if (error instanceof BadRequestException || error instanceof NotFoundException) 
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
+      }
 
       throw new InternalServerErrorException({
         title: 'Error al crear el Cargo',
-        detail: error instanceof Error ? error.message : 'Fallo interno al intentar registrar el cargo.'
+        detail: error instanceof Error ? error.message : 'Fallo interno al registrar el cargo.',
       });
     }
   }

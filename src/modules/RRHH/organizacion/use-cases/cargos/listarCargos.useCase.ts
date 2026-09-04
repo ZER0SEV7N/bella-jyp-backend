@@ -20,19 +20,26 @@ export class ListarCargosUseCase {
    * @returns Un objeto con los cargos encontrados y metadatos de paginación.
    */
   async listar(query: ListarCargosQueryDto) {
-     try {
-      //Desestructurar los parámetros de consulta y establecer valores predeterminados
+    try {
+      //Parametros de paginación y filtrado
       const page = Number(query.page) || 1;
-      const limit = Number(query.limit) || 50;
+      const limit = Number(query.limit) || 10;
       const skip = (page - 1) * limit;
 
+      //Filtros
       const where: Record<string, any> = { deleted_at: null };
 
-      //Filtrar por área y jornada sugerida si se proporcionan en la consulta
-      if (query.id_area)  where.id_area = query.id_area;
-      if (query.jornada_sugerida_id) where.jornada_sugerida_id = query.jornada_sugerida_id;
-      if (typeof query.activo === 'boolean') where.activo = query.activo;
-
+      if (query.activo !== undefined) where.activo = query.activo;
+      if (query.id_area) where.id_area = query.id_area;
+      
+      //Búsqueda
+      if (query.search && query.search.trim() !== '') 
+        where.OR = [
+          { nombre: { contains: query.search.trim(), mode: 'insensitive' } },
+          { descripcion: { contains: query.search.trim(), mode: 'insensitive' } },
+        ];
+      
+      //Realizar la consulta a la base de datos utilizando Prisma en una transacción para obtener el total y los cargos
       const [total, cargos] = await this.prisma.$transaction([
         this.prisma.cargo.count({ where }),
         this.prisma.cargo.findMany({
@@ -42,13 +49,29 @@ export class ListarCargosUseCase {
           orderBy: { nombre: 'asc' },
           include: {
             area: { select: { id: true, nombre: true } },
-            _count: { select: {empleados: { where: { activo: true, deleted_at: null } } } }
+            _count: { select: { empleados: { where: { activo: true, deleted_at: null } } } }
           }
         })
       ]);
 
+      //Mapear los cargos obtenidos a un formato más amigable para la respuesta
+      const data = cargos.map((c) => ({
+        id: c.id,
+        id_area: c.id_area,
+        nombre: c.nombre,
+        descripcion: c.descripcion,
+        sueldo_minimo: c.sueldo_minimo !== null ? Number(c.sueldo_minimo) : null,
+        sueldo_maximo: c.sueldo_maximo !== null ? Number(c.sueldo_maximo) : null,
+        activo: c.activo,
+        area: c.area,
+        total_empleados: c._count.empleados,
+        created_at: c.created_at,
+        updated_at: c.updated_at
+      }));
+
+      //Devolver los cargos junto con los metadatos de paginación
       return {
-        data: cargos,
+        data,
         meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
       };
     } catch (error) {

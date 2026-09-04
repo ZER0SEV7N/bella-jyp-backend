@@ -12,7 +12,7 @@ import type { ActualizarJornadaDto } from '@jyp/shared-contracts';
  * Se valida que las excepciones sean propagadas adecuadamente en caso de errores o colisiones de datos.
  * Además, se incluyen pruebas para escenarios de resiliencia y manejo de errores inesperados.
  */
-describe('EditarJornadaUseCase - Pruebas Unitarias Exhaustivas', () => {
+describe('EditarJornadaUseCase - Pruebas Unitarias', () => {
   let useCase: EditarJornadaUseCase;
   let prisma: PrismaService;
 
@@ -21,24 +21,38 @@ describe('EditarJornadaUseCase - Pruebas Unitarias Exhaustivas', () => {
     jornada: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
-      update: jest.fn()
-    }
+      update: jest.fn(),
+    },
+    area: { count: jest.fn() },
+    jornada_area: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+    $transaction: jest.fn(async (cb: any) => {
+      if (typeof cb === 'function') 
+        return await cb(mockPrisma);
+      
+      return Promise.all(cb);
+    })
   };
 
-  //Datos simulados para las pruebas
+  //Datos de prueba para una jornada existente
   const idJornada = 'jornada-uuid-500';
   const jornadaExistente = {
     id: idJornada,
     nombre: 'Turno Mañana',
-    tipo_jornada: 'FIJA',
-    hora_entrada: new Date('1970-01-01T08:00:00.000Z'),
-    hora_salida: new Date('1970-01-01T17:00:00.000Z'),
-    tolerancia_minutos: 15,
+    descripcion: 'Original',
+    duracion: 'TIEMPO_COMPLETO',
+    turno: 'MANANA',
+    modalidad: 'PRESENCIAL',
+    tolerancia_minutos: 5,
+    total_horas_semana: 40,
+    horario_semanal: [],
     activo: true,
     deleted_at: null
   };
 
-  //Configuración del módulo de pruebas antes de cada test
+  //Configuración de pruebas antes de cada caso
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -53,77 +67,112 @@ describe('EditarJornadaUseCase - Pruebas Unitarias Exhaustivas', () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  describe('Actualizaciones Parciales y Modificación de Horarios', () => {
-    it('Happy Path: Debe actualizar parcialmente horas y tolerancia sin modificar el nombre', async () => {
-      //Arrange: Se define un payload con cambios parciales y se simula la respuesta de PrismaService para findUnique y update
+  //Pruebas de casos exitosos de actualización
+  describe('Actualizaciones Exitosas', () => {
+    it('Debe actualizar datos simples sin alterar áreas ni horario semanal', async () => {
+      //Arrange: Preparar un payload de actualización con cambios simples
       const payload: ActualizarJornadaDto = {
-        hora_entrada: '08:30',
-        hora_salida: '17:30',
-        tolerancia_minutos: 20
+        descripcion: 'Descripción actualizada',
+        tolerancia_minutos: 15
       };
 
+      //Simular que la jornada existe y no hay colisión de nombres
       mockPrisma.jornada.findUnique.mockResolvedValue(jornadaExistente);
-      mockPrisma.jornada.update.mockResolvedValue({...jornadaExistente, tolerancia_minutos: 20 });
+      mockPrisma.jornada.update.mockResolvedValue({ ...jornadaExistente, ...payload });
 
-      //Act: Se ejecuta el caso de uso con el id de la jornada y el payload de actualización
+      //Act: Ejecutar el caso de uso
       const resultado = await useCase.execute(idJornada, payload);
 
-      //Assert: Se verifica que PrismaService haya sido llamado correctamente y que el resultado contenga los cambios esperados
-      expect(mockPrisma.jornada.findFirst).not.toHaveBeenCalled();
-      expect(mockPrisma.jornada.update).toHaveBeenCalledWith({where: { id: idJornada }, data: expect.objectContaining({tolerancia_minutos: 20})});
-      expect(resultado.tolerancia_minutos).toBe(20);
+      //Assert: Verificar que se haya llamado a los métodos correctos y que el resultado sea el esperado
+      expect(mockPrisma.jornada.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: idJornada },
+        data: expect.objectContaining({
+          descripcion: 'Descripción actualizada',
+          tolerancia_minutos: 15
+        })})
+      );
+      //Verificar que no se haya intentado sincronizar áreas ni modificar el horario semanal
+      expect(mockPrisma.jornada_area.deleteMany).not.toHaveBeenCalled();
+      expect(resultado.tolerancia_minutos).toBe(15);
     });
 
-    it('Happy Path: Debe actualizar la modalidad a ROTATIVA', async () => {
-      //Arrange: Se define un payload para cambiar la modalidad de la jornada y se simula la respuesta de PrismaService para findUnique y update
-      const payload: ActualizarJornadaDto = {tipo_jornada: 'ROTATIVA'};
+    it('Debe sincronizar áreas correctamente si se envía areas_ids', async () => {
+      //Arrange: Preparar un payload de actualización que incluya nuevas áreas
+      const payload: ActualizarJornadaDto = {areas_ids: ['area-nueva-1', 'area-nueva-2']};
 
+      //Simular que la jornada existe y que las áreas enviadas existen en la base de datos
       mockPrisma.jornada.findUnique.mockResolvedValue(jornadaExistente);
-      mockPrisma.jornada.update.mockResolvedValue({...jornadaExistente, tipo_jornada: 'ROTATIVA'});
+      mockPrisma.area.count.mockResolvedValue(2);
+      mockPrisma.jornada.update.mockResolvedValue({ ...jornadaExistente });
 
-      //act: Se ejecuta el caso de uso con el id de la jornada y el payload de actualización
-      const resultado = await useCase.execute(idJornada, payload);
+      //Act: Ejecutar el caso de uso
+      await useCase.execute(idJornada, payload);
 
-      //Assert: Se verifica que PrismaService haya sido llamado correctamente y que el resultado contenga la modalidad actualizada
-      expect(mockPrisma.jornada.update).toHaveBeenCalledWith({ where: { id: idJornada }, data: expect.objectContaining({tipo_jornada: 'ROTATIVA'})});
-      expect(resultado.tipo_jornada).toBe('ROTATIVA');
-    });
-
-    it('Debe lanzar NotFoundException si la jornada no existe en BD', async () => {
-      //Arrange: Se simula que PrismaService no encuentra la jornada en la base de datos
-      mockPrisma.jornada.findUnique.mockResolvedValue(null);
-
-      //Act & Assert: Se espera que el caso de uso lance NotFoundException al intentar actualizar una jornada inexistente
-      await expect(useCase.execute(idJornada, { nombre: 'Nuevo Nombre' })).rejects.toThrow(NotFoundException);
-      expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
-    });
-
-    it('Debe lanzar NotFoundException si la jornada posee baja lógica (deleted_at !== null)', async () => {
-      //Arrange: Se simula que PrismaService encuentra la jornada pero con baja lógica (deleted_at no es null)
-      mockPrisma.jornada.findUnique.mockResolvedValue({...jornadaExistente, deleted_at: new Date()});
-
-      //Act & Assert: Se espera que el caso de uso lance NotFoundException al intentar actualizar una jornada con baja lógica
-      await expect(useCase.execute(idJornada, { nombre: 'Nuevo Nombre' })).rejects.toThrow(NotFoundException);
-      expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
+      //Assert: Verificar que se haya llamado a los métodos correctos para sincronizar áreas
+      expect(mockPrisma.area.count).toHaveBeenCalledWith({where: { id: { in: payload.areas_ids }, activo: true, deleted_at: null }});
+      expect(mockPrisma.jornada_area.deleteMany).toHaveBeenCalledWith({ where: { jornada_id: idJornada } });
+      expect(mockPrisma.jornada_area.createMany).toHaveBeenCalledWith({
+        data: [
+          { jornada_id: idJornada, area_id: 'area-nueva-1' },
+          { jornada_id: idJornada, area_id: 'area-nueva-2' }
+        ]
+      });
     });
   });
 
-  describe('Colisión de Nombres y Resiliencia', () => {
-    it('Debe lanzar BadRequestException si el nuevo nombre colisiona con otra jornada existente', async () => {
-      //Arrange: Se define un payload con un nombre que colisiona con otra jornada y se simula la respuesta de PrismaService para findUnique y findFirst
-      const payload: ActualizarJornadaDto = {nombre: 'Turno Nocturno Existente'};
+  describe('Validaciones y Excepciones', () => {
+    it('Debe lanzar NotFoundException si la jornada no existe o tiene baja lógica', async () => {
+      //Arrange: Simular que la jornada no existe en la base de datos
+      mockPrisma.jornada.findUnique.mockResolvedValue(null);
 
-      mockPrisma.jornada.findUnique.mockResolvedValue(jornadaExistente);
-      mockPrisma.jornada.findFirst.mockResolvedValue({ id: 'otra-jornada-id', nombre: 'Turno Nocturno Existente' });
-
-      //Act & Assert: Se espera que el caso de uso lance BadRequestException al intentar actualizar con un nombre colisionante
-      await expect(useCase.execute(idJornada, payload)).rejects.toThrow(BadRequestException);
-      expect(mockPrisma.jornada.findFirst).toHaveBeenCalledWith({where: {
-        nombre: { equals: 'Turno Nocturno Existente', mode: 'insensitive' },
-        id: { not: idJornada },
-        deleted_at: null }
-      });
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance NotFoundException
+      await expect(useCase.execute(idJornada, { nombre: 'Nuevo Nombre' })).rejects.toThrow(NotFoundException);
       expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
+    });
+
+    it('Debe lanzar BadRequestException si el nuevo nombre colisiona con otra jornada', async () => {
+      //Arrange: Simular que la jornada existe y que el nuevo nombre ya está en uso por otra jornada
+      mockPrisma.jornada.findUnique.mockResolvedValue(jornadaExistente);
+      mockPrisma.jornada.findFirst.mockResolvedValue({ id: 'otra-jornada-id', nombre: 'Turno Nocturno' });
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException
+      await expect(useCase.execute(idJornada, { nombre: 'Turno Nocturno' })).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
+    });
+
+    it('Debe lanzar NotFoundException si alguna de las nuevas áreas no existe', async () => {
+      //Arrange: Simular que la jornada existe y que se envían áreas, pero una de ellas no existe
+      mockPrisma.jornada.findUnique.mockResolvedValue(jornadaExistente);
+      mockPrisma.area.count.mockResolvedValue(1); // Se enviaron 2 pero solo existe 1
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance NotFoundException
+      await expect(useCase.execute(idJornada, { areas_ids: ['area-1', 'area-invalida'] })).rejects.toThrow(NotFoundException);
+    });
+
+    it('Debe lanzar BadRequestException si el nuevo horario recalculado supera las 48 horas', async () => {
+      //Arrange: Simular que la jornada existe y preparar un horario semanal que exceda las 48 horas
+      mockPrisma.jornada.findUnique.mockResolvedValue(jornadaExistente);
+
+      const horario50Horas = [
+        { dia: 'LUNES', laborable: true, entrada: '07:00', salida: '17:00' },     // 10h
+        { dia: 'MARTES', laborable: true, entrada: '07:00', salida: '17:00' },    // 10h
+        { dia: 'MIERCOLES', laborable: true, entrada: '07:00', salida: '17:00' }, // 10h
+        { dia: 'JUEVES', laborable: true, entrada: '07:00', salida: '17:00' },    // 10h
+        { dia: 'VIERNES', laborable: true, entrada: '07:00', salida: '17:00' },   // 10h
+        { dia: 'SABADO', laborable: false },
+        { dia: 'DOMINGO', laborable: false },
+      ] as any;
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException por exceder las 48 horas
+      await expect(useCase.execute(idJornada, { horario_semanal: horario50Horas })).rejects.toThrow(BadRequestException);
+    });
+
+    it('Debe propagar InternalServerErrorException ante fallos no previstos', async () => {
+      //Arrange: Simular un fallo inesperado en la base de datos al intentar buscar la jornada
+      mockPrisma.jornada.findUnique.mockRejectedValue(new Error('Conexión perdida'));
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance InternalServerErrorException
+      await expect(useCase.execute(idJornada, { descripcion: 'Prueba' })).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

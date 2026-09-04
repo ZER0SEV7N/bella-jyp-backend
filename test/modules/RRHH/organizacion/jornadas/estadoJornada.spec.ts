@@ -16,14 +16,16 @@ describe('EstadoJornadaUseCase - Pruebas Unitarias de Desactivación y Reactivac
 
   //Mock del servicio PrismaService para simular la interacción con la base de datos
   const mockPrisma = {
-    jornada: { findUnique: jest.fn(), update: jest.fn() },
-    empleados: {count: jest.fn() }
+    jornada: {
+      findUnique: jest.fn(),
+      update: jest.fn()
+    }
   };
 
-  //Datos simulados para las pruebas
+  //Datos de prueba para una jornada existente
   const idJornada = 'jornada-uuid-777';
 
-  //Configuración del módulo de pruebas antes de cada test
+  //Configuración de pruebas antes de cada caso
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -38,98 +40,99 @@ describe('EstadoJornadaUseCase - Pruebas Unitarias de Desactivación y Reactivac
 
   afterEach(() => jest.clearAllMocks());
 
-  describe('desactivar() - Soft Delete y Bloqueo por Empleados Asignados', () => {
-    it('Happy Path: Debe desactivar la jornada aplicando Soft Delete si ningún colaborador activo la ocupa', async () => {
-      //Arrange: Se simula que PrismaService encuentra la jornada y que no hay empleados activos asignados a ella
+  describe('desactivar() - Soft Delete y Regla de Empleados', () => {
+    it('Happy Path: Debe desactivar la jornada si ningún empleado activo la utiliza', async () => {
+      //Arrange: Simular que la jornada existe y no tiene empleados activos asignados
       mockPrisma.jornada.findUnique.mockResolvedValue({
         id: idJornada,
         nombre: 'Turno Madrugada',
         activo: true,
-        deleted_at: null
+        deleted_at: null,
+        _count: { empleados: 0 }
       });
 
-      mockPrisma.empleados.count.mockResolvedValue(0);
-
+      //Simular la actualización exitosa de la jornada
       mockPrisma.jornada.update.mockResolvedValue({
         id: idJornada,
         activo: false,
         deleted_at: new Date()
       });
 
-      //Act: Se ejecuta el caso de uso para desactivar la jornada
+      //Act: Ejecutar el caso de uso para desactivar la jornada
       const resultado = await useCase.desactivar(idJornada);
 
-      //Assert: Se verifica que la jornada haya sido desactivada correctamente 
-      //y que PrismaService haya sido llamado con los parámetros esperados
+      //Assert: Verificar que la jornada fue desactivada correctamente
       expect(resultado.activo).toBe(false);
-      expect(mockPrisma.empleados.count).toHaveBeenCalledWith({where: {
-        jornada_id: idJornada,
-        activo: true,
-        deleted_at: null
-      }});
-      expect(mockPrisma.jornada.update).toHaveBeenCalledWith({where: { id: idJornada }, data: expect.objectContaining({ activo: false })});
+      expect(mockPrisma.jornada.findUnique).toHaveBeenCalledWith({
+        where: { id: idJornada, deleted_at: null },
+        include: {
+          _count: {
+            select: { empleados: { where: { activo: true, deleted_at: null } } }
+          }
+        }
+      });
+      
+      //Verificar que la actualización se realizó con los datos correctos
+      expect(mockPrisma.jornada.update).toHaveBeenCalledWith({
+        where: { id: idJornada },
+        data: { activo: false, deleted_at: expect.any(Date) }
+      });
     });
 
-    it('Regla de Negocio: Debe bloquear la desactivación con BadRequestException si hay colaboradores activos usándola', async () => {
-      //Arrange: Se simula que PrismaService encuentra la jornada y que hay 5 empleados activos asignados a ella
+    it('Regla de Negocio: Debe bloquear la desactivación con BadRequestException si hay colaboradores asignados', async () => {
+      //Arrange: Simular que la jornada existe y tiene empleados activos asignados
       mockPrisma.jornada.findUnique.mockResolvedValue({
         id: idJornada,
+        nombre: 'Turno Mañana',
         activo: true,
-        deleted_at: null
+        deleted_at: null,
+        _count: { empleados: 3 }, //3 empleados activos
       });
 
-      //Se simula que hay 5 colaboradores activos asignados a la jornada
-      mockPrisma.empleados.count.mockResolvedValue(5); //5 colaboradores asignados
-
-      //Act & Assert: Se espera que el caso de uso lance BadRequestException al intentar desactivar la jornada
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException
       await expect(useCase.desactivar(idJornada)).rejects.toThrow(BadRequestException);
       expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
     });
 
     it('Debe lanzar NotFoundException si la jornada a desactivar no existe o ya fue eliminada', async () => {
-      //Arrange: Se simula que PrismaService no encuentra la jornada en la base de datos
+      //Arrange: Simular que la jornada no existe en la base de datos
       mockPrisma.jornada.findUnique.mockResolvedValue(null);
 
-      //Act & Assert: Se espera que el caso de uso lance NotFoundException al intentar desactivar una jornada inexistente
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance NotFoundException
       await expect(useCase.desactivar(idJornada)).rejects.toThrow(NotFoundException);
-      expect(mockPrisma.empleados.count).not.toHaveBeenCalled();
       expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
     });
 
-    it('Debe lanzar InternalServerErrorException en caso de fallo crítico en base de datos', async () => {
-      //Arrange: Se simula que PrismaService encuentra la jornada y que no hay empleados activos asignados a ella, pero la actualización falla
-      mockPrisma.jornada.findUnique.mockResolvedValue({id: idJornada, deleted_at: null});
-      mockPrisma.empleados.count.mockResolvedValue(0);
-      mockPrisma.jornada.update.mockRejectedValue(new InternalServerErrorException('Fallo crítico en PostgreSQL'));
+    it('Debe lanzar InternalServerErrorException en caso de error en base de datos', async () => {
+      //Arrange: Simular un fallo inesperado en la base de datos al intentar buscar la jornada
+      mockPrisma.jornada.findUnique.mockRejectedValue(new Error('Fallo crítico'));
 
-      //Act & Assert: Se espera que el caso de uso lance InternalServerErrorException al intentar desactivar la jornada
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance InternalServerErrorException
       await expect(useCase.desactivar(idJornada)).rejects.toThrow(InternalServerErrorException);
     });
   });
 
-  describe('reactivar() - Restauración de Jornada Desactivada', () => {
+  describe('reactivar() - Restauración de Jornada', () => {
     it('Happy Path: Debe reactivar la jornada restableciendo activo=true y deleted_at=null', async () => {
-      //Arrange: Se simula que PrismaService encuentra la jornada desactivada y que la actualización se realiza correctamente
+      //Arrange: Simular que la jornada existe y está desactivada
       mockPrisma.jornada.findUnique.mockResolvedValue({
         id: idJornada,
+        nombre: 'Turno Desactivado',
         activo: false,
         deleted_at: new Date('2026-01-01')
       });
 
-      //Se simula que la jornada es restaurada correctamente
-      const jornadaRestaurada = {
+      //Simular la actualización exitosa de la jornada
+      mockPrisma.jornada.update.mockResolvedValue({
         id: idJornada,
         activo: true,
         deleted_at: null
-      };
+      });
 
-      //Se simula que la actualización en PrismaService devuelve la jornada restaurada
-      mockPrisma.jornada.update.mockResolvedValue(jornadaRestaurada);
-
-      //Act: Se ejecuta el caso de uso para reactivar la jornada
+      //Act: Ejecutar el caso de uso para reactivar la jornada
       const resultado = await useCase.reactivar(idJornada);
 
-      //Assert: Se verifica que la jornada haya sido reactivada correctamente y que PrismaService haya sido llamado con los parámetros esperados
+      //Assert: Verificar que la jornada fue reactivada correctamente
       expect(resultado.activo).toBe(true);
       expect(resultado.deleted_at).toBeNull();
       expect(mockPrisma.jornada.update).toHaveBeenCalledWith({
@@ -138,22 +141,27 @@ describe('EstadoJornadaUseCase - Pruebas Unitarias de Desactivación y Reactivac
       });
     });
 
-    it('Debe lanzar NotFoundException si la jornada a reactivar no existe en BD', async () => {
-      //Arrange: Se simula que PrismaService no encuentra la jornada en la base de datos
-      mockPrisma.jornada.findUnique.mockResolvedValue(null);
+    it('Debe lanzar BadRequestException si la jornada ya se encuentra activa', async () => {
+      //Arrange: Simular que la jornada existe y ya está activa
+      mockPrisma.jornada.findUnique.mockResolvedValue({
+        id: idJornada,
+        nombre: 'Turno Activo',
+        activo: true,
+        deleted_at: null
+      });
 
-      //Act & Assert: Se espera que el caso de uso lance NotFoundException al intentar reactivar una jornada inexistente
-      await expect(useCase.reactivar(idJornada)).rejects.toThrow(NotFoundException);
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException
+      await expect(useCase.reactivar(idJornada)).rejects.toThrow(BadRequestException);
       expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
     });
 
-    it('Debe lanzar InternalServerErrorException si la restauración falla en BD', async () => {
-      //Arrange: Se simula que PrismaService encuentra la jornada desactivada pero la actualización falla
-      mockPrisma.jornada.findUnique.mockResolvedValue({ id: idJornada });
-      mockPrisma.jornada.update.mockRejectedValue(new Error('Conexión perdida'));
+    it('Debe lanzar NotFoundException si la jornada a reactivar no existe', async () => {
+      //Arrange: Simular que la jornada no existe en la base de datos
+      mockPrisma.jornada.findUnique.mockResolvedValue(null);
 
-      //Act & Assert: Se espera que el caso de uso lance InternalServerErrorException al intentar reactivar la jornada
-      await expect(useCase.reactivar(idJornada)).rejects.toThrow(InternalServerErrorException);
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance NotFoundException
+      await expect(useCase.reactivar(idJornada)).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.jornada.update).not.toHaveBeenCalled();
     });
   });
 });

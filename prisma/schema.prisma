@@ -33,9 +33,16 @@ model area {
   descripcion   String?        @db.VarChar(255)
   activo        Boolean        @default(true)
   deleted_at    DateTime?      @db.Timestamptz(6)
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
+
   cargo         cargo[]
   empleados     empleados[]
   jornada_areas jornada_area[]
+
+  @@index([nombre], map: "idx_area_nombre")
+  @@index([activo], map: "idx_area_activo", where: raw("(activo = true)"))
+  @@index([deleted_at], map: "idx_area_deleted", where: raw("(deleted_at IS NULL)"))
 }
 
 model tipo_afp {
@@ -63,17 +70,23 @@ model bancos {
 }
 
 model cargo {
-  id          String    @id @db.Uuid
-  id_area     String    @db.Uuid
-  nombre      String    @db.VarChar(100)
-  descripcion String?   @db.VarChar(255)
-  activo      Boolean   @default(true)
-  deleted_at  DateTime? @db.Timestamptz(6)
+  id            String    @id @db.Uuid
+  id_area       String    @db.Uuid
+  nombre        String    @db.VarChar(100)
+  descripcion   String?   @db.VarChar(255)
+  sueldo_minimo Decimal?  @default(1130.00) @db.Decimal(12, 4)
+  sueldo_maximo Decimal?  @db.Decimal(12, 4)
+  activo        Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  deleted_at    DateTime? @db.Timestamptz(6)
 
   area      area        @relation(fields: [id_area], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cargo_area")
   empleados empleados[]
 
   @@index([id_area], map: "idx_cargo_area")
+  @@index([activo], map: "idx_cargo_activo", where: raw("(activo = true)"))
+  @@index([deleted_at], map: "idx_cargo_deleted", where: raw("(deleted_at IS NULL)"))
 }
 
 model estado_contrato {
@@ -249,6 +262,7 @@ model tareas_asistente {
   anotaciones                                              String?
   deleted_at                                               DateTime?          @db.Timestamptz(6)
   created_at                                               DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
   anotacion_tareas                                         anotacion_tareas[]
   usuarios_tareas_asistente_asignado_aTousuarios           usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
   usuarios_tareas_asistente_asignado_porTousuarios         usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
