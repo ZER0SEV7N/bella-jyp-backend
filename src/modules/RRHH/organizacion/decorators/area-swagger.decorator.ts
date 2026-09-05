@@ -1,15 +1,6 @@
 //src/modules/RRHH/decorators/area-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBody,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-  ApiParam,
-  ApiExtension,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiExtension} from '@nestjs/swagger';
 
 /**
  * Decorador personalizado para documentar los endpoints de autenticación en Swagger.
@@ -22,7 +13,7 @@ export function ApiSwaggerAreasController() {
   return applyDecorators(
     ApiTags('Modulo RRHH - Areas'),
     ApiBearerAuth('JWT-auth'),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH']),
+    ApiExtension('x-roles', ['ADMIN', 'RRHH'])
   );
 }
 
@@ -35,8 +26,7 @@ export function ApiSwaggerCrearArea() {
   return applyDecorators(
     ApiOperation({
       summary: 'Crear Área',
-      description:
-        'Registra una nueva área o departamento de la empresa en el sistema. Requiere rol ADMIN o RRHH.',
+      description: 'Registra una nueva área o departamento de la empresa en el sistema. Requiere rol ADMIN o RRHH.'
     }),
     ApiBody({
       schema: {
@@ -44,30 +34,29 @@ export function ApiSwaggerCrearArea() {
         required: ['nombre'],
         properties: {
           nombre: { type: 'string', example: 'Recursos Humanos' },
-          descripcion: { type: 'string', example: 'Gestión de talento' },
-        },
-      },
+          descripcion: { type: 'string', example: 'Gestión de talento' }
+        }
+      }
     }),
     ApiResponse({
       status: 201,
-      description: 'Área creada exitosamente.',
+      description: 'Área creada exitosamente.'
     }),
     ApiResponse({
       status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.',
+      description: 'Datos inválidos. Devuelve un mensaje de error.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. El usuario no tiene un token válido.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
+      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
     }),
     ApiResponse({
       status: 409,
-      description: 'Conflicto. El nombre del área ya existe.',
+      description: 'Conflicto. El nombre del área ya existe.'
     }),
   );
 }
@@ -82,45 +71,43 @@ export function ApiSwaggerActualizarArea() {
   return applyDecorators(
     ApiOperation({
       summary: 'Actualizar Área',
-      description:
-        'Actualiza los detalles de un área existente. Requiere rol ADMIN o RRHH.',
+      description: 'Actualiza los detalles de un área existente. Requiere rol ADMIN o RRHH.'
     }),
     ApiParam({
       name: 'id',
       description: 'ID del área a actualizar (UUID).',
       required: true,
-      schema: { type: 'string', format: 'uuid' },
+      schema: { type: 'string', format: 'uuid' }
     }),
     ApiBody({
       schema: {
         type: 'object',
         properties: {
           nombre: { type: 'string', example: 'Recursos Humanos' },
-          descripcion: { type: 'string', example: 'Gestión de talento' },
-        },
-      },
+          descripcion: { type: 'string', example: 'Gestión de talento' }
+        }
+      }
     }),
     ApiResponse({
       status: 200,
-      description: 'Área actualizada exitosamente.',
+      description: 'Área actualizada exitosamente.'
     }),
     ApiResponse({
       status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.',
+      description: 'Datos inválidos. Devuelve un mensaje de error.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. El usuario no tiene un token válido.'
     }),
     ApiResponse({
       status: 404,
-      description: 'No encontrado. El área con el ID proporcionado no existe.',
+      description: 'No encontrado. El área con el ID proporcionado no existe.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
-    }),
+      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    })
   );
 }
 /**
@@ -132,31 +119,30 @@ export function ApiSwaggerDesactivarArea() {
   return applyDecorators(
     ApiOperation({
       summary: 'Desactivar Área',
-      description: 'Desactiva un área existente. Requiere rol ADMIN o RRHH.',
+      description: 'Desactiva un área existente. Requiere rol ADMIN o RRHH.'
     }),
     ApiParam({
       name: 'id',
       description: 'ID del área a desactivar (UUID).',
       required: true,
-      schema: { type: 'string', format: 'uuid' },
+      schema: { type: 'string', format: 'uuid' }
     }),
     ApiResponse({
       status: 200,
-      description: 'Área desactivada exitosamente.',
+      description: 'Área desactivada exitosamente.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. El usuario no tiene un token válido.'
     }),
     ApiResponse({
       status: 404,
-      description: 'No encontrado. El área con el ID proporcionado no existe.',
+      description: 'No encontrado. El área con el ID proporcionado no existe.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
-    }),
+      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    })
   );
 }
 
@@ -169,31 +155,30 @@ export function ApiSwaggerReactivarArea() {
   return applyDecorators(
     ApiOperation({
       summary: 'Reactivar Área',
-      description: 'Reactiva un área desactivada. Requiere rol ADMIN o RRHH.',
+      description: 'Reactiva un área desactivada. Requiere rol ADMIN o RRHH.'
     }),
     ApiParam({
       name: 'id',
       description: 'ID del área a reactivar (UUID).',
       required: true,
-      schema: { type: 'string', format: 'uuid' },
+      schema: { type: 'string', format: 'uuid' }
     }),
     ApiResponse({
       status: 200,
-      description: 'Área reactivada exitosamente.',
+      description: 'Área reactivada exitosamente.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. El usuario no tiene un token válido.'
     }),
     ApiResponse({
       status: 404,
-      description: 'No encontrado. El área con el ID proporcionado no existe.',
+      description: 'No encontrado. El área con el ID proporcionado no existe.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
-    }),
+      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    })
   );
 }
 /**
@@ -208,43 +193,40 @@ export function ApiSwaggerListarAreas() {
   return applyDecorators(
     ApiOperation({
       summary: 'Listar Áreas',
-      description:
-        'Obtiene un listado de áreas con paginación y filtros opcionales. Requiere rol ADMIN o RRHH.',
+      description: 'Obtiene un listado de áreas con paginación y filtros opcionales. Requiere rol ADMIN o RRHH.'
     }),
     ApiQuery({
       name: 'page',
       description: 'Número de página para la paginación.',
       required: false,
       type: Number,
-      example: 1,
+      example: 1
     }),
     ApiQuery({
       name: 'limit',
       description: 'Cantidad de resultados por página.',
       required: false,
       type: Number,
-      example: 50,
+      example: 50
     }),
     ApiQuery({
       name: 'activo',
-      description:
-        'Filtra por estado de actividad del área (true para activas, false para inactivas).',
+      description: 'Filtra por estado de actividad del área (true para activas, false para inactivas).',
       required: false,
       type: Boolean,
-      example: true,
+      example: true
     }),
     ApiResponse({
       status: 200,
-      description: 'Listado de áreas obtenido exitosamente.',
+      description: 'Listado de áreas obtenido exitosamente.'
     }),
     ApiResponse({
       status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+      description: 'No autorizado. El usuario no tiene un token válido.'
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.',
-    }),
+      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    })
   );
 }

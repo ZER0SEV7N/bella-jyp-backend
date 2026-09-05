@@ -11,17 +11,43 @@ import type { ListarJornadasQueryDto } from '@jyp/shared-contracts';
  * la lógica de paginación, cálculo de skip, totalPages y la aplicación de filtros por tipo de jornada y estado activo.
  * Además, se valida que las excepciones sean propagadas adecuadamente en caso
  */
-describe('ListarJornadaUseCase - Pruebas Unitarias de Paginación y Filtros', () => {
+describe('ListarJornadaUseCase - Pruebas Unitarias', () => {
   let useCase: ListarJornadaUseCase;
   let prisma: PrismaService;
 
   //Mock del servicio PrismaService para simular la interacción con la base de datos
   const mockPrisma = {
-    jornada: {count: jest.fn(), findMany: jest.fn()},
-    $transaction: jest.fn((queries: Promise<any>[]) => Promise.all(queries))
+    jornada: {
+      count: jest.fn(),
+      findMany: jest.fn()
+    },
+    $transaction: jest.fn((queries: Promise<any>[]) => Promise.all(queries)),
   };
 
-  //Configuración del módulo de pruebas antes de cada test
+  //Datos de prueba para una jornada existente
+  const jornadaMock = {
+    id: 'jornada-1',
+    nombre: 'Turno Mañana (Oficina)',
+    descripcion: 'Horario estándar',
+    duracion: 'TIEMPO_COMPLETO',
+    turno: 'MANANA',
+    modalidad: 'PRESENCIAL',
+    tolerancia_minutos: 15,
+    total_horas_semana: 40.0,
+    horario_semanal: [],
+    patron_rotacion: null,
+    activo: true,
+    _count: {
+      empleados: 12,
+      jornada_areas: 2
+    },
+    jornada_areas: [
+      { area: { id: 'area-1', nombre: 'Administración' } },
+      { area: { id: 'area-2', nombre: 'Contabilidad' } }
+    ],
+  };
+
+  //Configuración de pruebas antes de cada caso
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -34,121 +60,144 @@ describe('ListarJornadaUseCase - Pruebas Unitarias de Paginación y Filtros', ()
     prisma = module.get<PrismaService>(PrismaService);
   });
 
+  //Limpiar los mocks después de cada prueba para evitar interferencias entre casos
   afterEach(() => jest.clearAllMocks());
 
-  describe('Paginación por Defecto y Cálculo de Skip', () => {
-    it('Debe listar jornadas con paginación por defecto (page: 1, limit: 50) e incluir contadores', async () => {
-      //Arrange: Se define la consulta con los parámetros por defecto y se simula la respuesta de PrismaService
+  describe('Paginación y Mapeo Estructurado', () => {
+    it('Debe listar jornadas con paginación por defecto y formatear total_empleados y áreas', async () => {
+      //Arrange: Configurar el mock para devolver un total de 1 jornada y la jornada de prueba
       const query = {} as ListarJornadasQueryDto;
-      const jornadasSimuladas = [{
-        id: 'jornada-1',
-        nombre: 'Turno Mañana (Oficina)',
-        tipo_jornada: 'FIJA',
-        hora_entrada: new Date('1970-01-01T08:00:00.000Z'),
-        hora_salida: new Date('1970-01-01T17:00:00.000Z'),
-        tolerancia_minutos: 15,
-        activo: true,
-        _count: { empleados: 12, cargos_sugeridos: 3 }
-      }];
 
-      //Act: Se simula la respuesta de PrismaService para count y findMany
+      //Simular la respuesta de Prisma para count y findMany
       mockPrisma.jornada.count.mockResolvedValueOnce(1);
-      mockPrisma.jornada.findMany.mockResolvedValueOnce(jornadasSimuladas);
+      mockPrisma.jornada.findMany.mockResolvedValueOnce([jornadaMock]);
 
+      //Act: Ejecutar el caso de uso con la consulta de prueba
       const resultado = await useCase.execute(query);
 
-      //Assert: Se verifica que el resultado contenga los datos esperados y 
-      //que se haya llamado a PrismaService con los parámetros correctos
-      expect(resultado).toEqual({
-        data: jornadasSimuladas,
-        meta: {total: 1, page: 1, limit: 50, totalPages: 1}
+      //Assert: Verificar que el resultado contenga la jornada mapeada correctamente y la meta de paginación
+      expect(resultado.data).toEqual([ expect.objectContaining({
+        id: 'jornada-1',
+        nombre: 'Turno Mañana (Oficina)',
+        total_horas_semana: 40,
+        total_empleados: 12,
+        total_areas: 2,
+        areas: [
+          { id: 'area-1', nombre: 'Administración' },
+          { id: 'area-2', nombre: 'Contabilidad' }
+        ]
+      })]);
+
+      //Verificar que la meta de paginación sea correcta con los valores predeterminados
+      expect(resultado.meta).toEqual({
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1
       });
 
+      //Verificar que se llamó a findMany con los parámetros correctos
       expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith({
         where: { deleted_at: null },
         skip: 0,
-        take: 50,
-        orderBy: { nombre: 'asc' },
-        include: { _count: {
-          select: {
-            empleados: { where: { activo: true, deleted_at: null } },
-            cargos_sugeridos: { where: { activo: true, deleted_at: null } }
-          }
-        }}
+        take: 10,
+        orderBy: { created_at: 'desc' },
+        include: {
+          _count: {
+            select: {
+              empleados: { where: { activo: true, deleted_at: null } },
+              jornada_areas: true
+            }
+          },
+          jornada_areas: { include: { area: { select: { id: true, nombre: true } } } }
+        }
       });
     });
 
-    it('Debe calcular correctamente el skip y totalPages (page: 2, limit: 15)', async () => {
-      //Arrange: Se define la consulta con page=2 y limit=15, y se simula la respuesta de PrismaService
+    it('Debe calcular correctamente el skip y totalPages para page: 2, limit: 15', async () => {
+      //Arrange: Configurar el mock para devolver un total de 35 jornadas y una página vacía
       const query = { page: 2, limit: 15 } as ListarJornadasQueryDto;
 
-      //Act: Se simula la respuesta de PrismaService para count y findMany
-      mockPrisma.jornada.count.mockResolvedValueOnce(40);
+      //Simular la respuesta de Prisma para count y findMany
+      mockPrisma.jornada.count.mockResolvedValueOnce(35);
       mockPrisma.jornada.findMany.mockResolvedValueOnce([]);
 
+      //Act: Ejecutar el caso de uso con la consulta de prueba
       const resultado = await useCase.execute(query);
 
-      //Assert: Se verifica que el resultado contenga los datos esperados y
-      //que se haya llamado a PrismaService con los parámetros correctos
-      expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 15, take: 15 }),);
-      expect(resultado.meta).toEqual({total: 40, page: 2, limit: 15, totalPages: 3 }); // Math.ceil(40 / 15) = 3
+      //Assert: Verificar que se haya calculado correctamente el skip y totalPages
+      expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 15, take: 15 }));
+      expect(resultado.meta).toEqual({ total: 35, page: 2, limit: 15, totalPages: 3 });
     });
   });
 
-  describe('Filtros por Tipo de Jornada y Estado Activo', () => {
-    it('Debe filtrar por tipo_jornada cuando se especifica en la consulta (ROTATIVA)', async () => {
-      //Arrange: Se define la consulta con tipo_jornada=ROTATIVA y se simula la respuesta de PrismaService
-      const query = { tipo_jornada: 'ROTATIVA' } as ListarJornadasQueryDto;
+  describe('Filtros Avanzados (Área, Modalidad, Turno, Search)', () => {
+    it('Debe filtrar por área a través de la tabla pivote jornada_areas', async () => {
+      //Arrange: Configurar el mock para devolver un total de 0 jornadas y una lista vacía
+      const query = { area_id: 'area-uuid-123' } as ListarJornadasQueryDto;
 
-      //Mock de PrismaService para count y findMany
+      //Simular la respuesta de Prisma para count y findMany
       mockPrisma.jornada.count.mockResolvedValueOnce(0);
       mockPrisma.jornada.findMany.mockResolvedValueOnce([]);
 
-      //Act: Se ejecuta el caso de uso con la consulta
+      //Act: Ejecutar el caso de uso con la consulta de prueba
       await useCase.execute(query);
 
-      //Assert: Se verifica que PrismaService haya sido llamado con los filtros correctos
-      expect(mockPrisma.jornada.count).toHaveBeenCalledWith({where: { deleted_at: null, tipo_jornada: 'ROTATIVA' }});
-      expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith(expect.objectContaining({where: { deleted_at: null, tipo_jornada: 'ROTATIVA' }}));
+      //Assert: Verificar que se haya aplicado el filtro por área correctamente en la consulta
+      expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({jornada_areas: { some: { area_id: 'area-uuid-123' } } })
+      }));
     });
 
-    it('Debe filtrar por activo=false cuando se solicita explícitamente', async () => {
-      //Arrange: Se define la consulta con activo=false y se simula la respuesta de PrismaService
-      const query = { activo: false } as ListarJornadasQueryDto;
+    it('Debe aplicar filtro de búsqueda insensitive por nombre o descripción', async () => {
+      //Arrange: Configurar el mock para devolver un total de 0 jornadas y una lista vacía
+      const query = { search: 'Noche' } as ListarJornadasQueryDto;
 
-      //Act: Se simula la respuesta de PrismaService para count y findMany
+      //Simular la respuesta de Prisma para count y findMany
       mockPrisma.jornada.count.mockResolvedValueOnce(0);
       mockPrisma.jornada.findMany.mockResolvedValueOnce([]);
 
+      //Act: Ejecutar el caso de uso con la consulta de prueba
       await useCase.execute(query);
-
-      //Assert: Se verifica que PrismaService haya sido llamado con los filtros correctos
-      expect(mockPrisma.jornada.count).toHaveBeenCalledWith({where: { deleted_at: null, activo: false }});
-      expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith(expect.objectContaining({where: { deleted_at: null, activo: false }}));
+    
+      //Assert: Verificar que se haya aplicado el filtro de búsqueda correctamente en la consulta
+      expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { nombre: { contains: 'Noche', mode: 'insensitive' } },
+            { descripcion: { contains: 'Noche', mode: 'insensitive' } }
+          ]})
+      }));
     });
 
-    it('Debe combinar múltiples filtros (tipo_jornada=PART_TIME y activo=true)', async () => {
-      //Arrange: Se define la consulta con tipo_jornada=PART_TIME y activo=true
-      const query = {tipo_jornada: 'PART_TIME', activo: true} as ListarJornadasQueryDto;
+    it('Debe filtrar por modalidad HIBRIDO y turno ROTATIVO', async () => {
+      //Arrange: Configurar el mock para devolver un total de 0 jornadas y una lista vacía
+      const query = { modalidad: 'HIBRIDO', turno: 'ROTATIVO' } as ListarJornadasQueryDto;
 
-      //Act: Se simula la respuesta de PrismaService para count y findMany
+      //Simular la respuesta de Prisma para count y findMany
       mockPrisma.jornada.count.mockResolvedValueOnce(0);
       mockPrisma.jornada.findMany.mockResolvedValueOnce([]);
 
+      //Act: Ejecutar el caso de uso con la consulta de prueba
       await useCase.execute(query);
 
-      //Assert: Se verifica que PrismaService haya sido llamado con los filtros correctos
-      expect(mockPrisma.jornada.count).toHaveBeenCalledWith({where: { deleted_at: null, tipo_jornada: 'PART_TIME', activo: true }});
+      //Assert: Verificar que se hayan aplicado los filtros de modalidad y turno correctamente en la consulta
+      expect(mockPrisma.jornada.findMany).toHaveBeenCalledWith( expect.objectContaining({
+        where: expect.objectContaining({
+          modalidad: 'HIBRIDO',
+          turno: 'ROTATIVO'
+        })
+      }));
     });
   });
 
-  describe('Manejo de Excepciones', () => {
-    it('Debe propagar InternalServerErrorException si la transacción de consulta falla', async () => {
-      //Arrange: Se simula un fallo en la transacción de PrismaService
-      mockPrisma.$transaction.mockRejectedValueOnce(new Error('Fallo de conexión en BD'));
+  describe('Manejo de Errores', () => {
+    it('Debe propagar InternalServerErrorException si la transacción falla', async () => {
+      //Arrange: Configurar el mock para simular un error en la trans
+      mockPrisma.$transaction.mockRejectedValueOnce(new Error('PostgreSQL timeout'));
 
-      //Act & Assert: Se espera que el caso de uso propague la excepción como InternalServerErrorException
-      await expect(useCase.execute({ page: 1, limit: 50 } as ListarJornadasQueryDto)).rejects.toThrow(InternalServerErrorException);
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance InternalServerErrorException
+      await expect(useCase.execute({} as ListarJornadasQueryDto)).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

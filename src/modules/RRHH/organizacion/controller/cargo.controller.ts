@@ -9,17 +9,12 @@ import { ListarCargosUseCase } from '../use-cases/cargos/listarCargos.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
+//Importar esquemas y DTOs para validación y tipado
 import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
 import type {CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto} from '@jyp/shared-contracts';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import {
-  ApiSwaggerCargosController,
-  ApiSwaggerCrearCargo,
-  ApiSwaggerActualizarCargo,
-  ApiSwaggerDesactivarCargo,
-  ApiSwaggerReactivarCargo,
-  ApiSwaggerListarCargos,
-} from '../decorators/cargo-swagger.decorator';
+//Importar decoradores de Swagger para documentación de la API
+import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarCargo, ApiSwaggerDesactivarCargo, ApiSwaggerReactivarCargo, ApiSwaggerListarCargos } from '../decorators/cargo-swagger.decorator';
 
 /**
  * Controlador para gestionar los cargos en el módulo de RRHH.
@@ -40,16 +35,17 @@ export class CargoController {
   /**
    * Crear un nuevo cargo
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden crear un nuevo cargo.
-   * POST /api/rrhh/cargo/crear
+   * @POST /api/rrhh/cargo/crear
    * @DTO : {
-   *    "id_area" : id string - uuid
-   *    "nombre" : "nombre de area"
-   *    "descripcion" : "decripcion"
-   *    "jornada_sugerida_id" : id string - uuid
-   * 
+   *    "id_area": string (UUID válido),
+   *    "nombre": string (2-100 carácteres),
+   *    "descripcion"?: string | null (máx 255 carácteres),
+   *    "sueldo_minimo"?: number (mínimo referencial/base, default 1130.00),
+   *    "sueldo_maximo"?: number | null (tope de banda salarial)
    * }
    * @returns: 201 Created - El cargo ha sido creado exitosamente.
-   *          400 Bad Request - Los datos proporcionados son inválidos.
+   *           400 Bad Request - Datos inválidos, nombre duplicado en el área o banda salarial inconsistente.
+   *           404 Not Found - El área especificada no existe o está inactiva.
    */
   @ApiSwaggerCrearCargo()
   @Post('crear')
@@ -62,17 +58,18 @@ export class CargoController {
   /**
    * Editar un cargo existente
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden editar un cargo existente.
-   * PUT /api/rrhh/cargo/@param /actualizar
-   * @param id string - uuid
+   * @PUT /api/rrhh/cargo/:id/actualizar
+   * @param id - string (UUID)
    * @DTO : {
-   *   "id_area" : id string - uuid
-   *   "nombre" : "nombre de area"
-   *   "descripcion" : "decripcion"
-   *   "jornada_sugerida_id" : id string - uuid
+   *    "id_area"?: string (UUID válido),
+   *    "nombre"?: string (2-100 carácteres),
+   *    "descripcion"?: string | null,
+   *    "sueldo_minimo"?: number | null,
+   *    "sueldo_maximo"?: number | null
    * }
    * @returns: 200 OK - El cargo ha sido actualizado exitosamente.
-   *          404 Not Found - El cargo con el ID proporcionado no existe.
-   *          400 Bad Request - Los datos proporcionados son inválidos.
+   *           404 Not Found - El cargo con el ID proporcionado no existe o fue eliminado.
+   *           400 Bad Request - Datos inválidos, nombre duplicado en el área destino o banda salarial inconsistente.
    */
   @ApiSwaggerActualizarCargo()
   @Put(':id/actualizar')
@@ -85,7 +82,7 @@ export class CargoController {
   /**
    * Eliminar un cargo (SOFT DELETE)
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden eliminar un cargo.
-   * DELETE /api/rrhh/cargo/@param /desactive
+   * @DELETE /api/rrhh/cargo/@param /desactive
    * @param id string - uuid
    */
   @ApiSwaggerDesactivarCargo()
@@ -99,8 +96,9 @@ export class CargoController {
   /**
    * Reactivar un cargo que se encuentra desactivado
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden reactivar un cargo desactivado.
-   * PATCH /api/rrhh/cargo/@param /reactive
-   * @param id string - uuid
+   * Valida que el área a la que pertenece se encuentre activa.
+   * @PATCH /api/rrhh/cargo/:id/reactive
+   * @param id - string (UUID)
    */
   @ApiSwaggerReactivarCargo()
   @Patch(':id/reactive')
@@ -112,16 +110,16 @@ export class CargoController {
 
   /**
    * Listar cargos con paginación y filtros
-   * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden listar los cargos.
-   * GET - /api/rrhh/cargo
+   * Permite listar cargos con soporte de búsqueda global y filtros por área o estado.
+   * @GET /api/rrhh/cargo
    * @Query queryParams : ListarCargosQueryDto {
-   *   "page": 1,
-   *   "limit": 10,
-   *   "activo": "Boolean",
-   *   "id_area": "uuid",
-   *   "jornada_sugerida_id": "uuid"
+   *    "page"?: number (default 1),
+   *    "limit"?: number (default 10, max 100),
+   *    "search"?: string (búsqueda por nombre o descripción),
+   *    "id_area"?: string (UUID del área),
+   *    "activo"?: boolean
    * }
-   * @returns Un objeto con los cargos encontrados y metadatos de paginación.
+   * @returns Un objeto con los cargos encontrados, su área, bandas salariales y metadatos de paginación.
    */
   @ApiSwaggerListarCargos()
   @Get()

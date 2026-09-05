@@ -20,11 +20,10 @@ import {
   ApiSwaggerDesactivarJordana,
   ApiSwaggerReactivarJordana
 } from '../decorators/jordana-swagger.decorator';
-
 /**
  * Controlador para gestionar las jornadas laborales en el módulo de RRHH.
  * @requires - JWT Bearer token para autenticación.
- * @requires - Roles: ADMIN, RRHH para autorización.
+ * @requires - Roles: ADMIN, RRHH para operaciones de escritura; CONTADOR para lectura.
  */
 @ApiSwaggerJordanaController()
 @Controller('api/rrhh/jornadas')
@@ -34,7 +33,7 @@ export class JornadaController {
     private readonly estadoJornadaUseCase: EstadoJornadaUseCase,
     private readonly crearJornadaUseCase: CrearJornadaUseCase,
     private readonly editarJornadaUseCase: EditarJornadaUseCase,
-    private readonly listarJornadaUseCase: ListarJornadaUseCase,
+    private readonly listarJornadaUseCase: ListarJornadaUseCase
   ) {}
 
   /**
@@ -42,15 +41,35 @@ export class JornadaController {
    * Permite crear una nueva jornada laboral en el sistema. Se requiere que el usuario tenga el rol de "ADMIN" o "RRHH" para realizar esta acción.
    * POST /api/rrhh/jornadas
    * @param dto - Datos de la nueva jornada laboral a crear, validados mediante el esquema CrearJornadaSchema.
-   * @DTO { nombre: string,
-   *        tipo_jornada: string (FIJA | ROTATIVA | FLEXIBLE | PART_TIME),
-   *        hora_entrada: string (ISO DateTime),
-   *        hora_salida: string (ISO DateTime),
-   *        activo: boolean,
-   *        tolerancia_minutos: number
-   *     }
-   * @returns La jornada laboral creada con sus detalles.
-   * @throws {BadRequestException}
+   * @DTO {
+   *   nombre: string (3-100 carácteres),
+   *   descripcion?: string (máx 255),
+   *   duracion: 'TIEMPO_COMPLETO' | 'TIEMPO_PARCIAL',
+   *   turno: 'MANANA' | 'TARDE' | 'NOCHE' | 'MIXTO' | 'ROTATIVO',
+   *   modalidad: 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO',
+   *   tolerancia_minutos: number (0-60, default 5),
+   *   areas_ids: string[] (Array de UUIDs de áreas donde aplicará el turno),
+   *   horario_semanal: Array<{
+   *     dia: 'LUNES' | 'MARTES' | 'MIERCOLES' | 'JUEVES' | 'VIERNES' | 'SABADO' | 'DOMINGO',
+   *     laborable: boolean,
+   *     modalidad: 'PRESENCIAL' | 'REMOTO',
+   *     entrada?: string (HH:mm),
+   *     inicio_descanso?: string (HH:mm),
+   *     fin_descanso?: string (HH:mm),
+   *     salida?: string (HH:mm),
+   *     total_horas?: number
+   *   }> (7 días obligatorios),
+   *   patron_rotacion?: {
+   *     tipo_ciclo: string (ej. "6x1", "5x2"),
+   *     dias_trabajo: number,
+   *     dias_descanso: number,
+   *     frecuencia_cambio: 'SEMANAL' | 'QUINCENAL' | 'MENSUAL',
+   *     turnos_base: string[] (ej. ["MANANA", "TARDE"])
+   *   } (Obligatorio solo si turno == ROTATIVO),
+   *   activo?: boolean (default true)
+   * }
+   * @returns La jornada laboral creada con sus detalles y áreas vinculadas.
+   * @throws {BadRequestException, NotFoundException}
    */
   @ApiSwaggerCrearJordana()
   @Post()
@@ -62,14 +81,19 @@ export class JornadaController {
 
   /**
    * Listar jornadas laborales
-   * Permite obtener un listado de jornadas laborales con paginación y filtrado opcional por estado (activo/inactivo).
+   * Permite obtener un listado de jornadas laborales con paginación y filtros por estado, modalidad, turno, duración, búsqueda o área aplicable.
    * GET /api/rrhh/jornadas
-   * @Query { page: number,
-   *          limit: number,
-   *          activo: boolean 
-   *          tipo_jornada: string (FIJA | ROTATIVA | FLEXIBLE | PART_TIME)
-   *        }
-   * @returns Un objeto con las jornadas laborales encontradas y metadatos de paginación.
+   * @Query {
+   *   page?: number (default 1),
+   *   limit?: number (default 10, max 100),
+   *   search?: string (búsqueda por nombre o descripción),
+   *   area_id?: string (UUID del área para filtrar turnos disponibles),
+   *   turno?: 'MANANA' | 'TARDE' | 'NOCHE' | 'MIXTO' | 'ROTATIVO',
+   *   modalidad?: 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO',
+   *   duracion?: 'TIEMPO_COMPLETO' | 'TIEMPO_PARCIAL',
+   *   activo?: boolean (true/false)
+   * }
+   * @returns Un objeto con las jornadas laborales encontradas, conteo de empleados y metadatos de paginación.
    */
   @ApiSwaggerListarJordana()
   @Get()
@@ -85,12 +109,31 @@ export class JornadaController {
    * PUT /api/rrhh/jornadas/:id
    * @param id - ID de la jornada laboral a actualizar (UUID).
    * @param dto - Datos actualizados de la jornada laboral, validados mediante el esquema ActualizarJornadaSchema.
-   * @DTO { nombre?: string,
-   *       tipo_jornada?: string (FIJA | ROTATIVA | FLEXIBLE | PART_TIME),
-   *       hora_entrada?: string (ISO DateTime),
-   *       hora_salida?: string (ISO DateTime),
-   *       activo?: boolean,
-   *       tolerancia_minutos?: number
+   * @DTO {
+   *   nombre?: string,
+   *   descripcion?: string,
+   *   duracion?: 'TIEMPO_COMPLETO' | 'TIEMPO_PARCIAL',
+   *   turno?: 'MANANA' | 'TARDE' | 'NOCHE' | 'MIXTO' | 'ROTATIVO',
+   *   modalidad?: 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO',
+   *   tolerancia_minutos?: number,
+   *   areas_ids?: string[],
+   *   horario_semanal?: Array<{
+   *     dia: 'LUNES' | 'MARTES' | 'MIERCOLES' | 'JUEVES' | 'VIERNES' | 'SABADO' | 'DOMINGO',
+   *     laborable: boolean,
+   *     modalidad: 'PRESENCIAL' | 'REMOTO',
+   *     entrada?: string,
+   *     inicio_descanso?: string,
+   *     fin_descanso?: string,
+   *     salida?: string
+   *   }>,
+   *   patron_rotacion?: {
+   *     tipo_ciclo: string,
+   *     dias_trabajo: number,
+   *     dias_descanso: number,
+   *     frecuencia_cambio: 'SEMANAL' | 'QUINCENAL' | 'MENSUAL',
+   *     turnos_base: string[]
+   *   },
+   *   activo?: boolean
    * }
    * @returns La jornada laboral actualizada con sus detalles.
    * @throws {NotFoundException, BadRequestException}

@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ClsModule } from 'nestjs-cls';
 // --- CONTROLADORES ---
-import { AreaController } from './controller/Area.controller';
+import { AreaController } from './controller/area.controller';
 import { CargoController } from './controller/cargo.controller';
 import { EmpleadoController } from './controller/empleado.controller';
 import { EmpleadoBulkController } from './controller/empleado-bulk.controller';
@@ -11,8 +11,7 @@ import { JornadaController } from './controller/jornada.controller';
 // --- CASOS DE USO: ÁREA ---
 import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
 import { ActualizarAreaUseCase } from './use-cases/area/actualizarArea.useCase';
-import { EliminarAreaUseCase } from './use-cases/area/eliminarArea.useCase';
-import { ActiveAreaUseCase } from './use-cases/area/activeArea.useCase';
+import { EstadoAreaUseCase } from './use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
 // --- CASOS DE USO: CARGO ---
 import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.useCase';
@@ -57,8 +56,7 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     //Areas
     CrearAreaUseCase,
     ActualizarAreaUseCase,
-    EliminarAreaUseCase,
-    ActiveAreaUseCase,
+    EstadoAreaUseCase,
     ListarAreasUseCase,
     //Cargos
     CrearCargoUseCase,

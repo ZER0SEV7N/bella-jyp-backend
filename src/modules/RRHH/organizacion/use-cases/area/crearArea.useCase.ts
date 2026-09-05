@@ -1,56 +1,55 @@
 //src/modules/RRHH/organizacion/use-cases/area/crearArea.useCase.ts
-//Caso de uso para crear un área en el módulo de RRHH
 import { PrismaService } from '@/common/prisma/prisma.service';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import {BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CrearAreaDto } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 
+/**
+ * Clase que representa el caso de uso para crear un área en el módulo de RRHH.
+ * Permite a los usuarios con los roles adecuados (ADMIN, RRHH) 
+ * registrar un nuevo área en el sistema, asegurando que no exista un área con el mismo nombre.
+ * Se encarga de validar la existencia previa del área y de manejar errores durante la creación.
+ */
 @Injectable()
 export class CrearAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
-  async execute(dto: CrearAreaDto) {
-    //Validación de entrada: Aseguramos que el DTO no sea nulo y que contenga un nombre válido
-    if (!dto || !dto.nombre)
-      throw new BadRequestException(
-        'El nombre del área es estrictamente obligatorio.',
-      );
 
+  /**
+   * Ejecuta el caso de uso para crear un área.
+   * @param dto - Los datos necesarios para crear un área, incluyendo nombre y descripción.
+   * @returns El área recién creada si la operación es exitosa.
+   * @throws BadRequestException si ya existe un área con el mismo nombre.
+   * @throws InternalServerErrorException si ocurre un error inesperado durante la creación.
+   */
+  async execute(dto: CrearAreaDto) {
     try {
-      //Verificamos si ya existe un área con el mismo nombre para evitar duplicados
+      //Verificar si ya existe un área con el mismo nombre (insensible a mayúsculas/minúsculas)
       const areaExistente = await this.prisma.area.findFirst({
-        where: { nombre: dto.nombre },
+        where: {
+          nombre: { equals: dto.nombre.trim(), mode: 'insensitive' },
+          deleted_at: null
+        }
       });
 
-      if (areaExistente)
-        throw new BadRequestException(
-          `Ya existe un área registrada con el nombre '${dto.nombre}'.`,
-        );
-
-      //Generar un nuevo ID para el área utilizando la utilidad IdentityGenerator
-      const newAreaId = IdentityGenerator.generateId();
+      //Si se encuentra un área existente, lanzar una excepción de solicitud incorrecta
+      if (areaExistente) throw new BadRequestException({
+        title: 'Área Duplicada',
+        detail: `Ya existe un área registrada con el nombre '${dto.nombre.trim()}'.`
+      });
 
       //Crear el área en la base de datos utilizando Prisma
-      const area = await this.prisma.area.create({
+      return await this.prisma.area.create({
         data: {
-          id: newAreaId,
-          nombre: dto.nombre,
-          descripcion: dto.descripcion,
-          activo: true,
-        },
+          id: IdentityGenerator.generateId(),
+          nombre: dto.nombre.trim(),
+          descripcion: dto.descripcion?.trim() || null,
+          activo: true
+        }
       });
-      //Retornar el área creada
-      return area;
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
 
-      throw new InternalServerErrorException(
-        'Ocurrió un error al intentar crear el área',
-        error instanceof Error ? error.message : String(error),
-      );
+      throw new InternalServerErrorException( 'Ocurrió un error al intentar registrar la nueva área.', error instanceof Error ? error.message : undefined);
     }
   }
 }

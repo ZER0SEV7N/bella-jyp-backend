@@ -1,4 +1,4 @@
-//test/modules/RRHH/organizacion/Adaptador Reniec/reniec.Adapter.spec.ts
+//test/modules/RRHH/organizacion/adaptador-reniec/reniec.adapter.spec.ts
 import { ReniecAdapter } from '@/modules/RRHH/organizacion/services/reniec.adapter';
 import { BadGatewayException, RequestTimeoutException } from '@nestjs/common';
 
@@ -21,7 +21,7 @@ describe('ReniecAdapter - Pruebas Unitarias de Integración Externa', () => {
         adapter = new ReniecAdapter();
         (global as any).fetch = jest.fn();
     });
-
+    
     afterAll(() => process.env = ORIGINAL_ENV);
 
     describe('consultarDni() - Formateo Title Case y Petición HTTP', () => {

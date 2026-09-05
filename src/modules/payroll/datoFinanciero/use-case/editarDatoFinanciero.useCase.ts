@@ -44,12 +44,12 @@ export class EditarDatoFinancieroUseCase {
     //Verificar la contraseña de confirmación proporcionada en el DTO
     const passwordValida = await argon2.verify(
       usuarioActual.password_hash,
-      dto.password_confirmacion,
+      dto.password_confirmacion
     );
 
     if (!passwordValida) throw new UnauthorizedException({
       title: 'Confirmación de Seguridad Fallida',
-      detail: 'La contraseña de confirmación ingresada es incorrecta. Mutación financiera denegada.',
+      detail: 'La contraseña de confirmación ingresada es incorrecta. Mutación financiera denegada.'
     });
 
     try {
@@ -79,7 +79,7 @@ export class EditarDatoFinancieroUseCase {
       return {
         id: actualizado.id,
         empleado_id: actualizado.empleado_id,
-        mensaje: 'Datos financieros actualizados y re-encriptados correctamente.',
+        mensaje: 'Datos financieros actualizados y re-encriptados correctamente.'
       };
 
     } catch (error) {

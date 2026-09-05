@@ -16,15 +16,12 @@ export class EditarEmpleadoUseCase {
   async execute(id: string, payload: EditarEmpleadoDto) {
     try {
       //Buscar el empleado por su ID
-      const empleado = await this.prisma.empleados.findUnique({
-        where: { id },
-      });
+      const empleado = await this.prisma.empleados.findUnique({where: { id }});
 
-      if (!empleado || empleado.deleted_at !== null)
-        throw new NotFoundException({
-          title: 'Colaborador no encontrado',
-          detail: 'El legajo no existe o ha sido eliminado (cesado).',
-        });
+      if (!empleado || empleado.deleted_at !== null) throw new NotFoundException({
+        title: 'Colaborador no encontrado',
+        detail: 'El legajo no existe o ha sido eliminado (cesado).'
+      });
 
       // Si intenta cambiar el documento, validamos que no colisione con otro
       if (

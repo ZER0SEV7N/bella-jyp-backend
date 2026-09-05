@@ -1,20 +1,32 @@
 //src/modules/RRHH/organizacion/use-cases/jornadas/helper/fechaTiempo.helper.ts
+import { DiaHorarioDto } from "@jyp/shared-contracts";
+
 /**
- * Funcion que convierte un string de tiempo en un objeto Date.
- * @param time - String de tiempo en formato "HH:mm:ss" o "HH:mm" o un objeto Date.
- * @returns Un objeto Date con la fecha establecida en 1970-01-01 y la hora establecida según el string de tiempo.
- * @throws Error si el string de tiempo no tiene un formato válido.
+ * Funcion auxiliar para calcular el total de horas trabajadas en un día específico de la jornada laboral.
+ * @param dia - Objeto que representa un día de la semana con sus horarios de entrada, salida y descanso.
+ * @returns El total de horas trabajadas en ese día, 
+ * considerando los horarios de entrada, salida y descanso. Si el día no es laborable o no se especifican los horarios, retorna 0.
+ * @throws Error si los horarios de entrada, salida o descanso no están en el formato correcto "HH:mm".
  */
+export function calcularHorasDia(dia: DiaHorarioDto): number {
+  if (!dia.laborable || !dia.entrada || !dia.salida) return 0;
 
-export function normalizarTimeToDate(time: string | Date): Date {
-    //Si el tiempo ya es un objeto Date, simplemente lo devolvemos
-    if (time instanceof Date) return time;
-    
-    //Si el tiempo es un string, lo procesamos
-    const trimmed = time.trim();
-    if (trimmed.includes('T')) return new Date(trimmed);
+  //Validar formato de hora
+  const [hEnt, mEnt] = dia.entrada.split(':').map(Number);
+  const [hSal, mSal] = dia.salida.split(':').map(Number);
 
-    //Dividimos el string en horas, minutos y segundos
-    const [hours, minutes, seconds = '00'] = trimmed.split(':');
-    return new Date(Date.UTC(1970, 0, 1, Number(hours), Number(minutes), Number(seconds)));
+  let minutosTotales = (hSal * 60 + mSal) - (hEnt * 60 + mEnt);
+  if (minutosTotales <= 0) minutosTotales += 24 * 60; //Salida al día siguiente
+
+  //Descontar descanso si fue especificado
+  if (dia.inicio_descanso && dia.fin_descanso) {
+    //Validar formato de hora
+    const [hDescIni, mDescIni] = dia.inicio_descanso.split(':').map(Number);
+    const [hDescFin, mDescFin] = dia.fin_descanso.split(':').map(Number);
+    let descansoMinutos = (hDescFin * 60 + mDescFin) - (hDescIni * 60 + mDescIni);
+    if (descansoMinutos <= 0) descansoMinutos += 24 * 60;
+    minutosTotales -= descansoMinutos;
+  }
+
+  return Math.max(0, Number((minutosTotales / 60).toFixed(2)));
 }

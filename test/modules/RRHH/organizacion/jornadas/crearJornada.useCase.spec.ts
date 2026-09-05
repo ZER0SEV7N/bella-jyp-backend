@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CrearJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/crearJornada.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
@@ -10,23 +10,48 @@ import type { CrearJornadaDto } from '@jyp/shared-contracts';
  * Se simula el comportamiento del servicio Prisma para verificar la lógica de negocio y las excepciones lanzadas en diferentes escenarios.
  * Se incluyen pruebas para creación exitosa, validación de duplicados y resiliencia ante fallos de base de datos.
  */
-describe('CrearJornadaUseCase - Pruebas Unitarias Exhaustivas', () => {
+describe('CrearJornadaUseCase - Pruebas Unitarias', () => {
   let useCase: CrearJornadaUseCase;
   let prisma: PrismaService;
 
-  const mockPrismaService = { jornada: {findFirst: jest.fn(), create: jest.fn()} };
+  //Mockear las funciones del servicio Prisma para simular la interacción con la base de datos
+  const mockPrismaService = {
+    jornada: { findFirst: jest.fn(), create: jest.fn() },
+    area: { findMany: jest.fn() },
+    jornada_area: { createMany: jest.fn() },
+    $transaction: jest.fn(async (cb: any) => {
+      if (typeof cb === 'function') 
+        return await cb(mockPrismaService);
+      
+      return Promise.all(cb);
+    }),
+  };
 
-  //Payload de prueba para la creación de una jornada laboral
+  //Definir un horario semanal válido para las pruebas
+  const horarioSemanalValido = [
+    { dia: 'LUNES', laborable: true, modalidad: 'PRESENCIAL', entrada: '08:00', inicio_descanso: '13:00', fin_descanso: '14:00', salida: '17:00' },
+    { dia: 'MARTES', laborable: true, modalidad: 'PRESENCIAL', entrada: '08:00', inicio_descanso: '13:00', fin_descanso: '14:00', salida: '17:00' },
+    { dia: 'MIERCOLES', laborable: true, modalidad: 'PRESENCIAL', entrada: '08:00', inicio_descanso: '13:00', fin_descanso: '14:00', salida: '17:00' },
+    { dia: 'JUEVES', laborable: true, modalidad: 'PRESENCIAL', entrada: '08:00', inicio_descanso: '13:00', fin_descanso: '14:00', salida: '17:00' },
+    { dia: 'VIERNES', laborable: true, modalidad: 'PRESENCIAL', entrada: '08:00', inicio_descanso: '13:00', fin_descanso: '14:00', salida: '17:00' },
+    { dia: 'SABADO', laborable: false, modalidad: 'PRESENCIAL', entrada: null, inicio_descanso: null, fin_descanso: null, salida: null },
+    { dia: 'DOMINGO', laborable: false, modalidad: 'PRESENCIAL', entrada: null, inicio_descanso: null, fin_descanso: null, salida: null }
+  ] as any;
+
+  //Definir un payload válido para la creación de jornada
   const payloadValido: CrearJornadaDto = {
-    nombre: 'Turno Mañana (Oficina Central)',
-    tipo_jornada: 'FIJA',
-    hora_entrada: '08:00',
-    hora_salida: '17:00',
-    tolerancia_minutos: 15,
+    nombre: 'Jornada Administrativa 40h',
+    descripcion: 'Lunes a Viernes de 8 a 17 con 1h de refrigerio',
+    duracion: 'TIEMPO_COMPLETO',
+    turno: 'MANANA',
+    modalidad: 'PRESENCIAL',
+    tolerancia_minutos: 10,
+    areas_ids: ['area-uuid-1', 'area-uuid-2'],
+    horario_semanal: horarioSemanalValido,
     activo: true
   };
 
-  //Configuración del módulo de pruebas antes de cada test
+  //Configurar el módulo de pruebas antes de cada test
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -41,113 +66,138 @@ describe('CrearJornadaUseCase - Pruebas Unitarias Exhaustivas', () => {
     jest.spyOn(IdentityGenerator, 'generateId').mockReturnValue('jornada-uuid-100');
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
+  //Pruebas para el caso de uso CrearJornadaUseCase
   describe('Creación Exitosa (Happy Path)', () => {
-    it('Happy Path: Debe registrar exitosamente una nueva jornada con horarios parseados y tipo FIJA', async () => {
-      //Arrange: Se simula que no existe una jornada con el mismo nombre y que la creación en PrismaService es exitosa
+    it('Debe registrar exitosamente una jornada descontando refrigerio y asociando áreas', async () => {
+      //Arrange: Simular que no existe una jornada con el mismo nombre y que las áreas existen
       mockPrismaService.jornada.findFirst.mockResolvedValue(null);
-
-      const jornadaCreadaEsperada = {
-        id: 'jornada-uuid-100',
-        nombre: 'Turno Mañana (Oficina Central)',
-        tipo_jornada: 'FIJA',
-        hora_entrada: new Date('1970-01-01T08:00:00.000Z'),
-        hora_salida: new Date('1970-01-01T17:00:00.000Z'),
-        tolerancia_minutos: 15,
-        activo: true
-      };
-
-      mockPrismaService.jornada.create.mockResolvedValue(jornadaCreadaEsperada);
-
-      //Act: Se ejecuta el caso de uso para crear la jornada
-      const result = await useCase.execute(payloadValido);
-
-      //Assert: Se verifica que PrismaService haya sido llamado con los parámetros correctos y que el resultado sea el esperado
-      expect(prisma.jornada.findFirst).toHaveBeenCalledWith({ where: {
-        nombre: { equals: 'Turno Mañana (Oficina Central)', mode: 'insensitive' },
-        deleted_at: null
-      }});
-
-      expect(prisma.jornada.create).toHaveBeenCalledWith({data: expect.objectContaining({
-        id: 'jornada-uuid-100',
-        nombre: 'Turno Mañana (Oficina Central)',
-        tipo_jornada: 'FIJA',
-        tolerancia_minutos: 15,
-        activo: true
-      })});
-
-      expect(result).toEqual(jornadaCreadaEsperada);
-    });
-
-    it('Happy Path: Debe admitir tipo de jornada ROTATIVA y horas en formato ISO completo', async () => {
-      //Arrange: Se define un payload con tipo de jornada ROTATIVA y se simula que no existe una jornada con el mismo nombre
-      const payloadRotativo: CrearJornadaDto = {
-        nombre: 'Turno Rotativo 24x48 Seguridad',
-        tipo_jornada: 'ROTATIVA',
-        hora_entrada: '1970-01-01T19:00:00.000Z',
-        hora_salida: '1970-01-01T07:00:00.000Z',
-        tolerancia_minutos: 10,
-        activo: true
-      };
-
-      //Se simula que no existe una jornada con el mismo nombre y que la creación en PrismaService es exitosa
-      mockPrismaService.jornada.findFirst.mockResolvedValue(null);
-      mockPrismaService.jornada.create.mockResolvedValue({id: 'jornada-uuid-100', ...payloadRotativo});
-
-      const result = await useCase.execute(payloadRotativo);
-
-      //Assert: Se verifica que PrismaService haya sido llamado con los parámetros correctos y que el resultado contenga el tipo de jornada ROTATIVA
-      expect(result.tipo_jornada).toBe('ROTATIVA');
-      expect(prisma.jornada.create).toHaveBeenCalledWith(expect.objectContaining({data: expect.objectContaining({tipo_jornada: 'ROTATIVA'})}));
-    });
-
-    it('Happy Path: Debe aplicar valores por defecto para tipo_jornada (FIJA) y tolerancia si vienen ausentes', async () => {
-      //Arrange: Se define un payload mínimo sin tipo_jornada ni tolerancia y se simula que no existe una jornada con el mismo nombre
-      const payloadMinimo = {
-        nombre: 'Turno Tarde',
-        hora_entrada: '14:00',
-        hora_salida: '22:00'
-      } as CrearJornadaDto;
-
-      //Se simula que no existe una jornada con el mismo nombre y que la creación en PrismaService es exitosa
-      mockPrismaService.jornada.findFirst.mockResolvedValue(null);
+      mockPrismaService.area.findMany.mockResolvedValue([{ id: 'area-uuid-1' }, { id: 'area-uuid-2' }]);
       mockPrismaService.jornada.create.mockResolvedValue({
         id: 'jornada-uuid-100',
-        nombre: 'Turno Tarde',
-        tipo_jornada: 'FIJA',
-        tolerancia_minutos: 0,
-        activo: true
+        ...payloadValido,
+        total_horas_semana: 40
       });
 
-      //Act: Se ejecuta el caso de uso para crear la jornada con valores por defecto
-      const result = await useCase.execute(payloadMinimo);
+      //Act: Ejecutar el caso de uso con el payload válido
+      const result = await useCase.execute(payloadValido);
 
-      //Assert: Se verifica que PrismaService haya sido llamado con los parámetros correctos y que el resultado contenga los valores por defecto esperados
-      expect(result.tipo_jornada).toBe('FIJA');
-      expect(prisma.jornada.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-          tipo_jornada: 'FIJA',
-          tolerancia_minutos: 0,
-          activo: true,
-        })
+      //Assert: Verificar que se llamaron las funciones de Prisma con los parámetros correctos y que el resultado es el esperado
+      expect(prisma.jornada.findFirst).toHaveBeenCalledWith({ where: { nombre: { equals: 'Jornada Administrativa 40h', mode: 'insensitive' }, deleted_at: null }});
+      expect(prisma.area.findMany).toHaveBeenCalledWith({
+        where: { id: { in: payloadValido.areas_ids }, activo: true, deleted_at: null },
+        select: { id: true }
       });
+
+      //Verificar que se creó la jornada con los datos correctos
+      expect(mockPrismaService.jornada_area.createMany).toHaveBeenCalledWith({
+        data: [
+          { jornada_id: 'jornada-uuid-100', area_id: 'area-uuid-1' },
+          { jornada_id: 'jornada-uuid-100', area_id: 'area-uuid-2' }
+        ]
+      });
+
+      //Verificar que el resultado final contiene los datos esperados
+      expect(result.id).toBe('jornada-uuid-100');
+      expect(result.total_horas_semana).toBe(40);
+      expect(result.areas_aplicables_ids).toEqual(payloadValido.areas_ids);
+    });
+
+    it('Debe registrar turno ROTATIVO si se especifica el patron_rotacion', async () => {
+      //Arrange: Preparar un payload con turno ROTATIVO y patron_rotacion
+      const payloadRotativo: CrearJornadaDto = {
+        ...payloadValido,
+        turno: 'ROTATIVO',
+        patron_rotacion: {
+          tipo_ciclo: '6x1',
+          dias_trabajo: 6,
+          dias_descanso: 1,
+          frecuencia_cambio: 'SEMANAL',
+          turnos_base: ['MANANA', 'TARDE']
+        }
+      };
+
+      //Simular que no existe una jornada con el mismo nombre y que las áreas existen
+      mockPrismaService.jornada.findFirst.mockResolvedValue(null);
+      mockPrismaService.area.findMany.mockResolvedValue([{ id: 'area-uuid-1' }, { id: 'area-uuid-2' }]);
+      mockPrismaService.jornada.create.mockResolvedValue({ id: 'jornada-uuid-100', ...payloadRotativo });
+
+      //Act: Ejecutar el caso de uso con el payload de turno ROTATIVO
+      const result = await useCase.execute(payloadRotativo);
+
+      //Assert: Verificar que el resultado contiene el turno ROTATIVO y que se llamó a Prisma con los datos correctos
+      expect(result.turno).toBe('ROTATIVO');
+      expect(mockPrismaService.jornada.create).toHaveBeenCalledWith( expect.objectContaining({
+        data: expect.objectContaining({
+          turno: 'ROTATIVO',
+          patron_rotacion: payloadRotativo.patron_rotacion
+        })})
+      );
     });
   });
 
-  describe('Validaciones de Negocio y Manejo de Errores', () => {
-    it('Debe lanzar BadRequestException si ya existe una jornada activa con el mismo nombre', async () => {
-      //Arrange: Se simula que PrismaService encuentra una jornada existente con el mismo nombre
-      mockPrismaService.jornada.findFirst.mockResolvedValue({
-        id: 'jornada-existente-id',
-        nombre: 'Turno Mañana (Oficina Central)'
-      });
+  describe('Validaciones de Negocio', () => {
+    it('Debe lanzar BadRequestException si el nombre ya existe', async () => {
+      //Arrange: Simular que ya existe una jornada con el mismo nombre
+      mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'otra-jornada' });
 
-      //Act & Assert: Se espera que el caso de uso lance BadRequestException al intentar crear una jornada duplicada
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException
       await expect(useCase.execute(payloadValido)).rejects.toThrow(BadRequestException);
-      expect(prisma.jornada.create).not.toHaveBeenCalled();
+      expect(prisma.area.findMany).not.toHaveBeenCalled();
+    });
+
+    it('Debe lanzar NotFoundException si alguna área no existe o está inactiva', async () => {
+      //Arrange: Simular que no existe una jornada con el mismo nombre y que solo una de las áreas existe
+      mockPrismaService.jornada.findFirst.mockResolvedValue(null);
+      mockPrismaService.area.findMany.mockResolvedValue([{ id: 'area-uuid-1' }]); //Solo 1 de las 2 áreas existe
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance NotFoundException
+      await expect(useCase.execute(payloadValido)).rejects.toThrow(NotFoundException);
+    });
+
+    it('Debe lanzar BadRequestException si el turno es ROTATIVO pero no incluye patron_rotacion', async () => {
+      //Arrange: Preparar un payload con turno ROTATIVO pero sin patron_rotacion
+      const payloadInvalido = { ...payloadValido, turno: 'ROTATIVO', patron_rotacion: null } as any;
+
+      //Simular que no existe una jornada con el mismo nombre y que las áreas existen
+      mockPrismaService.jornada.findFirst.mockResolvedValue(null);
+      mockPrismaService.area.findMany.mockResolvedValue([{ id: 'area-uuid-1' }, { id: 'area-uuid-2' }]);
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException
+      await expect(useCase.execute(payloadInvalido)).rejects.toThrow(BadRequestException);
+    });
+
+    it('Debe lanzar BadRequestException si excede las 48 horas semanales', async () => {
+      //Preparar un horario semanal que exceda las 48 horas (por ejemplo, 5 días de 10h = 50h)
+      //5 días de 10h = 50 horas semanales
+      const horarioExcedido = horarioSemanalValido.map((dia: any) =>
+        dia.laborable ? { ...dia, entrada: '07:00', salida: '18:00', inicio_descanso: '13:00', fin_descanso: '14:00' } : dia,
+      );
+
+      //Simular que no existe una jornada con el mismo nombre y que las áreas existen
+      mockPrismaService.jornada.findFirst.mockResolvedValue(null);
+      mockPrismaService.area.findMany.mockResolvedValue([{ id: 'area-uuid-1' }, { id: 'area-uuid-2' }]);
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException por exceder las 48 horas
+      await expect(useCase.execute({ ...payloadValido, horario_semanal: horarioExcedido })).rejects.toThrow(BadRequestException);
+    });
+
+    it('Debe lanzar BadRequestException si es TIEMPO_PARCIAL pero supera o iguala las 30 horas', async () => {
+      //Assert: Preparar un horario semanal que tenga 30 horas o más (por ejemplo, 5 días de 6h = 30h)
+      mockPrismaService.jornada.findFirst.mockResolvedValue(null);
+      mockPrismaService.area.findMany.mockResolvedValue([{ id: 'area-uuid-1' }, { id: 'area-uuid-2' }]);
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance BadRequestException por exceder las 30 horas para tiempo parcial
+      await expect(useCase.execute({ ...payloadValido, duracion: 'TIEMPO_PARCIAL' })).rejects.toThrow(BadRequestException);
+    });
+
+    it('Debe envolver errores inesperados en InternalServerErrorException', async () => {
+      //Arrange: Simular un fallo crítico de conexión a la base de datos al intentar buscar una jornada existente
+      mockPrismaService.jornada.findFirst.mockRejectedValue(new Error('Fallo crítico de conexión'));
+
+      //Act & Assert: Ejecutar el caso de uso y esperar que lance InternalServerErrorException
+      await expect(useCase.execute(payloadValido)).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

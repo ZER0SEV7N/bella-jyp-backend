@@ -16,7 +16,10 @@ export class ObtenerDatoFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * 
+   * Metodo para obtener los datos financieros de un empleado por su ID.
+   * @param idEmpleado - El ID del empleado cuyos datos financieros se desean consultar.
+   * @returns Los datos financieros del empleado con enmascaramiento de los campos sensibles.
+   * @throws NotFoundException si no se encuentran datos financieros para el empleado especificado.
    */
   async execute(idEmpleado: string) {
     const datoFinanciero = await this.prisma.dato_financiero.findUnique({

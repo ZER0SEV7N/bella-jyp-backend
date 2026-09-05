@@ -36,7 +36,7 @@ export class EvaluarSolicitudUseCase {
                 responsable_id: usuarioEvaluadorId //Sella al usuario que dictamina
             },
             include: {
-                empleado: {
+                empleados: {
                     select: {
                         id: true,
                         nombre: true,
