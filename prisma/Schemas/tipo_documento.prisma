@@ -1,5 +1,0 @@
-model tipo_documento {
-  id             String      @id @db.Uuid
-  tipo_documento String      @db.VarChar(100)
-  empleados      empleados[]
-}

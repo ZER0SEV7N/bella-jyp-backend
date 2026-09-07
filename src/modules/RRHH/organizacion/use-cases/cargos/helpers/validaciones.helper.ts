@@ -10,15 +10,15 @@ import { PrismaService } from '@/common/prisma/prisma.service';
  * @throws NotFoundException si el cargo no existe o ha sido eliminado.
  */
 export async function obtenerCargo(prisma: PrismaService, id: string) {
-    const cargo = await prisma.cargo.findUnique({ where: { id, deleted_at: null } });
+  const cargo = await prisma.cargo.findUnique({ where: { id, deleted_at: null } });
 
-    //Si el cargo no existe o ha sido eliminado, lanzar una excepción de no encontrado
-    if (!cargo) throw new NotFoundException({
-        title: 'Cargo no encontrado',
-        detail: 'El cargo que intenta actualizar no existe o ha sido eliminado.'
-    });
-    
-    return cargo;
+  //Si el cargo no existe o ha sido eliminado, lanzar una excepción de no encontrado
+  if (!cargo) throw new NotFoundException({
+      title: 'Cargo no encontrado',
+      detail: 'El cargo que intenta actualizar no existe o ha sido eliminado.'
+  });
+  
+  return cargo;
 }
 
 /**
@@ -29,17 +29,11 @@ export async function obtenerCargo(prisma: PrismaService, id: string) {
  * @returns - Una promesa que se resuelve si el área de destino es válida.
  * @throws BadRequestException si el área de destino no existe o está inactiva.
  */
-export async function validarAreaActiva(
-  prisma: PrismaService,
-  idArea: string | undefined,
-  idAreaActual?: string,
-  esActualizacion = false,
-) {
+export async function validarAreaActiva( prisma: PrismaService, idArea: string | undefined, idAreaActual?: string, esActualizacion = false ) {
   if (!idArea || idArea === idAreaActual) return;
 
-  const area = await prisma.area.findUnique({
-    where: { id: idArea, deleted_at: null },
-  });
+  //Ubicar el área en la base de datos y verificar que exista y esté activa
+  const area = await prisma.area.findUnique({ where: { id: idArea, deleted_at: null } });
 
   if (!area || !area.activo) {
     if (esActualizacion) 
@@ -48,10 +42,10 @@ export async function validarAreaActiva(
         detail: 'El área a la que intenta mover el cargo no existe o está inactiva.',
       });
     
-
+    //En caso de creación, lanzar una excepción de no encontrado si el área no es válida
     throw new NotFoundException({
       title: 'Área inválida',
-      detail: 'El área especificada no existe o se encuentra inactiva/eliminada.',
+      detail: 'El área especificada no existe o se encuentra inactiva/eliminada.'
     });
   }
 }
@@ -66,19 +60,20 @@ export async function validarAreaActiva(
  * @throws BadRequestException si ya existe otro cargo con el mismo nombre en la misma área.
  */
 export async function validarNombreUnico(prisma: PrismaService,nombre: string, idArea: string, idCargoExcluir?: string) {
-    const colision = await prisma.cargo.findFirst({
-        where: {
-            nombre: { equals: nombre, mode: 'insensitive' },
-            id_area: idArea,
-            ...(idCargoExcluir ? { id: { not: idCargoExcluir } } : {}),
-            deleted_at: null
-        }
-    });
+  //Validar que no exista otro cargo con el mismo nombre en la misma área, excluyendo el cargo actual si se está actualizando  
+  const colision = await prisma.cargo.findFirst({
+      where: {
+        nombre: { equals: nombre, mode: 'insensitive' },
+        id_area: idArea,
+        ...(idCargoExcluir ? { id: { not: idCargoExcluir } } : {}),
+        deleted_at: null
+      }
+  });
 
-    if (colision) throw new BadRequestException({
-        title: 'Nombre de cargo duplicado',
-        detail: `Ya existe otro cargo llamado '${nombre}' en el área destino.`
-    });
+  if (colision) throw new BadRequestException({
+      title: 'Nombre de cargo duplicado',
+      detail: `Ya existe otro cargo llamado '${nombre}' en el área destino.`
+  });
 }
 
   /**
@@ -88,10 +83,11 @@ export async function validarNombreUnico(prisma: PrismaService,nombre: string, i
    * @throws BadRequestException si el sueldo máximo es menor al sueldo mínimo.
    */
 export function validarBandaSalarial(minimo: number | null, maximo: number | null) {
-    if (minimo != null && maximo != null && Number(maximo) < Number(minimo)) throw new BadRequestException({
-        title: 'Banda Salarial Inconsistente',
-        detail: `El sueldo máximo (${maximo}) no puede ser menor al sueldo mínimo (${minimo}).`
-    });
+  //Validar que el sueldo máximo no sea menor al sueldo mínimo si ambos valores son proporcionados
+  if (minimo != null && maximo != null && Number(maximo) < Number(minimo)) throw new BadRequestException({
+    title: 'Banda Salarial Inconsistente',
+    detail: `El sueldo máximo (${maximo}) no puede ser menor al sueldo mínimo (${minimo}).`
+  });
 }
 
 /**
@@ -102,6 +98,6 @@ export function validarBandaSalarial(minimo: number | null, maximo: number | nul
  * 
  */
 export function resolverSueldo(payloadValue: number | undefined, currentValue: unknown) {
-    if (payloadValue !== undefined) return payloadValue;
-    return currentValue !== null ? Number(currentValue) : null;
+  if (payloadValue !== undefined) return payloadValue;
+  return currentValue !== null ? Number(currentValue) : null;
 }

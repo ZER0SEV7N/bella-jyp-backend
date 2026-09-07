@@ -40,8 +40,8 @@ export class ActualizarAreaUseCase {
           where: {
             nombre: { equals: dto.nombre.trim(), mode: 'insensitive' },
             id: { not: areaId },
-            deleted_at: null,
-          },
+            deleted_at: null
+          }
         });
 
         //Si se encuentra un área con el mismo nombre, lanzar una excepción de solicitud incorrecta

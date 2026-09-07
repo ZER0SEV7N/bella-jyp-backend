@@ -46,11 +46,13 @@ describe('JornadaController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', 
     //Definir un payload de ejemplo para la creación de una jornada laboral
     const payload: CrearJornadaDto = {
       nombre: 'Turno Mañana (Oficina Central)',
-      tipo_jornada: 'FIJA',
-      hora_entrada: '08:00',
-      hora_salida: '17:00',
+      modalidad: 'PRESENCIAL',
+      duracion: 'TIEMPO_COMPLETO',
+      turno: 'MANANA',
       tolerancia_minutos: 15,
-      activo: true
+      activo: true,
+      areas_ids: [],
+      horario_semanal: []
     };
 
     it('Happy Path: Debe crear exitosamente una jornada laboral y retornar el registro creado', async () => {
@@ -104,7 +106,7 @@ describe('JornadaController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', 
       const mockUpdatedJornada = {
         id: mockJornadaId,
         nombre: 'Turno Mañana Extendida',
-        tipo_jornada: 'FIJA',
+        modalidad: 'PRESENCIAL',
         tolerancia_minutos: 20,
         activo: true,
         deleted_at: null
@@ -254,7 +256,7 @@ describe('JornadaController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', 
       const queryParams: ListarJornadasQueryDto = {
         page: 1,
         limit: 10,
-        tipo_jornada: 'FIJA',
+        modalidad: 'PRESENCIAL',
         activo: true
       };
 

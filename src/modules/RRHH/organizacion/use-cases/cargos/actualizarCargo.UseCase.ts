@@ -23,7 +23,6 @@ export class ActualizarCargoUseCase {
    */
   async execute(id: string, payload: ActualizarCargoDto) {
     try {
-
       //Obtener el cargo actual para validar su existencia y obtener sus datos actuales
       const cargoActual = await obtenerCargo(this.prisma,id);
 
