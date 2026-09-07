@@ -84,4 +84,4 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     ReniecAdapter
   ],
 })
-export class RRHHModule {}
+export class OrganizacionModule {}

@@ -12,7 +12,7 @@ import { VerificarExpiracionContratosUseCase } from './use-cases/verificarExpira
 import { ContratosCron } from './cron/contratos.cron';
 //controller
 import { ContratoController } from './controller/contrato.controller';
-//Module
+//Modulo de Schedule para manejar tareas programadas (cron jobs)
 import { ScheduleModule } from '@nestjs/schedule';
 
 /**

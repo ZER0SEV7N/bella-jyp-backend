@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/core/auth/auth.module';
-import { RRHHModule } from './modules/RRHH/organizacion/RRHH.module';
+import { OrganizacionModule } from './modules/RRHH/organizacion/organizacion.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/config/redis/redis.module';
 import { AuditModule } from './modules/core/audit/audit.module';
@@ -13,13 +13,15 @@ import { NotificacionesModule } from './common/alertas/notificaciones.module';
 import { AfpModule } from './modules/payroll/afp/afp.module';
 import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
 import { DatosFinancieroModule } from './modules/payroll/datoFinanciero/datosFinanciero.module';
+import { SolicitudModule } from './modules/RRHH/solicitudes/solicitud.module';
+import { AsistenciaModule } from './modules/asistencia/asistencia.module';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
     AfpModule,
     AuthModule,
-    RRHHModule,
+    OrganizacionModule,
     PrismaModule,
     RedisModule,
     AuditModule,
@@ -29,6 +31,8 @@ import { DatosFinancieroModule } from './modules/payroll/datoFinanciero/datosFin
     UsuariosModule,
     AfpModule,
     DatosFinancieroModule,
+    SolicitudModule,
+    AsistenciaModule
   ],
   controllers: [AppController],
   providers: [AppService]
