@@ -22,12 +22,13 @@ export class CrearCargoUseCase {
    */
   async execute(payload: CrearCargoDto) {
     try {
-      // 1. Validaciones previas reutilizadas
+      //Validaciones de negocio antes de crear el cargo
       await validarAreaActiva(this.prisma, payload.id_area);
       await validarNombreUnico(this.prisma, payload.nombre, payload.id_area);
       validarBandaSalarial(payload.sueldo_minimo ?? 1130.0, payload.sueldo_maximo ?? null);
 
-      // 2. Inserción en base de datos
+      //Retornar la creación del cargo en la base de datos utilizando Prisma, 
+      //generando un ID único y estableciendo los valores por defecto si no se proporcionan
       return await this.prisma.cargo.create({
         data: {
           id: IdentityGenerator.generateId(),
@@ -41,13 +42,12 @@ export class CrearCargoUseCase {
         include: { area: { select: { id: true, nombre: true } } }
       });
     } catch (error) {
-      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) 
         throw error;
-      }
 
       throw new InternalServerErrorException({
         title: 'Error al crear el Cargo',
-        detail: error instanceof Error ? error.message : 'Fallo interno al registrar el cargo.',
+        detail: error instanceof Error ? error.message : 'Fallo interno al registrar el cargo.'
       });
     }
   }

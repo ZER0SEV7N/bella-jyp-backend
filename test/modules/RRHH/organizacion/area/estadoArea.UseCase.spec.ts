@@ -55,7 +55,7 @@ describe('EstadoAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
         mockPrisma.area.update.mockResolvedValue({
           id: idArea,
           activo: false,
-          deleted_at: new Date(),
+          deleted_at: new Date()
         });
 
         //Act: Ejecutar el caso de uso para desactivar el área

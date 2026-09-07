@@ -36,7 +36,7 @@ export class ListarCargosUseCase {
       if (query.search && query.search.trim() !== '') 
         where.OR = [
           { nombre: { contains: query.search.trim(), mode: 'insensitive' } },
-          { descripcion: { contains: query.search.trim(), mode: 'insensitive' } },
+          { descripcion: { contains: query.search.trim(), mode: 'insensitive' } }
         ];
       
       //Realizar la consulta a la base de datos utilizando Prisma en una transacción para obtener el total y los cargos

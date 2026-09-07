@@ -22,7 +22,7 @@ export function ApiSwaggerCrearCargo() {
   return applyDecorators(
     ApiOperation({
       summary: 'Crear Cargo / Puesto de Trabajo',
-      description: 'Registra un nuevo cargo dentro de la estructura organizacional, asociándolo a un área y definiendo su banda salarial (sueldo mínimo y sueldo máximo).',
+      description: 'Registra un nuevo cargo dentro de la estructura organizacional, asociándolo a un área y definiendo su banda salarial (sueldo mínimo y sueldo máximo).'
     }),
     ApiBody({
       schema: {
@@ -164,7 +164,7 @@ export function ApiSwaggerListarCargos() {
   return applyDecorators(
     ApiOperation({
       summary: 'Listar Cargos',
-      description: 'Obtiene el catálogo de cargos paginado, permitiendo realizar búsquedas por término y filtrar por área organizacional y estado.',
+      description: 'Obtiene el catálogo de cargos paginado, permitiendo realizar búsquedas por término y filtrar por área organizacional y estado.'
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH', 'CONTADOR']),
     ApiQuery({

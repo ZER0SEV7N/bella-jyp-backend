@@ -20,7 +20,7 @@ describe('ListarAreasUseCase - Pruebas Unitarias Exhaustivas', () => {
       count: jest.fn(),
       findMany: jest.fn()
     },
-    $transaction: jest.fn(async (queries) => Promise.all(queries)),
+    $transaction: jest.fn(async (queries) => Promise.all(queries))
   };
 
   //Datos de prueba para un área existente
