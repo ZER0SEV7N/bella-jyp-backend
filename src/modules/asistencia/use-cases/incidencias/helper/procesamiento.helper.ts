@@ -1,7 +1,14 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import isBetween from 'dayjs/plugin/isBetween';
 import type { GenerarIncidenciasPeriodoDto } from '@jyp/shared-contracts';
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(isBetween);
 //Interfaz para el horario diario configurado en la jornada (JSONB)
 export interface DiaHorario {
   dia: string;
@@ -22,7 +29,7 @@ export const DIAS_MAP: Record<number, string> = {
 };
 
 //Offset fijo de Perú (UTC-5) en minutos (-300)
-export const PERU_TIMEZONE_OFFSET_MINUTES = -5 * 60;
+export const PERU_TIMEZONE = 'America/Lima';
 
 /**
  * Metodo auxiliar para obtener el año, mes y rango de fechas del período especificado.
@@ -31,12 +38,16 @@ export const PERU_TIMEZONE_OFFSET_MINUTES = -5 * 60;
  * @throws BadRequestException - Si el formato del período es inválido.
  */
 export function obtenerPeriodo(periodo: string) {
-    //Validación del formato del período
-    const [year, month] = periodo.split('-').map(Number);
-    //Rango mensual en UTC
-    const fechaInicioMes = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-    const fechaFinMes = new Date(Date.UTC(year, month, 0, 23, 59, 59));
-    return { year, month, fechaInicioMes, fechaFinMes, diasDelMes: fechaFinMes.getUTCDate() };
+    const inicio = dayjs.tz(periodo, 'YYYY-MM', PERU_TIMEZONE).startOf('month');
+    const fin = inicio.endOf('month');
+
+    return {
+        year: inicio.year(),
+        month: inicio.month() + 1,
+        fechaInicioMes: inicio.toDate(),
+        fechaFinMes: fin.toDate(),
+        diasDelMes: inicio.daysInMonth()
+    };
 }
 
 /**
@@ -70,8 +81,8 @@ export async function obtenerColaboradores(prisma: PrismaService, dto: GenerarIn
             asistencias: {
                 where: {
                     fecha_hora: {
-                        gte: new Date(periodo.fechaInicioMes.getTime() - 24 * 60 * 60 * 1000), // Margen de 1 día para turnos de noche
-                        lte: new Date(periodo.fechaFinMes.getTime() + 24 * 60 * 60 * 1000)
+                        gte: dayjs(periodo.fechaInicioMes).subtract(1,'day').toDate(), // Margen de 1 día para turnos de noche
+                        lte: dayjs(periodo.fechaFinMes).add(1,'day').toDate()
                     }
                 }
             }
@@ -142,11 +153,10 @@ export function indexarMarcacionesPeru(asistencias: any[]) {
     const resultado = new Map<string, { horaLocalMinutos: number }[]>();
 
     asistencias.filter((a) => a.tipo_marcacion === 'ENTRADA').forEach((a) => {
-        const fechaUtc = new Date(a.fecha_hora);
-        const fechaPeru = new Date(fechaUtc.getTime() + PERU_TIMEZONE_OFFSET_MINUTES * 60 * 1000);
+        const fechaPeru = dayjs(a.fecha_hora).tz(PERU_TIMEZONE);
 
-        const fechaClave = fechaPeru.toISOString().split('T')[0];
-        const horaLocalMinutos = fechaPeru.getUTCHours() * 60 + fechaPeru.getUTCMinutes();
+        const fechaClave = fechaPeru.format('YYYY-MM-DD');
+        const horaLocalMinutos = fechaPeru.hour() * 60 + fechaPeru.minute();
 
         const lista = resultado.get(fechaClave) || [];
         lista.push({ horaLocalMinutos });
@@ -170,22 +180,25 @@ export function indexarMarcacionesPeru(asistencias: any[]) {
  * Se utiliza en el procesamiento de incidencias para generar el registro correspondiente en la base de datos.
  */
 export function evaluarDia(emp: any, dia: number, periodo: ReturnType<typeof obtenerPeriodo>, horario: DiaHorario[], marcaciones: Map<string, { horaLocalMinutos: number }[]>) {
-    const fecha = new Date(Date.UTC(periodo.year, periodo.month - 1, dia));
+    const fecha = dayjs.tz(`${periodo.year}-${periodo.month}-${dia}`, 'YYYY-M-D', PERU_TIMEZONE);
 
     //Si aún no ingresaba o ya cesó, no genera faltas ni tardanzas
-    if (emp.fecha_inicio && fecha < new Date(emp.fecha_inicio)) return { falta: 0, tardanza: 0 };
-    if (emp.fecha_cese && fecha > new Date(emp.fecha_cese)) return { falta: 0, tardanza: 0 };
+    if (emp.fecha_inicio && fecha.isBefore(dayjs.tz(emp.fecha_inicio, PERU_TIMEZONE), 'day')) return { falta: 0, tardanza: 0 };
+    if (emp.fecha_cese && fecha.isAfter(dayjs.tz(emp.fecha_cese, PERU_TIMEZONE), 'day')) return { falta: 0, tardanza: 0 };
 
-    const config = horario.find((h) => h.dia === DIAS_MAP[fecha.getUTCDay()]);
+    const config = horario.find((h) => h.dia === DIAS_MAP[fecha.day()]);
 
     //Día de descanso o sin horario asignado
     if (!config?.laborable || !config.entrada) return { falta: 0, tardanza: 0 };
 
     //Si tiene permiso o descanso justificado legalmente
-    const tienePermiso = emp.solicitudes.some((s: any) => s.fecha_inicio && s.fecha_fin && fecha >= new Date(s.fecha_inicio) && fecha <= new Date(s.fecha_fin));
+    const tienePermiso = emp.solicitudes.some((s: any) =>
+        s.fecha_inicio && s.fecha_fin &&
+        fecha.isBetween(dayjs.tz(s.fecha_inicio, PERU_TIMEZONE), dayjs.tz(s.fecha_fin, PERU_TIMEZONE), 'day', '[]')
+    );
     if (tienePermiso) return { falta: 0, tardanza: 0 };
 
-    const claveFecha = fecha.toISOString().split('T')[0];
+    const claveFecha = fecha.format('YYYY-MM-DD');
     const entradas = marcaciones.get(claveFecha) || [];
 
     //Falta: No marcó entrada en un día laboral y no tiene solicitud aprobada
@@ -217,24 +230,22 @@ export function evaluarDia(emp: any, dia: number, periodo: ReturnType<typeof obt
  * ajustando el rango de días según la fecha de inicio y cese del colaborador.
  */
 export function calcularDiasBase(emp: any, periodo: ReturnType<typeof obtenerPeriodo>): number {
-    const inicioMes = periodo.fechaInicioMes;
-    const finMes = periodo.fechaFinMes;
+    const inicioMes = dayjs(periodo.fechaInicioMes);
+    const finMes = dayjs(periodo.fechaFinMes);
+
+    const fechaInicioEmp = emp.fecha_inicio ? dayjs.tz(emp.fecha_inicio, PERU_TIMEZONE) : null;
+    const fechaCeseEmp = emp.fecha_cese ? dayjs.tz(emp.fecha_cese, PERU_TIMEZONE) : null;
 
     // Si ingresó después del fin del mes analizado, no le corresponde sueldo
-    if (emp.fecha_inicio && new Date(emp.fecha_inicio) > finMes) return 0;
+    if (fechaInicioEmp && fechaInicioEmp.isAfter(finMes)) return 0;
     // Si cesó antes de iniciar este mes, tampoco le corresponde
-    if (emp.fecha_cese && new Date(emp.fecha_cese) < inicioMes) return 0;
+    if (fechaCeseEmp && fechaCeseEmp.isBefore(inicioMes)) return 0;
 
     let diaInicio = 1;
     let diaFin = 30; //Base 30 comercial
 
-    if (emp.fecha_inicio && new Date(emp.fecha_inicio) > inicioMes) 
-        diaInicio = new Date(emp.fecha_inicio).getUTCDate();
-    
-
-    if (emp.fecha_cese && new Date(emp.fecha_cese) < finMes) 
-        diaFin = Math.min(30, new Date(emp.fecha_cese).getUTCDate());
-    
+    if (fechaInicioEmp && fechaInicioEmp.isAfter(inicioMes)) diaInicio = fechaInicioEmp.date();
+    if (fechaCeseEmp && fechaCeseEmp.isBefore(finMes)) diaFin = Math.min(30, fechaCeseEmp.date());
 
     return Math.max(0, diaFin - diaInicio + 1);
 }

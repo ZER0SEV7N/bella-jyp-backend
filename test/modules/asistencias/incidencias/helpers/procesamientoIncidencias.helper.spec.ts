@@ -1,5 +1,5 @@
 //test/modules/asistencias/incidencias/helpers/procesamientoIncidencias.helper.spec.ts
-import { obtenerPeriodo, indexarMarcacionesPeru, evaluarDia, calcularDiasBase } from '@/modules/asistencia/use-cases/helper/procesamiento.helper';
+import { obtenerPeriodo, indexarMarcacionesPeru, evaluarDia, calcularDiasBase } from '@/modules/asistencia/use-cases/incidencias/helper/procesamiento.helper';
 
 /**
  * Suite de pruebas unitarias para los métodos de procesamiento de incidencias de asistencia.

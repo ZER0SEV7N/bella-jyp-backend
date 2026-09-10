@@ -1,7 +1,7 @@
 //test/modules/asistencias/incidencias/gemerarIncidenciasMes.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { GenerarIncidenciasMesUseCase } from '@/modules/asistencia/use-cases/generarIncidenciasMes.useCase';
+import { GenerarIncidenciasMesUseCase } from '@/modules/asistencia/use-cases/incidencias/generarIncidenciasMes.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { GenerarIncidenciasPeriodoDto } from '@jyp/shared-contracts';

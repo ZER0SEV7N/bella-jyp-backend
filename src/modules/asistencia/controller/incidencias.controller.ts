@@ -6,7 +6,7 @@ import { Roles } from "@/common/decorators/roles.decorator";
 import { ZodValidationPipe } from "@/common/pipes/zod-validation.pipe";
 import { GenerarIncidenciasPeriodoSchema } from "@jyp/shared-contracts";
 import type { GenerarIncidenciasPeriodoDto } from "@jyp/shared-contracts";
-import { GenerarIncidenciasMesUseCase } from "../use-cases/generarIncidenciasMes.useCase";
+import { GenerarIncidenciasMesUseCase } from "../use-cases/incidencias/generarIncidenciasMes.useCase";
 import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre } from "../decorator/incidencias-swagger.decorator";
 
 /**

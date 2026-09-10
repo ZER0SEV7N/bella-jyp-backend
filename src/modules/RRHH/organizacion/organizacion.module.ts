@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ClsModule } from 'nestjs-cls';
 // --- CONTROLADORES ---
-import { AreaController } from './controller/area.controller';
+import { AreaController } from './controller/Area.controller';
 import { CargoController } from './controller/cargo.controller';
 import { EmpleadoController } from './controller/empleado.controller';
 import { EmpleadoBulkController } from './controller/empleado-bulk.controller';

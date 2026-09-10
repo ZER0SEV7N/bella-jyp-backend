@@ -28,7 +28,7 @@ export class GenerarIncidenciasMesUseCase {
             //Validación básica del DTO
             const periodo = obtenerPeriodo(dto.periodo);
             const colaboradores = await obtenerColaboradores(this.prisma, dto, periodo);
-
+            
             if (!colaboradores.length) throw new NotFoundException({
                 title: 'Sin empleados para procesar',
                 detail: 'No se encontraron empleados activos con los criterios especificados.',
@@ -38,7 +38,6 @@ export class GenerarIncidenciasMesUseCase {
             const resultadosProcesados = [];
             for (const emp of colaboradores) 
                 resultadosProcesados.push(await procesarColaborador(this.prisma, emp, dto.periodo, periodo));
-            
             return {
                 mensaje: `Se procesaron exitosamente las incidencias para ${resultadosProcesados.length} colaborador(es) en el periodo ${dto.periodo}.`,
                 periodo: dto.periodo,
