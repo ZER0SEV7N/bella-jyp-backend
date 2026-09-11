@@ -28,13 +28,13 @@ model aportaciones {
 }
 
 model area {
-  id            String         @id @db.Uuid
-  nombre        String         @db.VarChar(100)
-  descripcion   String?        @db.VarChar(255)
-  activo        Boolean        @default(true)
-  deleted_at    DateTime?      @db.Timestamptz(6)
-  created_at    DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
+  id          String    @id @db.Uuid
+  nombre      String    @db.VarChar(100)
+  descripcion String?   @db.VarChar(255)
+  activo      Boolean   @default(true)
+  deleted_at  DateTime? @db.Timestamptz(6)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
 
   cargo         cargo[]
   empleados     empleados[]
@@ -58,15 +58,17 @@ model tipo_afp {
 }
 
 model tipo_documento {
-  id             String      @id @db.Uuid
-  tipo_documento String      @unique @db.VarChar(100)
-  empleados      empleados[]
+  id               String             @id @db.Uuid
+  tipo_documento   String             @unique @db.VarChar(100)
+  empleados        empleados[]
+  derechohabientes derechohabientes[]
 }
 
 model bancos {
-  id              String            @id @db.Uuid
-  nombre          String            @db.VarChar(100)
-  dato_financiero dato_financiero[]
+  id             String            @id @db.Uuid
+  nombre         String            @db.VarChar(100)
+  cuentas_sueldo dato_financiero[] @relation("BancoSueldo")
+  cuentas_cts    dato_financiero[] @relation("BancoCTS")
 }
 
 model cargo {
@@ -142,26 +144,46 @@ model contratos {
 }
 
 model dato_financiero {
-  id                String          @id @db.Uuid
-  empleado_id       String          @unique @db.Uuid
-  id_regimen        String          @db.Uuid
-  id_tipo_afp       String?         @db.Uuid
-  id_banco          String?         @db.Uuid
-  cuenta_bancaria   String?         @db.VarChar(30)
-  sueldo_basico     Decimal         @default(0) @db.Decimal(12, 4)
-  cuspp             String?         @db.VarChar(20)
-  tipo_comision     String?         @db.VarChar(50)
-  nro_cuenta_sueldo String?         @db.VarChar(30)
-  cci               String?         @db.VarChar(30)
-  banco_cts         String?         @db.VarChar(50)
-  nro_cuenta_cts    String?         @db.VarChar(30)
-  deleted_at        DateTime?       @db.Timestamptz(6)
-  bancos            bancos?         @relation(fields: [id_banco], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_banco")
-  empleados         empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
-  regimen_pension   regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
-  tipo_afp          tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
+  id            String  @id @db.Uuid
+  empleado_id   String  @unique @db.Uuid
+  id_regimen    String  @db.Uuid
+  id_tipo_afp   String? @db.Uuid
+  sueldo_basico Decimal @default(0) @db.Decimal(12, 4)
+  cuspp         String? @db.VarChar(20)
+  tipo_comision String? @db.VarChar(50)
+
+  //Cuenta de Pago de Sueldo
+  id_banco_sueldo    String?                   @db.Uuid
+  tipo_cuenta_sueldo tipo_cuenta_bancaria_enum @default(SUELDO)
+  nro_cuenta_sueldo  String?                   @db.VarChar(30)
+  cci_sueldo         String?                   @db.VarChar(30)
+
+  //Cuenta de Depósito de CTS (Mayo y Noviembre)
+  id_banco_cts    String?                   @db.Uuid
+  tipo_cuenta_cts tipo_cuenta_bancaria_enum @default(AHORROS)
+  nro_cuenta_cts  String?                   @db.VarChar(30)
+  cci_cts         String?                   @db.VarChar(30)
+
+  //Régimen de Aseguramiento de Salud (EsSalud vs EPS)
+  regimen_salud       regimen_salud_enum @default(ESSALUD_REGULAR)
+  eps_nombre          String?            @db.VarChar(100)
+  eps_plan            String?            @db.VarChar(100)
+  eps_costo_adicional Decimal            @default(0.0000) @db.Decimal(10, 4)
+
+  //Auditoria
+  deleted_at DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  //Relaciones
+  banco_sueldo    bancos?         @relation("BancoSueldo", fields: [id_banco_sueldo], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_df_banco_sueldo")
+  banco_cts       bancos?         @relation("BancoCTS", fields: [id_banco_cts], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_df_banco_cts")
+  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
+  regimen_pension regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
+  tipo_afp        tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
 
   @@index([empleado_id], map: "idx_dato_fin_empleado")
+  @@map("dato_financiero")
 }
 
 model CargaMasivaJob {
@@ -179,17 +201,32 @@ model CargaMasivaJob {
 }
 
 model empleados {
-  id                    String                     @id @db.Uuid
-  cargo_id              String                     @db.Uuid
-  area_id               String                     @db.Uuid
-  documento_id          String                     @db.Uuid
-  estado_empleado_id    String                     @db.Uuid
-  nombre                String?                    @db.VarChar(100)
-  apellido              String?                    @db.VarChar(100)
-  nro_documento         String                     @unique @db.VarChar(20)
-  email                 String?                    @db.VarChar(150)
-  telefono              String?                    @db.VarChar(20)
-  fecha_nacimiento      DateTime?                  @db.Date
+  id                 String  @id @db.Uuid
+  cargo_id           String  @db.Uuid
+  area_id            String  @db.Uuid
+  documento_id       String  @db.Uuid
+  estado_empleado_id String  @db.Uuid
+  nombre             String? @db.VarChar(100)
+  apellido           String? @db.VarChar(100)
+  nro_documento      String  @unique @db.VarChar(20)
+  email              String? @db.VarChar(150)
+  telefono           String? @db.VarChar(20)
+
+  //Identidad y filiación civil
+  sexo             sexo_enum?
+  estado_civil     estado_civil_enum @default(SOLTERO)
+  nacionalidad     String            @default("PERUANA") @db.VarChar(50)
+  fecha_nacimiento DateTime?         @db.Date
+
+  //Domicilio y Ubigeo (SUNAT)
+  direccion            String? @db.VarChar(255)
+  referencia_direccion String? @db.VarChar(255)
+  ubigeo               String? @db.VarChar(6)
+  distrito             String? @db.VarChar(100)
+  provincia            String? @db.VarChar(100)
+  departamento         String? @db.VarChar(100)
+
+  //Vínculo laboral
   fecha_inicio          DateTime?                  @db.Date
   fecha_cese            DateTime?                  @db.Date
   afp_fecha_filiacion   DateTime?                  @db.Date
@@ -201,14 +238,16 @@ model empleados {
   jornada_id            String?                    @db.Uuid
   estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
 
+  //Relaciones
   asistencias         asistencia_marcacion[]
   contratos           contratos[]
   dato_financiero     dato_financiero?
-  area                area                       @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_area")
-  cargo               cargo                      @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_cargo")
-  estado_empleado     estado_empleado            @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_estado")
-  jornada             jornada?                   @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_jornada")
-  tipo_documento      tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_tipo_documento")
+  derechohabientes    derechohabientes[]
+  area                area                   @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_area")
+  cargo               cargo                  @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_cargo")
+  estado_empleado     estado_empleado        @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_estado")
+  jornada             jornada?               @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_jornada")
+  tipo_documento      tipo_documento         @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_tipo_documento")
   historial_planillas historial_planillas[]
   incidencias         incidencias_mes[]
   usuarios            usuarios?
@@ -252,20 +291,20 @@ model historial_planillas {
 }
 
 model tareas_asistente {
-  id                                                       String             @id @db.Uuid
-  asignado_a                                               String             @db.Uuid
-  asignado_por                                             String             @db.Uuid
-  titulo                                                   String             @db.VarChar(200)
-  descripcion                                              String?
-  fecha_entrega                                            DateTime?          @db.Date
-  estado                                                   estado_tarea_enum  @default(PENDIENTE)
-  anotaciones                                              String?
-  deleted_at                                               DateTime?          @db.Timestamptz(6)
-  created_at                                               DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
-  anotacion_tareas                                         anotacion_tareas[]
-  usuarios_tareas_asistente_asignado_aTousuarios           usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
-  usuarios_tareas_asistente_asignado_porTousuarios         usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
+  id                                               String             @id @db.Uuid
+  asignado_a                                       String             @db.Uuid
+  asignado_por                                     String             @db.Uuid
+  titulo                                           String             @db.VarChar(200)
+  descripcion                                      String?
+  fecha_entrega                                    DateTime?          @db.Date
+  estado                                           estado_tarea_enum  @default(PENDIENTE)
+  anotaciones                                      String?
+  deleted_at                                       DateTime?          @db.Timestamptz(6)
+  created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at                                       DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  anotacion_tareas                                 anotacion_tareas[]
+  usuarios_tareas_asistente_asignado_aTousuarios   usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
+  usuarios_tareas_asistente_asignado_porTousuarios usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
 
   @@index([asignado_a], map: "idx_tareas_asignado_a")
   @@index([deleted_at], map: "idx_tareas_deleted", where: raw("(deleted_at IS NULL)"))
@@ -338,16 +377,16 @@ model jornada {
   tolerancia_minutos Int                    @default(5)
   total_horas_semana Decimal                @default(40.00) @db.Decimal(5, 2)
 
-  horario_semanal    Json
-  patron_rotacion    Json?
+  horario_semanal Json
+  patron_rotacion Json?
 
-  activo             Boolean                @default(true)
-  deleted_at         DateTime?              @db.Timestamptz(6)
-  created_at         DateTime               @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+  activo     Boolean   @default(true)
+  deleted_at DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
 
-  empleados          empleados[]
-  jornada_areas      jornada_area[]
+  empleados     empleados[]
+  jornada_areas jornada_area[]
 
   @@index([activo], map: "idx_jornada_activo", where: raw("(activo = true)"))
   @@index([modalidad], map: "idx_jornada_modalidad")
@@ -357,11 +396,11 @@ model jornada {
 }
 
 model jornada_area {
-  jornada_id String  @db.Uuid
-  area_id    String  @db.Uuid
+  jornada_id String @db.Uuid
+  area_id    String @db.Uuid
 
-  jornada    jornada @relation(fields: [jornada_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_jornada")
-  area       area    @relation(fields: [area_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_area")
+  jornada jornada @relation(fields: [jornada_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_jornada")
+  area    area    @relation(fields: [area_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_area")
 
   @@id([jornada_id, area_id])
   @@index([area_id], map: "idx_jornada_area_area")
@@ -398,32 +437,32 @@ model incidencias_mes {
 }
 
 model solicitud {
-  id              String          @id @db.Uuid
-  codigo          String          @unique @db.VarChar(20)
-  empleado_id     String          @db.Uuid
-  tipo            TipoSolicitud
-  estado          EstadoSolicitud @default(PENDIENTE)
+  id          String          @id @db.Uuid
+  codigo      String          @unique @db.VarChar(20)
+  empleado_id String          @db.Uuid
+  tipo        TipoSolicitud
+  estado      EstadoSolicitud @default(PENDIENTE)
 
-  fecha_inicio     DateTime?      @db.Date
-  fecha_fin        DateTime?      @db.Date
-  dias_solicitados Int?           @default(1)
+  fecha_inicio     DateTime? @db.Date
+  fecha_fin        DateTime? @db.Date
+  dias_solicitados Int?      @default(1)
 
-  motivo          String          @db.Text
-  observacion     String?         @db.Text
+  motivo      String  @db.Text
+  observacion String? @db.Text
 
-  sustento_url    String?         @db.VarChar(255)
-  sustento_nombre String?         @db.VarChar(150)
+  sustento_url    String? @db.VarChar(255)
+  sustento_nombre String? @db.VarChar(150)
 
-  responsable_id  String?         @db.Uuid
-  fecha_limite    DateTime?       @db.Date
-  origen          String          @default("PORTAL_EMPLEADO") @db.VarChar(50)
+  responsable_id String?   @db.Uuid
+  fecha_limite   DateTime? @db.Date
+  origen         String    @default("PORTAL_EMPLEADO") @db.VarChar(50)
 
-  created_at      DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
-  deleted_at      DateTime?       @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  deleted_at DateTime? @db.Timestamptz(6)
 
-  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_empleado")
-  responsable     usuarios?       @relation("ResponsableRevision", fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_responsable")
+  empleados   empleados @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_empleado")
+  responsable usuarios? @relation("ResponsableRevision", fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_responsable")
 
   @@index([empleado_id], map: "idx_solicitud_empleado")
   @@index([estado], map: "idx_solicitud_estado")
@@ -431,6 +470,61 @@ model solicitud {
   @@map("solicitud")
 }
 
+model derechohabientes {
+  id               String                @id @db.Uuid
+  empleado_id      String                @db.Uuid
+  documento_id     String                @db.Uuid
+  nro_documento    String                @db.VarChar(20)
+  nombres          String                @db.VarChar(100)
+  apellidos        String                @db.VarChar(100)
+  vinculo          vinculo_familiar_enum
+  sexo             sexo_enum
+  fecha_nacimiento DateTime              @db.Date
+
+  // Acreditación ante EsSalud / EPS
+  acreditado_essalud Boolean   @default(false)
+  fecha_alta_seguro  DateTime? @db.Date
+
+  activo     Boolean   @default(true)
+  deleted_at DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  // Relaciones
+  empleados      empleados                    @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dh_empleado")
+  tipo_documento tipo_documento               @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dh_tipo_doc")
+  documentos     derechohabiente_documentos[]
+
+  @@unique([empleado_id, nro_documento], map: "uq_empleado_derechohabiente")
+  @@index([empleado_id], map: "idx_dh_empleado")
+  @@index([activo], map: "idx_dh_activo", where: raw("(activo = true)"))
+  @@index([deleted_at], map: "idx_dh_deleted", where: raw("(deleted_at IS NULL)"))
+  @@map("derechohabientes")
+}
+
+model derechohabiente_documentos {
+  id                 String                      @id @db.Uuid
+  derechohabiente_id String                      @db.Uuid
+  tipo_documento     tipo_sustento_familiar_enum
+  nombre_archivo     String                      @db.VarChar(150)
+  archivo_url        String                      @db.VarChar(255)
+  fecha_emision      DateTime?                   @db.Date
+  fecha_vencimiento  DateTime?                   @db.Date
+  vigente            Boolean                     @default(true)
+
+  deleted_at DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  derechohabiente derechohabientes @relation(fields: [derechohabiente_id], references: [id], onDelete: Cascade, map: "fk_dhd_derechohabiente")
+
+  @@index([derechohabiente_id], map: "idx_dhd_derechohabiente")
+  @@index([vigente], map: "idx_dhd_vigente", where: raw("(vigente = true)"))
+  @@index([fecha_vencimiento], map: "idx_dhd_vencimiento")
+  @@map("derechohabiente_documentos")
+}
+
+// Enumerable de la duracion de jornada
 enum duracion_jornada_enum {
   TIEMPO_COMPLETO
   TIEMPO_PARCIAL
@@ -513,4 +607,49 @@ enum EstadoSolicitud {
   APROBADA
   RECHAZADA
   ANULADA
+}
+
+enum tipo_cuenta_bancaria_enum {
+  SUELDO
+  AHORROS
+  CORRIENTE
+}
+
+enum regimen_salud_enum {
+  ESSALUD_REGULAR
+  EPS
+  ESSALUD_Y_EPS
+  SCTR
+}
+
+enum vinculo_familiar_enum {
+  CONYUGE
+  CONCUBINO
+  HIJO_MENOR
+  HIJO_MAYOR_INCAPACITADO
+  HIJO_MAYOR_ESTUDIANTE
+  MADRE_GESTANTE
+}
+
+enum estado_civil_enum {
+  SOLTERO
+  CASADO
+  CONVIVIENTE
+  DIVORCIADO
+  VIUDO
+}
+
+enum sexo_enum {
+  MASCULINO
+  FEMENINO
+}
+
+enum tipo_sustento_familiar_enum {
+  PARTIDA_NACIMIENTO
+  PARTIDA_MATRIMONIO
+  ESCRITURA_CONCUBINATO
+  DNI_DERECHOHABIENTE
+  CONSTANCIA_ESTUDIOS
+  CERTIFICADO_INCAPACIDAD
+  OTRO
 }

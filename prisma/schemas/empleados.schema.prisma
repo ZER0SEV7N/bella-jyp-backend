@@ -1,0 +1,59 @@
+model empleados {
+  id                    String                     @id @db.Uuid
+  cargo_id              String                     @db.Uuid
+  area_id               String                     @db.Uuid
+  documento_id          String                     @db.Uuid
+  estado_empleado_id    String                     @db.Uuid
+  nombre                String?                    @db.VarChar(100)
+  apellido              String?                    @db.VarChar(100)
+  nro_documento         String                     @unique @db.VarChar(20)
+  email                 String?                    @db.VarChar(150)
+  telefono              String?                    @db.VarChar(20)
+  
+  //Identidad y filiación civil
+  sexo                  sexo_enum?
+  estado_civil          estado_civil_enum          @default(SOLTERO)
+  nacionalidad          String                     @default("PERUANA") @db.VarChar(50)
+  fecha_nacimiento      DateTime?                  @db.Date
+  
+  //Domicilio y Ubigeo (SUNAT)
+  direccion             String?                    @db.VarChar(255)
+  referencia_direccion  String?                    @db.VarChar(255)
+  ubigeo                String?                    @db.VarChar(6)
+  distrito              String?                    @db.VarChar(100)
+  provincia             String?                    @db.VarChar(100)
+  departamento          String?                    @db.VarChar(100)
+
+  //Vínculo laboral
+  fecha_inicio          DateTime?                  @db.Date
+  fecha_cese            DateTime?                  @db.Date
+  afp_fecha_filiacion   DateTime?                  @db.Date
+  asig_familiar         Boolean                    @default(false)
+  activo                Boolean                    @default(true)
+  deleted_at            DateTime?                  @db.Timestamptz(6)
+  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
+  jornada_id            String?                    @db.Uuid
+  estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
+
+  //Relaciones
+  asistencias           asistencia_marcacion[]
+  contratos             contratos[]
+  dato_financiero       dato_financiero?
+  derechohabientes      derechohabientes[]
+  area                  area                       @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_area")
+  cargo                 cargo                      @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_cargo")
+  estado_empleado       estado_empleado            @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_estado")
+  jornada               jornada?                   @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_jornada")
+  tipo_documento        tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_tipo_documento")
+  historial_planillas   historial_planillas[]
+  incidencias           incidencias_mes[]
+  usuarios              usuarios?
+  solicitudes           solicitud[]
+
+  @@index([activo], map: "idx_empleado_activo", where: raw("(activo = true)"))
+  @@index([area_id], map: "idx_empleado_area")
+  @@index([cargo_id], map: "idx_empleado_cargo")
+  @@index([deleted_at], map: "idx_empleado_deleted", where: raw("(deleted_at IS NULL)"))
+  @@map("empleado")
+}
