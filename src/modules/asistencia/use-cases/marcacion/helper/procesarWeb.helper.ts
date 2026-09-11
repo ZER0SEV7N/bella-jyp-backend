@@ -38,7 +38,7 @@ export function validarTipo(tipoMarcacion: string): tipoMarcacion is TipoMarcaci
     return Object.values(TipoMarcacion).includes(tipoMarcacion as TipoMarcacion);
 }
 
-function convertirAUtc(hora: Date): Date {
+export function convertirAUtc(hora: Date): Date {
     return dayjs.tz(hora, PERU_TIMEZONE).utc().toDate();
 }
 
@@ -57,28 +57,4 @@ export async function validarExistencia(prisma: PrismaService, emp: any, fecha: 
     });
 
     return !!registro;
-}
-
-//REGISTRAR MARCACION MANUAL (DESDE LA APP)
-export async function AsistenciaApp(prisma: PrismaService, emp: any, hora: Date, tipo: string,) {
-    
-    if (!validarTipo(tipo)) {
-        throw new BadRequestException(`Tipo de marcación inválido: ${tipo}`);
-    }
-
-    const fecha = convertirAUtc(hora);
-
-    if (await validarExistencia(prisma, emp, fecha, tipo)) {
-        throw new BadRequestException("Ya existe una marcación registrada en ese horario");
-    }
-
-    return prisma.asistencia_marcacion.create({
-        data: {
-            id: IdentityGenerator.generateId(),
-            fecha_hora: fecha,
-            tipo_marcacion: tipo,
-            empleado_id: emp,
-            metodo: "MANUAL",
-        },
-    });
 }

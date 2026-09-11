@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CrearDatoFinancieroDto } from '@jyp/shared-contracts';
-import { CryptoUtil } from '@/common/utils/crypto.util';
+import { CryptoUtil } from '@/common/utils/crypto.Util';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 
 /**

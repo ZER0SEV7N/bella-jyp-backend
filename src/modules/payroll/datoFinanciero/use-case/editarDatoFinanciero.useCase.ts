@@ -6,7 +6,7 @@ import {
   InternalServerErrorException
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { CryptoUtil } from '@/common/utils/crypto.util';
+import { CryptoUtil } from '@/common/utils/crypto.Util';
 import * as argon2 from 'argon2';
 import type { ActualizarDatoFinancieroDto } from '@jyp/shared-contracts';
 

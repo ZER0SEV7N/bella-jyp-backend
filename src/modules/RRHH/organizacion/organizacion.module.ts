@@ -14,12 +14,12 @@ import { ActualizarAreaUseCase } from './use-cases/area/actualizarArea.useCase';
 import { EstadoAreaUseCase } from './use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
 // --- CASOS DE USO: CARGO ---
-import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.useCase';
-import { EstadoCargoUseCase } from './use-cases/cargos/estadoCargo.useCase';
+import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.UseCase';
+import { ActualizarCargoUseCase } from './use-cases/cargos/actualizarCargo.UseCase';
+import { EstadoCargoUseCase } from './use-cases/cargos/estadoCargo.UseCase';
 import { ListarCargosUseCase } from './use-cases/cargos/listarCargos.useCase';
 // --- CASOS DE USO: EMPLEADO ---
-import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
+import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.UseCase';
 import { ListarEmpleadosUseCase } from './use-cases/empleado/listarEmpleados.useCase';
 import { EditarEmpleadoUseCase } from './use-cases/empleado/editarEmpleado.useCase';
 import { EliminarEmpleadoUseCase } from './use-cases/empleado/eliminarEmpleado.useCase';
@@ -34,7 +34,8 @@ import { CrearJornadaUseCase } from './use-cases/jornadas/crearJornada.useCase';
 import { EditarJornadaUseCase } from './use-cases/jornadas/editarJornada.useCase';
 import { EstadoJornadaUseCase } from './use-cases/jornadas/estadoJornada.useCase';
 import { ListarJornadaUseCase } from './use-cases/jornadas/listarJornada.useCase';
-
+// --- CASOS DE USO: ASISTENCIA ---
+import { CrearMarcacionManualUseCase } from '@/modules/asistencia/use-cases/marcacion/crearMarcacionManual.useCase';
 // --- SERVICIOS Y WORKERS ---
 import { ReniecAdapter } from './services/reniec.adapter';
 import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.processor';

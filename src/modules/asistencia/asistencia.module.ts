@@ -5,6 +5,8 @@ import { IncidenciasController } from "./controller/incidencias.controller";
 import { GenerarIncidenciasMesUseCase } from "./use-cases/incidencias/generarIncidenciasMes.useCase";
 import { ClsModule } from "nestjs-cls";
 import { BullModule } from "@nestjs/bullmq";
+import { CrearMarcacionManualUseCase } from "./use-cases/marcacion/crearMarcacionManual.useCase";
+import { AsistenciaController } from "./controller/asistencias.controller";
 
 /**
  * Módulo de Asistencia
@@ -16,7 +18,11 @@ import { BullModule } from "@nestjs/bullmq";
         BullModule.registerQueue({ name: 'asistencia-bulk-queue' }),
         ClsModule
     ],
-    controllers: [IncidenciasController],
-    providers: [PrismaService, GenerarIncidenciasMesUseCase],
+    controllers: [IncidenciasController, AsistenciaController],
+    providers: [
+        PrismaService, 
+        GenerarIncidenciasMesUseCase,
+        CrearMarcacionManualUseCase
+    ],
 })
 export class AsistenciaModule {}
