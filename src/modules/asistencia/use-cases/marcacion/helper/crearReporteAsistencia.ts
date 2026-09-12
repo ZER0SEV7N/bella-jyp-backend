@@ -110,14 +110,8 @@ export async function generarExcel(asistencias_con_emp: any) {
 }
 //TRAER ASISTENCIAS DE LOS EMPLEAOD DE UNA AREA
 export async function traerAsistenciaDeEmpleados(prisma: PrismaService, area:string, fecha: Date){
-    //Obtner rango de fechas
+    
     const { inicioSemana, finalSemana } = obtenerRangoSemana(fecha);
-    //VALIDAR QUE LA FECHA NO SEA ANTES DE TEMRINAR LA SEMANA ABORAL
-    
-    const ahora = dayjs().tz(PERU_TIMEZONE);
-    
-    if(dayjs(finalSemana).isAfter(ahora)) throw new BadRequestException('No se puede generar el reporte de una semana que aún no ha finalizado');
-    
     //traer asistencia de los daots de empleado
     const empleados_asitencias = await prisma.asistencia_marcacion.findMany({
         where : {
