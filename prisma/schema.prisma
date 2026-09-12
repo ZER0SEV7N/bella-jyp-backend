@@ -488,6 +488,8 @@ enum estado_sincronizacion_enum {
 
 enum tipo_marcacion_enum {
   ENTRADA
+  SALIDA_ALMUERZO
+  ENTRADA_ALMUERZO
   SALIDA
 }
 

@@ -1,10 +1,9 @@
 //LIBRERIAS
 import { PrismaService } from "@/common/prisma/prisma.service";
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { NotFoundException } from "@nestjs/common";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { IdentityGenerator } from "@/common/utils/uuid.util";
 import { TipoMarcacion } from "@jyp/shared-contracts";
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -34,9 +33,6 @@ export async function obtenerColaborador(prisma: PrismaService, dni: string){
 }
 
 //VALIDAR ENUM
-export function validarTipo(tipoMarcacion: string): tipoMarcacion is TipoMarcacion {
-    return Object.values(TipoMarcacion).includes(tipoMarcacion as TipoMarcacion);
-}
 
 export function convertirAUtc(hora: Date): Date {
     return dayjs.tz(hora, PERU_TIMEZONE).utc().toDate();

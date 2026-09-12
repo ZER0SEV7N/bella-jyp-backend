@@ -1,7 +1,7 @@
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { MarcarAsistenciaDto } from "@jyp/shared-contracts";
 import { BadGatewayException, Injectable } from "@nestjs/common";
-import { convertirAUtc, obtenerColaborador, validarExistencia, validarTipo } from "./helper/procesarWeb.helper";
+import { convertirAUtc, obtenerColaborador, validarExistencia} from "./helper/procesarWeb.helper";
 import { IdentityGenerator } from "@/common/utils/uuid.util";
 
 @Injectable()
@@ -13,10 +13,7 @@ export class CrearMarcacionManualUseCase{
     async execute(dto:MarcarAsistenciaDto){
         //valiar empleado  
         const empleado = await obtenerColaborador(this.prisma, dto.nro_documento);        
-        //Vlaidar tipo de marcacion
-        if(!validarTipo(dto.tipo_marcacion)){
-            throw new BadGatewayException("el tipo de marcacion no es valido")
-        }
+        //CONVERTIR HORA A UTC ZONA HORARIA DE PERU
         const fecha = convertirAUtc(dto.fecha_hora);
         await validarExistencia(this.prisma,empleado, fecha,dto.tipo_marcacion);
         return await this.prisma.asistencia_marcacion.create({
