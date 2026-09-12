@@ -516,3 +516,4 @@ enum EstadoSolicitud {
   RECHAZADA
   ANULADA
 }
+

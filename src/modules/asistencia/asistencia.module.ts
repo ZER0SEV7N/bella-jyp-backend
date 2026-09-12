@@ -7,6 +7,7 @@ import { ClsModule } from "nestjs-cls";
 import { BullModule } from "@nestjs/bullmq";
 import { CrearMarcacionManualUseCase } from "./use-cases/marcacion/crearMarcacionManual.useCase";
 import { AsistenciaController } from "./controller/asistencias.controller";
+import { generarReporteSemanalUseCase } from "./use-cases/marcacion/generarReporteSemana.useCase";
 
 /**
  * Módulo de Asistencia
@@ -22,7 +23,8 @@ import { AsistenciaController } from "./controller/asistencias.controller";
     providers: [
         PrismaService, 
         GenerarIncidenciasMesUseCase,
-        CrearMarcacionManualUseCase
+        CrearMarcacionManualUseCase,
+        generarReporteSemanalUseCase,
     ],
 })
 export class AsistenciaModule {}
