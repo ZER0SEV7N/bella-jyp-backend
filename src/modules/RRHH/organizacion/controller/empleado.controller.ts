@@ -1,35 +1,13 @@
 //src/modules/RRHH/controller/empleado.controller.ts
 //Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH
-import {
-  Controller,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
-  Delete,
-  Param,
-  Patch,
-  UseGuards,
-  UsePipes,
-  Get,
-  Query,
-} from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Delete, Param, Patch, UseGuards, UsePipes, Get,  Query } from '@nestjs/common';
 //validacion de estructura de datos mediate el zod
-import {
-  CrearEmpleadoSchema,
-  EditarEmpleadoSchema,
-  ListarEmpleadosQuerySchema,
-} from '@jyp/shared-contracts';
-import type {
-  CrearEmpleadoDto,
-  EditarEmpleadoDto,
-  ListarEmpleadosQueryDto,
-} from '@jyp/shared-contracts';
+import { CrearEmpleadoSchema, EditarEmpleadoSchema, ListarEmpleadosQuerySchema } from '@jyp/shared-contracts';
+import type { CrearEmpleadoDto, EditarEmpleadoDto, ListarEmpleadosQueryDto } from '@jyp/shared-contracts';
 //casos de uso
 import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
-import { EliminarEmpleadoUseCase } from '../use-cases/empleado/eliminarEmpleado.useCase';
-import { ActiveEmpleadoUseCase } from '../use-cases/empleado/activeEmpleado.useCase';
+import { EstadoEmpleadoUseCase } from '../use-cases/empleado/estadoEmpleado.useCase';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -51,8 +29,7 @@ export class EmpleadoController {
   constructor(
     private readonly crearEmpleadoUseCase: CrearEmpleadoUseCase,
     private readonly editarEmpleadoUseCase: EditarEmpleadoUseCase,
-    private readonly eliminarEmpleadoUseCase: EliminarEmpleadoUseCase,
-    private readonly activeEmpleadoUseCase: ActiveEmpleadoUseCase,
+    private readonly estadoEmpleadoUseCase: EstadoEmpleadoUseCase,
     private readonly listarEmpleadosUseCase: ListarEmpleadosUseCase,
   ) {}
 
@@ -78,7 +55,7 @@ export class EmpleadoController {
    */
   @ApiSwaggerCrearEmpleado()
   @Post('crear')
-  //@Roles('ADMIN', 'RRHH')
+  @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(CrearEmpleadoSchema))
   async crear(@Body() payload: CrearEmpleadoDto) {
     return await this.crearEmpleadoUseCase.execute(payload);
@@ -97,7 +74,7 @@ export class EmpleadoController {
    */
   @ApiSwaggerListarEmpleados()
   @Get()
-  //@Roles('ADMIN', 'RRHH', 'CONTADOR')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
   @UsePipes(new ZodValidationPipe(ListarEmpleadosQuerySchema)) // Aplica validación a los Query Params
   async obtenerTodos(@Query() queryParams: ListarEmpleadosQueryDto) {
     return await this.listarEmpleadosUseCase.execute(queryParams);
@@ -111,14 +88,11 @@ export class EmpleadoController {
    *   "nombres" : "Nombres-Nro1",
    */
   @ApiSwaggerActualizarEmpleado()
-  //@Roles('ADMIN', 'RRHH')
+  @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(EditarEmpleadoSchema))
   @Patch(':id/actualizar')
   @HttpCode(HttpStatus.OK)
-  async actualizarEmpleado(
-    @Param('id') id: string,
-    @Body() payload: EditarEmpleadoDto,
-  ) {
+  async actualizarEmpleado( @Param('id') id: string, @Body() payload: EditarEmpleadoDto ) {
     return this.editarEmpleadoUseCase.execute(id, payload);
   }
 
@@ -130,9 +104,9 @@ export class EmpleadoController {
   @ApiSwaggerDesactivarEmpleado()
   @Delete(':id/desactive')
   @HttpCode(HttpStatus.OK)
-  //@Roles('ADMIN', 'RRHH')
+  @Roles('ADMIN', 'RRHH')
   async deletedEmpleado(@Param('id') id: string) {
-    return await this.eliminarEmpleadoUseCase.execute(id);
+    return await this.estadoEmpleadoUseCase.desactivar(id);
   }
 
   /**
@@ -143,8 +117,8 @@ export class EmpleadoController {
   @ApiSwaggerReactivarEmpleado()
   @Patch(':id/reactive')
   @HttpCode(HttpStatus.OK)
-  //@Roles('ADMIN', 'RRHH')
+  @Roles('ADMIN', 'RRHH')
   async reactive(@Param('id') id: string) {
-    return await this.activeEmpleadoUseCase.execute(id);
+    return await this.estadoEmpleadoUseCase.reactivar(id);
   }
 }

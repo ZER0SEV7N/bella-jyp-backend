@@ -2,7 +2,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query } from '@nestjs/common';
 //Casos de uso para las operaciones de area
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
-import { ActualizarAreaUseCase } from '../use-cases/area/actualizarArea.useCase';
+import { EditarAreaUseCase } from '../use-cases/area/editarArea.useCase';
 import { EstadoAreaUseCase } from '../use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from '../use-cases/area/listarAreas.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
@@ -25,7 +25,7 @@ export class AreaController {
   //Inyectar los casos de uso necesarios para manejar las operaciones relacionadas con las areas
   constructor(
     private readonly crearAreaUseCase: CrearAreaUseCase,
-    private readonly actualizarAreaUseCase: ActualizarAreaUseCase,
+    private readonly editarAreaUseCase: EditarAreaUseCase,
     private readonly estadoAreaUseCase: EstadoAreaUseCase,
     private readonly listarAreasUseCase: ListarAreasUseCase
   ) {}
@@ -67,7 +67,7 @@ export class AreaController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() payload: ActualizarAreaDto,
   ) {
-    return await this.actualizarAreaUseCase.execute(id, payload);
+    return await this.editarAreaUseCase.execute(id, payload);
   }
 
   /**
@@ -107,8 +107,9 @@ export class AreaController {
    * @GET - /api/rrhh/area
    * @Query queryParams : ListarAreasQueryDto {
    *     "page": 1,
-   *    "limit": 10,
-   *   "activo": "Boolean"
+   *     "limit": 10,
+   *     "search": "Nombre o descripción parcial",
+   *     "activo": "Boolean"
    * }
    * @returns Un objeto con las areas encontradas y metadatos de paginación.
    */

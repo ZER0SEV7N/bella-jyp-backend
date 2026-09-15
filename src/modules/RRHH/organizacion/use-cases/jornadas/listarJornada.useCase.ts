@@ -26,6 +26,7 @@ export class ListarJornadaUseCase {
       const limit = Number(query.limit) || 10;
       const skip = (page - 1) * limit;
 
+      //Construir la condición WHERE para filtrar las jornadas laborales según los parámetros proporcionados en la consulta
       const where: Record<string, any> = { deleted_at: null };
 
       if (query.activo !== undefined) where.activo = query.activo;

@@ -12,14 +12,7 @@ import { ListarJornadaUseCase } from '../use-cases/jornadas/listarJornada.useCas
 //DTOs y esquemas de validación
 import type {CrearJornadaDto, ActualizarJornadaDto,ListarJornadasQueryDto } from '@jyp/shared-contracts';
 import { CrearJornadaSchema, ActualizarJornadaSchema, ListarJornadasQuerySchema } from '@jyp/shared-contracts';
-import {
-  ApiSwaggerJordanaController,
-  ApiSwaggerCrearJordana,
-  ApiSwaggerListarJordana,
-  ApiSwaggerActualizarJordana,
-  ApiSwaggerDesactivarJordana,
-  ApiSwaggerReactivarJordana
-} from '../decorators/jordana-swagger.decorator';
+import { ApiSwaggerJordanaController, ApiSwaggerCrearJordana, ApiSwaggerListarJordana, ApiSwaggerActualizarJordana, ApiSwaggerDesactivarJordana, ApiSwaggerReactivarJordana } from '../decorators/jordana-swagger.decorator';
 /**
  * Controlador para gestionar las jornadas laborales en el módulo de RRHH.
  * @requires - JWT Bearer token para autenticación.

@@ -3,7 +3,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query} from '@nestjs/common';
 //casos de uso
 import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from '../use-cases/cargos/actualizarCargo.useCase';
+import { EditarCargoUseCase } from '../use-cases/cargos/editarCargo.useCase';
 import { EstadoCargoUseCase } from '../use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from '../use-cases/cargos/listarCargos.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
@@ -27,9 +27,9 @@ import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarC
 export class CargoController {
   constructor(
     private readonly crearCargoUseCase: CrearCargoUseCase,
-    private readonly actualizarCargoUseCase: ActualizarCargoUseCase,
+    private readonly editarCargoUseCase: EditarCargoUseCase,
     private readonly estadoCargoUseCase: EstadoCargoUseCase,
-    private readonly listarCargosUseCase: ListarCargosUseCase,
+    private readonly listarCargosUseCase: ListarCargosUseCase
   ) {}
 
   /**
@@ -76,7 +76,7 @@ export class CargoController {
   @UsePipes(new ZodValidationPipe(ActualizarCargoSchema))
   @Roles('ADMIN', 'RRHH')
   async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ActualizarCargoDto) {
-    return await this.actualizarCargoUseCase.execute(id, payload);
+    return await this.editarCargoUseCase.execute(id, payload);
   }
 
   /**

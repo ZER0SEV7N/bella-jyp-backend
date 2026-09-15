@@ -4,7 +4,9 @@ import {Injectable, BadRequestException,NotFoundException, InternalServerErrorEx
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { CrearCargoDto } from '@jyp/shared-contracts';
-import { validarAreaActiva, validarNombreUnico, validarBandaSalarial } from './helpers/validaciones.helper';
+import { sanitizarTexto } from '@/common/utils/transformacion.util';
+import { verificarAreaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
+import { validarNombreCargoUnico, validarBandaSalarial } from './helpers/validaciones.helper';
 
 /**
  * Clase que representa el caso de uso para crear un cargo en el módulo de RRHH.
@@ -23,20 +25,23 @@ export class CrearCargoUseCase {
   async execute(payload: CrearCargoDto) {
     try {
       //Validaciones de negocio antes de crear el cargo
-      await validarAreaActiva(this.prisma, payload.id_area);
-      await validarNombreUnico(this.prisma, payload.nombre, payload.id_area);
-      validarBandaSalarial(payload.sueldo_minimo ?? 1130.0, payload.sueldo_maximo ?? null);
+      await verificarAreaActiva(this.prisma, payload.id_area);
+      await validarNombreCargoUnico(this.prisma, payload.nombre, payload.id_area);
 
-      //Retornar la creación del cargo en la base de datos utilizando Prisma, 
-      //generando un ID único y estableciendo los valores por defecto si no se proporcionan
+      //Resolver los valores de sueldo mínimo y máximo, utilizando valores por defecto si no se proporcionan
+      const sueldoMinimo = payload.sueldo_minimo ?? 1130.0;
+      const sueldoMaximo = payload.sueldo_maximo ?? null;
+      validarBandaSalarial(sueldoMinimo, sueldoMaximo);
+
+      //Crear el cargo en la base de datos utilizando Prisma
       return await this.prisma.cargo.create({
         data: {
           id: IdentityGenerator.generateId(),
           id_area: payload.id_area,
-          nombre: payload.nombre.trim(),
-          descripcion: payload.descripcion?.trim() || null,
-          sueldo_minimo: payload.sueldo_minimo ?? 1130.0,
-          sueldo_maximo: payload.sueldo_maximo ?? null,
+          nombre: sanitizarTexto(payload.nombre),
+          descripcion: sanitizarTexto(payload.descripcion),
+          sueldo_minimo: sueldoMinimo,
+          sueldo_maximo: sueldoMaximo,
           activo: true
         },
         include: { area: { select: { id: true, nombre: true } } }
@@ -44,7 +49,7 @@ export class CrearCargoUseCase {
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) 
         throw error;
-
+      
       throw new InternalServerErrorException({
         title: 'Error al crear el Cargo',
         detail: error instanceof Error ? error.message : 'Fallo interno al registrar el cargo.'

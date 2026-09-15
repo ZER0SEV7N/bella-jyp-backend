@@ -2,7 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AreaController } from '@/modules/RRHH/organizacion/controller/area.controller';
 import { CrearAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/crearArea.useCase';
-import { ActualizarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/actualizarArea.useCase';
+import { EditarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/editarArea.useCase';
 import { EstadoAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from '@/modules/RRHH/organizacion/use-cases/area/listarAreas.useCase';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
@@ -35,7 +35,7 @@ describe('AreaController - Pruebas Unitarias Exhaustivas', () => {
       controllers: [AreaController],
       providers: [
         { provide: CrearAreaUseCase, useValue: mockCrearAreaUC },
-        { provide: ActualizarAreaUseCase, useValue: mockActualizarAreaUC },
+        { provide: EditarAreaUseCase, useValue: mockActualizarAreaUC },
         { provide: EstadoAreaUseCase, useValue: mockEstadoAreaUC },
         { provide: ListarAreasUseCase, useValue: mockListarAreasUC }
       ]

@@ -1,17 +1,17 @@
 //test/modules/RRHH/organizacion/area/actualizarArea.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { ActualizarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/actualizarArea.useCase';
+import { EditarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/editarArea.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ActualizarAreaDto } from '@jyp/shared-contracts';
 
 /**
- * Pruebas unitarias exhaustivas para el caso de uso ActualizarAreaUseCase.
+ * Pruebas unitarias exhaustivas para el caso de uso EditarAreaUseCase.
  * Estas pruebas verifican el comportamiento del caso de uso en escenarios de éxito y manejo de errores.
  * Se simula la interacción con la base de datos utilizando un mock del servicio Prisma.
  */
-describe('ActualizarAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
-  let useCase: ActualizarAreaUseCase;
+describe('EditarAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
+  let useCase: EditarAreaUseCase;
   let prisma: PrismaService;
 
   //Mock del servicio Prisma para simular la interacción con la base de datos
@@ -39,12 +39,12 @@ describe('ActualizarAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ActualizarAreaUseCase,
+        EditarAreaUseCase,
         { provide: PrismaService, useValue: mockPrisma }
       ]
     }).compile();
 
-    useCase = module.get<ActualizarAreaUseCase>(ActualizarAreaUseCase);
+    useCase = module.get<EditarAreaUseCase>(EditarAreaUseCase);
     prisma = module.get<PrismaService>(PrismaService);
   });
 
@@ -72,7 +72,8 @@ describe('ActualizarAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
           nombre: { equals: 'Tecnología y Cloud', mode: 'insensitive' },
           id: { not: idArea },
           deleted_at: null
-        }
+        },
+        select: { id: true }
       });
 
       //Verificar que se llamó a la función de actualización con los datos correctos

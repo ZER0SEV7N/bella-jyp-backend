@@ -4,8 +4,7 @@ import { BadRequestException, NotFoundException, InternalServerErrorException} f
 import { EmpleadoController } from '@/modules/RRHH/organizacion/controller/empleado.controller';
 import { CrearEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/editarEmpleado.useCase';
-import { EliminarEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/eliminarEmpleado.useCase';
-import { ActiveEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/activeEmpleado.useCase';
+import { EstadoEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/estadoEmpleado.useCase';
 import { ListarEmpleadosUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/listarEmpleados.useCase';
 
 /**
@@ -24,7 +23,7 @@ describe('EmpleadoController', () => {
   const mockCrearEmpleadoUC = { execute: jest.fn() };
   const mockEditarEmpleadoUC = { execute: jest.fn() };
   const mockEliminarEmpleadoUC = { execute: jest.fn() };
-  const mockActiveEmpleadoUC = { execute: jest.fn() };
+  const mockActiveEmpleadoUC = { reactivar: jest.fn() };
   const mockListarEmpleadosUC = { execute: jest.fn() };
 
   beforeEach(async () => {
@@ -33,8 +32,10 @@ describe('EmpleadoController', () => {
       providers: [
         { provide: CrearEmpleadoUseCase, useValue: mockCrearEmpleadoUC },
         { provide: EditarEmpleadoUseCase, useValue: mockEditarEmpleadoUC },
-        { provide: EliminarEmpleadoUseCase, useValue: mockEliminarEmpleadoUC },
-        { provide: ActiveEmpleadoUseCase, useValue: mockActiveEmpleadoUC },
+        { provide: EstadoEmpleadoUseCase, useValue: {
+          desactivar: mockEliminarEmpleadoUC.execute,
+          reactivar: mockActiveEmpleadoUC.reactivar,
+        } },
         { provide: ListarEmpleadosUseCase, useValue: mockListarEmpleadosUC },
       ],
     }).compile();
@@ -155,7 +156,7 @@ describe('EmpleadoController', () => {
   describe('reactive()', () => {
     it('Debería llamar a ActiveEmpleadoUseCase y retornar el estado', async () => {
       const id = 'uuid-123';
-      mockActiveEmpleadoUC.execute.mockResolvedValue({
+      mockActiveEmpleadoUC.reactivar.mockResolvedValue({
         state: true,
         message: 'Reactivado'
       });
@@ -163,15 +164,15 @@ describe('EmpleadoController', () => {
       const result = await controller.reactive(id);
 
       expect(result.state).toBe(true);
-      expect(mockActiveEmpleadoUC.execute).toHaveBeenCalledWith(id);
+      expect(mockActiveEmpleadoUC.reactivar).toHaveBeenCalledWith(id);
     });
 
     it('Debería relanzar BadRequestException si el UseCase falla (Ej. Zod parse adentro del UseCase)', async () => {
       const invalidId = 'not-a-uuid';
-      mockActiveEmpleadoUC.execute.mockRejectedValue(new BadRequestException('Error al reactivar'));
+      mockActiveEmpleadoUC.reactivar.mockRejectedValue(new BadRequestException('Error al reactivar'));
 
       await expect(controller.reactive(invalidId)).rejects.toThrow(BadRequestException);
-      expect(mockActiveEmpleadoUC.execute).toHaveBeenCalledWith(invalidId);
+      expect(mockActiveEmpleadoUC.reactivar).toHaveBeenCalledWith(invalidId);
     });
   });
 });

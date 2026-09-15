@@ -1,11 +1,6 @@
 //src/modules/RRHH/use-cases/jornadas/estadoJornada.useCase.ts
 //Caso de uso para cambiar el estado de una jornada laboral
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**

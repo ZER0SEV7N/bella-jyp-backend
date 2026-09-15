@@ -14,11 +14,7 @@ import { ConfirmarCargaMasivaUseCase } from '../use-cases/carga-masiva/confirmar
 import type { ConfirmarCargaMasivaDTO } from '../use-cases/carga-masiva/confirmarCargaMasiva.useCase';
 //Importaciones para la inyección de dependencias y servicios
 import { ClsService } from 'nestjs-cls';
-import {
-  ApiSwaggerEmpleadosBulkController,
-  ApiSwaggerGetBulkStatus,
-  ApiSwaggerDownloadTemplate,
-} from '../decorators/empleado-bulk-swagger.decorator';
+import { ApiSwaggerEmpleadosBulkController, ApiSwaggerGetBulkStatus, ApiSwaggerDownloadTemplate } from '../decorators/empleado-bulk-swagger.decorator';
 
 /**
  * Controlador para manejar la carga masiva de empleados desde un archivo CSV.

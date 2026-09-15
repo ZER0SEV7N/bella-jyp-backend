@@ -2,16 +2,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { ActualizarCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/actualizarCargo.useCase';
+import { EditarCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/editarCargo.useCase';
 import type { ActualizarCargoDto } from '@jyp/shared-contracts';
 
 /**
- * Pruebas unitarias exhaustivas para el caso de uso ActualizarCargoUseCase, que maneja la actualización de cargos en el módulo de RRHH.
+ * Pruebas unitarias exhaustivas para el caso de uso EditarCargoUseCase, que maneja la actualización de cargos en el módulo de RRHH.
  * Se simula el comportamiento del servicio Prisma para verificar la lógica de negocio y las excepciones lanzadas en diferentes escenarios.
  * Se incluyen pruebas para actualizaciones parciales, transferencia de área, bandas salariales, detección de nombres duplicados y resiliencia ante fallos de base de datos.
  */
-describe('ActualizarCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
-  let useCase: ActualizarCargoUseCase;
+describe('EditarCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
+  let useCase: EditarCargoUseCase;
   let prisma: PrismaService;
 
   //Mocks de Prisma para simular la interacción con la base de datos
@@ -41,12 +41,12 @@ describe('ActualizarCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ActualizarCargoUseCase,
+        EditarCargoUseCase,
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();
 
-    useCase = module.get<ActualizarCargoUseCase>(ActualizarCargoUseCase);
+    useCase = module.get<EditarCargoUseCase>(EditarCargoUseCase);
     prisma = module.get<PrismaService>(PrismaService);
   });
 

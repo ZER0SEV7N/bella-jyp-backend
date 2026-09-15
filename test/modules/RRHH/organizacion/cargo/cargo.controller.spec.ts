@@ -3,14 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, InternalServerErrorException} from '@nestjs/common';
 import { CargoController } from '@/modules/RRHH/organizacion/controller/cargo.controller';
 import { CrearCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/actualizarCargo.useCase';
+import { EditarCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/editarCargo.useCase';
 import { EstadoCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/listarCargos.useCase';
-import type {
-  CrearCargoDto,
-  ActualizarCargoDto,
-  ListarCargosQueryDto,
-} from '@jyp/shared-contracts';
+import type { CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto } from '@jyp/shared-contracts';
 
 /** 
  * Pruebas unitarias exhaustivas para el controlador de cargos.
@@ -22,7 +18,7 @@ describe('CargoController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', ()
 
   //Mockear los casos de uso para simular la interacción con la base de datos y la lógica de negocio
   const mockCrearCargoUseCase = { execute: jest.fn() };
-  const mockActualizarCargoUseCase = { execute: jest.fn() };
+  const mockEditarCargoUseCase = { execute: jest.fn() };
   const mockEstadoCargoUseCase = { desactivar: jest.fn(), reactivar: jest.fn() };
   const mockListarCargosUseCase = { listar: jest.fn() };
 
@@ -36,7 +32,7 @@ describe('CargoController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', ()
       controllers: [CargoController],
       providers: [
         { provide: CrearCargoUseCase, useValue: mockCrearCargoUseCase },
-        { provide: ActualizarCargoUseCase, useValue: mockActualizarCargoUseCase },
+        { provide: EditarCargoUseCase, useValue: mockEditarCargoUseCase },
         { provide: EstadoCargoUseCase, useValue: mockEstadoCargoUseCase },
         { provide: ListarCargosUseCase, useValue: mockListarCargosUseCase }
       ]
@@ -134,19 +130,19 @@ describe('CargoController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', ()
       };
 
       //Simular que el caso de uso de actualización retorna un cargo actualizado
-      mockActualizarCargoUseCase.execute.mockResolvedValueOnce(mockUpdatedCargo);
+      mockEditarCargoUseCase.execute.mockResolvedValueOnce(mockUpdatedCargo);
 
       //Act: Llamar al método del controlador para actualizar el cargo
       const result = await controller.update(mockCargoId, payload);
 
       //Assert: Verificar que el caso de uso se haya llamado con el ID y payload correctos y que el resultado sea el cargo actualizado
-      expect(mockActualizarCargoUseCase.execute).toHaveBeenCalledWith(mockCargoId, payload);
+      expect(mockEditarCargoUseCase.execute).toHaveBeenCalledWith(mockCargoId, payload);
       expect(result).toEqual(mockUpdatedCargo);
     });
 
     it('Excepción: Debe propagar NotFoundException si el cargo a actualizar no existe o fue dado de baja', async () => {
       //Arrange: Simular que el caso de uso de actualización lanza NotFoundException por cargo inexistente
-      mockActualizarCargoUseCase.execute.mockRejectedValueOnce(new NotFoundException({
+      mockEditarCargoUseCase.execute.mockRejectedValueOnce(new NotFoundException({
         title: 'Cargo no encontrado',
         detail: 'El cargo que intenta actualizar no existe o ha sido eliminado.'
       }));
@@ -157,7 +153,7 @@ describe('CargoController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', ()
 
     it('Excepción / Negocio: Debe propagar BadRequestException si el área destino está inactiva o la banda es inconsistente', async () => {
       //Arrange: Simular que el caso de uso de actualización lanza BadRequestException por banda salarial inconsistente
-      mockActualizarCargoUseCase.execute.mockRejectedValueOnce(new BadRequestException({
+      mockEditarCargoUseCase.execute.mockRejectedValueOnce(new BadRequestException({
         title: 'Banda Salarial Inconsistente',
         detail: 'El sueldo máximo no puede ser menor al sueldo mínimo.'
       }));
@@ -168,7 +164,7 @@ describe('CargoController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', ()
 
     it('Excepción / Resiliencia: Debe propagar InternalServerErrorException si la base de datos falla al actualizar', async () => {
       //Arrange: Simular que el caso de uso de actualización lanza InternalServerErrorException por fallo en la base de datos
-      mockActualizarCargoUseCase.execute.mockRejectedValueOnce(new InternalServerErrorException('Fallo interno al actualizar el cargo.'));
+      mockEditarCargoUseCase.execute.mockRejectedValueOnce(new InternalServerErrorException('Fallo interno al actualizar el cargo.'));
 
       //Act & Assert: Llamar al método del controlador y verificar que se lance la excepción
       await expect(controller.update(mockCargoId, payload)).rejects.toThrow(InternalServerErrorException);

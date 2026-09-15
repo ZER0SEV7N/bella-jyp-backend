@@ -69,7 +69,10 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
       //Act & Assert: Ejecutar el caso de uso y verificar que se lance NotFoundException
       await expect(useCase.execute(payload)).rejects.toThrow(NotFoundException);
-      expect(prisma.area.findUnique).toHaveBeenCalledWith({ where: { id: payload.id_area, deleted_at: null } });
+      expect(prisma.area.findUnique).toHaveBeenCalledWith({
+        where: { id: payload.id_area, deleted_at: null },
+        select: { id: true, activo: true }
+      });
       expect(prisma.cargo.findFirst).not.toHaveBeenCalled();
       expect(prisma.cargo.create).not.toHaveBeenCalled();
     });
@@ -119,7 +122,8 @@ describe('CrearCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
           nombre: { equals: payload.nombre.trim(), mode: 'insensitive' },
           id_area: payload.id_area,
           deleted_at: null
-        }
+        },
+        select: { id: true }
       });
       expect(prisma.cargo.create).not.toHaveBeenCalled();
     });

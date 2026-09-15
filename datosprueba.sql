@@ -85,7 +85,7 @@ INSERT INTO jornada (
   'Jornada Estándar Oficina',
   'Horario administrativo de 40h semanales de Lunes a Viernes',
   'TIEMPO_COMPLETO',
-  'MANANA',
+  'MADRUGADA',
   'PRESENCIAL',
   15,
   40.00,

@@ -3,8 +3,9 @@
 import { Injectable, BadRequestException,InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { calcularHorasDia } from './helper/fechaTiempo.helper';
 import type { CrearJornadaDto } from '@jyp/shared-contracts';
+import { sanitizarTexto } from '@/common/utils/transformacion.util';
+import { procesarYValidarHorarioSemanal, verificarNombreJornadaUnico, verificarAreasJornada } from './helper/jornada.helper';
 
 /**
  * Caso de uso para crear una nueva jornada laboral en el sistema.
@@ -23,68 +24,28 @@ export class CrearJornadaUseCase {
    */
   async execute(dto: CrearJornadaDto) {
     try {
-      //Verificar si ya existe una jornada con el mismo nombre
-      const jornadaExistente = await this.prisma.jornada.findFirst({where: {
-        nombre: { equals: dto.nombre.trim(), mode: 'insensitive' },
-        deleted_at: null
-      }});
+      //Validar que el nombre de la jornada sea único y que las áreas asociadas existan y estén activas
+      await verificarNombreJornadaUnico(this.prisma, dto.nombre);
+      await verificarAreasJornada(this.prisma, dto.areas_ids);
 
-      if (jornadaExistente)throw new BadRequestException({
-        title: 'Jornada duplicada',
-        detail: `Ya existe una jornada/turno con el nombre '${dto.nombre}'.`
-      });
+      //Procesar y validar el horario semanal de la jornada, calculando el total de horas semanales y el horario final
+      const { totalSemanal, horarioCalculado } = procesarYValidarHorarioSemanal(
+        dto.horario_semanal,
+        dto.duracion,
+        dto.turno,
+        dto.patron_rotacion,
+      );
 
-      //Validar que las áreas asignadas existan y estén activas
-      const areasEncontradas = await this.prisma.area.findMany({
-        where: {
-          id: { in: dto.areas_ids },
-          activo: true,
-          deleted_at: null
-        },
-        select: { id: true }
-      });
-
-      if (areasEncontradas.length !== dto.areas_ids.length) throw new NotFoundException({
-        title: 'Áreas no válidas',
-        detail: 'Una o más áreas seleccionadas no existen o se encuentran inactivas.'
-      });
-      
-      //Calcular el total de horas semanales según el horario configurado
-      let totalSemanal = 0;
-      const horarioCalculado = dto.horario_semanal.map((dia) => {
-        const horas = calcularHorasDia(dia);
-        totalSemanal += horas;
-        return { ...dia, total_horas: horas };
-      });
-
-      //Validaciones de límites laborales
-      if (dto.duracion === 'TIEMPO_PARCIAL' && totalSemanal >= 30) throw new BadRequestException({
-        title: 'Límite Tiempo Parcial Excedido',
-        detail: `Una jornada de tiempo parcial debe tener menos de 30 horas semanales (total configurado: ${totalSemanal}h).`
-      });
-      
-      //Validación de límite legal de horas ordinarias
-      if (totalSemanal > 48) throw new BadRequestException({
-        title: 'Jornada Excede Límite Legal',
-        detail: `El total semanal (${totalSemanal}h) supera el máximo legal permitido de 48 horas ordinarias.`
-      });
-
-      //Validación de patrón de rotación si el turno es ROTATIVO
-      if (dto.turno === 'ROTATIVO' && !dto.patron_rotacion) throw new BadRequestException({
-        title: 'Configuración Incompleta',
-        detail: 'Debe especificar el patrón de rotación para jornadas de turno rotativo.',
-      });
-      
-      //Generar un ID único para la nueva jornada
+      //Generar un ID único para la nueva jornada laboral
       const jornadaId = IdentityGenerator.generateId();
 
-      //Persistencia atómica de la jornada y sus áreas aplicables
+      //Crear la nueva jornada laboral en la base de datos dentro de una transacción para asegurar consistencia
       return await this.prisma.$transaction(async (tx) => {
         const nuevaJornada = await tx.jornada.create({
           data: {
             id: jornadaId,
-            nombre: dto.nombre.trim(),
-            descripcion: dto.descripcion?.trim() || null,
+            nombre: sanitizarTexto(dto.nombre),
+            descripcion: sanitizarTexto(dto.descripcion),
             duracion: dto.duracion,
             turno: dto.turno,
             modalidad: dto.modalidad,
@@ -96,20 +57,24 @@ export class CrearJornadaUseCase {
           }
         });
 
-        //Asociar la jornada a las áreas seleccionadas
-        await tx.jornada_area.createMany({data: dto.areas_ids.map((areaId) => ({
-          jornada_id: jornadaId,
-          area_id: areaId
-        }))});
-
-        //Devolver la nueva jornada con las áreas aplicables
-        return {...nuevaJornada,areas_aplicables_ids: dto.areas_ids };
+        //Si se proporcionaron áreas asociadas, crear las relaciones en la tabla pivote
+        if (dto.areas_ids?.length) await tx.jornada_area.createMany({
+          data: dto.areas_ids.map((areaId) => ({
+            jornada_id: jornadaId,
+            area_id: areaId
+          }))
+        });
+        
+        return { ...nuevaJornada, areas_aplicables_ids: dto.areas_ids ?? [] };
       });
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) 
         throw error;
       
-      throw new InternalServerErrorException('Ocurrió un error al registrar la nueva jornada.', error instanceof Error ? error.message : undefined);
+      throw new InternalServerErrorException({
+        title: 'Error al Crear Jornada',
+        detail: error instanceof Error ? error.message : 'Fallo interno al registrar la nueva jornada.'
+      });
     }
   }
 }

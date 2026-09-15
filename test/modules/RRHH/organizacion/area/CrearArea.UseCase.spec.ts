@@ -62,7 +62,8 @@ describe('CrearAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
         where: {
           nombre: { equals: 'Recursos Humanos', mode: 'insensitive' },
           deleted_at: null
-        }
+        },
+        select: { id: true }
       });
 
       //Verificar que se llamó a la función de creación con los datos correctos
@@ -96,7 +97,8 @@ describe('CrearAreaUseCase - Pruebas Unitarias Exhaustivas', () => {
       expect(prisma.area.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           nombre: 'Logística',
-          descripcion: null
+          descripcion: undefined,
+          activo: true
         })
       });
       expect(result.descripcion).toBeNull();

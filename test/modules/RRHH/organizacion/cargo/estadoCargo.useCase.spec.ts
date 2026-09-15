@@ -138,7 +138,10 @@ describe('EstadoCargoUseCase - Pruebas Unitarias de Desactivación y Reactivaci�
       //Assert: Verificar que se reactivó correctamente y que se llamó a los métodos de Prisma con los parámetros correctos
       expect(resultado.activo).toBe(true);
       expect(resultado.deleted_at).toBeNull();
-      expect(mockPrisma.area.findUnique).toHaveBeenCalledWith({where: { id: 'area-uuid-1', deleted_at: null }});
+      expect(mockPrisma.area.findUnique).toHaveBeenCalledWith({
+        where: { id: 'area-uuid-1', deleted_at: null },
+        select: { id: true, activo: true }
+      });
       expect(mockPrisma.cargo.update).toHaveBeenCalledWith({
         where: { id: idCargo },
         data: { activo: true, deleted_at: null },
@@ -160,7 +163,7 @@ describe('EstadoCargoUseCase - Pruebas Unitarias de Desactivación y Reactivaci�
       expect(mockPrisma.cargo.update).not.toHaveBeenCalled();
     });
 
-    it('Regla de Negocio: Debe bloquear con BadRequestException si el área matriz se encuentra inactiva o eliminada', async () => {
+    it('Regla de Negocio: Debe lanzar NotFoundException si el área matriz se encuentra inactiva o eliminada', async () => {
       //Arrange: Simular que el cargo existe y está desactivado, pero el área matriz está inactiva
       mockPrisma.cargo.findUnique.mockResolvedValue({
         id: idCargo,
@@ -172,8 +175,8 @@ describe('EstadoCargoUseCase - Pruebas Unitarias de Desactivación y Reactivaci�
       //Simular que el área matriz está inactiva
       mockPrisma.area.findUnique.mockResolvedValue(null);
 
-      //Act & Assert: Ejecutar el caso de uso y verificar que se lance BadRequestException
-      await expect(useCase.reactivar(idCargo)).rejects.toThrow(BadRequestException);
+      //Act & Assert: Ejecutar el caso de uso y verificar que se lance NotFoundException
+      await expect(useCase.reactivar(idCargo)).rejects.toThrow(NotFoundException);
       expect(mockPrisma.cargo.update).not.toHaveBeenCalled();
     });
 

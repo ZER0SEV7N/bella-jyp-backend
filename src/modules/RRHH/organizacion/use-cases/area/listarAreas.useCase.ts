@@ -29,9 +29,7 @@ export class ListarAreasUseCase {
       const where: Record<string, any> = { deleted_at: null };
 
       //Filtrar por estado si se proporciona en la consulta
-      if (query.activo !== undefined) 
-        where.activo = query.activo;
-
+      if (query.activo !== undefined) where.activo = query.activo;
       //Filtrar por búsqueda en nombre o descripción si se proporciona en la consulta
       if (query.search && query.search.trim() !== '') 
         where.OR = [
