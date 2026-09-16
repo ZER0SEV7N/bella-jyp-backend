@@ -1,4 +1,4 @@
-//test/modules/RRHH/empleados/empleado.controller.spec.ts
+//test/modules/RRHH/organizacion/empleados/empleado.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, InternalServerErrorException} from '@nestjs/common';
 import { EmpleadoController } from '@/modules/RRHH/organizacion/controller/empleado.controller';
@@ -34,10 +34,10 @@ describe('EmpleadoController', () => {
         { provide: EditarEmpleadoUseCase, useValue: mockEditarEmpleadoUC },
         { provide: EstadoEmpleadoUseCase, useValue: {
           desactivar: mockEliminarEmpleadoUC.execute,
-          reactivar: mockActiveEmpleadoUC.reactivar,
+          reactivar: mockActiveEmpleadoUC.reactivar
         } },
-        { provide: ListarEmpleadosUseCase, useValue: mockListarEmpleadosUC },
-      ],
+        { provide: ListarEmpleadosUseCase, useValue: mockListarEmpleadosUC }
+      ]
     }).compile();
 
     controller = module.get<EmpleadoController>(EmpleadoController);

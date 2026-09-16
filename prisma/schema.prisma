@@ -372,7 +372,7 @@ model jornada {
   nombre             String                 @db.VarChar(100)
   descripcion        String?                @db.VarChar(255)
   duracion           duracion_jornada_enum  @default(TIEMPO_COMPLETO)
-  turno              turno_jornada_enum     @default(MADRUGADA)
+  turno              turno_jornada_enum     @default(MANANA)
   modalidad          modalidad_jornada_enum @default(PRESENCIAL)
   tolerancia_minutos Int                    @default(5)
   total_horas_semana Decimal                @default(40.00) @db.Decimal(5, 2)
@@ -532,7 +532,7 @@ enum duracion_jornada_enum {
 }
 
 enum turno_jornada_enum {
-  MADRUGADA
+  MANANA
   TARDE
   NOCHE
   MIXTO

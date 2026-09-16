@@ -10,20 +10,19 @@ import { EmpleadoBulkController } from './controller/empleado-bulk.controller';
 import { JornadaController } from './controller/jornada.controller';
 // --- CASOS DE USO: ÁREA ---
 import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
-import { ActualizarAreaUseCase } from './use-cases/area/editarArea.useCase';
+import { EditarAreaUseCase } from './use-cases/area/editarArea.useCase';
 import { EstadoAreaUseCase } from './use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
 // --- CASOS DE USO: CARGO ---
 import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.useCase';
-import { ActualizarCargoUseCase } from './use-cases/cargos/editarCargo.useCase';
+import { EditarCargoUseCase } from './use-cases/cargos/editarCargo.useCase';
 import { EstadoCargoUseCase } from './use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from './use-cases/cargos/listarCargos.useCase';
 // --- CASOS DE USO: EMPLEADO ---
 import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
 import { ListarEmpleadosUseCase } from './use-cases/empleado/listarEmpleados.useCase';
 import { EditarEmpleadoUseCase } from './use-cases/empleado/editarEmpleado.useCase';
-import { EliminarEmpleadoUseCase } from './use-cases/empleado/estadoEmpleado.useCase';
-import { ActiveEmpleadoUseCase } from './use-cases/empleado/activeEmpleado.useCase';
+import { EstadoEmpleadoUseCase } from './use-cases/empleado/estadoEmpleado.useCase';
 // --- CASOS DE USO: CARGA MASIVA ---
 import { ConsultarEstadoCargaMasivaUseCase } from './use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ProcesarFilaEmpleadoUseCase } from './use-cases/carga-masiva/procesarFilaEmpleado.useCase';
@@ -55,20 +54,19 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
   providers: [
     //Areas
     CrearAreaUseCase,
-    ActualizarAreaUseCase,
+    EditarAreaUseCase,
     EstadoAreaUseCase,
     ListarAreasUseCase,
     //Cargos
     CrearCargoUseCase,
-    ActualizarCargoUseCase,
+    EditarCargoUseCase,
     EstadoCargoUseCase,
     ListarCargosUseCase,
     //Empleados
     CrearEmpleadoUseCase,
     ListarEmpleadosUseCase,
     EditarEmpleadoUseCase,
-    EliminarEmpleadoUseCase,
-    ActiveEmpleadoUseCase,
+    EstadoEmpleadoUseCase,
     //Carga Masiva
     ConsultarEstadoCargaMasivaUseCase,
     ProcesarFilaEmpleadoUseCase,
