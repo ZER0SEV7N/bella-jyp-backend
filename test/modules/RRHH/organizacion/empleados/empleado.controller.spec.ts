@@ -1,7 +1,7 @@
 //test/modules/RRHH/organizacion/empleados/empleado.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, InternalServerErrorException} from '@nestjs/common';
-import { EmpleadoController } from '@/modules/RRHH/organizacion/controller/empleado.controller';
+import { EmpleadoController } from '@/modules/RRHH/organizacion/controllers/empleado.controller';
 import { CrearEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/editarEmpleado.useCase';
 import { EstadoEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/estadoEmpleado.useCase';

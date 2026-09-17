@@ -1,0 +1,16 @@
+$kind: http-request
+name: Obtener/listar los cargos
+url: "{{baseUrl}}/api/rrhh/cargo?page=1&limit=10"
+method: GET
+queryParams:
+  page: "1"
+  limit: "10"
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Obtener-listar los cargos.resources/examples
+order: 3251416548465274

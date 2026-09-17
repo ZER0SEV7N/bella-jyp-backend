@@ -1,7 +1,7 @@
 //test/modules/RRHH/organizacion/cargo/cargo.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, InternalServerErrorException} from '@nestjs/common';
-import { CargoController } from '@/modules/RRHH/organizacion/controller/cargo.controller';
+import { CargoController } from '@/modules/RRHH/organizacion/controllers/cargo.controller';
 import { CrearCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/crearCargo.useCase';
 import { EditarCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/editarCargo.useCase';
 import { EstadoCargoUseCase } from '@/modules/RRHH/organizacion/use-cases/cargos/estadoCargo.useCase';

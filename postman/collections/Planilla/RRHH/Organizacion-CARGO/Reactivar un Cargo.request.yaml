@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/rrhh/cargo/a0b1f826-1d06-7910-9f62-2666518f6ef3/reactive"
+method: PATCH
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Reactivar un Cargo.resources/examples
+order: 4495876228600212

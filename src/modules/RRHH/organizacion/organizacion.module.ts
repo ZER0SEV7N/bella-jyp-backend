@@ -3,11 +3,11 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ClsModule } from 'nestjs-cls';
 // --- CONTROLADORES ---
-import { AreaController } from './controller/area.controller';
-import { CargoController } from './controller/cargo.controller';
-import { EmpleadoController } from './controller/empleado.controller';
-import { EmpleadoBulkController } from './controller/empleado-bulk.controller';
-import { JornadaController } from './controller/jornada.controller';
+import { AreaController } from './controllers/area.controller';
+import { CargoController } from './controllers/cargo.controller';
+import { EmpleadoController } from './controllers/empleado.controller';
+import { EmpleadoBulkController } from './controllers/empleado-bulk.controller';
+import { JornadaController } from './controllers/jornada.controller';
 // --- CASOS DE USO: ÁREA ---
 import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
 import { EditarAreaUseCase } from './use-cases/area/editarArea.useCase';

@@ -1,6 +1,6 @@
 //test/modules/RRHH/organizacion/area/area.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { AreaController } from '@/modules/RRHH/organizacion/controller/area.controller';
+import { AreaController } from '@/modules/RRHH/organizacion/controllers/area.controller';
 import { CrearAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/crearArea.useCase';
 import { EditarAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/editarArea.useCase';
 import { EstadoAreaUseCase } from '@/modules/RRHH/organizacion/use-cases/area/estadoArea.useCase';

@@ -1,0 +1,56 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/rrhh/cargo/018f4a7c-8888-7000-2222-000000000004/actualizar"
+  method: PUT
+  body:
+    type: json
+    content: "{\r
+
+      \  \"id_area\": \"018f4a7c-7777-7000-1111-000000000003\",\r
+
+      \  \"nombre\": \"Asistente Senior de Gestión Humana\",\r
+
+      \  \"descripcion\": \"Control de incidencias, contratos y bienestar social\",\r
+
+      \  \"sueldo_minimo\": 2000.00,\r
+
+      \  \"sueldo_maximo\": 3200.00\r
+
+      }"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "628"
+    date: Wed, 16 Sep 2026 19:31:50 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "018f4a7c-8888-7000-2222-000000000004",
+          "id_area": "018f4a7c-7777-7000-1111-000000000003",
+          "nombre": "Asistente Senior de Gestión Humana",
+          "descripcion": "Control de incidencias, contratos y bienestar social",
+          "sueldo_minimo": "2000",
+          "sueldo_maximo": "3200",
+          "activo": true,
+          "created_at": "2026-09-16T19:13:56.150Z",
+          "updated_at": "2026-09-16T19:31:50.698Z",
+          "deleted_at": null,
+          "area": {
+            "id": "018f4a7c-7777-7000-1111-000000000003",
+            "nombre": "Recursos Humanos"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/rrhh/cargo/018f4a7c-8888-7000-2222-000000000004/actualizar",
+          "timestamp": "2026-09-16T19:31:50.718Z"
+        }
+      }
+order: 1789587113560

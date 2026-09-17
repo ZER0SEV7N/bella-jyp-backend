@@ -1,11 +1,6 @@
 //src/common/prisma/prisma.service.ts
 //Servicio de Prisma para interactuar con la base de datos
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -30,9 +25,7 @@ export class PrismaService
     const connectionString = process.env.DATABASE_URL;
 
     //Defensa Perimetral (Fail-Fast)
-    if (!connectionString) throw new Error(
-      'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env'
-    );
+    if (!connectionString) throw new Error('CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env');
 
     //Instanciar el Pool nativo de conexiones de PostgreSQL
     const pool = new Pool({ connectionString });

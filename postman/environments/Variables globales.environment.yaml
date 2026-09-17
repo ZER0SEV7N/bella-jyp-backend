@@ -4,3 +4,5 @@ values:
     value: ''
   - key: Token
     value: ''
+  - key: baseUrl
+    value: ''

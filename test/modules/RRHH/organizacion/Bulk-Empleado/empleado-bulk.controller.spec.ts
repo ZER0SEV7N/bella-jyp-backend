@@ -1,6 +1,6 @@
 //test/modules/RRHH/organizacion/Bulk-Empleado/empleado-bulk.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { EmpleadoBulkController } from '@/modules/RRHH/organizacion/controller/empleado-bulk.controller';
+import { EmpleadoBulkController } from '@/modules/RRHH/organizacion/controllers/empleado-bulk.controller';
 import { ConsultarEstadoCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ValidarCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/validarCargaMasiva.useCase';
 import { ConfirmarCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/confirmarCargaMasiva.useCase';

@@ -1,0 +1,45 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/rrhh/area?page=1&limit=10&search=Contabilidad&activo=true"
+  method: GET
+  queryParams:
+    page: "1"
+    limit: "10"
+    search: Contabilidad
+    activo: "true"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "423"
+    date: Wed, 16 Sep 2026 19:25:22 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "018f4a7c-7777-7000-1111-000000000002",
+            "nombre": "Contabilidad y Finanzas",
+            "descripcion": "Gestión Financiera y Planillas",
+            "activo": true,
+            "total_cargos": 1,
+            "total_empleados": 1,
+            "total_jornadas": 1
+          }
+        ],
+        "meta": {
+          "total": 1,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1,
+          "message": "Operación exitosa.",
+          "path": "/api/rrhh/area?page=1&limit=10&search=Contabilidad&activo=true",
+          "timestamp": "2026-09-16T19:25:22.623Z"
+        }
+      }
+order: 1789586724690

@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/rrhh/area/crear"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"nombre\": \"Tecnología e Innovación\",\r
+
+    \  \"descripcion\": \"Área encargada de infraestructura cloud, desarrollo y soporte TI\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Crea una nueva area.resources/examples
+order: 1789586538283

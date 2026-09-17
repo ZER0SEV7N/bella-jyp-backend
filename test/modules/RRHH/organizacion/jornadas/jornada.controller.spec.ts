@@ -1,7 +1,7 @@
 //test/modules/RRHH/organizacion/jornadas/jornada.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import {BadRequestException, NotFoundException, InternalServerErrorException} from '@nestjs/common';
-import { JornadaController } from '@/modules/RRHH/organizacion/controller/jornada.controller';
+import { JornadaController } from '@/modules/RRHH/organizacion/controllers/jornada.controller';
 import { CrearJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/crearJornada.useCase';
 import { EditarJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/editarJornada.useCase';
 import { EstadoJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/estadoJornada.useCase';
