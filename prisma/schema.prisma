@@ -155,14 +155,14 @@ model dato_financiero {
   //Cuenta de Pago de Sueldo
   id_banco_sueldo    String?                   @db.Uuid
   tipo_cuenta_sueldo tipo_cuenta_bancaria_enum @default(SUELDO)
-  nro_cuenta_sueldo  String?                   @db.VarChar(30)
-  cci_sueldo         String?                   @db.VarChar(30)
+  nro_cuenta_sueldo  String?                   @db.VarChar(255)
+  cci_sueldo         String?                   @db.VarChar(255)
 
   //Cuenta de Depósito de CTS (Mayo y Noviembre)
   id_banco_cts    String?                   @db.Uuid
   tipo_cuenta_cts tipo_cuenta_bancaria_enum @default(AHORROS)
-  nro_cuenta_cts  String?                   @db.VarChar(30)
-  cci_cts         String?                   @db.VarChar(30)
+  nro_cuenta_cts  String?                   @db.VarChar(255)
+  cci_cts         String?                   @db.VarChar(255)
 
   //Régimen de Aseguramiento de Salud (EsSalud vs EPS)
   regimen_salud       regimen_salud_enum @default(ESSALUD_REGULAR)

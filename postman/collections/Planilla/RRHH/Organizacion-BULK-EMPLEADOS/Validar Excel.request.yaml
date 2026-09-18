@@ -1,5 +1,4 @@
 $kind: http-request
-name: Validar Excel
 url: http://localhost:3000/api/rrhh/empleados/bulk/validar
 method: POST
 body:
@@ -8,12 +7,12 @@ body:
     - type: file
       key: file
       src:
-        - /C:/Users/ZER0SEV7N/Documents/Senati/JyP/planillas doc/Prueba de Excel.xlsx
+        - /C:/Users/ZER0SEV7N/Downloads/plantilla_carga_masiva_empleados.xlsx
       description: ""
       disabled: false
 auth:
   type: bearer
   credentials:
-    token: ""
+    token: "{{Token}}"
 examples: .resources/Validar Excel.resources/examples
 order: 3000

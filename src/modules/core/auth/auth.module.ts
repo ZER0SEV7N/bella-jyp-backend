@@ -8,6 +8,7 @@ import { LoginUseCase } from './use-cases/login.useCase';
 import { ProvisionarUsuarioUseCase } from './use-cases/provisionarUsuario.useCase';
 import { RecuperacionPasswordUseCases } from './use-cases/recuperacionPassword.useCases';
 import { RefrescarTokenUseCase } from './use-cases/refrescarToken.useCase';
+import { LogoutUseCase } from './use-cases/logout.useCase';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '@/common/prisma/prisma.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -34,6 +35,7 @@ import { ClsModule } from 'nestjs-cls';
     RecuperacionPasswordUseCases,
     RefrescarTokenUseCase,
     JwtStrategy,
+    LogoutUseCase
   ],
   exports: [JwtModule, JwtStrategy], //Exportado por si otros módulos requieren verificar tokens manualmente
 })

@@ -32,30 +32,39 @@ export class LoginUseCase {
         },
         activo: true //Condición de seguridad a nivel de tabla auth
       },
-      include: { empleados: true } //Traemos al empleado para armar el Payload
+      include: {
+        empleados: {
+          select: {
+            nombre: true,
+            apellido: true,
+            nro_documento: true,
+            email: true
+          }
+        }
+      }
     });
 
     //Validación: Si el usuario no existe, lanzar una excepción UnauthorizedException
     if (!usuario) throw this.credencialesInvalidas();
 
     //Verificar la contraseña usando Argon2id
-    const isPasswordValid = await argon2.verify(
-      usuario.password_hash,
-      dto.password
-    );
+    const isPasswordValid = await argon2.verify(usuario.password_hash, dto.password);
     if (!isPasswordValid) throw this.credencialesInvalidas();
+
+    const nombreCompleto = usuario.empleados ? `${usuario.empleados.nombre ?? ''} ${usuario.empleados.apellido ?? ''}`.trim() : 'Usuario del Sistema';
 
     //Construcción del Payload del Token (Asimétrico)
     const payload = {
       sub: usuario.id,
       rol: usuario.rol,
       doc: usuario.empleados?.nro_documento,
-      empId: usuario.empleado_id
+      empId: usuario.empleado_id,
+      nombre: nombreCompleto
     };
 
     //Firma en paralelo (Protegiendo el Event Loop)
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, { expiresIn: '15m' }),
+      this.jwtService.signAsync(payload, { expiresIn: '15m', secret: process.env.JWT_ACCESS_SECRET }),
       this.jwtService.signAsync(payload, { expiresIn: '7d', secret: process.env.JWT_REFRESH_SECRET })
     ]);
 
@@ -68,7 +77,8 @@ export class LoginUseCase {
         usuario_id: usuario.id,
         token_hash: hashedRT,
         proposito: 'REFRESH_TOKEN',
-        expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // +7 días
+        expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 días
+        usado: false
       }
     });
 
@@ -78,8 +88,10 @@ export class LoginUseCase {
       refreshToken,
       usuario: {
         id: usuario.id,
+        nombre: nombreCompleto,
+        email: usuario.email,
         nro_documento: usuario.empleados?.nro_documento,
-        rol: usuario.rol
+        rol: usuario.rol,
       }
     };
   }

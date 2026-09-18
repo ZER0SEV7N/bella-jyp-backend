@@ -5,6 +5,5 @@ method: GET
 auth:
   type: bearer
   credentials:
-    token: ""
-examples: .resources/Plantilla - Bulk Empleados-.resources/examples
+    token: "{{Token}}"
 order: 1000

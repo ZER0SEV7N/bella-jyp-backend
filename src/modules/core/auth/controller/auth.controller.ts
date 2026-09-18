@@ -1,24 +1,19 @@
 //src/modules/core/auth/controller/auth.controller.ts
 //Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación
-import {Controller, Post, Body, Res, UsePipes, HttpCode, HttpStatus, UseGuards, UnauthorizedException} from '@nestjs/common';
-import type { FastifyReply } from 'fastify';
+import {Controller, Post, Body, Res, UsePipes, HttpCode, HttpStatus, UseGuards, UnauthorizedException, Req} from '@nestjs/common';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { LoginUseCase } from '../use-cases/login.useCase';
 import { ProvisionarUsuarioUseCase } from '../use-cases/provisionarUsuario.useCase';
 import { RecuperacionPasswordUseCases } from '../use-cases/recuperacionPassword.useCases';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { RefrescarTokenUseCase } from '../use-cases/refrescarToken.useCase';
+import { LogoutUseCase } from '../use-cases/logout.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { LoginSchema, ProvisionarUsuarioSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
 import type {LoginDTO, ProvisionarUsuarioDTO, SolicitudRecuperacionDTO } from '@jyp/shared-contracts';
-import {
-  ApiSwaggerController,
-  ApiSwaggerLogin,
-  ApiSwaggerRefresh,
-  ApiSwaggerProvisionar,
-  ApiSwaggerRecuperarPassword,
-} from '../decorators/auth-swagger.decorator';
+import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProvisionar, ApiSwaggerRecuperarPassword} from '../decorators/auth-swagger.decorator';
 
 /**
  * Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación.
@@ -33,6 +28,7 @@ export class AuthController {
     private readonly provisionarUsuarioUseCase: ProvisionarUsuarioUseCase,
     private readonly recuperacionPasswordUseCase: RecuperacionPasswordUseCases,
     private readonly refrescarTokenUseCase: RefrescarTokenUseCase,
+    private readonly logoutUseCase: LogoutUseCase
   ) {}
 
   /**
@@ -52,17 +48,14 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(LoginSchema))
-  async login(
-    @Body() payload: LoginDTO,
-    @Res({ passthrough: true }) res: FastifyReply,
-  ) {
+  async login(@Body() payload: LoginDTO, @Res({ passthrough: true }) res: FastifyReply) {
     const { accessToken, refreshToken, usuario } = await this.loginUseCase.execute(payload);
 
     res.setCookie('jyp_rt', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/api/auth/refresh',
+      sameSite: 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 // 7 días
     });
 
@@ -78,30 +71,29 @@ export class AuthController {
   @ApiSwaggerRefresh()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAccessGuard)
-  async refreshToken(@Res({ passthrough: true }) res: FastifyReply) {
+  async refreshToken(@Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
     //Obtener el refresh token de las cookies de la solicitud
-    let refreshToken = res.cookies?.['jyp_rt'];
+    const refreshToken = req.cookies?.['jyp_rt'];
     //Si no se encuentra en las cookies, intentar obtenerlo del encabezado de la solicitud (por si acaso)
-    if (!refreshToken && res.request.headers.cookie) {
-      const rawCookies = res.request.headers.cookie.split(';').reduce(
-        (acc, current) => {
-          const [key, value] = current.trim().split('=');
-          if (key && value) acc[key] = value;
-
-          return acc;
-        },
-        {} as Record<string, string>,
-      );
-
-      refreshToken = rawCookies['jyp_rt'];
+    if (!refreshToken) {
+      throw new UnauthorizedException({
+        title: 'Sesión Expirada',
+        detail: 'No se encontró la cookie de refresco. Inicie sesión nuevamente.',
+      });
     }
 
-    //Si no se encuentra en las cookies ni en el encabezado, lanzar una excepción de autorización
-    if (!refreshToken)
-      throw new UnauthorizedException('No se encontró el Refresh Token en las cookies o ha expirado.');
+    const { accessToken, newRefreshToken } = await this.refrescarTokenUseCase.execute(refreshToken);
 
-    const { accessToken } = await this.refrescarTokenUseCase.execute(refreshToken);
+    if (newRefreshToken) {
+      res.setCookie('jyp_rt', newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60,
+      });
+    }
+
     return { accessToken };
   }
 
@@ -140,5 +132,38 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(SolicitudRecuperacionSchema))
   async solicitarRecuperacion(@Body() payload: SolicitudRecuperacionDTO) {
     return await this.recuperacionPasswordUseCase.solicitar(payload);
+  }
+  
+  /**
+   * Ruta para cerrar sesión, invalidando el refresh token y el access token.
+   * POST: /api/auth/logout
+   * @param req - FastifyRequest - La solicitud HTTP entrante, que contiene la cookie de refresh token y el encabezado de autorización con el access token.
+   * @param res - FastifyReply - La respuesta HTTP que se enviará al cliente, utilizada para limpiar la cookie de refresh token.
+   * @returns - Un objeto con un mensaje de éxito indicando que la sesión ha sido finalizada y los tokens han sido invalidados.
+   * @throws - Lanza una excepción UnauthorizedException si ocurre un problema al invalidar los tokens.
+   * @yields 2023-06-15 12:00:00 - Usuario con ID '123' ha cerrado sesión exitosamente. Refresh token y access token invalidados.
+   */
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
+    const refreshToken = req.cookies?.['jyp_rt'];
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7): undefined;
+
+    await this.logoutUseCase.execute(refreshToken, accessToken);
+
+    //Limpiar la cookie de refresh token en el cliente estableciendo su valor a vacío y maxAge a 0
+    res.setCookie('jyp_rt', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0
+    });
+
+    return {
+      title: 'Sesión Finalizada',
+      detail: 'Tokens invalidados exitosamente.'
+    };
   }
 }

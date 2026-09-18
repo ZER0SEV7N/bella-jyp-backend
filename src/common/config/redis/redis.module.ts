@@ -46,8 +46,9 @@ import { CacheCatalogoService } from './cache-catalogo.service';
       client.on('connect', () => logger.log('Conexión Cache-Aside establecida con Redis.'));
       client.on('error', (err) => logger.error(`Error en socket Redis: ${err.message}`));
       return client;
-    }
-  }],
+    },
+  }, CacheCatalogoService
+  ],
   exports: [BullModule, REDIS_CLIENT, CacheCatalogoService] //Exportar el módulo de Bull, el cliente de Redis y el servicio de caché de catálogos para que puedan ser utilizados en otros módulos de la aplicación
 })
 

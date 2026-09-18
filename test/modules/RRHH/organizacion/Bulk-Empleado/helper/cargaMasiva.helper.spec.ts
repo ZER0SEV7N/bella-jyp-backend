@@ -1,5 +1,5 @@
 //test/modules/RRHH/organizacion/Bulk-Empleado/helper/cargaMasiva.helper.spec.ts
-import { normalizarTexto, normalizarFecha, normalizarLlaveHeader, mapearFilaRaw, mapearCsvBuffer, mapearExcelBuffer } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/cargaMasiva.helpers';
+import { normalizarTexto, normalizarFecha, normalizarLlaveHeader, mapearFilaRaw, mapearCsvBuffer, mapearExcelBuffer } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/mapeador.helpers';
 import * as ExcelJS from 'exceljs';
 
 /**

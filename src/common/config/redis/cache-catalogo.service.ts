@@ -26,8 +26,7 @@ export class CacheCatalogoService {
     async getOrSet<T>(key: string, ttlSegundos: number, fetcher: () => Promise<T>): Promise<T> {
         try{
             const cached = await this.redis.get(key);
-            if(cached)
-                return JSON.parse(cached) as T;
+            if(cached) return JSON.parse(cached) as T;
         } catch (error:any) {
             this.logger.warn(`Fallo al leer key '${key}' de Redis: ${error.message}. Continuando sin caché.`);
         }

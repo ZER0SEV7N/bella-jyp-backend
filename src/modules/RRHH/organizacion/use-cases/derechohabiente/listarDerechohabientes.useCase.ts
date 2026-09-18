@@ -23,7 +23,7 @@ export class ListarDerechohabientesUseCase {
                 where: { empleado_id: empleadoId, deleted_at: null },
                 include: {
                     tipo_documento: { select: { id: true, tipo_documento: true } },
-                    sustentos: {
+                    documentos: {
                         where: { deleted_at: null },
                         select: {
                             id: true,

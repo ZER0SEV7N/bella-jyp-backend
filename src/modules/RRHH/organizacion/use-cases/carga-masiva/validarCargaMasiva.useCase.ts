@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { CargaMasivaFilaSchema } from '@jyp/shared-contracts';
 import { Readable } from 'node:stream';
-import { mapearFilaRaw, mapearCsvBuffer, mapearExcelBuffer } from './helpers/cargaMasiva.helpers';
+import { mapearFilaRaw, mapearCsvBuffer, mapearExcelBuffer } from './helpers/mapeador.helpers';
 
 /**
  * interfaz de error detectado en una fila durante la pre-validación de la carga masiva.

@@ -15,6 +15,7 @@ import type { ConfirmarCargaMasivaDTO } from '../use-cases/carga-masiva/confirma
 //Importaciones para la inyección de dependencias y servicios
 import { ClsService } from 'nestjs-cls';
 import { ApiSwaggerEmpleadosBulkController, ApiSwaggerGetBulkStatus, ApiSwaggerDownloadTemplate } from '../decorators/empleado-bulk-swagger.decorator';
+import { generarPlantillaExcel } from '../use-cases/carga-masiva/helpers/generarPlantilla.helper';
 
 /**
  * Controlador para manejar la carga masiva de empleados desde un archivo CSV.
@@ -131,22 +132,12 @@ export class EmpleadoBulkController {
    */
   @Get('plantilla')
   @ApiSwaggerDownloadTemplate()
-  descargarPlantilla(@Res() res: FastifyReply) {
-    const cabeceras = 'tipo_documento,nro_documento,nombre,apellido,area,cargo,jornada,fecha_nacimiento,asig_familiar\n';
+  async descargarPlantilla(@Res() res: FastifyReply): Promise<void> {
+    const bufferExcel = await generarPlantillaExcel();
 
+    res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
+    res.header('Content-Disposition', 'attachment; filename="plantilla_carga_masiva_empleados.xlsx"');
 
-    //Filas de ejemplo para la plantilla
-     const filasEjemplo = [
-      'DNI,70998877,Roberto,Flores Gomez,Oficina Central,Contador Principal,Turno Mañana (Oficina),1992-04-10,true',
-      'CE,002233445,Luis,Paredes Soto,Seguridad Física,Vigilante Nocturno,Turno Madrugada (Seguridad),1988-11-25,false',
-    ];
-
-    const csvContent = cabeceras + filasEjemplo.join('\n');
-
-    //configurar los headers para la descarga del archivo CSV
-    res.header('Content-Type', 'text/csv; charset=UTF-8');
-    res.header('content-disposition', 'attachment; filename="plantilla_carga_masiva_empleados.csv"');
-
-    res.send(csvContent); //Enviar el contenido del CSV como respuesta
+    res.send(bufferExcel);
   }
 }
