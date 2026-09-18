@@ -33,7 +33,7 @@ export async function validarEmpleadoTitular(prisma: PrismaService, empleadoId: 
  * @param derechoHabienteId (Opcional) ID del derechohabiente a excluir de la validación (útil para actualizaciones).
  * @throws ConflictException si el documento ya está registrado para otro derechohabiente del mismo empleado titular.
  */
-export async function validarDocumentoDerechoHabiente(prisma: PrismaService, empleadoId: string, nroDocumento: string, derechoHabienteId?: string): Promise<void> {
+export async function validarDocumentoDerechohabiente(prisma: PrismaService, empleadoId: string, nroDocumento: string, derechoHabienteId?: string): Promise<void> {
     const documentoLimpio = nroDocumento.trim()
 
     const duplicado = await prisma.derechohabientes.findFirst({

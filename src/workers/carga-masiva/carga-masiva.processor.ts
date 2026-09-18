@@ -36,7 +36,6 @@ export class CargaMasivaProcessor extends WorkerHost {
     const { jobId, registros } = job.data;
     this.logger.log(`[Job ${jobId}] Procesando lote '${job.name}' con ${registros.length} registros...`);
 
-
     //Transicionar el estado del job a "PROCESANDO"
     await this.prisma.cargaMasivaJob.update({
       where: { id: jobId },
@@ -67,35 +66,40 @@ export class CargaMasivaProcessor extends WorkerHost {
       }
     }
     
-    //Actualizar el estado del job con los resultados del procesamiento
-    const jobActual = await this.prisma.cargaMasivaJob.findUnique({where: { id: jobId }});
-    if (!jobActual) return;
+    // Actualización atómica del estado del Job en PostgreSQL
+    await this.prisma.$transaction(async (tx) => {
+      const jobActual = await tx.cargaMasivaJob.findUnique({
+        where: { id: jobId },
+      });
 
-    const totalProcesados = jobActual.procesados + exitososEnEsteLote;
-    const totalFallidos = jobActual.fallidos + fallidosEnEsteLote;
-    const totalAtendidos = totalProcesados + totalFallidos;
+      if (!jobActual) return;
 
-    //Verificar si con este lote ya se cubrio la totalidad de registros y actualizar el estado del job en consecuencia
-    const finalizado = jobActual.total_registros > 0 && totalAtendidos >= jobActual.total_registros;
+      const totalProcesados = jobActual.procesados + exitososEnEsteLote;
+      const totalFallidos = jobActual.fallidos + fallidosEnEsteLote;
+      const totalAtendidos = totalProcesados + totalFallidos;
 
-    //Mantener el historial de errores previos y agregar los nuevos errores ocurridos en este lote
-    const erroresPrevios = Array.isArray(jobActual.errores_detalle) ? (jobActual.errores_detalle as Array<any>) : [];
-    const listaErroresActualizada = [...erroresPrevios, ...nuevosErrores];
+      const erroresPrevios = Array.isArray(jobActual.errores_detalle)
+        ? (jobActual.errores_detalle as Array<any>)
+        : [];
+      const listaErroresActualizada = [...erroresPrevios, ...nuevosErrores];
 
-    let nuevoEstado: 'PROCESANDO' | 'COMPLETADO' | 'FALLIDO' = 'PROCESANDO';
-    if (finalizado) {
-      nuevoEstado = totalProcesados === 0 && totalFallidos > 0 ? 'FALLIDO' : 'COMPLETADO';
-      this.logger.log(`[Job ${jobId}] Finalizado con estado: ${nuevoEstado}. Procesados: ${totalProcesados}, Fallidos: ${totalFallidos}`);
-    }
+      const finalizado = jobActual.total_registros > 0 && totalAtendidos >= jobActual.total_registros;
 
-    await this.prisma.cargaMasivaJob.update({
-      where: { id: jobId },
-      data: {
-        procesados: totalProcesados,
-        fallidos: totalFallidos,
-        errores_detalle: listaErroresActualizada,
-        estado: nuevoEstado
+      let nuevoEstado: 'PROCESANDO' | 'COMPLETADO' | 'FALLIDO' = 'PROCESANDO';
+      if (finalizado) {
+        nuevoEstado = totalProcesados === 0 && totalFallidos > 0 ? 'FALLIDO' : 'COMPLETADO';
+        this.logger.log(`[Job ${jobId}] Procesamiento finalizado. Estado: ${nuevoEstado}. Éxitos: ${totalProcesados}, Fallos: ${totalFallidos}.`);
       }
+
+      await tx.cargaMasivaJob.update({
+        where: { id: jobId },
+        data: {
+          procesados: totalProcesados,
+          fallidos: totalFallidos,
+          errores_detalle: listaErroresActualizada,
+          estado: nuevoEstado
+        }
+      });
     });
   }
 }

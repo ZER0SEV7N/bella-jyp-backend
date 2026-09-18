@@ -8,6 +8,7 @@ import { CargoController } from './controllers/cargo.controller';
 import { EmpleadoController } from './controllers/empleado.controller';
 import { EmpleadoBulkController } from './controllers/empleado-bulk.controller';
 import { JornadaController } from './controllers/jornada.controller';
+import { DerechohabienteController } from './controllers/derechohabiente.controller';
 // --- CASOS DE USO: ÁREA ---
 import { CrearAreaUseCase } from './use-cases/area/crearArea.useCase';
 import { EditarAreaUseCase } from './use-cases/area/editarArea.useCase';
@@ -33,14 +34,18 @@ import { CrearJornadaUseCase } from './use-cases/jornadas/crearJornada.useCase';
 import { EditarJornadaUseCase } from './use-cases/jornadas/editarJornada.useCase';
 import { EstadoJornadaUseCase } from './use-cases/jornadas/estadoJornada.useCase';
 import { ListarJornadaUseCase } from './use-cases/jornadas/listarJornada.useCase';
-
+// --- CASOS DE USO: DERECHOHABIENTES ---
+import { RegistrarDerechohabienteUseCase } from './use-cases/derechohabiente/registrarDerechohabiente.useCase';
+import { SubirSustentoDerechohabienteUseCase } from './use-cases/derechohabiente/subirSustento.useCase';
+import { ListarDerechohabientesUseCase } from './use-cases/derechohabiente/listarDerechohabientes.useCase';
+import { EstadoDerechohabienteUseCase } from './use-cases/derechohabiente/estadoDerechohabiente.useCase';
 // --- SERVICIOS Y WORKERS ---
 import { ReniecAdapter } from './services/reniec.adapter';
 import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.processor';
 
 @Module({
   imports: [
-    // Importamos la cola para poder inyectarla en el Carga Masiva UseCase
+    //Importamos la cola para poder inyectarla en el Carga Masiva UseCase
     BullModule.registerQueue({ name: 'rrhh-bulk-queue' }),
     ClsModule
   ],
@@ -50,6 +55,7 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     EmpleadoController,
     EmpleadoBulkController,
     JornadaController,
+    DerechohabienteController
   ],
   providers: [
     //Areas
@@ -78,6 +84,11 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     EditarJornadaUseCase,
     EstadoJornadaUseCase,
     ListarJornadaUseCase,
+    //Derechohabientes
+    RegistrarDerechohabienteUseCase,
+    SubirSustentoDerechohabienteUseCase,
+    ListarDerechohabientesUseCase,
+    EstadoDerechohabienteUseCase,
     //Adaptadores Externos
     ReniecAdapter
   ],

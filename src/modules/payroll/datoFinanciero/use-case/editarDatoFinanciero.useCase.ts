@@ -30,25 +30,22 @@ export class EditarDatoFinancieroUseCase {
     if (!datoFinanciero || datoFinanciero.deleted_at !== null) 
       throw new NotFoundException('El dato financiero del colaborador no existe o ha sido desactivado.');
     
-
-    // Step-Up Authentication: validación de credenciales para mutaciones sensibles
+    //Step-Up Authentication: validación de credenciales para mutaciones sensibles
     const usuarioActual = await this.prisma.usuarios.findUnique({
       where: { id: idUsuario, deleted_at: null },
-      select: { password_hash: true },
+      select: { password_hash: true }
     });
 
     if (!usuarioActual) throw new UnauthorizedException('Usuario no autorizado.');
 
     const passwordValida = await argon2.verify(usuarioActual.password_hash, dto.password_confirmacion);
 
-    if (!passwordValida) 
-      throw new UnauthorizedException({
-        title: 'Confirmación de Seguridad Fallida',
-        detail: 'La contraseña ingresada es incorrecta. Operación financiera denegada.',
-      });
+    if (!passwordValida) throw new UnauthorizedException({
+      title: 'Confirmación de Seguridad Fallida',
+      detail: 'La contraseña ingresada es incorrecta. Operación financiera denegada.'
+    });
     
-
-    // Validar entidades foráneas enviadas en la actualización
+    //Validar entidades foráneas enviadas en la actualización
     await validarEntidadesFinancieras(this.prisma, dto);
 
     try {

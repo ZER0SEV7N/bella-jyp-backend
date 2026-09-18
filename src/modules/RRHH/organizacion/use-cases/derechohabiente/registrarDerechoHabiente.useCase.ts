@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { sanitizarTexto, sanitizarFecha } from '@/common/utils/transformacion.util';
 import type { RegistrarDerechohabienteDto } from '@jyp/shared-contracts';
-import { validarEmpleadoTitular, validarDocumentoDerechoHabiente, validarEdadSegunVinculo } from './helper/validarDerechoHabiente.helper';
+import { validarEmpleadoTitular, validarDocumentoDerechohabiente, validarEdadSegunVinculo } from './helper/validarDerechoHabiente.helper';
 
 /**
  * Caso de uso para registrar un derechohabiente asociado a un empleado titular.
@@ -24,7 +24,7 @@ export class RegistrarDerechohabienteUseCase {
     async execute(dto: RegistrarDerechohabienteDto) {
         try{
             const titular = await validarEmpleadoTitular(this.prisma, dto.empleado_id);
-            await validarDocumentoDerechoHabiente(this.prisma, dto.empleado_id, dto.nro_documento);
+            await validarDocumentoDerechohabiente(this.prisma, dto.empleado_id, dto.nro_documento);
 
             const fechaNac = sanitizarFecha(dto.fecha_nacimiento);
             if(!fechaNac) throw new BadRequestException({
@@ -44,13 +44,14 @@ export class RegistrarDerechohabienteUseCase {
                         empleado_id: dto.empleado_id,
                         documento_id: dto.documento_id,
                         nro_documento: dto.nro_documento.trim(),
-                        nombres: sanitizarTexto(dto.nombres)!,
-                        apellidos: sanitizarTexto(dto.apellidos)!,
+                        nombres: sanitizarTexto(dto.nombres),
+                        apellidos: sanitizarTexto(dto.apellidos),
                         vinculo: dto.vinculo,
                         estado_civil: dto.estado_civil,
                         sexo: dto.sexo,
                         fecha_nacimiento: fechaNac,
                         activo: true,
+                        acreditado_essalud: false,
                     },
                     include: {
                         tipo_documento: { select: { id: true, tipo_documento: true } },

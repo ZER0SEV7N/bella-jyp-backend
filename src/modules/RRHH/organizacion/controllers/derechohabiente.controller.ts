@@ -8,10 +8,10 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 //Importaciones de casos de uso
-import { RegistrarDerechohabienteUseCase } from '../use-cases/derechohabiente/registrarDerechoHabiente.useCase';
+import { RegistrarDerechohabienteUseCase } from '../use-cases/derechohabiente/registrarDerechohabiente.useCase';
 import { SubirSustentoDerechohabienteUseCase } from '../use-cases/derechohabiente/subirSustento.useCase';
 import { ListarDerechohabientesUseCase } from '../use-cases/derechohabiente/listarDerechohabientes.useCase';
-import { EstadoDerechohabienteUseCase } from '../use-cases/derechohabiente/estadoDerechoHabiente.useCase';
+import { EstadoDerechohabienteUseCase } from '../use-cases/derechohabiente/estadoDerechohabiente.useCase';
 //Dto y schemas
 import { RegistrarDerechohabienteSchema, SubirSustentoDerechohabienteSchema } from '@jyp/shared-contracts';
 import type { RegistrarDerechohabienteDto, SubirSustentoDerechohabienteDto } from '@jyp/shared-contracts';
@@ -22,11 +22,10 @@ import type { RegistrarDerechohabienteDto, SubirSustentoDerechohabienteDto } fro
  * Se aplican guardias de autenticación y autorización para proteger los endpoints según los roles definidos.
  * Endpoints disponibles:
  * - POST /api/rrhh/derechohabientes: Registrar un nuevo derechohabiente.
- * - GET /api/rrhh/derechohabientes/:empleadoId: Listar derechohabientes de un empleado titular.
+ * - GET /api/rrhh/derechohabientes/empleado/:empleadoId: Listar derechohabientes de un empleado titular.
  * - DELETE /api/rrhh/derechohabientes/:id/desactivar: Desactivar un derechohabiente.
  * - PATCH /api/rrhh/derechohabientes/:id/reactivar: Reactivar un derechohabiente previamente desactivado.
  * - POST /api/rrhh/derechohabientes/sustento/abrir: Subir un sustento documental para un derechohabiente.
- * 
  */
 @Controller('api/rrhh/derechohabientes')
 @UseGuards(JwtAccessGuard, RolesGuard)
@@ -93,12 +92,28 @@ export class DerechohabienteController {
         return await this.subirSustentoUseCase.execute(parsedDto, data);   
     }
 
+    /**
+     * Endpoint para listar los derechohabientes asociados a un empleado titular específico.
+     * @Get /api/rrhh/derechohabientes/empleado/:empleadoId
+     * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
+     * @param empleadoId - ID del empleado titular cuyos derechohabientes se desean listar.
+     * @returns - Una lista de derechohabientes asociados al empleado titular especificado.
+     * @throws NotFoundException si el empleado titular no existe o no tiene derechohabientes asociados.
+     */
     @Get('empleado/:empleadoId')
     @Roles('ADMIN', 'RRHH')
     async listarPorEmpleado(@Param('empleadoId', ParseUUIDPipe) empleadoId: string) {
         return await this.listarUseCase.listarPorEmpleado(empleadoId);
     }
 
+    /**
+     * Endpoint para desactivar un derechohabiente específico.
+     * @Delete /api/rrhh/derechohabientes/:id/desactivar
+     * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
+     * @param id - ID del derechohabiente que se desea desactivar.
+     * @returns - Un mensaje de confirmación indicando que el derechohabiente ha sido desactivado.
+     * @throws NotFoundException si el derechohabiente especificado no existe o ya está desactivado.
+     */
     @Delete(':id/desactivar')
     @HttpCode(HttpStatus.OK)
     @Roles('ADMIN', 'RRHH')
@@ -106,6 +121,14 @@ export class DerechohabienteController {
         return await this.estadoUseCase.desactivar(id);
     }
 
+    /**
+     * Endpoint para reactivar un derechohabiente previamente desactivado.
+     * @Patch /api/rrhh/derechohabientes/:id/reactivar
+     * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
+     * @param id - ID del derechohabiente que se desea reactivar.
+     * @returns - Un mensaje de confirmación indicando que el derechohabiente ha sido reactivado.
+     * @throws NotFoundException si el derechohabiente especificado no existe o ya está activo.
+     */
     @Patch(':id/reactivar')
     @HttpCode(HttpStatus.OK)
     @Roles('ADMIN', 'RRHH')

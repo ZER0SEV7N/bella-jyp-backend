@@ -33,7 +33,7 @@ export class CrearJornadaUseCase {
         dto.horario_semanal,
         dto.duracion,
         dto.turno,
-        dto.patron_rotacion,
+        dto.patron_rotacion
       );
 
       //Generar un ID único para la nueva jornada laboral
