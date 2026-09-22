@@ -1,4 +1,4 @@
-//src/modules/core/auth/use-cases/RefrescarToken.useCase.ts
+//src/modules/core/auth/use-cases/refrescarToken.useCase.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -6,10 +6,22 @@ import * as crypto from 'node:crypto';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**
- * Caso de uso para refrescar el token de acceso utilizando un token de actualización válido.
- * Este caso de uso verifica la validez del token de actualización proporcionado por el cliente,
- * y si es válido, genera un nuevo token de acceso para el usuario. También se asegura de que el usuario
- * esté activo y no haya sido eliminado.
+ * Interfaz que define la estructura del resultado devuelto por el caso de uso RefrescarTokenUseCase.
+ * Contiene el nuevo Access Token y el nuevo Refresh Token generados tras la rotación de tokens.
+ * Se utiliza para garantizar que la respuesta del caso de uso tenga un formato consistente y tipado.
+ */
+export interface ResultadoRefrescarToken {
+  accessToken: string;
+  newRefreshToken: string;
+}
+
+/**
+ * Caso de uso que maneja la lógica de refresco de tokens de autenticación.
+ * Este caso de uso realiza las siguientes operaciones:
+ * 1. Verifica la validez del Refresh Token proporcionado.
+ * 2. Valida la existencia y vigencia del usuario asociado al token.
+ * 3. Verifica que el Refresh Token no haya sido revocado o usado previamente.
+ * 4. Emite un nuevo Access Token y un nuevo Refresh Token.
  */
 @Injectable()
 export class RefrescarTokenUseCase {
@@ -19,89 +31,103 @@ export class RefrescarTokenUseCase {
   ) {}
 
   /**
-   * Ejecuta el caso de uso para refrescar el token de acceso.
-   * @param refreshToken El token de actualización proporcionado por el cliente.
-   * @returns Un objeto que contiene el nuevo token de acceso.
-   * @throws UnauthorizedException si el token de actualización es inválido o no se encuentra en la base de datos.
+   * Metodo principal que ejecuta la lógica de refresco de tokens.
+   * @param refreshToken El Refresh Token proporcionado por el cliente para obtener nuevos tokens.
+   * @throws UnauthorizedException si el Refresh Token es inválido, expirado, revocado o si el usuario no es válido.
+   * @returns Un objeto que contiene el nuevo Access Token y el nuevo Refresh Token.
    */
-  async execute(refreshToken: string) {
+  async execute(refreshToken: string): Promise<ResultadoRefrescarToken> {
     if (!refreshToken) throw new UnauthorizedException('Refresh token no proporcionado.');
-
+    
+    let payload: any; //Variable para almacenar el payload decodificado del Refresh Token
     try {
-      //Verificar la firma del refresh token utilizando el secreto específico para refresh tokens
-      const payload = this.jwtService.verify(refreshToken, {secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234'});
+      //Decodificar y verificar el Refresh Token usando la clave secreta correspondiente
+      payload = this.jwtService.verify(refreshToken, { secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234' });
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido o expirado.');
+    }
 
-      const userId = payload.sub || payload.id; //Obtener el ID del usuario desde el payload del token
+    //Validar que el usuario asociado al token exista y esté activo
+    const userId = payload.sub || payload.id;
 
-      //Verificacion critica en la base de datos: Comprobar que el refresh token existe y está activo para el usuario
-      const user = await this.prisma.usuarios.findUnique({
-        where: { id: userId },
-        include: {
-          empleados: {
-            select: {
-              nombre: true,
-              apellido: true,
-              nro_documento: true
-            }
+    //Buscar el usuario en la base de datos usando Prisma
+    const user = await this.prisma.usuarios.findUnique({
+      where: { id: userId },
+      include: {
+        empleados: {
+          select: {
+            nombre: true,
+            apellido: true,
+            nro_documento: true
           }
         }
-      });
+      }
+    });
 
-      if (!user?.activo || user.deleted_at !== null)
-        throw new UnauthorizedException('Usuario no encontrado o inactivo.');
+    // Validar que el usuario exista y esté activo
+    if (!user?.activo || user.deleted_at !== null) throw new UnauthorizedException('Usuario no encontrado o inactivo.');
+    
 
-      // Validar que no haya sido revocado en tokens_seguridad
-      const tokenActivo = await this.prisma.tokens_seguridad.findFirst({
-        where: {
+    //Validar que el Refresh Token no haya sido revocado o usado previamente
+    const tokenActivo = await this.prisma.tokens_seguridad.findFirst({
+      where: {
+        usuario_id: user.id,
+        proposito: 'REFRESH_TOKEN',
+        usado: false,
+        expira_en: { gt: new Date() }
+      }
+    });
+
+    //Si no se encuentra un token activo, significa que el Refresh Token ha sido revocado o usado previamente
+    if (!tokenActivo) throw new UnauthorizedException('Sesión cerrada o token revocado.');
+    
+    //Obtener el nombre completo del usuario a partir de los datos del empleado, si están disponibles
+    const nombreCompleto = user.empleados ? `${user.empleados.nombre ?? ''} ${user.empleados.apellido ?? ''}`.trim() : 'Usuario del Sistema';
+
+    const nuevoPayload = {
+      sub: user.id,
+      email: user.email,
+      roles: user.rol,
+      doc: payload.doc || user.empleado_id,
+      empId: user.empleado_id,
+      nombre: nombreCompleto
+    };
+
+    // 3. Emisión dual de tokens
+    const [newAccessToken, newRefreshToken] = await Promise.all([
+      this.jwtService.signAsync(nuevoPayload, {
+        secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234',
+        expiresIn: '15m'
+      }),
+      this.jwtService.signAsync(nuevoPayload, {
+        secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234',
+        expiresIn: '7d'
+      })
+    ]);
+
+    //Rotar el Refresh Token: marcar el token actual como usado y crear un nuevo registro de token en la base de datos
+    const hashedRT = await argon2.hash(newRefreshToken, { type: argon2.argon2id });
+
+    await this.prisma.$transaction([
+      this.prisma.tokens_seguridad.update({
+        where: { id: tokenActivo.id },
+        data: { usado: true }
+      }),
+      this.prisma.tokens_seguridad.create({
+        data: {
+          id: crypto.randomUUID(),
           usuario_id: user.id,
+          token_hash: hashedRT,
           proposito: 'REFRESH_TOKEN',
-          usado: false,
-          expira_en: { gt: new Date() }
-        },
-      });
+          expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          usado: false
+        }
+      })
+    ]);
 
-      if (!tokenActivo) throw new UnauthorizedException('Sesión cerrada o token revocado.');
-      
-      //Construir el nuevo payload para el access token
-      const nombreCompleto = user.empleados ? `${user.empleados.nombre ?? ''} ${user.empleados.apellido ?? ''}`.trim() : 'Usuario del Sistema';
-
-      const nuevoPayload = {
-        sub: user.id,
-        email: user.email,
-        roles: user.rol,
-        doc: payload.doc || user.empleado_id,
-        empId: user.empleado_id,
-        nombre: nombreCompleto,
-      };
-
-      //Generar un nuevo access token y refresh token en paralelo
-      const [newAccessToken, newRefreshToken] = await Promise.all([
-        this.jwtService.signAsync(nuevoPayload, { secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234', expiresIn: '15m' }),
-        this.jwtService.signAsync(nuevoPayload, { secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234', expiresIn: '7d' }),
-      ]);
-
-      //Persistir el nuevo refresh token en la base de datos y marcar el anterior como usado
-      const hashedRT = await argon2.hash(newRefreshToken, { type: argon2.argon2id });
-
-      //Usar una transacción para asegurar que ambos cambios (marcar el token anterior como usado y crear el nuevo token) se realicen de manera atómica
-      await this.prisma.$transaction([
-        this.prisma.tokens_seguridad.update({ where: { id: tokenActivo.id }, data: { usado: true } }),
-        this.prisma.tokens_seguridad.create({
-          data: {
-            id: crypto.randomUUID(),
-            usuario_id: user.id,
-            token_hash: hashedRT,
-            proposito: 'REFRESH_TOKEN',
-            expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            usado: false
-          }
-        })
-      ]);
-
-      return { accessToken: newAccessToken, newRefreshToken };
-    } catch (error) {
-      if (error instanceof UnauthorizedException) throw error;
-      throw new UnauthorizedException('Refresh token inválido o expirado.', { cause: error });
-    }
+    return {
+      accessToken: newAccessToken,
+      newRefreshToken
+    };
   }
 }

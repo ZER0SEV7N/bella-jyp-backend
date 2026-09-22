@@ -1,7 +1,7 @@
 //src/common/config/redis/cache-catalogo.service.ts
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { REDIS_CLIENT } from './redis.constants';
+import { REDIS_CLIENT } from '../../cls/redis.constants';
 
 /**
  * Servicio para manejar la caché de catálogos en Redis.

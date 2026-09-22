@@ -3,7 +3,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import Redis from 'ioredis';
-import { REDIS_CLIENT } from '@/common/config/redis/redis.constants';
+import { REDIS_CLIENT } from '@/common/cls/redis.constants';
 
 /**
  * Caso de uso para el logout de usuarios internos.

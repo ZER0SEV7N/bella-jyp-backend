@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EmpleadoBulkController } from '@/modules/RRHH/organizacion/controllers/empleado-bulk.controller';
 import { ConsultarEstadoCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/consultarEstadoCargaMasiva.useCase';
 import { ValidarCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/validarCargaMasiva.useCase';
-import { ConfirmarCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/confirmarCargaMasiva.useCase';
+import { ConfirmarCargaMasivaDTO, ConfirmarCargaMasivaUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/confirmarCargaMasiva.useCase';
 import { ClsService } from 'nestjs-cls';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
@@ -188,20 +188,32 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
       const mockReply = {status: jest.fn().mockReturnThis()} as unknown as FastifyReply;
 
       //Simular un payload válido de filas confirmadas
-      const mockPayload = {
-        total_filas: 2,
-        filas_validas: 2,
-        filas_invalidas: 0,
-        errores_detalle: [],
-        filas_validas_data: [{
-          tipo_documento: 'DNI' as const,
-          nro_documento: '70998877',
-          nombre: 'Roberto',
-          apellido: 'Flores Gomez',
-          asig_familiar: false,
-          cargo: 'Analista',
-          area: 'Recursos Humanos'
-        }]
+      const mockPayload: ConfirmarCargaMasivaDTO = {
+        filas_validas_data: [
+          {
+            tipo_documento: 'DNI',
+            nro_documento: '70998877',
+            nombre: 'Roberto',
+            apellido: 'Flores Gomez',
+            sexo: 'MASCULINO',
+            estado_civil: 'SOLTERO',
+            fecha_nacimiento: '1992-04-10',
+            direccion: 'Av. Las Camelias 450',
+            departamento: 'LIMA',
+            provincia: 'LIMA',
+            distrito: 'SAN ISIDRO',
+            fecha_inicio: '2024-01-01',
+            asig_familiar: false,
+            cargo: 'Analista',
+            area: 'Recursos Humanos',
+            sueldo_basico: 2500,
+            regimen_pension: 'ONP',
+            regimen_salud: 'ESSALUD_REGULAR',
+            eps_costo_adicional: 0,
+            tipo_cuenta_sueldo: 'SUELDO',
+            tipo_cuenta_cts: 'AHORROS',
+          },
+        ],
       };
 
       mockConfirmarUseCase.execute.mockResolvedValue({ jobId: 'job-confirm-999' });
@@ -232,21 +244,20 @@ describe('EmpleadoBulkController - Pruebas Unitarias de Endpoints HTTP', () => {
 
   
   describe('descargarPlantilla (GET /api/rrhh/empleados/bulk/plantilla)', () => {
-    it('Debe enviar las cabeceras de adjunto CSV correctamente', () => {
-      //Arrange: Simular un FastifyReply para capturar las cabeceras y el contenido enviado
-      const mockReply = { header: jest.fn().mockReturnThis(), send: jest.fn() } as unknown as FastifyReply;
+    it('Debe enviar las cabeceras de adjunto Excel (.xlsx) correctamente', async () => {
+      // Arrange
+      const mockReply = {
+        header: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as unknown as FastifyReply;
 
-      //Act: Ejecutar el método descargarPlantilla con el FastifyReply simulado
-      controller.descargarPlantilla(mockReply);
+      // Act: Asíncrono para esperar la resolución del buffer
+      await controller.descargarPlantilla(mockReply);
 
-      //Assert: Verificar que las cabeceras de respuesta sean correctas para un archivo CSV adjunto
-      expect(mockReply.header).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=UTF-8');
-      expect(mockReply.header).toHaveBeenCalledWith(
-        'content-disposition',
-        'attachment; filename="plantilla_carga_masiva_empleados.csv"'
-      );
-
-      expect(mockReply.send).toHaveBeenCalledWith(expect.stringContaining('tipo_documento,nro_documento,nombre,apellido,area,cargo,jornada,fecha_nacimiento,asig_familiar'));
+      // Assert
+      expect(mockReply.header).toHaveBeenCalledWith( 'Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
+      expect(mockReply.header).toHaveBeenCalledWith( 'Content-Disposition', 'attachment; filename="plantilla_carga_masiva_empleados.xlsx"' );
+      expect(mockReply.send).toHaveBeenCalledWith(expect.any(Buffer));
     });
   });
 });

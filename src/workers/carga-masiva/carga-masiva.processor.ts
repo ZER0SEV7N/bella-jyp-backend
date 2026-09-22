@@ -78,9 +78,7 @@ export class CargaMasivaProcessor extends WorkerHost {
       const totalFallidos = jobActual.fallidos + fallidosEnEsteLote;
       const totalAtendidos = totalProcesados + totalFallidos;
 
-      const erroresPrevios = Array.isArray(jobActual.errores_detalle)
-        ? (jobActual.errores_detalle as Array<any>)
-        : [];
+      const erroresPrevios = Array.isArray(jobActual.errores_detalle) ? (jobActual.errores_detalle as Array<any>) : [];
       const listaErroresActualizada = [...erroresPrevios, ...nuevosErrores];
 
       const finalizado = jobActual.total_registros > 0 && totalAtendidos >= jobActual.total_registros;

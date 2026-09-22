@@ -2,7 +2,7 @@
 //Guard para proteger las rutas que requieren autenticación con JWT
 import { ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { REDIS_CLIENT } from '../config/redis/redis.constants';
+import { REDIS_CLIENT } from '../cls/redis.constants';
 import Redis from 'ioredis';
 import { FastifyRequest } from 'fastify';
 

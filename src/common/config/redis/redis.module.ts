@@ -2,7 +2,7 @@
 import { Module, Global, OnModuleDestroy, Inject, Logger } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import Redis from 'ioredis';
-import { REDIS_CLIENT } from './redis.constants';
+import { REDIS_CLIENT } from '../../cls/redis.constants';
 import { CacheCatalogoService } from './cache-catalogo.service';
 
 /**
@@ -41,7 +41,7 @@ import { CacheCatalogoService } from './cache-catalogo.service';
         host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379', 10),
           password: process.env.REDIS_PASSWORD || undefined,
-          lazyConnect: false,
+          lazyConnect: false
       });
       client.on('connect', () => logger.log('Conexión Cache-Aside establecida con Redis.'));
       client.on('error', (err) => logger.error(`Error en socket Redis: ${err.message}`));
