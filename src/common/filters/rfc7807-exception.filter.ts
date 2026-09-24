@@ -9,6 +9,13 @@ import {
 } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
+/**
+ * Filtro que maneja las excepciones y las formatea según el estándar RFC 7807.
+ * Este filtro captura todas las excepciones lanzadas en la aplicación y las transforma en un formato estandarizado.
+ * El formato incluye información como el tipo de error, el título, el código de estado HTTP, el detalle del error, 
+ * la instancia de la solicitud y la marca de tiempo.
+ * Esto facilita la comprensión y el manejo de errores por parte de los clientes que consumen la API.
+ */
 @Catch()
 export class Rfc7807ExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
@@ -49,7 +56,7 @@ export class Rfc7807ExceptionFilter implements ExceptionFilter {
       status,
       detail,
       instance: req.url,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     });
   }
 }

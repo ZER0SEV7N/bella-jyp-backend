@@ -1,0 +1,41 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/rrhh/cargo/a0b1f826-1d06-7910-9f62-2666518f6ef3/reactive"
+  method: PATCH
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "651"
+    date: Wed, 16 Sep 2026 19:37:37 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "a0b1f826-1d06-7910-9f62-2666518f6ef3",
+          "id_area": "018f4a7c-7777-7000-1111-000000000001",
+          "nombre": "Desarrollador Backend Senior",
+          "descripcion": "Diseño y mantenimiento de microservicios en NestJS y Java",
+          "sueldo_minimo": "4500",
+          "sueldo_maximo": "7000",
+          "activo": true,
+          "created_at": "2026-09-16T19:29:22.486Z",
+          "updated_at": "2026-09-16T19:37:37.731Z",
+          "deleted_at": null,
+          "area": {
+            "id": "018f4a7c-7777-7000-1111-000000000001",
+            "nombre": "Gerencia General y Transformación Digital"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/rrhh/cargo/a0b1f826-1d06-7910-9f62-2666518f6ef3/reactive",
+          "timestamp": "2026-09-16T19:37:37.753Z"
+        }
+      }
+order: 1789587464176

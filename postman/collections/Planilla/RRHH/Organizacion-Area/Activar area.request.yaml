@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/rrhh/area/a0ac0ccc-210c-72a9-a66e-273bdfbaf922/reactive"
+method: PATCH
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Activar area.resources/examples
+order: 4284663248417159

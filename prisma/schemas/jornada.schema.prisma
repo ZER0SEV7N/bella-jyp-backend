@@ -1,0 +1,39 @@
+model jornada {
+  id                 String                 @id @db.Uuid
+  nombre             String                 @db.VarChar(100)
+  descripcion        String?                @db.VarChar(255)
+  duracion           duracion_jornada_enum  @default(TIEMPO_COMPLETO)
+  turno              turno_jornada_enum     @default(MANANA)
+  modalidad          modalidad_jornada_enum @default(PRESENCIAL)
+  tolerancia_minutos Int                    @default(5)
+  total_horas_semana Decimal                @default(40.00) @db.Decimal(5, 2)
+
+  horario_semanal    Json
+  patron_rotacion    Json?
+
+  activo             Boolean                @default(true)
+  deleted_at         DateTime?              @db.Timestamptz(6)
+  created_at         DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+
+  empleados          empleados[]
+  jornada_areas      jornada_area[]
+
+  @@index([activo], map: "idx_jornada_activo", where: raw("(activo = true)"))
+  @@index([modalidad], map: "idx_jornada_modalidad")
+  @@index([turno], map: "idx_jornada_turno")
+  @@index([duracion], map: "idx_jornada_duracion")
+  @@map("jornada")
+}
+
+model jornada_area {
+  jornada_id String  @db.Uuid
+  area_id    String  @db.Uuid
+
+  jornada    jornada @relation(fields: [jornada_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_jornada")
+  area       area    @relation(fields: [area_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_jornada_area_area")
+
+  @@id([jornada_id, area_id])
+  @@index([area_id], map: "idx_jornada_area_area")
+  @@map("jornada_area")
+}

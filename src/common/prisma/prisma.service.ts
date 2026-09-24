@@ -1,20 +1,12 @@
 //src/common/prisma/prisma.service.ts
 //Servicio de Prisma para interactuar con la base de datos
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
 import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
-
-dotenv.config();
 
 //Servicio de Prisma
 @Injectable()
@@ -30,10 +22,7 @@ export class PrismaService
     const connectionString = process.env.DATABASE_URL;
 
     //Defensa Perimetral (Fail-Fast)
-    if (!connectionString)
-      throw new Error(
-        'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
-      );
+    if (!connectionString) throw new Error('CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env');
 
     //Instanciar el Pool nativo de conexiones de PostgreSQL
     const pool = new Pool({ connectionString });
@@ -42,8 +31,7 @@ export class PrismaService
     const adapter = new PrismaPg(pool);
 
     //Inicializar el motor nativo con el adaptador inyectado
-    super({
-      adapter,
+    super({ adapter,
       log:
         process.env.NODE_ENV === 'development'
           ? ['query', 'error', 'warn']
@@ -53,28 +41,18 @@ export class PrismaService
     //Middleware para inyectar información de auditoría en cada operación de Prisma
     const clsService = this.cls; //Referencia al servicio de ClsService para uso dentro del middleware
     const localLogger = this.logger; //Referencia al logger para uso dentro del middleware
-    const originalPrisma = this; //Referencia al servicio de Prisma original
+    const getModelClient = (model: string) => (this as any)[model];
+    const createAuditLog = (data: any) => (this as any).audit_log.create({ data });
 
     const extendedClient = this.$extends({
       query: {
         $allModels: {
           async $allOperations({ model, operation, args, query }) {
             //Omitir tablas de auditoría para evitar recursión infinita
-            if (
-              !model ||
-              [
-                'audit_log',
-                'carga_masiva_jobs',
-                'anotacion_tareas',
-                'tokens_seguridad',
-              ].includes(model)
-            )
-              return query(args);
+            if(!model || ['audit_log', 'carga_masiva_jobs', 'anotacion_tareas', 'tokens_seguridad'].includes(model)) return query(args);
 
             //Filtar solo operaciones DML (Create, Update, Delete, Upsert) para inyectar auditoría
-            const isDML = ['create', 'update', 'delete', 'upsert'].includes(
-              operation,
-            );
+            const isDML = ['create', 'update', 'delete', 'upsert'].includes(operation);
             if (!isDML) return query(args);
 
             let valoresAntes = null; //Variable para almacenar los valores antes de la operación (para auditoría)
@@ -82,14 +60,9 @@ export class PrismaService
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
             if (operation === 'update' || operation === 'delete') {
               try {
-                valoresAntes = await (originalPrisma as any)[model].findUnique({
-                  where: (args as any).where,
-                });
+                valoresAntes = await getModelClient(model).findUnique({ where: (args as any).where });
               } catch (error) {
-                localLogger.warn(
-                  `Auditoría: No se pudo obtener el estado previo de ${model}`,
-                  error,
-                );
+                localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`, error);
               }
             }
 
@@ -98,11 +71,7 @@ export class PrismaService
 
             //Capturar el estado Exacto después de la operación para operaciones de Create, Update y Upsert
             let valoresDespues = null;
-            if (
-              operation === 'create' ||
-              operation === 'update' ||
-              operation === 'upsert'
-            )
+            if (operation === 'create' || operation === 'update' || operation === 'upsert')
               valoresDespues = resultado;
 
             //Extraer información de auditoría del contexto de la solicitud usando ClsService
@@ -113,30 +82,22 @@ export class PrismaService
 
             //Registrar la operación en la tabla de auditoría
             try {
-              await (originalPrisma as any).audit_log.create({
-                data: {
+              await createAuditLog({
                   id: IdentityGenerator.generateId(),
                   usuario_id: userId,
                   accion: operation.toUpperCase(),
                   tabla_afectada: model,
-                  registro_id:
-                    (resultado as any)?.id ||
-                    (args as any).where?.id ||
-                    IdentityGenerator.generateId(),
+                  registro_id: (resultado as any)?.id || (args as any).where?.id || IdentityGenerator.generateId(),
                   valores_antes: valoresAntes
-                    ? JSON.parse(JSON.stringify(valoresAntes))
+                    ? structuredClone(valoresAntes)
                     : null,
                   valores_despues: valoresDespues
-                    ? JSON.parse(JSON.stringify(valoresDespues))
+                    ? structuredClone(valoresDespues)
                     : null,
                   direccion_ip: ipAddress,
-                },
               });
             } catch (error) {
-              localLogger.error(
-                `Auditoría: No se pudo registrar la operación de ${operation} en ${model}`,
-                error,
-              );
+              localLogger.error(`Auditoría: No se pudo registrar la operación de ${operation} en ${model}`, error);
             }
 
             return resultado;
@@ -152,21 +113,17 @@ export class PrismaService
     });
 
     //Retornar el cliente extendido con auditoría y ciclo de vida integrado
-    return extendedClient as any;
+    // Prisma requiere retornar el cliente extendido para conservar los interceptores.
+    return extendedClient as any; // NOSONAR
   }
 
   //Implementación del ciclo de vida de NestJS para inicializar la conexión a la base de datos
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log(
-        'Conexión ACID establecida vía Driver Adapter nativo (pg).',
-      );
+      this.logger.log('Conexión ACID establecida vía Driver Adapter nativo (pg).');
     } catch (error) {
-      this.logger.error(
-        'Fallo crítico al inicializar la base de datos.',
-        error,
-      );
+      this.logger.error('Fallo crítico al inicializar la base de datos.',error);
       throw error;
     }
   }
@@ -174,8 +131,6 @@ export class PrismaService
   //Cerrar la conexión de forma segura al destruir el módulo
   async onModuleDestroy() {
     await this.$disconnect();
-    this.logger.log(
-      'Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).',
-    );
+    this.logger.log('Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).');
   }
 }

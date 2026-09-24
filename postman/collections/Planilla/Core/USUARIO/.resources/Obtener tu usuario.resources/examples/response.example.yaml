@@ -1,0 +1,38 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/usuarios/me"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "424"
+    date: Wed, 16 Sep 2026 19:18:33 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "fdbcea5b-62d8-400b-a1ed-0be895851995",
+          "email": "admin@jyp.com",
+          "rol": "ADMIN",
+          "ultimo_acceso": null,
+          "empleado": {
+            "id": "018f4a7c-9999-7000-3333-000000000002",
+            "nro_documento": "70112233",
+            "nombre_completo": "Carlos Ramírez Silva",
+            "cargo": "Contador Principal",
+            "area": "Contabilidad y Finanzas"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/usuarios/me",
+          "timestamp": "2026-09-16T19:18:33.803Z"
+        }
+      }
+order: 1789586318652

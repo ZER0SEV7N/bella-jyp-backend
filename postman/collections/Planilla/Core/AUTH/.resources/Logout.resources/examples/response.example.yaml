@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/auth/logout"
+  method: POST
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    set-cookie: jyp_rt=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax
+    content-length: "206"
+    date: Fri, 18 Sep 2026 16:23:31 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "title": "Sesión Finalizada",
+          "detail": "Tokens invalidados exitosamente."
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/auth/logout",
+          "timestamp": "2026-09-18T16:23:31.606Z"
+        }
+      }
+order: 1789748657005

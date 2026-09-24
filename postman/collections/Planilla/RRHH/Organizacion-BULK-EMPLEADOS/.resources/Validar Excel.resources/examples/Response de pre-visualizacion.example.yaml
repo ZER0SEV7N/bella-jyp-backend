@@ -1,0 +1,70 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/rrhh/empleados/bulk/validar
+  method: POST
+  body:
+    type: formdata
+    content:
+      - type: file
+        key: file
+        src:
+          - /C:/Users/ZER0SEV7N/Documents/Senati/JyP/planillas doc/Prueba de Excel.xlsx
+        description: ""
+        disabled: false
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "906"
+    date: Mon, 24 Aug 2026 03:55:32 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "type": "https://api.jyp.com/bulk/pre-validation",
+          "title": "Reporte de Pre-Visualización",
+          "status": 200,
+          "data": {
+            "total_filas": 2,
+            "filas_validas": 2,
+            "filas_invalidas": 0,
+            "errores_detalle": [],
+            "filas_validas_data": [
+              {
+                "tipo_documento": "DNI",
+                "nro_documento": "70998877",
+                "nombre": "Roberto",
+                "apellido": "Flores Gomez",
+                "area": "Oficina Central",
+                "cargo": "Contador Principal",
+                "jornada": "Turno Mañana (Oficina)",
+                "fecha_nacimiento": "1992-04-10",
+                "asig_familiar": false
+              },
+              {
+                "tipo_documento": "CE",
+                "nro_documento": "002233445",
+                "nombre": "Luis",
+                "apellido": "Paredes Soto",
+                "area": "Seguridad Física",
+                "cargo": "Vigilante Nocturno",
+                "jornada": "Turno Madrugada (Seguridad)",
+                "fecha_nacimiento": "1988-11-25",
+                "asig_familiar": false
+              }
+            ]
+          },
+          "timestamp": "2026-08-24T03:55:32.770Z"
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/rrhh/empleados/bulk/validar",
+          "timestamp": "2026-08-24T03:55:32.771Z"
+        }
+      }
+order: 1698116052963905

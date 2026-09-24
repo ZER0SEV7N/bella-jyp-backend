@@ -1,0 +1,47 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/auth/login
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \  \"tipo_documento\": \"DNI\",\r
+
+      \  \"nro_documento\": \"70112233\",\r
+
+      \  \"password\": \"Password123!\"\r
+
+      }"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    set-cookie: jyp_rt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmZGJjZWE1Yi02MmQ4LTQwMGItYTFlZC0wYmU4OTU4NTE5OTUiLCJyb2wiOiJBRE1JTiIsImRvYyI6IjcwMTEyMjMzIiwiZW1wSWQiOiIwMThmNGE3Yy05OTk5LTcwMDAtMzMzMy0wMDAwMDAwMDAwMDIiLCJub21icmUiOiJDYXJsb3MgUmFtw61yZXogU2lsdmEiLCJpYXQiOjE3ODk3NDg3MDQsImV4cCI6MTc5MDM1MzUwNH0.s6ibXKY30FvIhCXH4AaZJ8_aRbznC0V-fmGOJwKrUBQ; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax
+    content-length: "639"
+    date: Fri, 18 Sep 2026 16:25:04 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmZGJjZWE1Yi02MmQ4LTQwMGItYTFlZC0wYmU4OTU4NTE5OTUiLCJyb2wiOiJBRE1JTiIsImRvYyI6IjcwMTEyMjMzIiwiZW1wSWQiOiIwMThmNGE3Yy05OTk5LTcwMDAtMzMzMy0wMDAwMDAwMDAwMDIiLCJub21icmUiOiJDYXJsb3MgUmFtw61yZXogU2lsdmEiLCJpYXQiOjE3ODk3NDg3MDQsImV4cCI6MTc4OTc0OTYwNH0.vFZdhJwqdsjAAoW17nAfu6QHrgsKzeobCtDzeQ7xvhI",
+          "usuario": {
+            "id": "fdbcea5b-62d8-400b-a1ed-0be895851995",
+            "nombre": "Carlos Ramírez Silva",
+            "email": "admin@jyp.com",
+            "nro_documento": "70112233",
+            "rol": "ADMIN"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/auth/login",
+          "timestamp": "2026-09-18T16:25:04.157Z"
+        }
+      }
+order: 4113490184065574

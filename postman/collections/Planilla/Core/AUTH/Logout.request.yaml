@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/logout"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Logout.resources/examples
+order: 3786431452178367

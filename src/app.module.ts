@@ -1,35 +1,40 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './modules/auth/auth.module';
-import { RRHHModule } from './modules/RRHH/RRHH.module';
+import { AuthModule } from './modules/core/auth/auth.module';
+import { OrganizacionModule } from './modules/RRHH/organizacion/organizacion.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/config/redis/redis.module';
-import { AuditModule } from './modules/audit/audit.module';
-import { TareasModule } from './modules/tareas/tareas.module';
-import { ContratoModule } from './modules/contrato/contrato.module';
+import { AuditModule } from './modules/core/audit/audit.module';
+import { TareasModule } from './modules/RRHH/tareas/tareas.module';
+import { ContratoModule } from './modules/RRHH/contrato/contrato.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { WebSocketsModule } from './common/websockets/webSockets.module';
-import { AlertModule } from './common/alert/aler.Module';
-import { AfpModule } from './modules/afp/afp.module';
-import { UsuariosModule } from './modules/usuarios/usuarios.module';
+import { NotificacionesModule } from './common/alertas/notificaciones.module';
+import { AfpModule } from './modules/payroll/afp/afp.module';
+import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
+import { DatosFinancieroModule } from './modules/payroll/datoFinanciero/datosFinanciero.module';
+import { SolicitudModule } from './modules/RRHH/solicitudes/solicitud.module';
+import { AsistenciaModule } from './modules/asistencia/asistencia.module';
+
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
     AfpModule,
     AuthModule,
-    RRHHModule,
+    OrganizacionModule,
     PrismaModule,
     RedisModule,
     AuditModule,
     TareasModule,
     ContratoModule,
-    AlertModule,
-    WebSocketsModule,
+    NotificacionesModule,
     UsuariosModule,
     AfpModule,
+    DatosFinancieroModule,
+    SolicitudModule,
+    AsistenciaModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService]
 })
 export class AppModule {}

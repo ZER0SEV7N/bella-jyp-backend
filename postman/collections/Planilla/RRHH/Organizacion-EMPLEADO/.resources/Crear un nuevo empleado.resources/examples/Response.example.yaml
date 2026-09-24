@@ -1,0 +1,63 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/rrhh/empleado/crear
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \  \"cargo_id\": \"018f4a7c-8888-7000-2222-000000000001\",\r
+
+      \  \"area_id\": \"018f4a7c-7777-7000-1111-000000000001\",\r
+
+      \  \"documento_id\": \"018f4a7c-2222-7000-b000-000000000001\",\r
+
+      \  \"estado_empleado_id\": \"018f4a7c-1111-7000-a000-000000000001\",\r
+
+      \  \"nro_documento\": \"60858072\",\r
+
+      \  \"asig_familiar\": false\r
+
+      }"
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "779"
+    date: Tue, 18 Aug 2026 16:01:11 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "id": "01a0159a-f1fe-74ce-811d-a04a2186a707",
+          "cargo_id": "018f4a7c-8888-7000-2222-000000000001",
+          "area_id": "018f4a7c-7777-7000-1111-000000000001",
+          "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+          "estado_empleado_id": "018f4a7c-1111-7000-a000-000000000001",
+          "nombre": "ADRIAN MATIAS",
+          "apellido": "DUEÑAS HUERTAS",
+          "nro_documento": "60858072",
+          "fecha_nacimiento": null,
+          "fecha_inicio": null,
+          "fecha_cese": null,
+          "afp_fecha_filiacion": null,
+          "asig_familiar": false,
+          "activo": true,
+          "deleted_at": null,
+          "created_at": "2026-08-18T16:01:11.169Z",
+          "updated_at": "2026-08-18T16:01:11.169Z",
+          "jornada_id": null,
+          "estado_sincronizacion": "COMPLETO"
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/rrhh/empleado/crear",
+          "timestamp": "2026-08-18T16:01:11.201Z"
+        }
+      }
+order: 1787068905120

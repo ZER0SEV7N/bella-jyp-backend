@@ -1,0 +1,15 @@
+$kind: http-request
+name: Obtener/listar el area
+url: "{{baseUrl}}/api/rrhh/area?page=1&limit=10&search=Contabilidad&activo=true"
+method: GET
+queryParams:
+  page: "1"
+  limit: "10"
+  search: Contabilidad
+  activo: "true"
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Obtener-listar el area.resources/examples
+order: 3758532569227175

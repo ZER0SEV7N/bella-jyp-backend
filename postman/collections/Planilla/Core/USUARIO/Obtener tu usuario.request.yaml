@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/usuarios/me"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Obtener tu usuario.resources/examples
+order: 1789586187478

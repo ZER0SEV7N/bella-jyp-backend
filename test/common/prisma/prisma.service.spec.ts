@@ -58,6 +58,7 @@ describe('PrismaService', () => {
 
     //Obtener la instancia del servicio de Prisma desde el módulo de pruebas
     service = module.get<PrismaService>(PrismaService);
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {

@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/rrhh/area/a0ac0ccc-210c-72a9-a66e-273bdfbaf922/desactive"
+method: DELETE
+auth:
+  type: bearer
+  credentials:
+    token: "{{Token}}"
+examples: .resources/Desactivar un area.resources/examples
+order: 4150802618890675

@@ -1,0 +1,59 @@
+//src/modules/RRHH/use-cases/cargos/crearCargo.UseCase.ts
+//Caso de uso para crear un cargo en el módulo de RRHH
+import {Injectable, BadRequestException,NotFoundException, InternalServerErrorException} from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
+import { IdentityGenerator } from '@/common/utils/uuid.util';
+import type { CrearCargoDto } from '@jyp/shared-contracts';
+import { sanitizarTexto } from '@/common/utils/transformacion.util';
+import { verificarAreaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
+import { validarNombreCargoUnico, validarBandaSalarial } from './helpers/validaciones.helper';
+
+/**
+ * Clase que representa el caso de uso para crear un cargo en el módulo de RRHH.
+ * Se encarga de validar la existencia y estado del área asignada antes de proceder con la creación del cargo.
+ * Maneja excepciones para casos de área inválida, cargo duplicado y errores internos durante la creación.
+ */
+@Injectable()
+export class CrearCargoUseCase {
+  constructor(private readonly prisma: PrismaService) {}
+ 
+  /**
+   * Ejecuta el caso de uso para crear un nuevo cargo.
+   * @param payload - Datos del nuevo cargo a crear.
+   * @returns El cargo creado.
+   */
+  async execute(payload: CrearCargoDto) {
+    try {
+      //Validaciones de negocio antes de crear el cargo
+      await verificarAreaActiva(this.prisma, payload.id_area);
+      await validarNombreCargoUnico(this.prisma, payload.nombre, payload.id_area);
+
+      //Resolver los valores de sueldo mínimo y máximo, utilizando valores por defecto si no se proporcionan
+      const sueldoMinimo = payload.sueldo_minimo ?? 1130.0;
+      const sueldoMaximo = payload.sueldo_maximo ?? null;
+      validarBandaSalarial(sueldoMinimo, sueldoMaximo);
+
+      //Crear el cargo en la base de datos utilizando Prisma
+      return await this.prisma.cargo.create({
+        data: {
+          id: IdentityGenerator.generateId(),
+          id_area: payload.id_area,
+          nombre: sanitizarTexto(payload.nombre),
+          descripcion: sanitizarTexto(payload.descripcion),
+          sueldo_minimo: sueldoMinimo,
+          sueldo_maximo: sueldoMaximo,
+          activo: true
+        },
+        include: { area: { select: { id: true, nombre: true } } }
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) 
+        throw error;
+      
+      throw new InternalServerErrorException({
+        title: 'Error al crear el Cargo',
+        detail: error instanceof Error ? error.message : 'Fallo interno al registrar el cargo.'
+      });
+    }
+  }
+}

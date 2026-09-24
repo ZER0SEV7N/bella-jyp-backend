@@ -1,0 +1,86 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/rrhh/empleados/bulk/confirmar
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \  \"filas_validas_data\": [\r
+
+      \    {\r
+
+      \      \"tipo_documento\": \"DNI\",\r
+
+      \      \"nro_documento\": \"70998877\",\r
+
+      \      \"nombre\": \"Roberto\",\r
+
+      \      \"apellido\": \"Flores Gomez\",\r
+
+      \      \"area\": \"Oficina Central\",\r
+
+      \      \"cargo\": \"Contador Principal\",\r
+
+      \      \"jornada\": \"Turno Mañana (Oficina)\",\r
+
+      \      \"fecha_nacimiento\": \"1992-04-10\",\r
+
+      \      \"asig_familiar\": false\r
+
+      \    },\r
+
+      \    {\r
+
+      \      \"tipo_documento\": \"CE\",\r
+
+      \      \"nro_documento\": \"002233445\",\r
+
+      \      \"nombre\": \"Luis\",\r
+
+      \      \"apellido\": \"Paredes Soto\",\r
+
+      \      \"area\": \"Seguridad Física\",\r
+
+      \      \"cargo\": \"Vigilante Nocturno\",\r
+
+      \      \"jornada\": \"Turno Madrugada (Seguridad)\",\r
+
+      \      \"fecha_nacimiento\": \"1988-11-25\",\r
+
+      \      \"asig_familiar\": false\r
+
+      \    }\r
+
+      \  ]\r
+
+      }"
+response:
+  statusCode: 202
+  statusText: Accepted
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "447"
+    date: Mon, 24 Aug 2026 03:55:37 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "type": "https://api.jyp.com/jobs/accepted",
+          "title": "Procesamiento en Cola",
+          "status": 202,
+          "detail": "Las filas válidas confirmadas han sido encoladas para procesamiento en segundo plano.",
+          "jobId": "01a031e8-d3a3-7428-b947-e342012adc43",
+          "timestamp": "2026-08-24T03:55:37.300Z"
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/rrhh/empleados/bulk/confirmar",
+          "timestamp": "2026-08-24T03:55:37.300Z"
+        }
+      }
+order: 325264987954810

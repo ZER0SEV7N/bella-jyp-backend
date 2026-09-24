@@ -1,0 +1,56 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/rrhh/cargo/crear"
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \  \"id_area\": \"018f4a7c-7777-7000-1111-000000000001\",\r
+
+      \  \"nombre\": \"Desarrollador Backend Senior\",\r
+
+      \  \"descripcion\": \"Diseño y mantenimiento de microservicios en NestJS y Java\",\r
+
+      \  \"sueldo_minimo\": 4500.00,\r
+
+      \  \"sueldo_maximo\": 7000.00\r
+
+      }"
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "635"
+    date: Wed, 16 Sep 2026 19:29:22 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "id": "a0b1f826-1d06-7910-9f62-2666518f6ef3",
+          "id_area": "018f4a7c-7777-7000-1111-000000000001",
+          "nombre": "Desarrollador Backend Senior",
+          "descripcion": "Diseño y mantenimiento de microservicios en NestJS y Java",
+          "sueldo_minimo": "4500",
+          "sueldo_maximo": "7000",
+          "activo": true,
+          "created_at": "2026-09-16T19:29:22.486Z",
+          "updated_at": "2026-09-16T19:29:22.486Z",
+          "deleted_at": null,
+          "area": {
+            "id": "018f4a7c-7777-7000-1111-000000000001",
+            "nombre": "Gerencia General y Transformación Digital"
+          }
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/rrhh/cargo/crear",
+          "timestamp": "2026-09-16T19:29:22.550Z"
+        }
+      }
+order: 1789586969792

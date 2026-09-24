@@ -1,0 +1,8 @@
+name: Variables globales
+values:
+  - key: BaseUrl
+    value: ''
+  - key: Token
+    value: ''
+  - key: baseUrl
+    value: ''

@@ -1,0 +1,43 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/rrhh/area/018f4a7c-7777-7000-1111-000000000001/actualizar"
+  method: PATCH
+  body:
+    type: json
+    content: "{\r
+
+      \  \"nombre\": \"Gerencia General y Transformación Digital\",\r
+
+      \  \"descripcion\": \"Supervisión estratégica y dirección ejecutiva de la compañía\"\r
+
+      }"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "471"
+    date: Wed, 16 Sep 2026 19:24:32 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "018f4a7c-7777-7000-1111-000000000001",
+          "nombre": "Gerencia General y Transformación Digital",
+          "descripcion": "Supervisión estratégica y dirección ejecutiva de la compañía",
+          "activo": true,
+          "deleted_at": null,
+          "created_at": "2026-09-16T19:13:56.150Z",
+          "updated_at": "2026-09-16T19:24:32.589Z"
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/rrhh/area/018f4a7c-7777-7000-1111-000000000001/actualizar",
+          "timestamp": "2026-09-16T19:24:32.614Z"
+        }
+      }
+order: 1789586674283

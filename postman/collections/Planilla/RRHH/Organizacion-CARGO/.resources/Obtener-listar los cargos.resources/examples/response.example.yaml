@@ -1,0 +1,149 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/rrhh/cargo?page=1&limit=10"
+  method: GET
+  queryParams:
+    page: "1"
+    limit: "10"
+  body:
+    type: json
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "3206"
+    date: Wed, 16 Sep 2026 19:29:49 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "018f4a7c-8888-7000-2222-000000000001",
+            "id_area": "018f4a7c-7777-7000-1111-000000000001",
+            "nombre": "Administrador del Sistema",
+            "descripcion": "Gestión integral del sistema TI",
+            "sueldo_minimo": 3500,
+            "sueldo_maximo": 6000,
+            "activo": true,
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000001",
+              "nombre": "Gerencia General y Transformación Digital"
+            },
+            "total_empleados": 2,
+            "created_at": "2026-09-16T19:13:56.150Z",
+            "updated_at": "2026-09-16T19:13:56.150Z"
+          },
+          {
+            "id": "018f4a7c-8888-7000-2222-000000000004",
+            "id_area": "018f4a7c-7777-7000-1111-000000000003",
+            "nombre": "Asistente de RRHH",
+            "descripcion": "Apoyo en tareas y marcaciones",
+            "sueldo_minimo": 1500,
+            "sueldo_maximo": 2500,
+            "activo": true,
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000003",
+              "nombre": "Recursos Humanos"
+            },
+            "total_empleados": 1,
+            "created_at": "2026-09-16T19:13:56.150Z",
+            "updated_at": "2026-09-16T19:13:56.150Z"
+          },
+          {
+            "id": "018f4a7c-8888-7000-2222-000000000002",
+            "id_area": "018f4a7c-7777-7000-1111-000000000002",
+            "nombre": "Contador Principal",
+            "descripcion": "Encargado de Planillas y Cierres",
+            "sueldo_minimo": 3000,
+            "sueldo_maximo": 5000,
+            "activo": true,
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000002",
+              "nombre": "Contabilidad y Finanzas"
+            },
+            "total_empleados": 1,
+            "created_at": "2026-09-16T19:13:56.150Z",
+            "updated_at": "2026-09-16T19:13:56.150Z"
+          },
+          {
+            "id": "a0b1f826-1d06-7910-9f62-2666518f6ef3",
+            "id_area": "018f4a7c-7777-7000-1111-000000000001",
+            "nombre": "Desarrollador Backend Senior",
+            "descripcion": "Diseño y mantenimiento de microservicios en NestJS y Java",
+            "sueldo_minimo": 4500,
+            "sueldo_maximo": 7000,
+            "activo": true,
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000001",
+              "nombre": "Gerencia General y Transformación Digital"
+            },
+            "total_empleados": 0,
+            "created_at": "2026-09-16T19:29:22.486Z",
+            "updated_at": "2026-09-16T19:29:22.486Z"
+          },
+          {
+            "id": "018f4a7c-8888-7000-2222-000000000006",
+            "id_area": "018f4a7c-7777-7000-1111-000000000001",
+            "nombre": "Director Ejecutivo (JYP)",
+            "descripcion": "Socio Director General",
+            "sueldo_minimo": 6000,
+            "sueldo_maximo": 12000,
+            "activo": true,
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000001",
+              "nombre": "Gerencia General y Transformación Digital"
+            },
+            "total_empleados": 1,
+            "created_at": "2026-09-16T19:13:56.150Z",
+            "updated_at": "2026-09-16T19:13:56.150Z"
+          },
+          {
+            "id": "018f4a7c-8888-7000-2222-000000000003",
+            "id_area": "018f4a7c-7777-7000-1111-000000000003",
+            "nombre": "Jefe de Recursos Humanos",
+            "descripcion": "Administración de personal y contratos",
+            "sueldo_minimo": 3500,
+            "sueldo_maximo": 5500,
+            "activo": true,
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000003",
+              "nombre": "Recursos Humanos"
+            },
+            "total_empleados": 1,
+            "created_at": "2026-09-16T19:13:56.150Z",
+            "updated_at": "2026-09-16T19:13:56.150Z"
+          },
+          {
+            "id": "018f4a7c-8888-7000-2222-000000000005",
+            "id_area": "018f4a7c-7777-7000-1111-000000000004",
+            "nombre": "Vigilante Nocturno",
+            "descripcion": "Seguridad en sede principal",
+            "sueldo_minimo": 1300,
+            "sueldo_maximo": 2000,
+            "activo": true,
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000004",
+              "nombre": "Seguridad y Operaciones"
+            },
+            "total_empleados": 1,
+            "created_at": "2026-09-16T19:13:56.150Z",
+            "updated_at": "2026-09-16T19:13:56.150Z"
+          }
+        ],
+        "meta": {
+          "total": 7,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1,
+          "message": "Operación exitosa.",
+          "path": "/api/rrhh/cargo?page=1&limit=10",
+          "timestamp": "2026-09-16T19:29:49.487Z"
+        }
+      }
+order: 1789587006572

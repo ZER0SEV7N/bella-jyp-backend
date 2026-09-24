@@ -1,0 +1,63 @@
+model derechohabientes {
+  id                 String                       @id @db.Uuid
+  empleado_id        String                       @db.Uuid
+  documento_id       String                       @db.Uuid
+  nro_documento      String                       @db.VarChar(20)
+  nombres            String                       @db.VarChar(100)
+  apellidos          String                       @db.VarChar(100)
+  vinculo            vinculo_familiar_enum
+  sexo               sexo_enum
+  fecha_nacimiento   DateTime                     @db.Date
+  
+  // Acreditación ante EsSalud / EPS
+  acreditado_essalud Boolean                      @default(false)
+  fecha_alta_seguro  DateTime?                    @db.Date
+
+  activo             Boolean                      @default(true)
+  deleted_at         DateTime?                    @db.Timestamptz(6)
+  created_at         DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                     @default(now()) @updatedAt @db.Timestamptz(6)
+
+  // Relaciones
+  empleados          empleados                    @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dh_empleado")
+  tipo_documento     tipo_documento               @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dh_tipo_doc")
+  documentos         derechohabiente_documentos[]
+
+  @@unique([empleado_id, nro_documento], map: "uq_empleado_derechohabiente")
+  @@index([empleado_id], map: "idx_dh_empleado")
+  @@index([activo], map: "idx_dh_activo", where: raw("(activo = true)"))
+  @@index([deleted_at], map: "idx_dh_deleted", where: raw("(deleted_at IS NULL)"))
+  @@map("derechohabientes")
+}
+
+model derechohabiente_documentos {
+  id                 String                       @id @db.Uuid
+  derechohabiente_id String                       @db.Uuid
+  tipo_documento     tipo_sustento_familiar_enum
+  nombre_archivo     String                       @db.VarChar(150)
+  archivo_url        String                       @db.VarChar(255)
+  fecha_emision      DateTime?                    @db.Date
+  fecha_vencimiento  DateTime?                    @db.Date
+  vigente            Boolean                      @default(true)
+  
+  deleted_at         DateTime?                    @db.Timestamptz(6)
+  created_at         DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                     @default(now()) @updatedAt @db.Timestamptz(6)
+
+  derechohabiente    derechohabientes             @relation(fields: [derechohabiente_id], references: [id], onDelete: Cascade, map: "fk_dhd_derechohabiente")
+
+  @@index([derechohabiente_id], map: "idx_dhd_derechohabiente")
+  @@index([vigente], map: "idx_dhd_vigente", where: raw("(vigente = true)"))
+  @@index([fecha_vencimiento], map: "idx_dhd_vencimiento")
+  @@map("derechohabiente_documentos")
+}
+
+enum tipo_sustento_familiar_enum {
+  PARTIDA_NACIMIENTO
+  PARTIDA_MATRIMONIO
+  ESCRITURA_CONCUBINATO
+  DNI_DERECHOHABIENTE
+  CONSTANCIA_ESTUDIOS
+  CERTIFICADO_INCAPACIDAD
+  OTRO
+}
