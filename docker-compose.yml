@@ -1,18 +1,20 @@
 services:
-
-  db:
+  postgres:
     image: postgres:17-alpine # Utiliza la imagen oficial de PostgreSQL en su versión 17-alpine
     container_name: planillas_db # Nombre del contenedor para la base de datos
+    restart: unless-stopped
     ports:
       - "5432:5432" # Expone el puerto 5432 para acceder a la base de datos
     environment:
-      - POSTGRES_USER=postgres # Usuario de la base de datos
-      - POSTGRES_PASSWORD=bella # Contraseña del usuario de la base de datos
-      - POSTGRES_DB=planillas_db # Nombre de la base de datos
+      - POSTGRES_USER=${DB_USER:-postgres} # Usuario de la base de datos
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-bella} # Contraseña del usuario de la base de datos
+      - POSTGRES_DB=${DB_NAME:-planillas_db} # Nombre de la base de datos
     volumes:
       - postgres_payroll_data:/var/lib/postgresql/data # Monta un volumen para persistir los datos de la base de datos
+    networks:
+      - planillas_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d planillas_db"] # Se añade la flag -d para asegurar la salud sobre la BD específica
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-planillas_db}"] # Se añade la flag -d para asegurar la salud sobre la BD específica
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,17 +22,58 @@ services:
   redis:
     image: redis:7-alpine # Utiliza la imagen oficial de Redis en su versión 7-alpine
     container_name: planillas_redis # Nombre del contenedor para Redis
+    restart: unless-stopped
     ports: 
       - "6379:6379" # Expone el puerto 6379 para acceder a Redis
     volumes:
       - redis_payroll_data:/data # Monta un volumen para persistir los datos de Redis
     command: redis-server --appendonly yes # Opcional: Asegura que Redis guarde las colas en disco de forma persistente
+    networks:
+      - planillas_net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      secrets:
+        - github_token
+    container_name: planillas_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-bella}@postgres:5432/${DB_NAME:-planillas_db}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-jyp-dev-secret-key-1234}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-jyp-dev-refresh-secret-1234}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-01234567890123456789012345678901}
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads_data:/app/archivos
+    networks:
+      - planillas_net
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN
+
 volumes:
-  postgres_payroll_data: # Define el volumen para almacenar los datos de la base de datos de manera persistente
-  redis_payroll_data: # Define el volumen para almacenar los datos de Redis y persistir colas de trabajo (jobs) 
+  postgres_payroll_data:
+  redis_payroll_data:
+  uploads_data:
+
+networks:
+  planillas_net:
+    driver: bridge

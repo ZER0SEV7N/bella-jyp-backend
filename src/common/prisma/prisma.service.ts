@@ -4,12 +4,9 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
 import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
-
-dotenv.config();
 
 //Servicio de Prisma
 @Injectable()

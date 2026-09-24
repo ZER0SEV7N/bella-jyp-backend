@@ -33,11 +33,12 @@ export class NotificacionesGateway implements OnGatewayConnection, OnGatewayDisc
 
     //Al iniciar sesion el Frontend llamara al evento 'identificarUsuario' para enviar el rol del usuario y asi filtrar las alertas que le corresponden
     @SubscribeMessage('identificarUsuario')
-    handleIdentificar(client: Socket, payload: { id: string; rol: string }){
-        client.join(payload.rol); //Unir al cliente a una "sala" basada en su rol para filtrar alertas
-        client.join(`user-${payload.id}`); //Unir al cliente a una "sala" basada en su ID de usuario para notificaciones específicas
+    handleIdentificar(client: Socket, payload: { id: string; rol: string }) {
+        // Unir a la sala con el prefijo exacto que usa emit()
+        client.join(`sala-${payload.rol}`);
+        client.join(`user-${payload.id}`);
 
-        this.logger.log(`Cliente ${client.id} identificado como usuario con rol: ${payload.rol}`);
+        this.logger.log(`Cliente ${client.id} unido a sala-${payload.rol} y user-${payload.id}`);
         return { status: 'suscrito', salas: [`sala-${payload.rol}`, `user-${payload.id}`] };
     }
 

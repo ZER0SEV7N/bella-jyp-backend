@@ -1,5 +1,5 @@
 //src/modules/RRHH/contrato/controller/contrato.controller.ts
-import { Controller, Post, Get, Param, Body, Patch, Delete, Req, Res, UseGuards, UsePipes, HttpCode, HttpStatus, BadRequestException, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Patch, Delete, Req, Res, UseGuards, UsePipes, HttpCode, HttpStatus, BadRequestException, ParseUUIDPipe, Query } from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -8,8 +8,8 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 //DTOs y Schemas
-import { CrearContratoSchema, EditarContratoSchema, RenovarContratoSchema } from '@jyp/shared-contracts';
-import type { CrearContratoDto, EditarContratoDto, RenovarContratoDto } from '@jyp/shared-contracts';
+import { CrearContratoSchema, EditarContratoSchema, ListarContratosQuerySchema, RenovarContratoSchema } from '@jyp/shared-contracts';
+import type { CrearContratoDto, EditarContratoDto, ListarContratosQueryDto, RenovarContratoDto } from '@jyp/shared-contracts';
 //Casos de Uso
 import { CrearContratoUseCase } from '../use-cases/crearContrato.useCase';
 import { EditarContratoUseCase } from '../use-cases/editarContrato.useCase';
@@ -18,16 +18,7 @@ import { AnularContratoUseCase } from '../use-cases/anularContrato.useCase';
 import { ListarContratoUseCase } from '../use-cases/listarContrato.useCase';
 import { SubirContratoPdfUseCase } from '../use-cases/subirContratoPdf.useCase';
 //Decoradores Swagger Limpios
-import {
-  ApiSwaggerContratoController,
-  ApiSwaggerCrearContrato,
-  ApiSwaggerEditarContrato,
-  ApiSwaggerRenovarContrato,
-  ApiSwaggerAnularContrato,
-  ApiSwaggerListarContratosEmpleado,
-  ApiSwaggerSubirPdf,
-  ApiSwaggerDescargarPdf
-} from '../decorators/contrato-swagger.decorator';
+import { ApiSwaggerContratoController, ApiSwaggerCrearContrato, ApiSwaggerEditarContrato, ApiSwaggerRenovarContrato, ApiSwaggerAnularContrato, ApiSwaggerListarContratosEmpleado, ApiSwaggerSubirPdf, ApiSwaggerDescargarPdf } from '../decorators/contrato-swagger.decorator';
 
 /**
  * Controlador para manejar las operaciones relacionadas con los contratos en el módulo de RRHH.
@@ -96,10 +87,7 @@ export class ContratoController {
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(EditarContratoSchema))
-  async actualizarContrato(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() payload: EditarContratoDto
-  ) {
+  async actualizarContrato(@Param('id', ParseUUIDPipe) id: string, @Body() payload: EditarContratoDto) {
     return await this.editarContratoUseCase.execute(id, payload);
   }
 
@@ -145,6 +133,23 @@ export class ContratoController {
     return await this.anularContratoUseCase.execute(id);
   }
 
+  
+  /**
+   * Listar contratos con paginación y filtros dinámicos.
+   * Permite filtrar por:
+   * - por_vencer_dias=30 (para el modal del Dashboard)
+   * - empleado_id=UUID (para la Ficha del Empleado)
+   * - area_id=UUID
+   * - search=Texto
+   * GET /api/contrato
+   */
+  @Get()
+  @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
+  @UsePipes(new ZodValidationPipe(ListarContratosQuerySchema))
+  async listarContratos(@Query() query: ListarContratosQueryDto) {
+    return await this.listarContratoUseCase.execute(query);
+  }
+
   /**
    * Endpoint para obtener el historial de contratos de un empleado en el módulo de RRHH.
    * Este endpoint permite listar todos los contratos asociados a un empleado específico, incluyendo información sobre el estado de cada contrato y si tiene un PDF adjunto.
@@ -154,11 +159,10 @@ export class ContratoController {
    * @param empleadoId : string (UUID del empleado del cual se desea obtener el historial de contratos)
    * @Returns Un objeto con un arreglo de contratos asociados al empleado y un mensaje de éxito.
    */
-  @ApiSwaggerListarContratosEmpleado()
   @Get('empleado/:empleadoId')
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
-  async obtenerHistorialEmpleado(@Param('empleadoId', ParseUUIDPipe) empleadoId: string) {
-    return await this.listarContratoUseCase.execute(empleadoId);
+  async obtenerHistorialEmpleado(@Param('empleadoId', ParseUUIDPipe) empleadoId: string, @Query() query: ListarContratosQueryDto) {
+    return await this.listarContratoUseCase.execute({...query, empleado_id: empleadoId});
   }
 
   //===================================================
@@ -178,10 +182,7 @@ export class ContratoController {
   @ApiSwaggerSubirPdf()
   @Post(':id/subir-pdf')
   @Roles('ADMIN', 'RRHH')
-  async subirContratoPdf(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: FastifyRequest
-  ) {
+  async subirContratoPdf(@Param('id', ParseUUIDPipe) id: string, @Req() req: FastifyRequest) {
     if (!req.isMultipart()) throw new BadRequestException('La petición debe ser multipart/form-data');
 
     //Obtener el archivo del request. Fastify maneja la subida de archivos de manera diferente a Express.
@@ -204,10 +205,7 @@ export class ContratoController {
   @ApiSwaggerDescargarPdf()
   @Get('descargar/:filename')
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'EMPLEADO')
-  descargarContratoPdf(
-    @Param('filename') filename: string,
-    @Res() res: FastifyReply
-  ) {
+  descargarContratoPdf(@Param('filename') filename: string, @Res() res: FastifyReply) {
 
     //Evitar ataques de path traversal asegurando que el nombre del archivo sea seguro y no contenga rutas relativas.
     const safeFilename = path.basename(filename);

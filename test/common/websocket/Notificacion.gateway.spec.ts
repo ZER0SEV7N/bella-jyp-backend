@@ -40,7 +40,7 @@ describe('NotificacionesGateway - Pruebas Unitarias de WebSockets', () => {
 
       const response = gateway.handleIdentificar(mockSocket, payload);
 
-      expect(mockSocket.join).toHaveBeenCalledWith('ADMIN');
+      expect(mockSocket.join).toHaveBeenCalledWith('sala-ADMIN');
       expect(mockSocket.join).toHaveBeenCalledWith('user-usr-uuid-001');
       expect(response).toEqual({
         status: 'suscrito',

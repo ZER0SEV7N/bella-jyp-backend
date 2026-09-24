@@ -18,10 +18,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformResponseInterceptor());
 
   //Cookies seguras
-  await app.register(fastifyCookie, {secret: process.env.COOKIE_SECRET});
+  await app.register(fastifyCookie as any, {secret: process.env.COOKIE_SECRET});
 
   //Registro de multipart para manejar archivos grandes
-  await app.register(fastifyMultipart, {
+  await app.register(fastifyMultipart as any, {
     limits: {
       fileSize: 50 * 1024 * 1024, //50 MB
       files: 1
