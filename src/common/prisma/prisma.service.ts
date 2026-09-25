@@ -8,7 +8,15 @@ import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
 
-//Servicio de Prisma
+/**
+ * Servicio de Prisma que extiende el cliente de Prisma para incluir auditoría y manejo de ciclo de vida del módulo.
+ * Este servicio se encarga de:
+ * - Inicializar la conexión a la base de datos usando un Pool nativo de PostgreSQL.
+ * - Inyectar información de auditoría (usuario, IP, valores antes y después) en cada operación DML (Create, Update, Delete, Upsert).
+ * - Manejar el ciclo de vida del módulo para conectar y desconectar de la base de datos de manera segura.
+ * - Registrar eventos y errores relacionados con la base de datos usando un logger.
+ * - Utilizar ClsService para obtener información del contexto de la solicitud (usuario e IP) para auditoría.
+ */
 @Injectable()
 export class PrismaService
   extends PrismaClient

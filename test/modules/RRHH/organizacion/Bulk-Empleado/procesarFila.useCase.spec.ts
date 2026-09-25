@@ -49,7 +49,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     describe('execute() - Happy Paths', () => {
         it('Debe procesar e insertar/actualizar (upsert) exitosamente un empleado con datos completos', async () => {
             //Arrange: Simular una fila de carga masiva con todos los datos requeridos
-            const mockFila: CargaMasivaFilaDTO = {
+            const mockFila = {
                 tipo_documento: 'DNI',
                 nro_documento: '72345678',
                 nombre: 'Carlos',
@@ -59,7 +59,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
                 jornada: 'Turno Mañana',
                 fecha_nacimiento: '1995-05-15',
                 asig_familiar: true
-            };
+            } as CargaMasivaFilaDTO;
 
             //Simular que los catálogos existen en la base de datos
             mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1', tipo_documento: 'DNI' });
@@ -90,13 +90,13 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
         it('Debe consultar la API de RENIEC cuando los nombres no vienen en la fila del CSV', async () => {
             //Arrange: Simular una fila de carga masiva sin nombres y apellidos
-            const mockFila: CargaMasivaFilaDTO = {
+            const mockFila = {
                 tipo_documento: 'DNI',
                 nro_documento: '70654321',
                 area: 'Recursos Humanos',
                 cargo: 'Analista',
                 asig_familiar: false
-            };
+            } as CargaMasivaFilaDTO;
 
             //Simular que los catálogos existen en la base de datos
             mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1' });
@@ -127,7 +127,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
         it('Debe auto-crear el Área y el Cargo si no existen previamente en la base de datos', async () => {
             //Arrange: Simular una fila de carga masiva con un área y cargo que no existen en la base de datos
-            const mockFila: CargaMasivaFilaDTO = {
+            const mockFila = {
                 tipo_documento: 'DNI',
                 nro_documento: '78990011',
                 nombre: 'Ana',
@@ -135,7 +135,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
                 area: 'Nueva Area Logistica',
                 cargo: 'Jefe de Almacen',
                 asig_familiar: false
-            };
+            } as CargaMasivaFilaDTO;
 
             //Simular que los catálogos no existen en la base de datos
             mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1' });
@@ -161,13 +161,13 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     describe('execute() - Validaciones y Excepciones', () => {
         it('Debe lanzar un error si el tipo de documento especificado no existe en la base de datos', async () => {
             //Arrange: Simular una fila de carga masiva con un tipo de documento inexistente
-            const mockFila: CargaMasivaFilaDTO = {
+            const mockFila = {
                 tipo_documento: 'PTP',
                 nro_documento: '99999999',
                 area: 'Sistemas',
                 cargo: 'DevOps',
                 asig_familiar: false
-            };
+            } as CargaMasivaFilaDTO;
 
             //Simular que el tipo de documento no existe en la base de datos
             mockPrismaService.tipo_documento.findFirst.mockResolvedValue(null);
@@ -178,7 +178,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
         it('Debe lanzar un error si el catálogo del estado de empleado ACTIVO no está configurado', async () => {
             //Arrange: Simular una fila de carga masiva con datos válidos pero sin un estado de empleado ACTIVO configurado
-            const mockFila: CargaMasivaFilaDTO = {
+            const mockFila = {
                 tipo_documento: 'DNI',
                 nro_documento: '72345678',
                 nombre: 'Carlos',
@@ -186,7 +186,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
                 area: 'Sistemas',
                 cargo: 'Analista',
                 asig_familiar: false
-            };
+            } as CargaMasivaFilaDTO;
 
             //Simular que los catálogos existen excepto el estado de empleado ACTIVO
             mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-1' });
@@ -200,13 +200,13 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
         it('Debe degradar el legajo a BORRADOR si RENIEC falla y los nombres están ausentes', async () => {
             //Arrange: Simular una fila de carga masiva sin nombres y apellidos, y simular un fallo en la API de RENIEC
-            const mockFila: CargaMasivaFilaDTO = {
+            const mockFila = {
                 tipo_documento: 'DNI',
                 nro_documento: '72345678',
                 area: 'Sistemas',
                 cargo: 'Analista',
                 asig_familiar: false
-            };
+            } as CargaMasivaFilaDTO;
 
             //Simular que los catálogos existen en la base de datos
             mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-1' });
