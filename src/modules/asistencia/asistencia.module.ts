@@ -2,7 +2,7 @@
 import { Module } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { IncidenciasController } from "./controller/incidencias.controller";
-import { GenerarIncidenciasMesUseCase } from "./use-cases/generarIncidenciasMes.useCase";
+import { GenerarIncidenciasMesUseCase } from "./use-cases/Incidencias/generarIncidenciasMes.useCase";
 
 /**
  * Módulo de Asistencia
