@@ -4,12 +4,14 @@ import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ObtenerMiPerfilUseCase } from '../use-cases/obtenerMiPerfil.useCase';
 import type { FastifyRequest } from 'fastify';
 import type { MiPerfilResponseDto } from '@jyp/shared-contracts';
+import { ApiSwaggerUsuariosController, ApiSwaggerObtenerMiPerfil } from '../decorators/usuarios-swagger.decorators';
 
 /**
  * Controlador para manejar las operaciones relacionadas con los usuarios
  */
 @Controller('api/usuarios')
 @UseGuards(JwtAccessGuard) //Protege todas las rutas de este controlador con JWT
+@ApiSwaggerUsuariosController() //Documentación Swagger para el módulo de usuarios
 export class UsuariosController {
   constructor(
     private readonly obtenerMiPerfilUseCase: ObtenerMiPerfilUseCase,
@@ -25,9 +27,8 @@ export class UsuariosController {
    *          - 500 Internal Server Error: Si ocurre un error inesperado
    */
   @Get('me')
-  async obtenerMiPerfil(
-    @Req() req: FastifyRequest & { user: { id: string } },
-  ): Promise<MiPerfilResponseDto> {
+  @ApiSwaggerObtenerMiPerfil()
+  async obtenerMiPerfil(@Req() req: FastifyRequest & { user: { id: string } } ): Promise<MiPerfilResponseDto> {
     return await this.obtenerMiPerfilUseCase.obtenerPerfil(req.user.id);
   }
 }

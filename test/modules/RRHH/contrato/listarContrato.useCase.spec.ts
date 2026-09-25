@@ -1,99 +1,146 @@
-//test/modules/RRHH/contrato/listarContrato.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ListarContratoUseCase } from '@/modules/RRHH/contrato/use-cases/listarContrato.useCase';
+import type { ListarContratosQueryDto } from '@jyp/shared-contracts';
 
-/**
- * Pruebas unitarias exhaustivas para el caso de uso ListarContratoUseCase.
- * Se verifica el comportamiento esperado en diferentes escenarios, incluyendo:
- * - Listado exitoso de contratos para un empleado activo.
- * - Manejo de errores cuando el empleado no existe o está eliminado.
- * - Captura de errores inesperados y lanzamiento de excepciones adecuadas.
- */
 describe('ListarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
-    let useCase: ListarContratoUseCase;
-    let prismaService: PrismaService;
+  let useCase: ListarContratoUseCase;
+  let prismaService: PrismaService;
 
-    //Mock de empleadoId para las pruebas
-    const mockEmpleadoId = '018f4a3c-7b2a-7123-8901-0123456789ab';
+  const mockEmpleadoId = '018f4a3c-7b2a-7123-8901-0123456789ab';
 
-    //Mock del servicio Prisma para simular la interacción con la base de datos
-    const mockPrismaService = {
-        empleados: {findUnique: jest.fn()},
-        contratos: {findMany: jest.fn()}
-    };
+  const mockPrismaService = {
+    empleados: {
+      findUnique: jest.fn(),
+    },
+    contratos: {
+      findMany: jest.fn(),
+      count: jest.fn(),
+    },
+  };
 
-    //Configuración del módulo de pruebas antes de cada test
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                ListarContratoUseCase,
-                { provide: PrismaService, useValue: mockPrismaService }
-            ]
-        }).compile();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ListarContratoUseCase,
+        { provide: PrismaService, useValue: mockPrismaService },
+      ],
+    }).compile();
 
-        useCase = module.get<ListarContratoUseCase>(ListarContratoUseCase);
-        prismaService = module.get<PrismaService>(PrismaService);
+    useCase = module.get<ListarContratoUseCase>(ListarContratoUseCase);
+    prismaService = module.get<PrismaService>(PrismaService);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  describe('execute()', () => {
+    it('Debe listar los contratos ordenados descendentemente para un empleado activo', async () => {
+      const query: ListarContratosQueryDto = {
+        page: 1,
+        limit: 10,
+        empleado_id: mockEmpleadoId,
+      };
+
+      const mockEmpleado = {
+        id: mockEmpleadoId,
+        nombre: 'Carlos',
+        apellido: 'Mendoza',
+        nro_documento: '72345678',
+      };
+
+      // Estructura idéntica al include de Prisma: empleados (plural)
+      const mockContratosList = [
+        {
+          id: '018f4a3c-7b2a-7123-8901-0123456789ad',
+          empleado_id: mockEmpleadoId,
+          tipo_modalidad: 'PLAZO_FIJO',
+          fecha_inicio: new Date('2026-01-01'),
+          fecha_fin: new Date('2026-12-31'),
+          url: null,
+          renovado: false,
+          observacion: 'Contrato regular',
+          empleados: {
+            id: mockEmpleadoId,
+            nombre: 'Carlos',
+            apellido: 'Mendoza',
+            nro_documento: '72345678',
+            area: { id: 'area-1', nombre: 'Tecnología' },
+            cargo: { id: 'cargo-1', nombre: 'Desarrollador' },
+          },
+          estado_contrato: { id: 'estado-1', nombre: 'ACTIVO' },
+        },
+      ];
+
+      mockPrismaService.empleados.findUnique.mockResolvedValue(mockEmpleado);
+      mockPrismaService.contratos.count.mockResolvedValue(1);
+      mockPrismaService.contratos.findMany.mockResolvedValue(mockContratosList);
+
+      const result = await useCase.execute(query);
+
+      expect(prismaService.empleados.findUnique).toHaveBeenCalledWith({
+        where: { id: mockEmpleadoId, deleted_at: null },
+        select: { id: true, nombre: true, apellido: true, nro_documento: true },
+      });
+      expect(prismaService.contratos.findMany).toHaveBeenCalled();
+      expect(prismaService.contratos.count).toHaveBeenCalled();
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].colaborador).toBe('Carlos Mendoza');
+      expect(result.data[0].nro_documento).toBe('72345678');
+      expect(result.data[0].area).toBe('Tecnología');
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
     });
 
-    afterEach(() => jest.clearAllMocks());
+    it('Debe listar contratos globales con filtro por_vencer_dias sin consultar empleado único', async () => {
+      const query: ListarContratosQueryDto = {
+        page: 1,
+        limit: 10,
+        por_vencer_dias: 30,
+      };
 
-    describe('execute()', () => {
-        it('Debe listar los contratos ordenados descendentemente para un empleado activo', async () => {
-            //Arrange: Configuración de los datos simulados para el empleado y sus contratos
-            const mockEmpleado = {
-                id: mockEmpleadoId,
-                nombre: 'Carlos',
-                apellido: 'Mendoza',
-                nro_documento: '72345678'
-            };
+      mockPrismaService.contratos.count.mockResolvedValue(0);
+      mockPrismaService.contratos.findMany.mockResolvedValue([]);
 
-            //Mock de contratos asociados al empleado
-            const mockContratosList = [{
-                id: '018f4a3c-7b2a-7123-8901-0123456789ad',
-                empleado_id: mockEmpleadoId,
-                fecha_inicio: new Date('2026-01-01'),
-                estado_contrato: { nombre: 'ACTIVO' }
-            }];
+      const result = await useCase.execute(query);
 
-            //Simular la respuesta de la base de datos para el empleado y sus contratos
-            mockPrismaService.empleados.findUnique.mockResolvedValue(mockEmpleado);
-            mockPrismaService.contratos.findMany.mockResolvedValue(mockContratosList);
-
-            //Act: Ejecución del caso de uso
-            const result = await useCase.execute(mockEmpleadoId);
-
-            //Assert: Verificación de que los métodos del servicio Prisma fueron llamados con los parámetros correctos
-            expect(prismaService.empleados.findUnique).toHaveBeenCalledWith({
-                where: { id: mockEmpleadoId, deleted_at: null },
-                select: { id: true, nombre: true, apellido: true, nro_documento: true },
-            });
-            expect(result.empleado).toBe('Carlos Mendoza');
-            expect(result.documento).toBe('72345678');
-        });
-
-        it('Debe lanzar NotFoundException si el empleado no existe o tiene deleted_at !== null', async () => {
-            //Arrange: Simulación de que el empleado no existe en la base de datos
-            mockPrismaService.empleados.findUnique.mockResolvedValue(null);
-
-            //Act & Assert: Verificación de que se lanza la excepción NotFoundException al ejecutar el caso de uso
-            await expect(useCase.execute(mockEmpleadoId)).rejects.toThrow(new NotFoundException('Empleado no encontrado o eliminado de la db'));
-        });
-
-        it('Debe capturar errores no esperados y arrojar InternalServerErrorException', async () => {
-            //Arrange: Simulación de un error inesperado en la base de datos al buscar los contratos del empleado
-            const mockEmpleado = {
-                id: mockEmpleadoId,
-                nombre: 'Carlos',
-                apellido: 'Mendoza',
-                nro_documento: '72345678'
-            };
-
-            //Act & Assert: Verificación de que se lanza la excepción InternalServerErrorException al ejecutar el caso de uso
-            mockPrismaService.empleados.findUnique.mockResolvedValue(mockEmpleado);
-            mockPrismaService.contratos.findMany.mockRejectedValue(new Error('DB Connection Timeout'));
-            await expect(useCase.execute(mockEmpleadoId)).rejects.toThrow(InternalServerErrorException);
-        });
+      expect(prismaService.empleados.findUnique).not.toHaveBeenCalled();
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
     });
+
+    it('Debe lanzar NotFoundException si el empleado especificado en empleado_id no existe o fue eliminado', async () => {
+      const query: ListarContratosQueryDto = {
+        page: 1,
+        limit: 10,
+        empleado_id: mockEmpleadoId,
+      };
+
+      mockPrismaService.empleados.findUnique.mockResolvedValue(null);
+
+      await expect(useCase.execute(query)).rejects.toThrow(NotFoundException);
+    });
+
+    it('Debe capturar errores no esperados y arrojar InternalServerErrorException', async () => {
+      const query: ListarContratosQueryDto = {
+        page: 1,
+        limit: 10,
+        empleado_id: mockEmpleadoId,
+      };
+
+      const mockEmpleado = {
+        id: mockEmpleadoId,
+        nombre: 'Carlos',
+        apellido: 'Mendoza',
+        nro_documento: '72345678',
+      };
+
+      mockPrismaService.empleados.findUnique.mockResolvedValue(mockEmpleado);
+      mockPrismaService.contratos.count.mockRejectedValue(new Error('DB Connection Timeout'));
+
+      await expect(useCase.execute(query)).rejects.toThrow(InternalServerErrorException);
+    });
+  });
 });

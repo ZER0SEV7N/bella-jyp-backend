@@ -18,7 +18,7 @@ import { AnularContratoUseCase } from '../use-cases/anularContrato.useCase';
 import { ListarContratoUseCase } from '../use-cases/listarContrato.useCase';
 import { SubirContratoPdfUseCase } from '../use-cases/subirContratoPdf.useCase';
 //Decoradores Swagger Limpios
-import { ApiSwaggerContratoController, ApiSwaggerCrearContrato, ApiSwaggerEditarContrato, ApiSwaggerRenovarContrato, ApiSwaggerAnularContrato, ApiSwaggerListarContratosEmpleado, ApiSwaggerSubirPdf, ApiSwaggerDescargarPdf } from '../decorators/contrato-swagger.decorator';
+import { ApiSwaggerContratoController, ApiSwaggerCrearContrato, ApiSwaggerEditarContrato, ApiSwaggerRenovarContrato, ApiSwaggerAnularContrato, ApiSwaggerListarContratosEmpleado, ApiSwaggerSubirPdf, ApiSwaggerDescargarPdf, ApiSwaggerListarContratos } from '../decorators/contrato-swagger.decorator';
 
 /**
  * Controlador para manejar las operaciones relacionadas con los contratos en el módulo de RRHH.
@@ -144,6 +144,7 @@ export class ContratoController {
    * GET /api/contrato
    */
   @Get()
+  @ApiSwaggerListarContratos()
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
   @UsePipes(new ZodValidationPipe(ListarContratosQuerySchema))
   async listarContratos(@Query() query: ListarContratosQueryDto) {
@@ -160,6 +161,7 @@ export class ContratoController {
    * @Returns Un objeto con un arreglo de contratos asociados al empleado y un mensaje de éxito.
    */
   @Get('empleado/:empleadoId')
+  @ApiSwaggerListarContratosEmpleado()
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
   async obtenerHistorialEmpleado(@Param('empleadoId', ParseUUIDPipe) empleadoId: string, @Query() query: ListarContratosQueryDto) {
     return await this.listarContratoUseCase.execute({...query, empleado_id: empleadoId});
