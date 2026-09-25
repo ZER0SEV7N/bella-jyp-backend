@@ -38,12 +38,15 @@ describe('ListarDerechohabientesUseCase - Pruebas Unitarias Exhaustivas', () => 
           apellidos: 'Ramírez Vargas',
           vinculo: 'HIJO_MENOR',
           tipo_documento: { id: 'tdoc-1', tipo_documento: 'DNI' },
-          sustentos: [
+          documentos: [
             {
               id: 'doc-1',
               tipo_documento: 'PARTIDA_NACIMIENTO',
               nombre_archivo: 'partida.pdf',
               archivo_url: '/archivos/derechohabientes/partida.pdf',
+              fecha_emision: null,
+              fecha_vencimiento: null,
+              created_at: new Date(),
               vigente: true,
             },
           ],
@@ -58,12 +61,12 @@ describe('ListarDerechohabientesUseCase - Pruebas Unitarias Exhaustivas', () => 
       // Assert
       expect(result).toHaveLength(1);
       expect(result[0].nombres).toBe('Mateo');
-      expect(result[0].sustentos).toHaveLength(1);
+      expect(result[0].documentos).toHaveLength(1);
       expect(mockPrisma.derechohabientes.findMany).toHaveBeenCalledWith({
         where: { empleado_id: empleadoId, deleted_at: null },
         include: {
           tipo_documento: { select: { id: true, tipo_documento: true } },
-          sustentos: {
+          documentos: {
             where: { deleted_at: null },
             select: {
               id: true,
@@ -71,7 +74,7 @@ describe('ListarDerechohabientesUseCase - Pruebas Unitarias Exhaustivas', () => 
               archivo_url: true,
               fecha_emision: true,
               fecha_vencimiento: true,
-              created_at: true,
+              created_at: true
             },
           },
         },

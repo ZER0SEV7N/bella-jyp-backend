@@ -4,15 +4,8 @@ allowBuilds:
   '@prisma/engines': true
   '@scarf/scarf': true
   argon2: true
+  esbuild: true
   msgpackr-extract: true
   prisma: true
   unrs-resolver: true
-
-onlyBuiltDependencies:
-  - "@parcel/watcher"
-  - "@prisma/engines"
-  - "@scarf/scarf"
-  - "argon2"
-  - "msgpackr-extract"
-  - "prisma"
-  - "unrs-resolver"
+  workerd: true

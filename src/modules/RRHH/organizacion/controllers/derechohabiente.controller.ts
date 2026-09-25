@@ -15,6 +15,8 @@ import { EstadoDerechohabienteUseCase } from '../use-cases/derechohabiente/estad
 //Dto y schemas
 import { RegistrarDerechohabienteSchema, SubirSustentoDerechohabienteSchema } from '@jyp/shared-contracts';
 import type { RegistrarDerechohabienteDto, SubirSustentoDerechohabienteDto } from '@jyp/shared-contracts';
+//Importaciones de Swagger
+import { ApiSwaggerDerechohabienteController, ApiSwaggerRegistrarDerechohabiente, ApiSwaggerSubirSustentoDerechohabiente, ApiSwaggerListarPorEmpleado, ApiSwaggerDesactivarDerechohabiente, ApiSwaggerReactivarDerechohabiente } from '../decorators/derechohabiente-swagger.decorator';
 
 /**
  * Controlador para la gestión de derechohabientes en el módulo de RRHH.
@@ -29,6 +31,7 @@ import type { RegistrarDerechohabienteDto, SubirSustentoDerechohabienteDto } fro
  */
 @Controller('api/rrhh/derechohabientes')
 @UseGuards(JwtAccessGuard, RolesGuard)
+@ApiSwaggerDerechohabienteController()
 export class DerechohabienteController {
     constructor(
         private readonly registrarUseCase: RegistrarDerechohabienteUseCase,
@@ -56,6 +59,7 @@ export class DerechohabienteController {
      * @throws BadRequestException si los datos proporcionados no cumplen con las validaciones.
      * @throws NotFoundException si el empleado titular no existe o está inactivo.
      */
+    @ApiSwaggerRegistrarDerechohabiente()
     @Post('registrar')
     @Roles('ADMIN', 'RRHH')
     @UsePipes(new ZodValidationPipe(RegistrarDerechohabienteSchema))
@@ -73,6 +77,7 @@ export class DerechohabienteController {
      * @throws NotFoundException si el derechohabiente especificado no existe o ha sido dado de baja.
      */
     @Post('sustento/abrir')
+    @ApiSwaggerSubirSustentoDerechohabiente()
     @Roles('ADMIN', 'RRHH')
     async subirSustento(@Req() req: FastifyRequest) {
         //Extraccion de archivo multipart y campos con fastify
@@ -101,6 +106,7 @@ export class DerechohabienteController {
      * @throws NotFoundException si el empleado titular no existe o no tiene derechohabientes asociados.
      */
     @Get('empleado/:empleadoId')
+    @ApiSwaggerListarPorEmpleado()
     @Roles('ADMIN', 'RRHH')
     async listarPorEmpleado(@Param('empleadoId', ParseUUIDPipe) empleadoId: string) {
         return await this.listarUseCase.listarPorEmpleado(empleadoId);
@@ -116,6 +122,7 @@ export class DerechohabienteController {
      */
     @Delete(':id/desactivar')
     @HttpCode(HttpStatus.OK)
+    @ApiSwaggerDesactivarDerechohabiente()
     @Roles('ADMIN', 'RRHH')
     async desactivar(@Param('id', ParseUUIDPipe) id: string) {
         return await this.estadoUseCase.desactivar(id);
@@ -131,6 +138,7 @@ export class DerechohabienteController {
      */
     @Patch(':id/reactivar')
     @HttpCode(HttpStatus.OK)
+    @ApiSwaggerReactivarDerechohabiente()
     @Roles('ADMIN', 'RRHH')
     async reactivar(@Param('id', ParseUUIDPipe) id: string) {
         return await this.estadoUseCase.reactivar(id);

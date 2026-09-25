@@ -13,7 +13,7 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { LoginSchema, ProvisionarUsuarioSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
 import type {LoginDTO, ProvisionarUsuarioDTO, SolicitudRecuperacionDTO } from '@jyp/shared-contracts';
-import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProvisionar, ApiSwaggerRecuperarPassword} from '../decorators/auth-swagger.decorator';
+import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProvisionar, ApiSwaggerRecuperarPassword, ApiSwaggerLogout} from '../decorators/auth-swagger.decorator';
 
 /**
  * Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación.
@@ -145,6 +145,7 @@ export class AuthController {
    */
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiSwaggerLogout()
   async logout(@Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
     const refreshToken = req.cookies?.['jyp_rt'];
     const authHeader = req.headers.authorization;

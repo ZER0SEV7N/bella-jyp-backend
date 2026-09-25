@@ -1,21 +1,44 @@
 //src/modules/RRHH/contrato/use-cases/listarContrato.useCase.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ListarContratosQueryDto } from '@jyp/shared-contracts';
 import dayjs from 'dayjs';
 
 type AlertaVencimiento = 'VENCIDO' | 'CRITICO' | 'PREVENTIVO' | 'REGULAR';
 
+/**
+ * Caso de uso para listar los contratos asociados a un empleado.
+ * Este caso de uso permite obtener todos los contratos activos y sus detalles,
+ * filtrando por el ID del empleado y otros parámetros opcionales como estado, área, días para vencimiento y si ha sido renovado.
+ * Los contratos se ordenan de manera descendente por fecha de inicio, a menos que se especifique un filtro de vencimiento.
+ */
 @Injectable()
 export class ListarContratoUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Ejecuta el caso de uso para listar contratos.
+   * Utiliza los parámetros de consulta proporcionados para filtrar y paginar los resultados.
+   * @param query - Parámetros de consulta que incluyen paginación, búsqueda por empleado, estado, área, días para vencimiento y si ha sido renovado.
+   * @returns - Un objeto que contiene la lista de contratos y metadatos de paginación.
+   * @throws NotFoundException si el empleado especificado no existe.
+   * @throws InternalServerErrorException si ocurre un error al consultar la base de datos.
+   */
   async execute(query: ListarContratosQueryDto) {
-    const {page = 1, limit = 10, search,empleado_id, id_estado, area_id, por_vencer_dias, renovado } = query;
-
+    const { page = 1, limit = 10, search, empleado_id, id_estado, area_id, por_vencer_dias, renovado } = query;
     const skip = (page - 1) * limit;
 
     try {
+
+      if (empleado_id) {
+        const empleado = await this.prisma.empleados.findUnique({
+          where: { id: empleado_id, deleted_at: null },
+          select: { id: true, nombre: true, apellido: true, nro_documento: true },
+        });
+
+        if (!empleado) throw new NotFoundException('Empleado no encontrado o dado de baja de la base de datos.');
+        
+      }
       //Construccion dinamica del objeto "where" para filtrar contratos según los parámetros de búsqueda
       const where: any = { deleted_at: null };
 
@@ -110,10 +133,11 @@ export class ListarContratoUseCase {
         meta: { total, page, limit, totalPages: Math.ceil(total / limit)  }
       };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error al consultar el listado de contratos.',
-        error instanceof Error ? error.message : String(error),
-      );
+      // Permitir que las excepciones controladas de NestJS se propaguen
+      if (error instanceof NotFoundException) throw error;
+      
+
+      throw new InternalServerErrorException('Error al consultar el listado de contratos.', error instanceof Error ? error.message : String(error));
     }
   }
 

@@ -13,15 +13,19 @@ import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { ListarEmpleadosUseCase } from '../use-cases/empleado/listarEmpleados.useCase';
 import { Roles } from '@/common/decorators/roles.decorator';
-import {
-  ApiSwaggerEmpleadosController,
-  ApiSwaggerCrearEmpleado,
-  ApiSwaggerActualizarEmpleado,
-  ApiSwaggerDesactivarEmpleado,
-  ApiSwaggerReactivarEmpleado,
-  ApiSwaggerListarEmpleados,
-} from '../decorators/empleado-swagger.decorator';
+import { ApiSwaggerEmpleadosController, ApiSwaggerCrearEmpleado, ApiSwaggerActualizarEmpleado, ApiSwaggerDesactivarEmpleado, ApiSwaggerReactivarEmpleado, ApiSwaggerListarEmpleados } from '../decorators/empleado-swagger.decorator';
 
+/**
+ * Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH.
+ * Este controlador expone endpoints para crear, actualizar, listar, desactivar y reactivar empleados.
+ * Se aplican guardias de autenticación y autorización para proteger los endpoints según los roles definidos.
+ * Endpoints disponibles:
+ * - POST /api/rrhh/empleado/crear: Crear un nuevo empleado.
+ * - PATCH /api/rrhh/empleado/:id/actualizar: Actualizar un empleado existente.
+ * - GET /api/rrhh/empleado: Listar empleados con paginación y filtros.
+ * - DELETE /api/rrhh/empleado/:id/desactive: Desactivar un empleado (soft delete).
+ * - PATCH /api/rrhh/empleado/:id/reactive: Reactivar un empleado previamente desactivado.
+ */
 @ApiSwaggerEmpleadosController()
 @Controller('api/rrhh/empleado')
 @UseGuards(JwtAccessGuard, RolesGuard)
@@ -69,7 +73,9 @@ export class EmpleadoController {
    *    "limit": 10,
    *    "area_id": "uuid",
    *    "cargo_id": "uuid",
-   *    "activo": "Boolean"
+   *    "activo": "Boolean",
+   *    "nro_documento": "string",
+   *    "search": "string"
    * }
    */
   @ApiSwaggerListarEmpleados()

@@ -2,14 +2,152 @@ $kind: http-request
 url: http://localhost:3000/api/rrhh/empleados/bulk/confirmar
 method: POST
 body:
-  type: formdata
-  content:
-    - type: file
-      key: file
-      src:
-        - /C:/Users/ZER0SEV7N/Downloads/plantilla_carga_masiva_empleados.xlsx
-      description: ""
-      disabled: false
+  type: json
+  content: "{\r
+
+    \    \"filas_validas_data\": [\r
+
+    \        {\r
+
+    \            \"tipo_documento\": \"DNI\",\r
+
+    \            \"nro_documento\": \"70122334\",\r
+
+    \            \"nombre\": \"Carlos\",\r
+
+    \            \"apellido\": \"Ramírez Silva\",\r
+
+    \            \"sexo\": \"MASCULINO\",\r
+
+    \            \"estado_civil\": \"CASADO\",\r
+
+    \            \"fecha_nacimiento\": \"1988-06-15\",\r
+
+    \            \"email\": \"contador@jyp.com\",\r
+
+    \            \"telefono\": \"987654321\",\r
+
+    \            \"direccion\": \"Av. Las Camelias 450 Dpto 302\",\r
+
+    \            \"departamento\": \"LIMA\",\r
+
+    \            \"provincia\": \"LIMA\",\r
+
+    \            \"distrito\": \"SAN ISIDRO\",\r
+
+    \            \"ubigeo\": \"150131\",\r
+
+    \            \"fecha_inicio\": \"2024-02-01\",\r
+
+    \            \"asig_familiar\": true,\r
+
+    \            \"area\": \"Contabilidad y Finanzas\",\r
+
+    \            \"cargo\": \"Contador Principal\",\r
+
+    \            \"jornada\": \"Jornada Estándar Oficina\",\r
+
+    \            \"sueldo_basico\": 3500,\r
+
+    \            \"regimen_pension\": \"AFP\",\r
+
+    \            \"tipo_afp\": \"INTEGRA\",\r
+
+    \            \"cuspp\": \"123456CRM001\",\r
+
+    \            \"tipo_comision\": \"FLUJO\",\r
+
+    \            \"banco_sueldo\": \"BCP\",\r
+
+    \            \"tipo_cuenta_sueldo\": \"SUELDO\",\r
+
+    \            \"nro_cuenta_sueldo\": \"191-12345678-0-12\",\r
+
+    \            \"cci_sueldo\": \"002-191-00123456780123-88\",\r
+
+    \            \"banco_cts\": \"BBVA\",\r
+
+    \            \"tipo_cuenta_cts\": \"AHORROS\",\r
+
+    \            \"nro_cuenta_cts\": \"0011-0123-45-0100012345\",\r
+
+    \            \"cci_cts\": \"011-123-000100012345-67\",\r
+
+    \            \"regimen_salud\": \"ESSALUD_REGULAR\",\r
+
+    \            \"eps_costo_adicional\": 0\r
+
+    \        },\r
+
+    \        {\r
+
+    \            \"tipo_documento\": \"CE\",\r
+
+    \            \"nro_documento\": \"001159876\",\r
+
+    \            \"nombre\": \"Miguel Ángel\",\r
+
+    \            \"apellido\": \"Osorio Díaz\",\r
+
+    \            \"sexo\": \"MASCULINO\",\r
+
+    \            \"estado_civil\": \"SOLTERO\",\r
+
+    \            \"fecha_nacimiento\": \"1985-11-30\",\r
+
+    \            \"email\": \"miguel.osorio@jyp.com\",\r
+
+    \            \"telefono\": \"912345678\",\r
+
+    \            \"direccion\": \"Jr. Los Álamos 124\",\r
+
+    \            \"departamento\": \"LIMA\",\r
+
+    \            \"provincia\": \"LIMA\",\r
+
+    \            \"distrito\": \"SURQUILLO\",\r
+
+    \            \"ubigeo\": \"150141\",\r
+
+    \            \"fecha_inicio\": \"2024-05-01\",\r
+
+    \            \"asig_familiar\": false,\r
+
+    \            \"area\": \"Seguridad y Operaciones\",\r
+
+    \            \"cargo\": \"Vigilante Nocturno\",\r
+
+    \            \"jornada\": \"Turno Nocturno Seguridad\",\r
+
+    \            \"sueldo_basico\": 1800,\r
+
+    \            \"regimen_pension\": \"ONP\",\r
+
+    \            \"banco_sueldo\": \"INTERBANK\",\r
+
+    \            \"tipo_cuenta_sueldo\": \"SUELDO\",\r
+
+    \            \"nro_cuenta_sueldo\": \"200-3001234567\",\r
+
+    \            \"cci_sueldo\": \"003-200-00300123456789-11\",\r
+
+    \            \"banco_cts\": \"INTERBANK\",\r
+
+    \            \"tipo_cuenta_cts\": \"AHORROS\",\r
+
+    \            \"nro_cuenta_cts\": \"200-3009876543\",\r
+
+    \            \"cci_cts\": \"003-200-00300987654321-22\",\r
+
+    \            \"regimen_salud\": \"EPS\",\r
+
+    \            \"eps_costo_adicional\": 45.5\r
+
+    \        }\r
+
+    \    ]\r
+
+    }"
 auth:
   type: bearer
   credentials:
