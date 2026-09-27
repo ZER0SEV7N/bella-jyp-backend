@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CryptoUtil } from '@/common/utils/crypto.util';
+import { CryptoUtil } from '@/common/utils/crypto.Util';
 
 /**
  * Caso de uso para consultar los datos financieros de un empleado.

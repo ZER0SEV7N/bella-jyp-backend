@@ -8,10 +8,10 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 //Importaciones de casos de uso
-import { RegistrarDerechohabienteUseCase } from '../use-cases/derechohabiente/registrarDerechohabiente.useCase';
+import { RegistrarDerechohabienteUseCase } from '../use-cases/derechohabiente/registrarDerechoHabiente.useCase';
 import { SubirSustentoDerechohabienteUseCase } from '../use-cases/derechohabiente/subirSustento.useCase';
 import { ListarDerechohabientesUseCase } from '../use-cases/derechohabiente/listarDerechohabientes.useCase';
-import { EstadoDerechohabienteUseCase } from '../use-cases/derechohabiente/estadoDerechohabiente.useCase';
+import { EstadoDerechohabienteUseCase } from '../use-cases/derechohabiente/estadoDerechoHabiente.useCase';
 //Dto y schemas
 import { RegistrarDerechohabienteSchema, SubirSustentoDerechohabienteSchema } from '@jyp/shared-contracts';
 import type { RegistrarDerechohabienteDto, SubirSustentoDerechohabienteDto } from '@jyp/shared-contracts';

@@ -45,7 +45,7 @@ export async function validarExistencia(prisma: PrismaService, emp: any, fecha: 
         where: {
             empleado_id: emp.id,
             fecha_hora: fecha,
-            tipo_marcacion: tipo,
+            tipo_marcacion: tipo as unknown,
         },
         select: {
             empleado_id: true,

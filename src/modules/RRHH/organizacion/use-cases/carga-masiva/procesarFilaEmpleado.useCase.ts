@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { ReniecAdapter } from '../../services/reniec.adapter';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { CryptoUtil } from '@/common/utils/crypto.util';
+import { CryptoUtil } from '@/common/utils/crypto.Util';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 import { normalizarFecha } from './helpers/normalizaciones.helper';
 

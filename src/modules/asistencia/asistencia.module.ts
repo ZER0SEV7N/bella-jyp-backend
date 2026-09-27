@@ -3,6 +3,8 @@ import { Module } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { IncidenciasController } from "./controller/incidencias.controller";
 import { GenerarIncidenciasMesUseCase } from "./use-cases/Incidencias/generarIncidenciasMes.useCase";
+import { CrearMarcacionManualUseCase } from "./use-cases/asistencias/generarAsistencia";
+import { AsistenciaController } from "./controller/asistencias.controller";
 
 /**
  * Módulo de Asistencia
@@ -11,7 +13,7 @@ import { GenerarIncidenciasMesUseCase } from "./use-cases/Incidencias/generarInc
  */
 @Module({
     imports: [],
-    controllers: [IncidenciasController],
-    providers: [PrismaService, GenerarIncidenciasMesUseCase],
+    controllers: [IncidenciasController, AsistenciaController],
+    providers: [PrismaService, GenerarIncidenciasMesUseCase, CrearMarcacionManualUseCase] ,
 })
 export class AsistenciaModule {}
