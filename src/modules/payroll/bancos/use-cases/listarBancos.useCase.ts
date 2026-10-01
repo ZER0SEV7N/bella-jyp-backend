@@ -17,8 +17,8 @@ export class ListarBancosUseCase {
                 id: true,
                 nombre: true,
                 codigo: true,
-                activo: true,
-            },
+                activo: true
+            }
         });
     }
 }

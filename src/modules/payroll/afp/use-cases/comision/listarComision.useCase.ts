@@ -25,6 +25,7 @@ export class ListarComisionesUseCase {
     //Si se solicita solo las comisiones vigentes, filtramos por periodo_final nulo
     if (solo_vigentes) whereClause.periodo_final = null;
 
+    //Realizamos la consulta a la base de datos para obtener el total y las comisiones con paginación
     const [total, comisiones] = await this.prisma.$transaction([
       this.prisma.comisiones_afp.count({ where: whereClause }),
       this.prisma.comisiones_afp.findMany({
@@ -32,12 +33,28 @@ export class ListarComisionesUseCase {
         skip,
         take: limit,
         orderBy: { periodo_inicio: 'desc' },
-        include: { tipo_afp: { select: { nombre: true } } } //AFP: Incluir el nombre del tipo de AFP asociado
+        include: {
+          tipo_afp: { select: { id: true, nombre: true } }
+        }
       })
     ]);
 
+    //Mapeo limpio asegurando tipos numéricos para el frontend
+    const dataFormateada = comisiones.map((c) => ({
+      id: c.id,
+      afp_id: c.afp_id,
+      afp_nombre: c.tipo_afp?.nombre ?? 'Desconocida',
+      periodo_inicio: c.periodo_inicio,
+      periodo_final: c.periodo_final,
+      aporte_obligatorio: Number(c.aporte_obligatorio),
+      comision_sobre_ra: Number(c.comision_sobre_ra),
+      prima_seguro: Number(c.prima_seguro),
+      comision_mixta: Number(c.comision_mixta),
+    }));
+
+    //Retorna la data formateada junto con la información de paginación
     return {
-      data: comisiones,
+      data: dataFormateada,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     };
   }

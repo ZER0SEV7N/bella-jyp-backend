@@ -8,24 +8,9 @@ datasource db {
   provider = "postgresql"
 }
 
-model anotacion_tareas {
-  id               String           @id @db.Uuid
-  tarea_id         String           @db.Uuid
-  asignado_por     String           @db.Uuid
-  descripcion      String
-  deleted_at       DateTime?        @db.Timestamptz(6)
-  created_at       DateTime         @default(now()) @db.Timestamptz(6)
-  tareas_asistente tareas_asistente @relation(fields: [tarea_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_tarea")
-  usuarios         usuarios         @relation(fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_usuario")
-}
-
-model aportaciones {
-  id       String   @id @db.Uuid
-  afp_id   String   @db.Uuid
-  nombre   String   @db.VarChar(100)
-  cantidad Decimal  @default(0) @db.Decimal(12, 4)
-  tipo_afp tipo_afp @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_aportaciones_afp")
-}
+// =========================================================================
+// MÓDULO ORGANIZACIONAL Y ESTRUCTURA DE PUESTOS
+// =========================================================================
 
 model area {
   id          String    @id @db.Uuid
@@ -43,32 +28,7 @@ model area {
   @@index([nombre], map: "idx_area_nombre")
   @@index([activo], map: "idx_area_activo", where: raw("(activo = true)"))
   @@index([deleted_at], map: "idx_area_deleted", where: raw("(deleted_at IS NULL)"))
-}
-
-model tipo_afp {
-  id              String            @id @db.Uuid
-  id_regimen      String            @db.Uuid
-  nombre          String            @db.VarChar(100)
-  aportaciones    aportaciones[]
-  comisiones_afp  comisiones_afp[]
-  dato_financiero dato_financiero[]
-  regimen_pension regimen_pension   @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipo_afp_regimen")
-
-  @@index([id_regimen], map: "idx_tipo_afp_regimen")
-}
-
-model tipo_documento {
-  id               String             @id @db.Uuid
-  tipo_documento   String             @unique @db.VarChar(100)
-  empleados        empleados[]
-  derechohabientes derechohabientes[]
-}
-
-model bancos {
-  id             String            @id @db.Uuid
-  nombre         String            @db.VarChar(100)
-  cuentas_sueldo dato_financiero[] @relation("BancoSueldo")
-  cuentas_cts    dato_financiero[] @relation("BancoCTS")
+  @@map("area")
 }
 
 model cargo {
@@ -89,282 +49,7 @@ model cargo {
   @@index([id_area], map: "idx_cargo_area")
   @@index([activo], map: "idx_cargo_activo", where: raw("(activo = true)"))
   @@index([deleted_at], map: "idx_cargo_deleted", where: raw("(deleted_at IS NULL)"))
-}
-
-model estado_contrato {
-  id        String      @id @db.Uuid
-  nombre    String      @db.VarChar(100)
-  contratos contratos[]
-}
-
-model estado_empleado {
-  id          String      @id @db.Uuid
-  descripcion String      @unique @db.VarChar(100)
-  empleados   empleados[]
-}
-
-model regimen_pension {
-  id              String            @id @db.Uuid
-  nombre          String            @db.VarChar(100)
-  dato_financiero dato_financiero[]
-  tipo_afp        tipo_afp[]
-}
-
-model comisiones_afp {
-  id                 String    @id @db.Uuid
-  afp_id             String    @db.Uuid
-  aporte_obligatorio Decimal   @default(0) @db.Decimal(6, 4)
-  comision_sobre_ra  Decimal   @default(0) @db.Decimal(6, 4)
-  prima_seguro       Decimal   @default(0) @db.Decimal(6, 4)
-  comision_mixta     Decimal   @default(0) @db.Decimal(6, 4)
-  periodo_final      DateTime? @db.Date
-  periodo_inicio     DateTime  @db.Date
-  tipo_afp           tipo_afp  @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
-
-  @@index([afp_id, periodo_inicio], map: "idx_comisiones_afp_fechas")
-}
-
-model contratos {
-  id              String          @id @db.Uuid
-  empleado_id     String          @db.Uuid
-  id_estado       String          @db.Uuid
-  tipo_modalidad  String?         @db.VarChar(100)
-  fecha_inicio    DateTime        @db.Date
-  fecha_fin       DateTime?       @db.Date
-  renovado        Boolean         @default(false)
-  observacion     String?
-  deleted_at      DateTime?       @db.Timestamptz(6)
-  created_at      DateTime        @default(now()) @db.Timestamptz(6)
-  url             String          @db.VarChar(225)
-  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
-  estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
-
-  @@index([deleted_at], map: "idx_contratos_deleted", where: raw("(deleted_at IS NULL)"))
-  @@index([empleado_id], map: "idx_contratos_empleado")
-}
-
-model dato_financiero {
-  id            String  @id @db.Uuid
-  empleado_id   String  @unique @db.Uuid
-  id_regimen    String  @db.Uuid
-  id_tipo_afp   String? @db.Uuid
-  sueldo_basico Decimal @default(0) @db.Decimal(12, 4)
-  cuspp         String? @db.VarChar(20)
-  tipo_comision String? @db.VarChar(50)
-
-  //Cuenta de Pago de Sueldo
-  id_banco_sueldo    String?                   @db.Uuid
-  tipo_cuenta_sueldo tipo_cuenta_bancaria_enum @default(SUELDO)
-  nro_cuenta_sueldo  String?                   @db.VarChar(255)
-  cci_sueldo         String?                   @db.VarChar(255)
-
-  //Cuenta de Depósito de CTS (Mayo y Noviembre)
-  id_banco_cts    String?                   @db.Uuid
-  tipo_cuenta_cts tipo_cuenta_bancaria_enum @default(AHORROS)
-  nro_cuenta_cts  String?                   @db.VarChar(255)
-  cci_cts         String?                   @db.VarChar(255)
-
-  //Régimen de Aseguramiento de Salud (EsSalud vs EPS)
-  regimen_salud       regimen_salud_enum @default(ESSALUD_REGULAR)
-  eps_nombre          String?            @db.VarChar(100)
-  eps_plan            String?            @db.VarChar(100)
-  eps_costo_adicional Decimal            @default(0.0000) @db.Decimal(10, 4)
-
-  //Auditoria
-  deleted_at DateTime? @db.Timestamptz(6)
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
-
-  //Relaciones
-  banco_sueldo    bancos?         @relation("BancoSueldo", fields: [id_banco_sueldo], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_df_banco_sueldo")
-  banco_cts       bancos?         @relation("BancoCTS", fields: [id_banco_cts], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_df_banco_cts")
-  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
-  regimen_pension regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
-  tipo_afp        tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
-
-  @@index([empleado_id], map: "idx_dato_fin_empleado")
-  @@map("dato_financiero")
-}
-
-model CargaMasivaJob {
-  id              String          @id @db.Uuid
-  usuario_id      String          @db.Uuid
-  total_registros Int             @default(0)
-  procesados      Int             @default(0)
-  fallidos        Int             @default(0)
-  errores_detalle Json?
-  created_at      DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
-  estado          estado_job_enum @default(EN_COLA)
-
-  @@map("carga_masiva_jobs")
-}
-
-model empleados {
-  id                 String  @id @db.Uuid
-  cargo_id           String  @db.Uuid
-  area_id            String  @db.Uuid
-  documento_id       String  @db.Uuid
-  estado_empleado_id String  @db.Uuid
-  nombre             String? @db.VarChar(100)
-  apellido           String? @db.VarChar(100)
-  nro_documento      String  @unique @db.VarChar(20)
-  email              String? @db.VarChar(150)
-  telefono           String? @db.VarChar(20)
-
-  //Identidad y filiación civil
-  sexo             sexo_enum?
-  estado_civil     estado_civil_enum @default(SOLTERO)
-  nacionalidad     String            @default("PERUANA") @db.VarChar(50)
-  fecha_nacimiento DateTime?         @db.Date
-
-  //Domicilio y Ubigeo (SUNAT)
-  direccion            String? @db.VarChar(255)
-  referencia_direccion String? @db.VarChar(255)
-  ubigeo               String? @db.VarChar(6)
-  distrito             String? @db.VarChar(100)
-  provincia            String? @db.VarChar(100)
-  departamento         String? @db.VarChar(100)
-
-  //Vínculo laboral
-  fecha_inicio          DateTime?                  @db.Date
-  fecha_cese            DateTime?                  @db.Date
-  afp_fecha_filiacion   DateTime?                  @db.Date
-  asig_familiar         Boolean                    @default(false)
-  activo                Boolean                    @default(true)
-  deleted_at            DateTime?                  @db.Timestamptz(6)
-  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
-  jornada_id            String?                    @db.Uuid
-  estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
-
-  //Relaciones
-  asistencias         asistencia_marcacion[]
-  contratos           contratos[]
-  dato_financiero     dato_financiero?
-  derechohabientes    derechohabientes[]
-  area                area                   @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_area")
-  cargo               cargo                  @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_cargo")
-  estado_empleado     estado_empleado        @relation(fields: [estado_empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_estado")
-  jornada             jornada?               @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_jornada")
-  tipo_documento      tipo_documento         @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_tipo_documento")
-  historial_planillas historial_planillas[]
-  incidencias         incidencias_mes[]
-  usuarios            usuarios?
-  solicitudes         solicitud[]
-
-  @@index([activo], map: "idx_empleado_activo", where: raw("(activo = true)"))
-  @@index([area_id], map: "idx_empleado_area")
-  @@index([cargo_id], map: "idx_empleado_cargo")
-  @@index([deleted_at], map: "idx_empleado_deleted", where: raw("(deleted_at IS NULL)"))
-  @@map("empleado")
-}
-
-model historial_planillas {
-  id                     String               @id @db.Uuid
-  empleado_id            String               @db.Uuid
-  periodo                String               @db.VarChar(7)
-  sueldo_base            Decimal              @default(0.0000) @db.Decimal(12, 4)
-  asignacion_familia     Decimal              @default(0.0000) @db.Decimal(12, 4)
-  horas_extras_25        Decimal              @default(0.0000) @db.Decimal(12, 4)
-  horas_extras_35        Decimal              @default(0.0000) @db.Decimal(12, 4)
-  recargo_nocturno       Decimal              @default(0.0000) @db.Decimal(12, 4)
-  descuento_afp_fondo    Decimal              @default(0.0000) @db.Decimal(12, 4)
-  descuento_afp_seguro   Decimal              @default(0.0000) @db.Decimal(12, 4)
-  descuento_afp_comision Decimal              @default(0.0000) @db.Decimal(12, 4)
-  descuento_quinta       Decimal              @default(0.0000) @db.Decimal(12, 4)
-  tasa_afp_aplicada      Decimal              @db.Decimal(6, 4)
-  aporte_essalud         Decimal              @default(0.0000) @db.Decimal(12, 4)
-  total_ingresos         Decimal              @default(0.0000) @db.Decimal(12, 4)
-  total_descuentos       Decimal              @default(0.0000) @db.Decimal(12, 4)
-  neto_a_pagar           Decimal              @default(0.0000) @db.Decimal(12, 4)
-  estado                 estado_planilla_enum @default(ABIERTO)
-  comentarios            String?
-  activo                 Boolean              @default(true)
-  created_at             DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
-  deleted_at             DateTime?            @db.Timestamptz(6)
-  empleados              empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_empleado")
-
-  @@unique([empleado_id, periodo], map: "uq_empleado_periodo")
-  @@index([periodo, estado], map: "idx_planilla_periodo_estado")
-}
-
-model tareas_asistente {
-  id                                               String             @id @db.Uuid
-  asignado_a                                       String             @db.Uuid
-  asignado_por                                     String             @db.Uuid
-  titulo                                           String             @db.VarChar(200)
-  descripcion                                      String?
-  fecha_entrega                                    DateTime?          @db.Date
-  estado                                           estado_tarea_enum  @default(PENDIENTE)
-  anotaciones                                      String?
-  deleted_at                                       DateTime?          @db.Timestamptz(6)
-  created_at                                       DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at                                       DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
-  anotacion_tareas                                 anotacion_tareas[]
-  usuarios_tareas_asistente_asignado_aTousuarios   usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
-  usuarios_tareas_asistente_asignado_porTousuarios usuarios           @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
-
-  @@index([asignado_a], map: "idx_tareas_asignado_a")
-  @@index([deleted_at], map: "idx_tareas_deleted", where: raw("(deleted_at IS NULL)"))
-  @@index([estado], map: "idx_tareas_estado")
-}
-
-model usuarios {
-  id                                                       String             @id @db.Uuid
-  empleado_id                                              String             @unique @db.Uuid
-  email                                                    String             @unique @db.VarChar(150)
-  password_hash                                            String             @db.VarChar(255)
-  rol                                                      rol_usuario_enum
-  activo                                                   Boolean            @default(true)
-  deleted_at                                               DateTime?          @db.Timestamptz(6)
-  ultimo_acceso                                            DateTime?          @db.Timestamptz(6)
-  created_at                                               DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at                                               DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
-  anotacion_tareas                                         anotacion_tareas[]
-  audit_log                                                audit_log[]
-  tareas_asistente_tareas_asistente_asignado_aTousuarios   tareas_asistente[] @relation("tareas_asistente_asignado_aTousuarios")
-  tareas_asistente_tareas_asistente_asignado_porTousuarios tareas_asistente[] @relation("tareas_asistente_asignado_porTousuarios")
-  tokens_seguridad                                         tokens_seguridad[]
-  empleados                                                empleados          @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuarios_empleado")
-  solicitudes_revisadas                                    solicitud[]        @relation("ResponsableRevision")
-
-  @@index([activo], map: "idx_usuarios_activo", where: raw("(activo = true)"))
-  @@index([deleted_at], map: "idx_usuarios_deleted", where: raw("(deleted_at IS NULL)"))
-  @@index([email], map: "idx_usuarios_email")
-  @@index([empleado_id], map: "idx_usuarios_empleado")
-}
-
-model tokens_seguridad {
-  id         String   @id @db.Uuid
-  usuario_id String   @db.Uuid
-  token_hash String   @db.VarChar(255)
-  proposito  String   @db.VarChar(50)
-  expira_en  DateTime @db.Timestamptz(6)
-  usado      Boolean  @default(false)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  usuarios   usuarios @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tokens_usuario")
-
-  @@index([id], map: "idx_tokens_activos", where: raw("(usado = false)"))
-  @@index([usuario_id, proposito], map: "idx_tokens_usuario")
-}
-
-model audit_log {
-  id              String    @id @db.Uuid
-  usuario_id      String?   @db.Uuid
-  accion          String    @db.VarChar(100)
-  tabla_afectada  String    @db.VarChar(100)
-  registro_id     String    @db.Uuid
-  valores_antes   Json?
-  valores_despues Json?
-  direccion_ip    String    @db.Inet
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
-  usuarios        usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_log_usuario")
-
-  @@index([created_at(sort: Desc)], map: "idx_audit_log_fecha")
-  @@index([tabla_afectada], map: "idx_audit_log_tabla")
-  @@index([usuario_id], map: "idx_audit_log_usuario")
+  @@map("cargo")
 }
 
 model jornada {
@@ -407,91 +92,236 @@ model jornada_area {
   @@map("jornada_area")
 }
 
-model asistencia_marcacion {
-  id             String              @id @db.Uuid
-  empleado_id    String              @db.Uuid
-  fecha_hora     DateTime            @db.Timestamptz(6)
-  tipo_marcacion tipo_marcacion_enum
-  metodo         String              @db.VarChar(50)
-  creado_en      DateTime            @default(now()) @db.Timestamptz(6)
-  empleados      empleados           @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_asistencia_empleado")
+// =========================================================================
+// MÓDULO DE IDENTIFICACIÓN, CATÁLOGOS Y BANCOS
+// =========================================================================
 
-  @@index([empleado_id, fecha_hora], map: "idx_asistencia_emp_fecha")
+model tipo_documento {
+  id               String             @id @db.Uuid
+  tipo_documento   String             @unique @db.VarChar(100)
+  empleados        empleados[]
+  derechohabientes derechohabientes[]
+
+  @@map("tipo_documento")
 }
 
-model incidencias_mes {
-  id               String                 @id @db.Uuid
-  empleado_id      String                 @db.Uuid
-  periodo          String                 @db.VarChar(7)
-  dias_trabajados  Int                    @default(0)
-  faltas           Int                    @default(0)
-  minutos_tardanza Int                    @default(0)
-  horas_extras_25  Decimal                @default(0.0000) @db.Decimal(12, 4)
-  horas_extras_35  Decimal                @default(0.0000) @db.Decimal(12, 4)
-  estado           estado_incidencia_enum @default(PENDIENTE)
-  creado_en        DateTime               @default(now()) @db.Timestamptz(6)
-  actualizado_en   DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
-  empleados        empleados              @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_empleado")
+model bancos {
+  id             String            @id @db.Uuid
+  nombre         String            @db.VarChar(100)
+  cuentas_sueldo dato_financiero[] @relation("BancoSueldo")
+  cuentas_cts    dato_financiero[] @relation("BancoCTS")
 
-  @@unique([empleado_id, periodo], map: "uq_incidencia_periodo")
+  @@map("bancos")
 }
 
-model solicitud {
-  id          String          @id @db.Uuid
-  codigo      String          @unique @db.VarChar(20)
-  empleado_id String          @db.Uuid
-  tipo        TipoSolicitud
-  estado      EstadoSolicitud @default(PENDIENTE)
+model estado_contrato {
+  id        String      @id @db.Uuid
+  nombre    String      @db.VarChar(100)
+  contratos contratos[]
 
-  fecha_inicio     DateTime? @db.Date
-  fecha_fin        DateTime? @db.Date
-  dias_solicitados Int?      @default(1)
+  @@map("estado_contrato")
+}
 
-  motivo      String  @db.Text
-  observacion String? @db.Text
+// =========================================================================
+// MÓDULO PREVISIONAL (AFP / ONP) Y PARÁMETROS LEGALES
+// =========================================================================
 
-  sustento_url    String? @db.VarChar(255)
-  sustento_nombre String? @db.VarChar(150)
+model regimen_pension {
+  id              String            @id @db.Uuid
+  nombre          String            @db.VarChar(100) // 'ONP', 'SPP / AFP'
+  dato_financiero dato_financiero[]
+  tipo_afp        tipo_afp[]
 
-  responsable_id String?   @db.Uuid
-  fecha_limite   DateTime? @db.Date
-  origen         String    @default("PORTAL_EMPLEADO") @db.VarChar(50)
+  @@map("regimen_pension")
+}
 
+model tipo_afp {
+  id              String            @id @db.Uuid
+  id_regimen      String            @db.Uuid
+  nombre          String            @db.VarChar(100) // 'INTEGRA', 'PRIMA', 'HABITAT', 'PROFUTURO'
+  comisiones_afp  comisiones_afp[]
+  dato_financiero dato_financiero[]
+  regimen_pension regimen_pension   @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tipo_afp_regimen")
+
+  @@index([id_regimen], map: "idx_tipo_afp_regimen")
+  @@map("tipo_afp")
+}
+
+model comisiones_afp {
+  id                 String    @id @db.Uuid
+  afp_id             String    @db.Uuid
+  aporte_obligatorio Decimal   @default(10.0000) @db.Decimal(6, 4)
+  comision_sobre_ra  Decimal   @default(0.0000) @db.Decimal(6, 4)
+  prima_seguro       Decimal   @default(0.0000) @db.Decimal(6, 4)
+  comision_mixta     Decimal   @default(0.0000) @db.Decimal(6, 4)
+  periodo_inicio     DateTime  @db.Date
+  periodo_final      DateTime? @db.Date // null indica vigencia activa actual
+  tipo_afp           tipo_afp  @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
+
+  @@index([afp_id, periodo_inicio], map: "idx_comisiones_afp_fechas")
+  @@map("comisiones_afp")
+}
+
+model parametro_legal {
+  id            String    @id @db.Uuid
+  codigo        String    @db.VarChar(50) // 'RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'DIVISOR_HORAS_MES', 'TOPE_SEGURO_AFP'
+  nombre        String    @db.VarChar(100)
+  valor         Decimal   @db.Decimal(12, 4)
+  vigente_desde DateTime  @db.Date
+  vigente_hasta DateTime? @db.Date // null indica vigencia activa actual
+  descripcion   String?   @db.VarChar(255)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@unique([codigo, vigente_desde], map: "uq_parametro_codigo_vigencia")
+  @@index([codigo, vigente_desde, vigente_hasta], map: "idx_parametro_busqueda")
+  @@map("parametro_legal")
+}
+
+// =========================================================================
+// MÓDULO DEL COLABORADOR Y EXPEDIENTE
+// =========================================================================
+
+model empleados {
+  id                  String                @id @db.Uuid
+  cargo_id            String                @db.Uuid
+  area_id             String                @db.Uuid
+  documento_id        String                @db.Uuid
+  jornada_id          String?               @db.Uuid
+  estado_laboral      estado_empleado_enum  @default(ACTIVO)
+  nombre              String?               @db.VarChar(100)
+  apellido            String?               @db.VarChar(100)
+  nro_documento       String                @unique @db.VarChar(20)
+  email               String?               @db.VarChar(150)
+  telefono            String?               @db.VarChar(20)
+
+  // Identidad y filiación civil
+  sexo                sexo_enum?
+  estado_civil        estado_civil_enum     @default(SOLTERO)
+  nacionalidad        String                @default("PERUANA") @db.VarChar(50)
+  fecha_nacimiento    DateTime?             @db.Date
+
+  // Domicilio y Ubigeo (SUNAT)
+  direccion            String?              @db.VarChar(255)
+  referencia_direccion String?              @db.VarChar(255)
+  ubigeo               String?              @db.VarChar(6)
+  distrito             String?              @db.VarChar(100)
+  provincia            String?              @db.VarChar(100)
+  departamento         String?              @db.VarChar(100)
+
+  // Vínculo laboral
+  fecha_inicio          DateTime?                  @db.Date
+  fecha_cese            DateTime?                  @db.Date
+  afp_fecha_filiacion   DateTime?                  @db.Date
+  asig_familiar         Boolean                    @default(false)
+  activo                Boolean                    @default(true)
+  deleted_at            DateTime?                  @db.Timestamptz(6)
+  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
+  estado_sincronizacion estado_sincronizacion_enum @default(COMPLETO)
+
+  // Relaciones
+  asistencias         asistencia_marcacion[]
+  contratos           contratos[]
+  dato_financiero     dato_financiero?
+  derechohabientes    derechohabientes[]
+  area                area                       @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_area")
+  cargo               cargo                      @relation(fields: [cargo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_cargo")
+  jornada             jornada?                   @relation(fields: [jornada_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_jornada")
+  tipo_documento      tipo_documento             @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_empleado_tipo_documento")
+  historial_planillas historial_planillas[]
+  incidencias         incidencias_mes[]
+  usuarios            usuarios?
+  solicitudes         solicitud[]
+
+  @@index([activo], map: "idx_empleado_activo", where: raw("(activo = true)"))
+  @@index([estado_laboral], map: "idx_empleado_estado_laboral")
+  @@index([area_id], map: "idx_empleado_area")
+  @@index([cargo_id], map: "idx_empleado_cargo")
+  @@index([deleted_at], map: "idx_empleado_deleted", where: raw("(deleted_at IS NULL)"))
+  @@map("empleados")
+}
+
+model contratos {
+  id             String          @id @db.Uuid
+  empleado_id    String          @db.Uuid
+  id_estado      String          @db.Uuid
+  tipo_modalidad String?         @db.VarChar(100)
+  fecha_inicio   DateTime        @db.Date
+  fecha_fin      DateTime?       @db.Date
+  renovado       Boolean         @default(false)
+  observacion    String?
+  deleted_at     DateTime?       @db.Timestamptz(6)
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  url            String?         @db.VarChar(225)
+  empleados      empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
+  estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
+
+  @@index([deleted_at], map: "idx_contratos_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([empleado_id], map: "idx_contratos_empleado")
+  @@map("contratos")
+}
+
+model dato_financiero {
+  id            String  @id @db.Uuid
+  empleado_id   String  @unique @db.Uuid
+  id_regimen    String  @db.Uuid
+  id_tipo_afp   String? @db.Uuid
+  sueldo_basico Decimal @default(0) @db.Decimal(12, 4)
+  cuspp         String? @db.VarChar(20)
+  tipo_comision String? @db.VarChar(50)
+
+  // Cuenta de Pago de Sueldo
+  id_banco_sueldo    String?                    @db.Uuid
+  tipo_cuenta_sueldo tipo_cuenta_bancaria_enum @default(SUELDO)
+  nro_cuenta_sueldo  String?                    @db.VarChar(255)
+  cci_sueldo         String?                    @db.VarChar(255)
+
+  // Cuenta de Depósito de CTS
+  id_banco_cts    String?                    @db.Uuid
+  tipo_cuenta_cts tipo_cuenta_bancaria_enum @default(AHORROS)
+  nro_cuenta_cts  String?                    @db.VarChar(255)
+  cci_cts         String?                    @db.VarChar(255)
+
+  // Régimen de Salud (EsSalud / EPS)
+  regimen_salud       regimen_salud_enum @default(ESSALUD_REGULAR)
+  eps_nombre          String?            @db.VarChar(100)
+  eps_plan            String?            @db.VarChar(100)
+  eps_costo_adicional Decimal            @default(0.0000) @db.Decimal(10, 4)
+
+  deleted_at DateTime? @db.Timestamptz(6)
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
-  deleted_at DateTime? @db.Timestamptz(6)
 
-  empleados   empleados @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_empleado")
-  responsable usuarios? @relation("ResponsableRevision", fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_responsable")
+  banco_sueldo    bancos?         @relation("BancoSueldo", fields: [id_banco_sueldo], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_df_banco_sueldo")
+  banco_cts       bancos?         @relation("BancoCTS", fields: [id_banco_cts], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_df_banco_cts")
+  empleados       empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_empleado")
+  regimen_pension regimen_pension @relation(fields: [id_regimen], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_regimen")
+  tipo_afp        tipo_afp?       @relation(fields: [id_tipo_afp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dato_financiero_tipo_afp")
 
-  @@index([empleado_id], map: "idx_solicitud_empleado")
-  @@index([estado], map: "idx_solicitud_estado")
-  @@index([tipo], map: "idx_solicitud_tipo")
-  @@map("solicitud")
+  @@index([empleado_id], map: "idx_dato_fin_empleado")
+  @@map("dato_financiero")
 }
 
 model derechohabientes {
-  id               String                @id @db.Uuid
-  empleado_id      String                @db.Uuid
-  documento_id     String                @db.Uuid
-  nro_documento    String                @db.VarChar(20)
-  nombres          String                @db.VarChar(100)
-  apellidos        String                @db.VarChar(100)
-  vinculo          vinculo_familiar_enum
-  estado_civil     estado_civil_enum @default(SOLTERO)
-  sexo             sexo_enum
-  fecha_nacimiento DateTime              @db.Date
-
-  // Acreditación ante EsSalud / EPS
-  acreditado_essalud Boolean   @default(false)
-  fecha_alta_seguro  DateTime? @db.Date
+  id                 String                @id @db.Uuid
+  empleado_id        String                @db.Uuid
+  documento_id       String                @db.Uuid
+  nro_documento      String                @db.VarChar(20)
+  nombres            String                @db.VarChar(100)
+  apellidos          String                @db.VarChar(100)
+  vinculo            vinculo_familiar_enum
+  estado_civil       estado_civil_enum     @default(SOLTERO)
+  sexo               sexo_enum
+  fecha_nacimiento   DateTime              @db.Date
+  acreditado_essalud Boolean               @default(false)
+  fecha_alta_seguro  DateTime?             @db.Date
 
   activo     Boolean   @default(true)
   deleted_at DateTime? @db.Timestamptz(6)
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
 
-  // Relaciones
   empleados      empleados                    @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dh_empleado")
   tipo_documento tipo_documento               @relation(fields: [documento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dh_tipo_doc")
   documentos     derechohabiente_documentos[]
@@ -501,22 +331,6 @@ model derechohabientes {
   @@index([activo], map: "idx_dh_activo", where: raw("(activo = true)"))
   @@index([deleted_at], map: "idx_dh_deleted", where: raw("(deleted_at IS NULL)"))
   @@map("derechohabientes")
-}
-
-model parametro_legal {
-  id             String    @id @db.Uuid
-  codigo         String    @db.VarChar(50) // 'RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'TOPE_SEGURO_AFP'
-  nombre         String    @db.VarChar(100) // 'Remuneración Mínima Vital'
-  valor          Decimal   @db.Decimal(12, 4)
-  vigente_desde  DateTime  @db.Date
-  vigente_hasta  DateTime? @db.Date // null indica vigencia activa actual
-  descripcion    String?   @db.VarChar(255)
-  created_at     DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
-
-  @@unique([codigo, vigente_desde], map: "uq_parametro_codigo_vigencia")
-  @@index([codigo, vigente_desde, vigente_hasta], map: "idx_parametro_busqueda")
-  @@map("parametro_legal")
 }
 
 model derechohabiente_documentos {
@@ -541,7 +355,250 @@ model derechohabiente_documentos {
   @@map("derechohabiente_documentos")
 }
 
-// Enumerable de la duracion de jornada
+// =========================================================================
+// MÓDULO DE ASISTENCIA, INCIDENCIAS Y SOLICITUDES
+// =========================================================================
+
+model asistencia_marcacion {
+  id             String              @id @db.Uuid
+  empleado_id    String              @db.Uuid
+  fecha_hora     DateTime            @db.Timestamptz(6)
+  tipo_marcacion tipo_marcacion_enum
+  metodo         String              @db.VarChar(50) // 'MANUAL', 'BIOMETRICO', 'WEB'
+  creado_en      DateTime            @default(now()) @db.Timestamptz(6)
+  empleados      empleados           @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_asistencia_empleado")
+
+  @@index([empleado_id, fecha_hora], map: "idx_asistencia_emp_fecha")
+  @@map("asistencia_marcacion")
+}
+
+model incidencias_mes {
+  id               String                 @id @db.Uuid
+  empleado_id      String                 @db.Uuid
+  periodo          String                 @db.VarChar(7) // 'YYYY-MM'
+  dias_trabajados  Int                    @default(0)
+  faltas           Int                    @default(0)
+  minutos_tardanza Int                    @default(0)
+  horas_extras_25  Decimal                @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_35  Decimal                @default(0.0000) @db.Decimal(12, 4)
+  estado           estado_incidencia_enum @default(PENDIENTE)
+  creado_en        DateTime               @default(now()) @db.Timestamptz(6)
+  actualizado_en   DateTime               @default(now()) @updatedAt @db.Timestamptz(6)
+  empleados        empleados              @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_empleado")
+
+  @@unique([empleado_id, periodo], map: "uq_incidencia_periodo")
+  @@map("incidencias_mes")
+}
+
+model solicitud {
+  id               String          @id @db.Uuid
+  codigo           String          @unique @db.VarChar(20)
+  empleado_id      String          @db.Uuid
+  tipo             TipoSolicitud
+  estado           EstadoSolicitud @default(PENDIENTE)
+
+  fecha_inicio     DateTime?       @db.Date
+  fecha_fin        DateTime?       @db.Date
+  dias_solicitados Int?            @default(1)
+  monto            Decimal?        @db.Decimal(12, 4) // Solo aplica para ADELANTO_SUELDO
+
+  motivo           String          @db.Text
+  observacion      String?         @db.Text
+  sustento_url     String?         @db.VarChar(255)
+  sustento_nombre  String?         @db.VarChar(150)
+
+  responsable_id   String?         @db.Uuid
+  fecha_limite     DateTime?       @db.Date
+  origen           String          @default("PORTAL_EMPLEADO") @db.VarChar(50)
+
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+  deleted_at       DateTime?       @db.Timestamptz(6)
+
+  empleados   empleados @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_empleado")
+  responsable usuarios? @relation("ResponsableRevision", fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_responsable")
+
+  @@index([empleado_id], map: "idx_solicitud_empleado")
+  @@index([estado], map: "idx_solicitud_estado")
+  @@index([tipo], map: "idx_solicitud_tipo")
+  @@map("solicitud")
+}
+
+// =========================================================================
+// MÓDULO DE LIQUIDACIÓN Y PLANILLA MENSUAL
+// =========================================================================
+
+model historial_planillas {
+  id                     String               @id @db.Uuid
+  empleado_id            String               @db.Uuid
+  periodo                String               @db.VarChar(7) // 'YYYY-MM'
+  dias_laborados         Int                  @default(30)
+
+  // Ingresos ordinarios y extraordinarios
+  sueldo_base            Decimal              @default(0.0000) @db.Decimal(12, 4)
+  asignacion_familia     Decimal              @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_25        Decimal              @default(0.0000) @db.Decimal(12, 4)
+  horas_extras_35        Decimal              @default(0.0000) @db.Decimal(12, 4)
+  recargo_nocturno       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  gratificacion          Decimal              @default(0.0000) @db.Decimal(12, 4) // Ley 27735 (Julio / Diciembre)
+  bonif_extraordinaria   Decimal              @default(0.0000) @db.Decimal(12, 4) // Ley 30334 (9% o 6.75% EPS)
+
+  // Descuentos por ausentismo
+  descuento_faltas       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_tardanzas    Decimal              @default(0.0000) @db.Decimal(12, 4)
+
+  // Retenciones previsionales del trabajador
+  descuento_onp          Decimal              @default(0.0000) @db.Decimal(12, 4) // D.L. 19990 (13%)
+  descuento_afp_fondo    Decimal              @default(0.0000) @db.Decimal(12, 4) // Fondo Obligatorio (10%)
+  descuento_afp_seguro   Decimal              @default(0.0000) @db.Decimal(12, 4) // Prima de Seguro
+  descuento_afp_comision Decimal              @default(0.0000) @db.Decimal(12, 4) // Flujo o Mixta
+  tasa_afp_aplicada      Decimal?             @db.Decimal(6, 4) // Nullable si está en ONP
+
+  // Descuentos adicionales y tributarios
+  descuento_quinta       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  descuento_adelanto     Decimal              @default(0.0000) @db.Decimal(12, 4) // Quincena o adelanto solicitado
+  descuento_eps          Decimal              @default(0.0000) @db.Decimal(12, 4)
+
+  // Aportes asumidos por la empresa (No descuentan del sueldo)
+  aporte_essalud         Decimal              @default(0.0000) @db.Decimal(12, 4) // 9% o crédito EPS
+
+  // Totales
+  total_ingresos         Decimal              @default(0.0000) @db.Decimal(12, 4)
+  total_descuentos       Decimal              @default(0.0000) @db.Decimal(12, 4)
+  neto_a_pagar           Decimal              @default(0.0000) @db.Decimal(12, 4)
+
+  estado                 estado_planilla_enum @default(ABIERTO)
+  comentarios            String?
+  activo                 Boolean              @default(true)
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  deleted_at             DateTime?            @db.Timestamptz(6)
+  empleados              empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_empleado")
+
+  @@unique([empleado_id, periodo], map: "uq_empleado_periodo")
+  @@index([periodo, estado], map: "idx_planilla_periodo_estado")
+  @@map("historial_planillas")
+}
+
+// =========================================================================
+// MÓDULO DE USUARIOS, AUDITORÍA Y SEGURIDAD
+// =========================================================================
+
+model usuarios {
+  id             String           @id @db.Uuid
+  empleado_id    String           @unique @db.Uuid
+  email          String           @unique @db.VarChar(150)
+  password_hash  String           @db.VarChar(255)
+  rol            rol_usuario_enum
+  activo         Boolean          @default(true)
+  deleted_at     DateTime?        @db.Timestamptz(6)
+  ultimo_acceso  DateTime?        @db.Timestamptz(6)
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
+
+  anotacion_tareas                                         anotacion_tareas[]
+  audit_log                                                audit_log[]
+  tareas_asistente_tareas_asistente_asignado_aTousuarios   tareas_asistente[] @relation("tareas_asistente_asignado_aTousuarios")
+  tareas_asistente_tareas_asistente_asignado_porTousuarios tareas_asistente[] @relation("tareas_asistente_asignado_porTousuarios")
+  tokens_seguridad                                         tokens_seguridad[]
+  empleados                                                empleados          @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuarios_empleado")
+  solicitudes_revisadas                                    solicitud[]        @relation("ResponsableRevision")
+
+  @@index([activo], map: "idx_usuarios_activo", where: raw("(activo = true)"))
+  @@index([deleted_at], map: "idx_usuarios_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([email], map: "idx_usuarios_email")
+  @@index([empleado_id], map: "idx_usuarios_empleado")
+  @@map("usuarios")
+}
+
+model tokens_seguridad {
+  id         String   @id @db.Uuid
+  usuario_id String   @db.Uuid
+  token_hash String   @db.VarChar(255)
+  proposito  String   @db.VarChar(50)
+  expira_en  DateTime @db.Timestamptz(6)
+  usado      Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  usuarios   usuarios @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tokens_usuario")
+
+  @@index([id], map: "idx_tokens_activos", where: raw("(usado = false)"))
+  @@index([usuario_id, proposito], map: "idx_tokens_usuario")
+  @@map("tokens_seguridad")
+}
+
+model audit_log {
+  id              String    @id @db.Uuid
+  usuario_id      String?   @db.Uuid
+  accion          String    @db.VarChar(100)
+  tabla_afectada  String    @db.VarChar(100)
+  registro_id     String    @db.Uuid
+  valores_antes   Json?
+  valores_despues Json?
+  direccion_ip    String    @db.Inet
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  usuarios        usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_log_usuario")
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_log_fecha")
+  @@index([tabla_afectada], map: "idx_audit_log_tabla")
+  @@index([usuario_id], map: "idx_audit_log_usuario")
+  @@map("audit_log")
+}
+
+model tareas_asistente {
+  id               String            @id @db.Uuid
+  asignado_a       String            @db.Uuid
+  asignado_por     String            @db.Uuid
+  titulo           String            @db.VarChar(200)
+  descripcion      String?
+  fecha_entrega    DateTime?         @db.Date
+  estado           estado_tarea_enum @default(PENDIENTE)
+  anotaciones      String?
+  deleted_at       DateTime?         @db.Timestamptz(6)
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
+
+  anotacion_tareas                               anotacion_tareas[]
+  usuarios_tareas_asistente_asignado_aTousuarios usuarios           @relation("tareas_asistente_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_a")
+  usuarios_tareas_asistente_asignado_porTousuarios usuarios         @relation("tareas_asistente_asignado_porTousuarios", fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tareas_asignado_por")
+
+  @@index([asignado_a], map: "idx_tareas_asignado_a")
+  @@index([deleted_at], map: "idx_tareas_deleted", where: raw("(deleted_at IS NULL)"))
+  @@index([estado], map: "idx_tareas_estado")
+  @@map("tareas_asistente")
+}
+
+model anotacion_tareas {
+  id               String           @id @db.Uuid
+  tarea_id         String           @db.Uuid
+  asignado_por     String           @db.Uuid
+  descripcion      String
+  deleted_at       DateTime?        @db.Timestamptz(6)
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+
+  tareas_asistente tareas_asistente @relation(fields: [tarea_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_tarea")
+  usuarios         usuarios         @relation(fields: [asignado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anotacion_tareas_usuario")
+
+  @@map("anotacion_tareas")
+}
+
+model CargaMasivaJob {
+  id               String          @id @db.Uuid
+  usuario_id       String          @db.Uuid
+  total_registros  Int             @default(0)
+  procesados       Int             @default(0)
+  fallidos         Int             @default(0)
+  errores_detalle  Json?
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+  estado           estado_job_enum @default(EN_COLA)
+
+  @@map("carga_masiva_jobs")
+}
+
+// =========================================================================
+// ENUMERADORES (POSTGRESQL NATIVOS)
+// =========================================================================
+
 enum duracion_jornada_enum {
   TIEMPO_COMPLETO
   TIEMPO_PARCIAL
@@ -669,4 +726,13 @@ enum tipo_sustento_familiar_enum {
   CONSTANCIA_ESTUDIOS
   CERTIFICADO_INCAPACIDAD
   OTRO
+}
+
+enum estado_empleado_enum {
+  ACTIVO
+  VACACIONES
+  LICENCIA
+  CESADO
+  DESPEDIDO
+  SUSPENDIDO
 }

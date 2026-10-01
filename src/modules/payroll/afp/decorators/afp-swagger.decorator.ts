@@ -1,14 +1,6 @@
 //src/modules/afp/decorators/afp-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBody,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-  ApiExtension,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiExtension } from '@nestjs/swagger';
 
 /**
  * Decoradores de Swagger para el módulo de AFP.
@@ -24,89 +16,6 @@ export function ApiSwaggerAfpController() {
   );
 }
 
-//========================================================
-//APORTACIONES
-//========================================================
-export function ApiSwaggerAportacionCrear() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Registrar Aportación',
-      description:
-        'Registra un nuevo aporte o fondo para una AFP específica. Requiere permisos de administrador o contador.',
-    }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['nombre', 'afp_id', 'cantidad'],
-        properties: {
-          nombre: { type: 'string', example: 'Aporte Voluntario 2026' },
-          afp_id: { type: 'string', format: 'uuid' },
-          cantidad: { type: 'number', example: 150.5 },
-        },
-      },
-    }),
-    ApiResponse({
-      status: 201,
-      description: 'Aportación registrada exitosamente.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Error de validación o datos duplicados.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT inválido o ausente.',
-    }),
-    ApiResponse({
-      status: 403,
-      description:
-        'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 500,
-      description:
-        'Error interno del servidor al intentar registrar la aportación.',
-    }),
-  );
-}
-
-export function ApiSwaggerAportacionListar() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Listar Aportaciones',
-      description:
-        'Obtiene el listado paginado de aportaciones. Requiere permisos de administrador, contador, asistente, RRHH.',
-    }),
-    ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
-    ApiQuery({ name: 'limit', required: false, type: Number, example: 50 }),
-    ApiQuery({
-      name: 'afp_id',
-      required: false,
-      type: 'string',
-      format: 'uuid',
-      description: 'Filtrar por AFP',
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Listado de aportaciones obtenido exitosamente.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT inválido o ausente.',
-    }),
-    ApiResponse({
-      status: 403,
-      description:
-        'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 500,
-      description:
-        'Error interno del servidor al intentar obtener el listado de aportaciones.',
-    }),
-  );
-}
-
 // ========================================================
 // COMISIONES (Tasas SBS)
 // ========================================================
@@ -114,8 +23,7 @@ export function ApiSwaggerComisionCrear() {
   return applyDecorators(
     ApiOperation({
       summary: 'Registrar nueva Comisión',
-      description:
-        'Abre un nuevo periodo de tasas y cierra el anterior (SCD Tipo 2). Requiere permisos de administrador o contador.',
+      description: 'Abre un nuevo periodo de tasas y cierra el anterior (SCD Tipo 2). Requiere permisos de administrador o contador.',
     }),
     ApiBody({
       schema: {
@@ -171,8 +79,7 @@ export function ApiSwaggerComisionCrear() {
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
+      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
     }),
     ApiResponse({
       status: 404,
@@ -180,8 +87,7 @@ export function ApiSwaggerComisionCrear() {
     }),
     ApiResponse({
       status: 500,
-      description:
-        'Error interno del servidor al intentar registrar la comisión.',
+      description: 'Error interno del servidor al intentar registrar la comisión.',
     }),
   );
 }
@@ -190,8 +96,7 @@ export function ApiSwaggerComisionListar() {
   return applyDecorators(
     ApiOperation({
       summary: 'Listar Comisiones',
-      description:
-        'Obtiene el historial de tasas. Filtre por vigentes para el cálculo de planillas. Requiere permisos de administrador, contador, asistente o RRHH.',
+      description: 'Obtiene el historial de tasas. Filtre por vigentes para el cálculo de planillas. Requiere permisos de administrador, contador, asistente o RRHH.',
     }),
     ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
     ApiQuery({ name: 'limit', required: false, type: Number, example: 50 }),
@@ -218,13 +123,11 @@ export function ApiSwaggerComisionListar() {
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
+      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
     }),
     ApiResponse({
       status: 500,
-      description:
-        'Error interno del servidor al intentar obtener el listado de comisiones.',
+      description: 'Error interno del servidor al intentar obtener el listado de comisiones.',
     }),
   );
 }
@@ -236,8 +139,7 @@ export function ApiSwaggerTipoAfpCrear() {
   return applyDecorators(
     ApiOperation({
       summary: 'Crear Tipo de AFP',
-      description:
-        'Registra una nueva Administradora (Ej. Integra, Prima). Requiere permisos de administrador o contador.',
+      description: 'Registra una nueva Administradora (Ej. Integra, Prima). Requiere permisos de administrador o contador.',
     }),
     ApiBody({
       schema: {
@@ -267,13 +169,11 @@ export function ApiSwaggerTipoAfpCrear() {
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
+      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
     }),
     ApiResponse({
       status: 500,
-      description:
-        'Error interno del servidor al intentar registrar el tipo de AFP.',
+      description: 'Error interno del servidor al intentar registrar el tipo de AFP.',
     }),
   );
 }
@@ -293,13 +193,11 @@ export function ApiSwaggerTipoAfpListar() {
     }),
     ApiResponse({
       status: 403,
-      description:
-        'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
+      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
     }),
     ApiResponse({
       status: 500,
-      description:
-        'Error interno del servidor al intentar obtener el listado de tipos de AFP.',
+      description: 'Error interno del servidor al intentar obtener el listado de tipos de AFP.',
     }),
   );
 }
