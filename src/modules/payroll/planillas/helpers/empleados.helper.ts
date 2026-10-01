@@ -1,6 +1,7 @@
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { NotFoundException } from "@nestjs/common";
 import { ServerTime } from "@/common/utils/server-time";
+import { IdentityGenerator } from "@/common/utils/uuid.util";
 
 export async function traerDatosEmpleado( prisma: PrismaService, idEmpleado:string){
     const empleado = prisma.empleados.findUnique({
@@ -61,9 +62,7 @@ function obtener_incidencias(prisma: PrismaService, idEmpleado: string){
         }
     });
 }
-function crearIncidencia(prisma: PrismaService, idEmpleado: string){
 
-}
 //obtener datos financiero de empleado, obtner datos financieros de empleados
 export async function getDatosFinancierosEmpleado(
   prisma: PrismaService,
@@ -119,19 +118,48 @@ export async function getDatosFinancierosEmpleado(
     },
   });
 }
-function traerAportaciones(prisma: PrismaService){
-    return prisma.aportaciones.findFirst({
-        select:{
-            cantidad:true,
-            nombre:true,
-        },
-    });
-}
-//obtener cantidad de habientes, la cantidad de familiares que tiene el empleado
-function derechos_habientes(prisma: PrismaService, idEmpleado: string){
-    return prisma.derechohabiente_documentos.count({
+//Crear funcion de parametros legales
+export async function guardarHistoriaPlanillas(prisma: PrismaService,emp: any, datosPlanillas: any){
+    //traer los datos para histroial
+    const {
+    sueldo_base = 0,
+    asignacion_familia = 0,
+    horas_extras_25 = 0,
+    horas_extras_35 = 0,
+    recargo_nocturno = 0,
+    descuento_afp_fondo = 0,
+    descuento_afp_seguro = 0,
+    descuento_afp_comision = 0,
+    descuento_quinta = 0,
+    tasa_afp_aplicada = 0,
+    aporte_essalud = 0,
+    total_ingresos = 0,
+    total_descuentos = 0,
+    neto_a_pagar = 0,
+    } = datosPlanillas;
 
-    });
+  prisma.historial_planillas.create({
+    data:{
+        id: IdentityGenerator.generateId(),
+        empleado_id: emp.id,
+        periodo: ServerTime.obtenerPeriodoActual,
+        estado:'ABIERTO',
+        sueldo_base,
+        asignacion_familia,
+        horas_extras_25,
+        horas_extras_35,
+        recargo_nocturno,
+        descuento_afp_fondo,
+        descuento_afp_seguro,
+        descuento_afp_comision,
+        descuento_quinta,
+        tasa_afp_aplicada,
+        aporte_essalud,
+        total_ingresos,
+        total_descuentos,
+        neto_a_pagar,
+    }
+  })
 }
 
 export function traerEmpleadosArea(prisma: PrismaService, idArea: string, cantidadLote: number){
