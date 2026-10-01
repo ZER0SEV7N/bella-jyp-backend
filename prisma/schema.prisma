@@ -418,6 +418,7 @@ model asistencia_marcacion {
 
   @@index([empleado_id, fecha_hora], map: "idx_asistencia_emp_fecha")
 }
+
 model incidencias_mes {
   id               String                 @id @db.Uuid
   empleado_id      String                 @db.Uuid
