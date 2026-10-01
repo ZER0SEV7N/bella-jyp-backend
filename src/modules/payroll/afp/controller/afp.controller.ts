@@ -1,14 +1,6 @@
 //src/modules/afp/controller/afp.controller.ts
 //Importaciones de NestJS y commons:
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Query,
-  UseGuards,
-  UsePipes,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, UsePipes } from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -22,32 +14,10 @@ import { ListarAportacionesUseCase } from '../use-cases/aportacion/listarAportac
 import { ListarComisionesUseCase } from '../use-cases/comision/listarComision.useCase';
 import { ListarTiposAfpUseCase } from '../use-cases/tipo-afp/listarTipoAfp.useCase';
 //Schemas y DTOs:
-import {
-  CrearTipoAfpSchema,
-  CrearComisionSchema,
-  CrearAportacionSchema,
-  ListarTiposAfpQuerySchema,
-  ListarComisionesQuerySchema,
-  ListarAportacionesQuerySchema,
-} from '@jyp/shared-contracts';
-import type {
-  CrearTipoAfpDto,
-  CrearComisionDto,
-  AportacionDto,
-  ListarTiposAfpQueryDto,
-  ListarComisionesQueryDto,
-  ListarAportacionesQueryDto,
-} from '@jyp/shared-contracts';
+import { CrearTipoAfpSchema, CrearComisionSchema, CrearAportacionSchema, ListarTiposAfpQuerySchema, ListarComisionesQuerySchema, ListarAportacionesQuerySchema } from '@jyp/shared-contracts';
+import type { CrearTipoAfpDto, CrearComisionDto, AportacionDto, ListarTiposAfpQueryDto, ListarComisionesQueryDto, ListarAportacionesQueryDto } from '@jyp/shared-contracts';
 //Swagger decorators:
-import {
-  ApiSwaggerAfpController,
-  ApiSwaggerAportacionCrear,
-  ApiSwaggerAportacionListar,
-  ApiSwaggerComisionCrear,
-  ApiSwaggerComisionListar,
-  ApiSwaggerTipoAfpCrear,
-  ApiSwaggerTipoAfpListar,
-} from '../decorators/afp-swagger.decorator';
+import { ApiSwaggerAfpController, ApiSwaggerAportacionCrear, ApiSwaggerAportacionListar, ApiSwaggerComisionCrear, ApiSwaggerComisionListar, ApiSwaggerTipoAfpCrear, ApiSwaggerTipoAfpListar } from '../decorators/afp-swagger.decorator';
 /**
  * Controlador de AFP.
  * Este controlador maneja las operaciones relacionadas con las AFP, incluyendo la creación de aportaciones, comisiones y tipos de AFP.

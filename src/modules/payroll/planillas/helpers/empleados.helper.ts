@@ -3,7 +3,7 @@ import { NotFoundException } from "@nestjs/common";
 import { ServerTime } from "@/common/utils/server-time";
 
 export async function traerDatosEmpleado( prisma: PrismaService, idEmpleado:string){
-    const empleado = prisma.empleados.findUnique({
+    const empleado = await prisma.empleados.findUnique({
         where :{
             id: idEmpleado,
             activo:true,
@@ -17,30 +17,20 @@ export async function traerDatosEmpleado( prisma: PrismaService, idEmpleado:stri
             afp_fecha_filiacion:true,
             fecha_inicio:true,
             asig_familiar: true,
-            estado_empleado:{
-                select:{
-                    descripcion:true,
-                }
-            },
-            area:{
-                select:{
-                    nombre: true,
-                }
-            },
+            estado_empleado:{ select:{ descripcion:true} },
+            area:{ select: {nombre: true } },
             jornada:{
                 select:{
                     duracion: true,
                     modalidad:true,
-                    total_horas_semana: true, 
+                    total_horas_semana: true
                 }
-            },
+            }
         }
     });
     
-    if (!empleado) {
-        throw new NotFoundException("Emepleado no encontrado o incativo");
-    }
-
+    if (!empleado) throw new NotFoundException("Emepleado no encontrado o incativo");
+    
     return empleado;
 }
 
@@ -48,7 +38,7 @@ export async function traerDatosEmpleado( prisma: PrismaService, idEmpleado:stri
 function obtener_incidencias(prisma: PrismaService, idEmpleado: string){   
     return prisma.incidencias_mes.findFirst({
         where:{
-            id: idEmpleado,
+            empleado_id: idEmpleado,
             periodo: ServerTime.obtenerPeriodoActual,
             estado: "APROBADO",
         },
@@ -57,7 +47,7 @@ function obtener_incidencias(prisma: PrismaService, idEmpleado: string){
             faltas:true,
             minutos_tardanza:true,
             horas_extras_25:true,
-            horas_extras_35:true,        
+            horas_extras_35:true
         }
     });
 }

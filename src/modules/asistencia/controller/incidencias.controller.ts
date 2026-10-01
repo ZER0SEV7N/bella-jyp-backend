@@ -1,12 +1,13 @@
 //src/modules/asistencia/controller/incidencias.controller.ts
-import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch } from "@nestjs/common";
 import { JwtAccessGuard } from "@/common/guards/jwt-access.guard";
 import { RolesGuard } from "@/common/guards/roles.guard";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { ZodValidationPipe } from "@/common/pipes/zod-validation.pipe";
-import { GenerarIncidenciasPeriodoSchema } from "@jyp/shared-contracts";
-import type { GenerarIncidenciasPeriodoDto } from "@jyp/shared-contracts";
+import { GenerarIncidenciasPeriodoSchema, AprobarIncidenciasSchema } from "@jyp/shared-contracts";
+import type { GenerarIncidenciasPeriodoDto, AprobarIncidenciasDto } from "@jyp/shared-contracts";
 import { GenerarIncidenciasMesUseCase } from "../use-cases/Incidencias/generarIncidenciasMes.useCase";
+import { AprobarIncidenciaMesUseCase } from "../use-cases/Incidencias/aprobarIncidenciaMes.useCase";
 import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre } from "../decorator/incidencias-swagger.decorator";
 
 /**
@@ -19,7 +20,9 @@ import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre } from "../dec
 @UseGuards(JwtAccessGuard, RolesGuard)
 @ApiSwaggerIncidenciasController()
 export class IncidenciasController {
-    constructor(private readonly generarIncidenciasMesUseCase: GenerarIncidenciasMesUseCase) {}
+    constructor(private readonly generarIncidenciasMesUseCase: GenerarIncidenciasMesUseCase,
+                private readonly aprobarIncidenciasUseCase: AprobarIncidenciaMesUseCase
+    ) {}
  
     /**
      * Endpoint para generar el cierre de incidencias de asistencia para un período específico.
@@ -43,5 +46,28 @@ export class IncidenciasController {
     @UsePipes(new ZodValidationPipe(GenerarIncidenciasPeriodoSchema))
     async generarCierre(@Body() dto: GenerarIncidenciasPeriodoDto) {
         return await this.generarIncidenciasMesUseCase.execute(dto);
+    }
+
+    /**
+     * Endpoint para aprobar incidencias de asistencia para un período específico.
+     * @Patch /api/asistencia/incidencias/aprobar
+     * @HttpCode 200 - OK
+     * @Roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+     * @UsePipes ZodValidationPipe(AprobarIncidenciasSchema) - Valida el DTO de entrada contra el esquema definido.
+     * @param dto {
+     *  - periodo: string - El período para el cual se aprobarán las incidencias (formato YYYY-MM).
+     *  - empleado_id?: string - (Opcional) ID del empleado para filtrar las incidencias a aprobar.
+     * }
+     * @returns un objeto con el resumen de la operación, incluyendo el número de incidencias aprobadas y un mensaje de éxito.
+     * @throws BadRequestException - Si el DTO es inválido.
+     * @throws NotFoundException - Si no se encuentran incidencias pendientes para aprobar.
+     * @throws InternalServerErrorException - Si ocurre un error inesperado durante la actualización de las incidencias.
+     */
+    @Patch('aprobar')
+    @HttpCode(HttpStatus.OK)
+    @Roles('ADMIN', 'RRHH')
+    @UsePipes(new ZodValidationPipe(AprobarIncidenciasSchema))
+    async aprobarIncidencias(@Body() dto: AprobarIncidenciasDto) {
+        return await this.aprobarIncidenciasUseCase.execute(dto);
     }
 }
