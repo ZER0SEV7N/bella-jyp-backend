@@ -3,6 +3,10 @@ import { NotFoundException } from "@nestjs/common";
 import { ServerTime } from "@/common/utils/server-time";
 import { IdentityGenerator } from "@/common/utils/uuid.util";
 
+
+
+
+
 export async function traerDatosEmpleado( prisma: PrismaService, idEmpleado:string){
     const empleado = prisma.empleados.findUnique({
         where :{
@@ -62,7 +66,6 @@ function obtener_incidencias(prisma: PrismaService, idEmpleado: string){
         }
     });
 }
-
 //obtener datos financiero de empleado, obtner datos financieros de empleados
 export async function getDatosFinancierosEmpleado(
   prisma: PrismaService,
@@ -119,6 +122,8 @@ export async function getDatosFinancierosEmpleado(
   });
 }
 //Crear funcion de parametros legales
+
+//funcion de guardar historila de planillas
 export async function guardarHistoriaPlanillas(prisma: PrismaService,emp: any, datosPlanillas: any){
     //traer los datos para histroial
     const {
