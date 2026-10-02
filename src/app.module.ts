@@ -15,6 +15,7 @@ import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
 import { DatosFinancieroModule } from './modules/payroll/datoFinanciero/datosFinanciero.module';
 import { SolicitudModule } from './modules/RRHH/solicitudes/solicitud.module';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
+import { BancosModule } from './modules/payroll/bancos/bancos.module';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { AsistenciaModule } from './modules/asistencia/asistencia.module';
     AfpModule,
     DatosFinancieroModule,
     SolicitudModule,
-    AsistenciaModule
+    AsistenciaModule,
+    BancosModule
   ],
   controllers: [AppController],
   providers: [AppService]

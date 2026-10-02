@@ -1,8 +1,9 @@
 //src/modules/afp/use-cases/agregarComision.useCase.ts
-import { Injectable, InternalServerErrorException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { CrearComisionDto } from '@jyp/shared-contracts';
+import dayjs from 'dayjs';
 
 /**
  * Caso de uso para agregar una nueva comisión de AFP.
@@ -12,10 +13,12 @@ import type { CrearComisionDto } from '@jyp/shared-contracts';
  */
 @Injectable()
 export class AgregarComisionUseCase {
+  private readonly logger = new Logger(AgregarComisionUseCase.name);
   constructor(private readonly prisma: PrismaService) {}
   
+
   /**
-   * Ejecuta el caso de uso para agregar una nueva comisión de AFP.
+   * Metodo principal que ejecuta la lógica de negocio para agregar una nueva comisión de AFP.
    * @param dto - Objeto de transferencia de datos que contiene la información de la nueva comisión a crear.
    * @returns Una promesa que resuelve con la nueva comisión creada.
    */
@@ -29,54 +32,70 @@ export class AgregarComisionUseCase {
         detail: 'La AFP seleccionada no existe en el sistema.'
       });
 
-      //Preparar las transacciones a realizar en la base de datos
-      const transacciones = [];
+      const nuevaFechaInicio = dayjs(dto.nueva_comision.periodo_inicio).startOf('day').toDate();
 
-      //En caso de que se haya proporcionado una comisión anterior, actualizar su periodo_final
-      if (dto.anterior_comision?.periodo_final) {
-        transacciones.push(
-          this.prisma.comisiones_afp.update({
-            where: { id: dto.anterior_comision.id },
-            //Zod validó que sea string, Prisma exige Date, así que lo convertimos
-            data: {periodo_final: new Date(dto.anterior_comision.periodo_final)}
-          })
-        );
-      }
+      //Transacción interactiva atómica (SCD Tipo 2 automatizado)
+      return await this.prisma.$transaction(async (tx) => {
+        let comisionAnteriorId = dto.anterior_comision?.id;
+        let fechaCierreAnterior = dto.anterior_comision?.periodo_final
+          ? dayjs(dto.anterior_comision.periodo_final).endOf('day').toDate()
+          : dayjs(nuevaFechaInicio).subtract(1, 'day').endOf('day').toDate();
 
-      //Crear la nueva comisión (extrayendo los datos de nueva_comision)
-      transacciones.push(
-        this.prisma.comisiones_afp.create({
+        //Si no se envió ID anterior explícito, buscar la comisión actualmente abierta
+        if (!comisionAnteriorId) {
+          const comisionAbierta = await tx.comisiones_afp.findFirst({
+            where: {
+              afp_id: dto.tipo_afp_id,
+              periodo_final: null,
+            },
+            orderBy: { periodo_inicio: 'desc' },
+          });
+
+          if (comisionAbierta) comisionAnteriorId = comisionAbierta.id;
+        }
+
+        //Si existe una comisión previa que cerrar, validar coherencia y cerrarla
+        if (comisionAnteriorId) {
+          const anterior = await tx.comisiones_afp.findUnique({ where: { id: comisionAnteriorId } });
+
+          //Validar que la fecha de inicio de la nueva comisión no sea anterior a la fecha de inicio de la comisión anterior
+          if (anterior) {
+            if (dayjs(nuevaFechaInicio).isBefore(dayjs(anterior.periodo_inicio))) throw new BadRequestException({
+              title: 'Inconsistencia de Fechas',
+              detail: `La fecha de inicio de la nueva comisión (${dto.nueva_comision.periodo_inicio}) no puede ser anterior a la vigencia previa (${dayjs(anterior.periodo_inicio).format('YYYY-MM-DD')}).`,
+            });
+            
+            await tx.comisiones_afp.update({
+              where: { id: comisionAnteriorId },
+              data: { periodo_final: fechaCierreAnterior }
+            });
+          }
+        }
+
+        //Crear el nuevo registro con vigencia abierta
+        const nuevaComision = await tx.comisiones_afp.create({
           data: {
             id: IdentityGenerator.generateId(),
-            afp_id: dto.tipo_afp_id, //Mapeamos el ID raíz
-            periodo_inicio: new Date(dto.nueva_comision.periodo_inicio),
+            afp_id: dto.tipo_afp_id,
+            periodo_inicio: nuevaFechaInicio,
+            periodo_final: dto.nueva_comision.periodo_final ? dayjs(dto.nueva_comision.periodo_final).toDate() : null,
             aporte_obligatorio: dto.nueva_comision.aporte_obligatorio,
             comision_sobre_ra: dto.nueva_comision.comision_sobre_ra,
             prima_seguro: dto.nueva_comision.prima_seguro,
             comision_mixta: dto.nueva_comision.comision_mixta,
+          },
+          include: {
+            tipo_afp: { select: { id: true, nombre: true } }
           }
-        })
-      );
+        });
 
-      //Ejecutar todo de forma atómica (ACID)
-      //Si falla la actualización, tampoco se inserta la nueva
-      const resultados = await this.prisma.$transaction(transacciones);
-
-      //Retornar la nueva comisión (que siempre será el último elemento del array)
-      return resultados[resultados.length - 1];
+        return nuevaComision;
+      });
     } catch (error) {
-      if (error instanceof BadRequestException || error instanceof NotFoundException)
-        throw error;
-
-      let errorMessage: string;
-      if (error instanceof Error) 
-        errorMessage = error.message;
-      else if (typeof error === 'string') 
-        errorMessage = error;
-      else 
-        errorMessage = JSON.stringify(error);
-
-      throw new InternalServerErrorException('Ocurrió un error al intentar registrar la comisión de la AFP', errorMessage);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+      
+      this.logger.error('Error al registrar comisión de AFP:', error);
+      throw new InternalServerErrorException('Ocurrió un error al intentar registrar la comisión de la AFP', error instanceof Error ? error.message : String(error));
     }
   }
 }

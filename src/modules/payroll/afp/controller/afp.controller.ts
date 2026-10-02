@@ -1,65 +1,37 @@
 //src/modules/afp/controller/afp.controller.ts
 //Importaciones de NestJS y commons:
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Query,
-  UseGuards,
-  UsePipes,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, UsePipes } from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 //Casos de uso de escritura de AFP:
-import { AgregarAportacionUseCase } from '../use-cases/aportacion/agregarAportacion.useCase';
 import { AgregarComisionUseCase } from '../use-cases/comision/agregarComision.useCase';
 import { AgregarTipoAfpUseCase } from '../use-cases/tipo-afp/agregarTipoAfp.useCase';
 //Casos de uso de lectura de AFP:
-import { ListarAportacionesUseCase } from '../use-cases/aportacion/listarAportacion.useCase';
 import { ListarComisionesUseCase } from '../use-cases/comision/listarComision.useCase';
 import { ListarTiposAfpUseCase } from '../use-cases/tipo-afp/listarTipoAfp.useCase';
 //Schemas y DTOs:
-import {
-  CrearTipoAfpSchema,
-  CrearComisionSchema,
-  CrearAportacionSchema,
-  ListarTiposAfpQuerySchema,
-  ListarComisionesQuerySchema,
-  ListarAportacionesQuerySchema,
-} from '@jyp/shared-contracts';
-import type {
-  CrearTipoAfpDto,
-  CrearComisionDto,
-  AportacionDto,
-  ListarTiposAfpQueryDto,
-  ListarComisionesQueryDto,
-  ListarAportacionesQueryDto,
-} from '@jyp/shared-contracts';
+import { CrearTipoAfpSchema, CrearComisionSchema, ListarTiposAfpQuerySchema, ListarComisionesQuerySchema } from '@jyp/shared-contracts';
+import type { CrearTipoAfpDto, CrearComisionDto,  ListarTiposAfpQueryDto, ListarComisionesQueryDto } from '@jyp/shared-contracts';
 //Swagger decorators:
-import {
-  ApiSwaggerAfpController,
-  ApiSwaggerAportacionCrear,
-  ApiSwaggerAportacionListar,
-  ApiSwaggerComisionCrear,
-  ApiSwaggerComisionListar,
-  ApiSwaggerTipoAfpCrear,
-  ApiSwaggerTipoAfpListar,
-} from '../decorators/afp-swagger.decorator';
+import { ApiSwaggerAfpController, ApiSwaggerComisionCrear, ApiSwaggerComisionListar, ApiSwaggerTipoAfpCrear, ApiSwaggerTipoAfpListar } from '../decorators/afp-swagger.decorator';
+
 /**
- * Controlador de AFP.
- * Este controlador maneja las operaciones relacionadas con las AFP, incluyendo la creación de aportaciones, comisiones y tipos de AFP.
+ * Controlador principal del módulo de AFP y Pensiones.
+ * Este controlador maneja todos los endpoints HTTP relacionados con comisiones y tipos de AFP.
+ * Se requiere autenticación JWT y roles específicos para acceder a los endpoints.
+ * Endpoints:
+ * - POST /api/afp/comisiones: Agrega una nueva comisión de AFP.
+ * - GET /api/afp/comisiones: Lista las comisiones de AFP con soporte para paginación y filtrado.
+ * - POST /api/afp/tipos: Asigna un nuevo tipo de AFP.
+ * - GET /api/afp/tipos: Lista los tipos de AFP con soporte para paginación y filtrado.
  */
 @ApiSwaggerAfpController()
 @Controller('api/afp')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class AfpController {
   constructor(
-    //aportaciones
-    private readonly agregarAportaciones: AgregarAportacionUseCase,
-    private readonly listarAportaciones: ListarAportacionesUseCase,
     //comisiones
     private readonly agregarComisiones: AgregarComisionUseCase,
     private readonly listarComisiones: ListarComisionesUseCase,
@@ -67,52 +39,6 @@ export class AfpController {
     private readonly agregarTipoAfp: AgregarTipoAfpUseCase,
     private readonly listarTiposAfp: ListarTiposAfpUseCase,
   ) {}
-
-  //======================================================
-  //Aportaciones
-  //======================================================
-
-  /**
-   * Agrega una nueva aportación de AFP.
-   * POST /api/afp/aportaciones
-   * Este endpoint permite crear una nueva aportación de AFP en el sistema.
-   * Se requiere que el usuario tenga los roles 'ADMIN' o 'CONTADOR' para poder realizar esta operación.
-   * @param dto - Objeto de transferencia de datos que contiene la información de la nueva aportación a crear.
-   * @DTO : {
-   *    "nombre": "Aportación 1",
-   *    "afp_id": "uuid-de-la-afp",
-   *    "cantidad": 100.00,
-   * }
-   * @returns La aportación de AFP creada.
-   */
-  @ApiSwaggerAportacionCrear()
-  @Post('aportaciones')
-  @Roles('ADMIN', 'CONTADOR')
-  @UsePipes(new ZodValidationPipe(CrearAportacionSchema))
-  async agregarAportacion(@Body() dto: AportacionDto) {
-    return await this.agregarAportaciones.execute(dto);
-  }
-
-  /**
-   * Lista las aportaciones de AFP.
-   * GET /api/afp/aportaciones
-   * Este endpoint permite obtener una lista de aportaciones de AFP desde la base de datos, con soporte para paginación y filtrado.
-   * Se requiere que el usuario tenga los roles 'ADMIN', 'CONTADOR', 'ASISTENTE' o 'RRHH' para poder realizar esta operación.
-   * @query - Objeto de transferencia de datos que contiene los parámetros de paginación y filtrado.
-   * @Params : {
-   *  "page": 1,
-   *  "limit": 10,
-   *  "afp_id": "uuid-de-la-afp"
-   * }
-   * @returns Una lista de aportaciones de AFP que cumplen con los criterios especificados en el objeto de consulta.
-   */
-  @ApiSwaggerAportacionListar()
-  @Get('aportaciones')
-  @Roles('ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH')
-  @UsePipes(new ZodValidationPipe(ListarAportacionesQuerySchema))
-  async listarAportacion(@Query() query: ListarAportacionesQueryDto) {
-    return await this.listarAportaciones.listar(query);
-  }
 
   //====================================================
   //COMISIONES (Tasas SBS vigentes por período)
@@ -125,23 +51,24 @@ export class AfpController {
    * Se requiere que el usuario tenga los roles 'ADMIN' o 'CONTADOR' para poder realizar esta operación.
    * @param dto - Objeto de transferencia de datos que contiene la información de la nueva comisión a crear.
    * @DTO : {
-   *    "tipo_afp_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+   *    "tipo_afp_id": "uuid-de-la-afp",
    *    "anterior_comision": {
-   *        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-   *        "periodo_final": "2026-07-31"
+   *        "id": "uuid-de-la-comision-anterior",
+   *        "periodo_final": "2024-12-31"
    *    },
    *    "nueva_comision": {
-   *        "periodo_inicio": "2026-08-01",
+   *        "periodo_inicio": "2025-01-01",
    *        "aporte_obligatorio": 10,
    *        "comision_sobre_ra": 1.55,
    *        "prima_seguro": 1.84,
    *        "comision_mixta": 0.78
    *    }
    * }
+   * 
    */
   @ApiSwaggerComisionCrear()
   @Post('comisiones')
-  @Roles('ADMIN', 'CONTADOR')
+  @Roles('JYP')
   @UsePipes(new ZodValidationPipe(CrearComisionSchema))
   async agregarComision(@Body() dto: CrearComisionDto) {
     return await this.agregarComisiones.execute(dto);
@@ -187,7 +114,7 @@ export class AfpController {
    */
   @ApiSwaggerTipoAfpCrear()
   @Post('tipos')
-  @Roles('ADMIN', 'CONTADOR')
+  @Roles('JYP')
   @UsePipes(new ZodValidationPipe(CrearTipoAfpSchema))
   async asignarTipoAfp(@Body() dto: CrearTipoAfpDto) {
     return await this.agregarTipoAfp.execute(dto);

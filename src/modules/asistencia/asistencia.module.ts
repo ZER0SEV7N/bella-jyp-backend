@@ -3,7 +3,7 @@ import { Module } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { IncidenciasController } from "./controller/incidencias.controller";
 import { GenerarIncidenciasMesUseCase } from "./use-cases/Incidencias/generarIncidenciasMes.useCase";
-import { CrearMarcacionManualUseCase } from "./use-cases/asistencias/generarAsistencia";
+import { CrearMarcacionManualUseCase } from "./use-cases/asistencias/crearMarcacionManual.useCase";
 import { AsistenciaController } from "./controller/asistencias.controller";
 
 /**

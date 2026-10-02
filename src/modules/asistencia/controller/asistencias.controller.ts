@@ -2,7 +2,7 @@ import { Controller, Post, HttpCode, HttpStatus, UsePipes, Body, Res } from '@ne
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { marcarAsistenciaSchema } from '@jyp/shared-contracts';
 import type { MarcarAsistenciaDto } from '@jyp/shared-contracts';
-import { CrearMarcacionManualUseCase } from '../use-cases/asistencias/generarAsistencia';
+import { CrearMarcacionManualUseCase } from '../use-cases/asistencias/crearMarcacionManual.useCase';
 @Controller('api/asistencia/marcacion')
 export class AsistenciaController{
     constructor(

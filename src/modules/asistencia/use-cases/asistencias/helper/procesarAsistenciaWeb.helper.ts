@@ -10,9 +10,7 @@ dayjs.extend(timezone);
 //TIME ZONE
 export const PERU_TIMEZONE = 'America/Lima';
 //OBTENER PERIODO ACTUAL "YYYY-MM"
-export function obtenerFecha(): string {
-    return dayjs().tz(PERU_TIMEZONE).format('YYYY-MM');
-}
+export function obtenerFecha(): string { return dayjs().tz(PERU_TIMEZONE).format('YYYY-MM'); }
 //TRAER EL EMPLEADO PARA ASISTENCIA
 export async function obtenerColaborador(prisma: PrismaService, dni: string){
     const empleado = await prisma.empleados.findFirst({
@@ -26,9 +24,8 @@ export async function obtenerColaborador(prisma: PrismaService, dni: string){
         }
     });
 
-    if (!empleado) {
-        throw new NotFoundException("Empleado no encontrado o inactivo");
-    }
+    if (!empleado) throw new NotFoundException("Empleado no encontrado o inactivo");
+    
     return empleado;
 }
 
