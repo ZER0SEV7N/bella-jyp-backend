@@ -1,9 +1,7 @@
 //src/modules/afp/afp.module.ts
 import { Module } from '@nestjs/common';
 import { AfpController } from './controller/afp.controller';
-//aportaciones
-import { AgregarAportacionUseCase } from './use-cases/aportacion/agregarAportacion.useCase';
-import { ListarAportacionesUseCase } from './use-cases/aportacion/listarAportacion.useCase';
+
 //comisiones
 import { AgregarComisionUseCase } from './use-cases/comision/agregarComision.useCase';
 import { ListarComisionesUseCase } from './use-cases/comision/listarComision.useCase';
@@ -21,9 +19,6 @@ import { ListarTiposAfpUseCase } from './use-cases/tipo-afp/listarTipoAfp.useCas
 @Module({
   controllers: [AfpController],
   providers: [
-    //aportaciones
-    AgregarAportacionUseCase,
-    ListarAportacionesUseCase,
     //comisiones
     AgregarComisionUseCase,
     ListarComisionesUseCase,
@@ -32,8 +27,6 @@ import { ListarTiposAfpUseCase } from './use-cases/tipo-afp/listarTipoAfp.useCas
     ListarTiposAfpUseCase,
   ],
   exports: [
-    AgregarAportacionUseCase,
-    ListarAportacionesUseCase,
     AgregarComisionUseCase,
     ListarComisionesUseCase,
     AgregarTipoAfpUseCase,

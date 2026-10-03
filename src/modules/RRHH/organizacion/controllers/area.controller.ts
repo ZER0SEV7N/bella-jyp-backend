@@ -5,13 +5,16 @@ import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { EditarAreaUseCase } from '../use-cases/area/editarArea.useCase';
 import { EstadoAreaUseCase } from '../use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from '../use-cases/area/listarAreas.useCase';
+//Importar guardias de autenticación y autorización
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
 //Importar esquemas y DTOs para validación y tipado
 import { CrearAreaSchema, ActualizarAreaSchema, ListarAreasQuerySchema } from '@jyp/shared-contracts';
 import type { CrearAreaDto, ActualizarAreaDto, ListarAreasQueryDto } from '@jyp/shared-contracts';
 import { ApiSwaggerAreasController, ApiSwaggerCrearArea, ApiSwaggerActualizarArea, ApiSwaggerDesactivarArea, ApiSwaggerReactivarArea, ApiSwaggerListarAreas } from '../decorators/area-swagger.decorator';
-import { Roles } from '@/common/decorators/roles.decorator';
+
 
 /**
  * Controlador para gestionar las áreas en el módulo de RRHH.
@@ -20,7 +23,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
  */
 @ApiSwaggerAreasController()
 @Controller('api/rrhh/area')
-@UseGuards(JwtAccessGuard)
+@UseGuards(JwtAccessGuard, RolesGuard)
 export class AreaController {
   //Inyectar los casos de uso necesarios para manejar las operaciones relacionadas con las areas
   constructor(

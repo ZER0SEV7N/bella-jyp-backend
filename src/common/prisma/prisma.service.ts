@@ -4,6 +4,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import 'dotenv/config';
 import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
@@ -40,11 +41,7 @@ export class PrismaService
 
     //Inicializar el motor nativo con el adaptador inyectado
     super({ adapter,
-      log:
-        process.env.NODE_ENV === 'development'
-          ? ['query', 'error', 'warn']
-          : ['error'],
-    });
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'] });
 
     //Middleware para inyectar información de auditoría en cada operación de Prisma
     const clsService = this.cls; //Referencia al servicio de ClsService para uso dentro del middleware

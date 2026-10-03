@@ -1,7 +1,7 @@
 //src/modules/payroll/datoFinanciero/use-case/helper/validacionesDatoFinanciero.helper.ts
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { CryptoUtil } from '@/common/utils/crypto.Util';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 
 /**
  * Valida la existencia de un empleado y la preexistencia de un dato financiero activo.

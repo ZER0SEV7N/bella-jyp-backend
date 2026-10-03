@@ -1,14 +1,16 @@
 //src/modules/asistencia/controller/incidencias.controller.ts
-import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch, Get, Query } from "@nestjs/common";
 import { JwtAccessGuard } from "@/common/guards/jwt-access.guard";
 import { RolesGuard } from "@/common/guards/roles.guard";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { ZodValidationPipe } from "@/common/pipes/zod-validation.pipe";
-import { GenerarIncidenciasPeriodoSchema, AprobarIncidenciasSchema } from "@jyp/shared-contracts";
-import type { GenerarIncidenciasPeriodoDto, AprobarIncidenciasDto } from "@jyp/shared-contracts";
+import { GenerarIncidenciasPeriodoSchema, AprobarIncidenciasSchema, ListarIncidenciasQuerySchema } from "@jyp/shared-contracts";
+import type { GenerarIncidenciasPeriodoDto, AprobarIncidenciasDto, ListarIncidenciasQueryDto } from "@jyp/shared-contracts";
 import { GenerarIncidenciasMesUseCase } from "../use-cases/Incidencias/generarIncidenciasMes.useCase";
 import { AprobarIncidenciaMesUseCase } from "../use-cases/Incidencias/aprobarIncidenciaMes.useCase";
+import { ListarIncidenciasMesUseCase } from "../use-cases/Incidencias/listarIncidenciasMes.useCase";
 import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre } from "../decorator/incidencias-swagger.decorator";
+
 
 /**
  * Controlador para la gestión de incidencias de asistencia.
@@ -21,7 +23,8 @@ import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre } from "../dec
 @ApiSwaggerIncidenciasController()
 export class IncidenciasController {
     constructor(private readonly generarIncidenciasMesUseCase: GenerarIncidenciasMesUseCase,
-                private readonly aprobarIncidenciasUseCase: AprobarIncidenciaMesUseCase
+                private readonly aprobarIncidenciasUseCase: AprobarIncidenciaMesUseCase,
+                private readonly listarIncidenciasMesUseCase: ListarIncidenciasMesUseCase
     ) {}
  
     /**
@@ -69,5 +72,13 @@ export class IncidenciasController {
     @UsePipes(new ZodValidationPipe(AprobarIncidenciasSchema))
     async aprobarIncidencias(@Body() dto: AprobarIncidenciasDto) {
         return await this.aprobarIncidenciasUseCase.execute(dto);
+    }
+
+    @Get()
+    @UseGuards(JwtAccessGuard, RolesGuard)
+    @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
+    @UsePipes(new ZodValidationPipe(ListarIncidenciasQuerySchema))
+    async listarIncidencias(@Query() query: ListarIncidenciasQueryDto) {
+        return await this.listarIncidenciasMesUseCase.execute(query);
     }
 }

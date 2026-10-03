@@ -60,6 +60,14 @@ export class CrearSolicitudUseCase {
         const empleado = await this.prisma.empleados.findUnique({where: {id: empleadoIdFinal, deleted_at: null}});
         if(!empleado  || !empleado.activo) throw new NotFoundException('El empleado especificado no existe en el sistema.');
 
+        // Regla de Negocio: Validación estricta del monto de adelanto
+        if (dto.tipo === 'ADELANTO_SUELDO') 
+            if (!dto.monto || Number(dto.monto) <= 0) throw new BadRequestException({
+                title: 'Monto Requerido',
+                detail: 'Para solicitudes de ADELANTO_SUELDO debe especificar un monto válido y mayor a cero.'
+            });
+        
+
         //Normalizar fechas
         const fechaInicio = dto.fecha_inicio ? new Date(dto.fecha_inicio) : null;
         const fechaFin = dto.fecha_fin ? new Date(dto.fecha_fin) : null;
@@ -81,6 +89,7 @@ export class CrearSolicitudUseCase {
                 codigo: codigoCorrelativo,
                 tipo: dto.tipo,
                 estado: 'PENDIENTE',
+                monto: dto.tipo === 'ADELANTO_SUELDO' ? dto.monto : '00.00',
                 fecha_inicio: fechaInicio,
                 fecha_fin: fechaFin,
                 dias_solicitados: dto.dias_solicitados || 1,

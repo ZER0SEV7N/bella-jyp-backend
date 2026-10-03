@@ -1,10 +1,7 @@
 //src/modules/payroll/datoFinanciero/use-case/obtenerDatoFinanciero.useCase
 import { PrismaService } from '@/common/prisma/prisma.service';
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { CryptoUtil } from '@/common/utils/crypto.Util';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 
 /**
  * Caso de uso para consultar los datos financieros de un empleado.

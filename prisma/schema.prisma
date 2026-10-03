@@ -164,14 +164,13 @@ model comisiones_afp {
 
 model parametro_legal {
   id            String    @id @db.Uuid
-  codigo        String    @db.VarChar(50) // 'RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'DIVISOR_HORAS_MES', 'TOPE_SEGURO_AFP'
+  codigo        String    @db.VarChar(50) // 'RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'DIVISOR_HORAS_MES', 
   nombre        String    @db.VarChar(100)
   valor         Decimal   @db.Decimal(12, 4)
   vigente_desde DateTime  @db.Date
   vigente_hasta DateTime? @db.Date // null indica vigencia activa actual
   descripcion   String?   @db.VarChar(255)
   created_at    DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
 
   @@unique([codigo, vigente_desde], map: "uq_parametro_codigo_vigencia")
   @@index([codigo, vigente_desde, vigente_hasta], map: "idx_parametro_busqueda")
@@ -656,6 +655,8 @@ enum estado_sincronizacion_enum {
 
 enum tipo_marcacion_enum {
   ENTRADA
+  SALIDA_ALMUERZO
+  ENTRADA_ALMUERZO
   SALIDA
 }
 
@@ -732,7 +733,6 @@ enum estado_empleado_enum {
   ACTIVO
   VACACIONES
   LICENCIA
-  CESADO
-  DESPEDIDO
+  CESADO  
   SUSPENDIDO
 }

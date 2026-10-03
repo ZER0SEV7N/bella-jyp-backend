@@ -5,7 +5,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, Delete, Param, Patch, Use
 import { CrearEmpleadoSchema, EditarEmpleadoSchema, ListarEmpleadosQuerySchema } from '@jyp/shared-contracts';
 import type { CrearEmpleadoDto, EditarEmpleadoDto, ListarEmpleadosQueryDto } from '@jyp/shared-contracts';
 //casos de uso
-import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.UseCase';
+import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
 import { EstadoEmpleadoUseCase } from '../use-cases/empleado/estadoEmpleado.useCase';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';

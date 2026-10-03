@@ -15,9 +15,7 @@ export class ListarBancosUseCase {
             orderBy: { nombre: 'asc' },
             select: {
                 id: true,
-                nombre: true,
-                codigo: true,
-                activo: true
+                nombre: true
             }
         });
     }

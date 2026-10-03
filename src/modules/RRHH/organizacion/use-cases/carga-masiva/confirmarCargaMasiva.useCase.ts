@@ -24,6 +24,7 @@ export interface ConfirmarCargaMasivaDTO {
 export class ConfirmarCargaMasivaUseCase {
     private readonly logger = new Logger(ConfirmarCargaMasivaUseCase.name);
 
+    //Inyectar la cola de BullMQ y el servicio Prisma para interactuar con la base de datos.
     constructor(
         @InjectQueue('rrhh-bulk-queue')
         private readonly rrhhBulkQueue: Queue,
@@ -31,17 +32,16 @@ export class ConfirmarCargaMasivaUseCase {
     ) {}
 
     async execute(usuarioId: string, payload: any): Promise<{ jobId: string }> {
-       let filasAProcesar: CargaMasivaFilaDTO[] = [];
+        let filasAProcesar: CargaMasivaFilaDTO[] = [];
 
-        if (Array.isArray(payload)) {
-        filasAProcesar = payload;
-        } else if (payload && typeof payload === 'object') {
-        filasAProcesar = payload.filas_validas_data || payload.filas || [];
-        }
+        //Si el payload es un array, se asume que son las filas válidas directamente; si es un objeto, se busca la propiedad 'filas_validas_data' o 'filas'.
+        if (Array.isArray(payload)) filasAProcesar = payload;
+        else if (payload && typeof payload === 'object') filasAProcesar = payload.filas_validas_data || payload.filas || [];
+        
 
-        if (!Array.isArray(filasAProcesar) || filasAProcesar.length === 0) {
-        throw new BadRequestException('No hay filas válidas proporcionadas para procesar.');
-        }
+        if (!Array.isArray(filasAProcesar) || filasAProcesar.length === 0) 
+            throw new BadRequestException('No hay filas válidas proporcionadas para procesar.');
+        
         
         const jobId = IdentityGenerator.generateId();
         const totalRegistros = filasAProcesar.length;
@@ -64,6 +64,7 @@ export class ConfirmarCargaMasivaUseCase {
         const tamañoLote = 50;
         const lotes: CargaMasivaFilaDTO[][] = [];
 
+        //Dividir las filas en lotes de tamaño fijo para procesamiento asincrónico
         for (let i = 0; i < filasAProcesar.length; i += tamañoLote) 
             lotes.push(filasAProcesar.slice(i, i + tamañoLote));
         
@@ -80,6 +81,7 @@ export class ConfirmarCargaMasivaUseCase {
             );
         }
 
+        //Actualizar el estado del job a EN_PROCESO
         this.logger.log(`[ConfirmarCargaMasiva] Job ${jobId} encolado exitosamente con ${lotes.length} lotes.`);
         return { jobId };
     }

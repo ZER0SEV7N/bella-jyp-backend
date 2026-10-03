@@ -19,7 +19,7 @@ importers:
         version: 10.1.5
       '@jyp/shared-contracts':
         specifier: git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git
-        version: git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git#e0af8bdc7e6281ee517ca900bf4f08333303d616
+        version: git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git#46129109ba60cbd570ed0f46785ea7e4ba176c55
       '@nest-lab/fastify-multer':
         specifier: ^1.3.0
         version: 1.3.0(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-fastify@11.2.7(@fastify/static@10.1.5)(@nestjs/common@11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.7))(rxjs@7.8.2)
@@ -986,8 +986,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@jyp/shared-contracts@git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git#e0af8bdc7e6281ee517ca900bf4f08333303d616':
-    resolution: {commit: e0af8bdc7e6281ee517ca900bf4f08333303d616, repo: https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git, type: git}
+  '@jyp/shared-contracts@git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git#46129109ba60cbd570ed0f46785ea7e4ba176c55':
+    resolution: {commit: 46129109ba60cbd570ed0f46785ea7e4ba176c55, repo: https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git, type: git}
     version: 1.0.0
 
   '@lukeed/csprng@1.1.0':
@@ -5658,7 +5658,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@jyp/shared-contracts@git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git#e0af8bdc7e6281ee517ca900bf4f08333303d616':
+  '@jyp/shared-contracts@git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git#46129109ba60cbd570ed0f46785ea7e4ba176c55':
     dependencies:
       zod: 3.25.76
 

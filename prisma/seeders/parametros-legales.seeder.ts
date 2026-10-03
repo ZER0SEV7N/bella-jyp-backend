@@ -1,4 +1,4 @@
-// prisma/seeders/parametros-legales.seeder.ts
+//prisma/seeders/parametros-legales.seeder.ts
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
@@ -17,7 +17,7 @@ export async function seedParametrosLegales(prisma: PrismaClient) {
       id: randomUUID(),
       codigo: 'UIT',
       nombre: 'Unidad Impositiva Tributaria',
-      valor: 5350.0,
+      valor: 5500.0,
       vigente_desde: new Date('2026-01-01'),
       vigente_hasta: null,
       descripcion: 'Valor de referencia tributario del ejercicio fiscal 2026'

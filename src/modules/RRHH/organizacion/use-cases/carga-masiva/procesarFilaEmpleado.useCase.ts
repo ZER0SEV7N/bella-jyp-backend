@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { ReniecAdapter } from '../../services/reniec.adapter';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { CryptoUtil } from '@/common/utils/crypto.Util';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 import { normalizarFecha } from './helpers/normalizaciones.helper';
 
@@ -41,10 +41,6 @@ export class ProcesarFilaEmpleadoUseCase {
     const area = await this.resolverArea(fila.area);
     const cargo = await this.resolverCargo(area.id, fila.cargo);
     const jornadaId = await this.resolverJornadaId(fila.jornada);
-
-    //Validar que el estado "ACTIVO" esté presente en la base de datos antes de asignarlo al empleado
-    const estadoActivo = await this.prisma.estado_empleado.findFirst({where: { descripcion: 'ACTIVO' }});
-    if (!estadoActivo) throw new Error('Catálogo de estado ACTIVO no configurado en BD.');
 
     //Normalizar fechas y resolver nombres completos del empleado, así como su estado de sincronización
     const fechaNacimiento = normalizarFecha(fila.fecha_nacimiento);
@@ -94,7 +90,7 @@ export class ProcesarFilaEmpleadoUseCase {
           ubigeo: sanitizarTexto(fila.ubigeo),
           area_id: area.id,
           cargo_id: cargo.id,
-          estado_empleado_id: estadoActivo.id,
+          estado_laboral: 'ACTIVO',
           jornada_id: jornadaId,
           fecha_inicio: fechaInicio,
           asig_familiar: Boolean(fila.asig_familiar),

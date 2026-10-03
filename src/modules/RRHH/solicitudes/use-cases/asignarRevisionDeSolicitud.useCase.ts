@@ -27,10 +27,7 @@ export class AsignarRevisionDeSolicitudUseCase {
             throw new BadRequestException(`La solicitud ya se encuentra dictaminada con estado '${solicitud.estado}'.`);
         
         if (solicitud.responsable_id && solicitud.responsable_id !== usuarioId) {
-            const nombreResponsable = solicitud.responsable?.empleados
-                ? `${solicitud.responsable.empleados.nombre} ${solicitud.responsable.empleados.apellido}`
-                : 'otro revisor';
-
+            const nombreResponsable = solicitud.responsable?.empleados ? `${solicitud.responsable.empleados.nombre} ${solicitud.responsable.empleados.apellido}`: 'otro revisor';
             throw new BadRequestException(`La solicitud ya se encuentra tomada en revision por ${nombreResponsable}.`)
         }
         

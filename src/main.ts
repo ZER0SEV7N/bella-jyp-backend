@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import 'dotenv/config';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import fastifyCookie from '@fastify/cookie';

@@ -46,7 +46,7 @@ export class CrearEmpleadoUseCase {
           cargo_id: dto.cargo_id,
           area_id: dto.area_id,
           documento_id: dto.documento_id,
-          estado_empleado_id: dto.estado_empleado_id,
+          estado_laboral: 'ACTIVO',
           jornada_id: dto.jornada_id ?? null,
           nro_documento: dto.nro_documento.trim(),
           nombre,
@@ -72,7 +72,6 @@ export class CrearEmpleadoUseCase {
         include: {
           area: { select: { id: true, nombre: true } },
           cargo: { select: { id: true, nombre: true } },
-          estado_empleado: { select: { id: true, descripcion: true } },
           jornada: { select: { id: true, nombre: true } }
         }
       });

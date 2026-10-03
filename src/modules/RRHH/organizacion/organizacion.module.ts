@@ -15,12 +15,12 @@ import { EditarAreaUseCase } from './use-cases/area/editarArea.useCase';
 import { EstadoAreaUseCase } from './use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from './use-cases/area/listarAreas.useCase';
 // --- CASOS DE USO: CARGO ---
-import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.UseCase';
+import { CrearCargoUseCase } from './use-cases/cargos/crearCargo.useCase';
 import { EditarCargoUseCase } from './use-cases/cargos/editarCargo.useCase';
-import { EstadoCargoUseCase } from './use-cases/cargos/estadoCargo.UseCase';
+import { EstadoCargoUseCase } from './use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from './use-cases/cargos/listarCargos.useCase';
 // --- CASOS DE USO: EMPLEADO ---
-import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.UseCase';
+import { CrearEmpleadoUseCase } from './use-cases/empleado/crearEmpleado.useCase';
 import { ListarEmpleadosUseCase } from './use-cases/empleado/listarEmpleados.useCase';
 import { EditarEmpleadoUseCase } from './use-cases/empleado/editarEmpleado.useCase';
 import { EstadoEmpleadoUseCase } from './use-cases/empleado/estadoEmpleado.useCase';
@@ -35,10 +35,10 @@ import { EditarJornadaUseCase } from './use-cases/jornadas/editarJornada.useCase
 import { EstadoJornadaUseCase } from './use-cases/jornadas/estadoJornada.useCase';
 import { ListarJornadaUseCase } from './use-cases/jornadas/listarJornada.useCase';
 // --- CASOS DE USO: DERECHOHABIENTES ---
-import { RegistrarDerechohabienteUseCase } from './use-cases/derechohabiente/registrarDerechoHabiente.useCase';
+import { RegistrarDerechohabienteUseCase } from './use-cases/derechohabiente/registrarDerechohabiente.useCase';
 import { SubirSustentoDerechohabienteUseCase } from './use-cases/derechohabiente/subirSustento.useCase';
 import { ListarDerechohabientesUseCase } from './use-cases/derechohabiente/listarDerechohabientes.useCase';
-import { EstadoDerechohabienteUseCase } from './use-cases/derechohabiente/estadoDerechoHabiente.useCase';
+import { EstadoDerechohabienteUseCase } from './use-cases/derechohabiente/estadoDerechohabiente.useCase';
 // --- SERVICIOS Y WORKERS ---
 import { ReniecAdapter } from './services/reniec.adapter';
 import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.processor';

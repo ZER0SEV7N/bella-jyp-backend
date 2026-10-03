@@ -37,11 +37,6 @@ export async function validarEntidadesEmpleado(prisma: PrismaService, ids: Refer
     if (!tipoDoc) throw new NotFoundException({ title: 'Tipo de Documento Inválido', detail: 'El tipo de documento especificado no existe.' });
   }));
   
-  //Validación de estado del empleado
-  if (ids.estado_empleado_id) promesas.push( prisma.estado_empleado.findUnique({ where: { id: ids.estado_empleado_id } }).then((estado) => {
-    if (!estado) throw new NotFoundException({ title: 'Estado Inválido', detail: 'El estado del empleado especificado no existe.' });
-  }));
-  
   //Ejecutar todas las promesas de validación en paralelo y esperar a que todas se completen.
   await Promise.all(promesas);
 }

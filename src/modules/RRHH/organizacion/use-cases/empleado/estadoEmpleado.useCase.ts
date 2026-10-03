@@ -20,6 +20,7 @@ export class EstadoEmpleadoUseCase {
    */
   async desactivar(id: string) {
     try {
+      //Buscar el empleado por ID, asegurándose de que no esté ya dado de baja
       const empleado = await this.prisma.empleados.findUnique({where: { id, deleted_at: null }});
 
       if (!empleado) throw new NotFoundException({
@@ -27,6 +28,7 @@ export class EstadoEmpleadoUseCase {
         detail: 'El legajo no existe o ya se encuentra dado de baja.'
       });
       
+      //Actualizar el estado del empleado a inactivo, estableciendo la fecha de cese y marcando el registro como eliminado (soft delete)
       return await this.prisma.empleados.update({
         where: { id },
         data: {
@@ -59,6 +61,7 @@ export class EstadoEmpleadoUseCase {
    */
   async reactivar(id: string) {
     try {
+      //Buscar el empleado por ID, asegurándose de que exista
       const empleado = await this.prisma.empleados.findUnique({where: { id }});
 
       if (!empleado) throw new NotFoundException({
@@ -81,7 +84,6 @@ export class EstadoEmpleadoUseCase {
         include: {
           area: { select: { id: true, nombre: true } },
           cargo: { select: { id: true, nombre: true } },
-          estado_empleado: { select: { id: true, descripcion: true } }
         }
       });
 

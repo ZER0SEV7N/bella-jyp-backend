@@ -2,17 +2,18 @@
 //Controlador para manejar las operaciones relacionadas con los cargos en el módulo de RRHH
 import { Controller, Post, Body, HttpCode, HttpStatus, Put, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query} from '@nestjs/common';
 //casos de uso
-import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.UseCase';
+import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.useCase';
 import { EditarCargoUseCase } from '../use-cases/cargos/editarCargo.useCase';
-import { EstadoCargoUseCase } from '../use-cases/cargos/estadoCargo.UseCase';
+import { EstadoCargoUseCase } from '../use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from '../use-cases/cargos/listarCargos.useCase';
+//Importar guardias de autenticación y autorización
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 //Importar esquemas y DTOs para validación y tipado
 import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
 import type {CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto} from '@jyp/shared-contracts';
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 //Importar decoradores de Swagger para documentación de la API
 import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarCargo, ApiSwaggerDesactivarCargo, ApiSwaggerReactivarCargo, ApiSwaggerListarCargos } from '../decorators/cargo-swagger.decorator';
 

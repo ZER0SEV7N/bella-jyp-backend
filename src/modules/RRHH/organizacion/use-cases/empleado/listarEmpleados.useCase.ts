@@ -53,9 +53,8 @@ export class ListarEmpleadosUseCase {
           include: {
             area: { select: { id: true, nombre: true } },
             cargo: { select: { id: true, nombre: true } },
-            estado_empleado: { select: { id: true, descripcion: true } },
             jornada: { select: { id: true, nombre: true, turno: true } },
-            dato_financiero: { select: { sueldo_basico: true, regimen_salud: true } }
+            dato_financiero: { select: { sueldo_basico: true, regimen_salud: true } },
           }
         })
       ]);

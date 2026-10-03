@@ -2,7 +2,7 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CrearDatoFinancieroDto } from '@jyp/shared-contracts';
-import { CryptoUtil } from '@/common/utils/crypto.Util';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 
