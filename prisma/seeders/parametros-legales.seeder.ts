@@ -48,6 +48,15 @@ export async function seedParametrosLegales(prisma: PrismaClient) {
       vigente_desde: new Date('2020-01-01'),
       vigente_hasta: null,
       descripcion: 'Base mensual en horas ordinarias (30 días x 8 horas)'
+    },
+    {
+      id: randomUUID(),
+      codigo: 'VIDA_LEY_PCT',
+      nombre: 'Tasa Seguro de Vida Ley',
+      valor: 0.0125,
+      vigente_desde: new Date('2020-01-01'),
+      vigente_hasta: null,
+      descripcion: 'Porcentaje de aporte a cargo del empleador (1.25%)'
     }
   ];
 

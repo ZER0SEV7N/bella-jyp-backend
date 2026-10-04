@@ -18,5 +18,12 @@ export class ServerTime {
     static get obtenerFechaServidor(): Date { return dayjs().tz(TIMEZONE_PERU).toDate(); }
     static get obtenerPeriodoActual(): string { return dayjs().tz(TIMEZONE_PERU).format('YYYY-MM'); }
     static get obtenerPeriodoAnterior(): string {return dayjs().tz(TIMEZONE_PERU).subtract(1, 'month').format('YYYY-MM');}
+    static get obtenerRangoMesAcutal(): { inicioMes: Date ,finMes: Date} {
+        return {
+            inicioMes: dayjs().tz(TIMEZONE_PERU).startOf('month').toDate(),
+            finMes: dayjs().tz(TIMEZONE_PERU).endOf('month').toDate()
+        };
+    }
     static get obtenerYearActual(): number { return dayjs().tz(TIMEZONE_PERU).year(); }
+    static get obtenerMesActual(): number { return dayjs().tz(TIMEZONE_PERU).month() + 1; }
 }
