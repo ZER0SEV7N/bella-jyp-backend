@@ -459,7 +459,8 @@ model historial_planillas {
 
   // Aportes asumidos por la empresa (No descuentan del sueldo)
   aporte_essalud         Decimal              @default(0.0000) @db.Decimal(12, 4) // 9% o crédito EPS
-
+  aporte_vida_ley        Decimal              @default(0.0000) @db.Decimal(12, 4) // Seguro de Vida Ley (1.25%)
+  
   // Totales
   total_ingresos         Decimal              @default(0.0000) @db.Decimal(12, 4)
   total_descuentos       Decimal              @default(0.0000) @db.Decimal(12, 4)

@@ -3,14 +3,14 @@ import { ServerTime } from "@/common/utils/server-time";
 import { IdentityGenerator } from "@/common/utils/uuid.util";
 import { ConflictException, NotFoundException } from "@nestjs/common";
 import { Decimal } from "@prisma/client/runtime/client";
+
 const MONTOS_EN_CERO = {
-  dias_laborados: 30, sueldo_base: 0, asignacion_familia: 0, horas_extras_25: 0, horas_extras_35: 0,
-  recargo_nocturno: 0, gratificacion: 0, bonif_extraordinaria: 0,
-  descuento_faltas: 0, descuento_tardanzas: 0,
-  descuento_onp: 0, descuento_afp_fondo: 0, descuento_afp_seguro: 0, descuento_afp_comision: 0,
-  descuento_quinta: 0, descuento_adelanto: 0, descuento_eps: 0,
-  aporte_essalud: 0, total_ingresos: 0, total_descuentos: 0, neto_a_pagar: 0,
+  // ...lo que ya tienes
+  aporte_essalud: 0, aporte_vida_ley: 0, total_ingresos: 0, total_descuentos: 0, neto_a_pagar: 0,
 };
+
+type Montos = Record<Exclude<keyof typeof MONTOS_EN_CERO, 'dias_laborados'>, Decimal | number>;
+type DatosPlanilla = Partial<Montos> & { dias_laborados?: number; tasa_afp_aplicada?: Decimal | null };
 
 export async function traerDatosEmpleado(prisma: PrismaService, idEmpleado: string) {
   const empleado = await prisma.empleados.findUnique({
@@ -66,7 +66,7 @@ export async function obtenerAdelantosAprobados(prisma: PrismaService, empleadoI
   })
   return{
     totalSolicitudes: resultado._count.id,
-    totalMonto: resultado._sum.monto || 0
+    totalMonto: resultado._sum.monto?? new Decimal(0)
   }
 }
 
@@ -105,7 +105,7 @@ export async function traerFinancierosEmpleado(prisma: PrismaService, empleadoId
 }
 
 //obtenecio de parametros legales vigentes necesarios para el calculo de planillas
-const PARAMETROS_PLANILLA = ['RMV', 'UIT', 'ESSALUD_TCP', 'DIVISOR_HORAS_MES', 'PRO_VIDA'] as const;
+const PARAMETROS_PLANILLA = ['RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'DIVISOR_HORAS_MES', 'VIDA_LEY_PCT'] as const;
 type Parametro = (typeof PARAMETROS_PLANILLA)[number];
 export async function obtenerParametrosLegalesPlanillas(prisma: PrismaService) {
   const parametros = await prisma.parametro_legal.findMany({
@@ -117,8 +117,8 @@ export async function obtenerParametrosLegalesPlanillas(prisma: PrismaService) {
   });
 
   const mapeoParametro = Object.fromEntries(
-    parametros.map((param) => [param.codigo, Number(param.valor)]),
-  ) as Record<Parametro, number>;
+    parametros.map((param) => [param.codigo, param.valor]),
+  ) as Record<Parametro, Decimal>;
 
   const faltantes = PARAMETROS_PLANILLA.filter((n) => !(n in mapeoParametro));
   if (faltantes.length)
@@ -130,8 +130,7 @@ export async function obtenerParametrosLegalesPlanillas(prisma: PrismaService) {
 
 //funion de guardar datos en planillas 
 export async function guardarHistorialPlanilla(
-  prisma: PrismaService, empleadoId: string, periodo: string,
-  datos: Partial<typeof MONTOS_EN_CERO> & { tasa_afp_aplicada?: number | null },
+    prisma: PrismaService, empleadoId: string, periodo: string, datos: DatosPlanilla,  
 ) {
   const clave = { empleado_id_periodo: { empleado_id: empleadoId, periodo } };
   const existente = await prisma.historial_planillas.findUnique({ where: clave, select: { estado: true } });
@@ -172,8 +171,8 @@ export async function ingresosCobrado(prisma: PrismaService,idEmpleado:string) {
     },
   });
   return {
-    ingresosPrecios: ingresosCobrados._sum.total_ingresos ?? new Decimal(0),
-    retencionesPrecias:  ingresosCobrados._sum.descuento_quinta?? new Decimal(0) ,
+    ingresosPrevios: ingresosCobrados._sum.total_ingresos ?? new Decimal(0),
+    retencionesPrevias:  ingresosCobrados._sum.descuento_quinta?? new Decimal(0) ,
   }
 }
 
@@ -204,7 +203,7 @@ export function traerEmpleadosArea(prisma: PrismaService, idArea: string, cantid
 
 function obtenerRangoSemestre(){
   const mesAcutal = ServerTime.obtenerMesActual;
-  return  mesAcutal <= 6 ? {
+  return  mesAcutal === 7 ? {
     desde: `${ServerTime.obtenerYearActual}-01`,
     hasta: `${ServerTime.obtenerYearActual}-06`
   } : 
