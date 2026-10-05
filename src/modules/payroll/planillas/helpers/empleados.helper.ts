@@ -2,6 +2,7 @@ import { PrismaService } from "@/common/prisma/prisma.service";
 import { ServerTime } from "@/common/utils/server-time";
 import { IdentityGenerator } from "@/common/utils/uuid.util";
 import { ConflictException, NotFoundException } from "@nestjs/common";
+import { Decimal } from "@prisma/client/runtime/client";
 const MONTOS_EN_CERO = {
   dias_laborados: 30, sueldo_base: 0, asignacion_familia: 0, horas_extras_25: 0, horas_extras_35: 0,
   recargo_nocturno: 0, gratificacion: 0, bonif_extraordinaria: 0,
@@ -29,6 +30,7 @@ export async function traerDatosEmpleado(prisma: PrismaService, idEmpleado: stri
       jornada:{
         select:{
           total_horas_semana:true,
+          horario_semanal:true,
         }
       }
     },
@@ -75,7 +77,7 @@ export async function traerFinancierosEmpleado(prisma: PrismaService, empleadoId
       sueldo_basico: true,
       cuspp: true,
       tipo_comision: true,
-      regimen_pension: { select: { id: true, nombre: true } },
+      regimen_pension: { select: { nombre: true } },
       regimen_salud: true,
       eps_nombre: true,
       eps_plan: true,
@@ -144,7 +146,7 @@ export async function guardarHistorialPlanilla(
     update: data,
   });
 }
-export async function obtenerMesesSemestre(prisma: PrismaService,idEmpleado: string):Promise<number>{
+export async function obtenerMesesCombradosSemestre(prisma: PrismaService,idEmpleado: string):Promise<number>{
   const peridoGatificacion = obtenerRangoSemestre(); 
   const cantidadMeses = await prisma.historial_planillas.count({
     where:{
@@ -155,6 +157,24 @@ export async function obtenerMesesSemestre(prisma: PrismaService,idEmpleado: str
     },
   });
   return cantidadMeses;
+}
+export async function ingresosCobrado(prisma: PrismaService,idEmpleado:string) {
+  const ingresosCobrados = await prisma.historial_planillas.aggregate({
+    _sum:{
+      total_ingresos:true, descuento_quinta:true,
+    },
+    where:{
+      empleado_id: idEmpleado,
+      periodo:{
+        gte:`${ServerTime.obtenerYearActual}-01`,
+        lt: ServerTime.obtenerPeriodoActual,
+      }
+    },
+  });
+  return {
+    ingresosPrecios: ingresosCobrados._sum.total_ingresos ?? new Decimal(0),
+    retencionesPrecias:  ingresosCobrados._sum.descuento_quinta?? new Decimal(0) ,
+  }
 }
 
 export function traerEmpleadosArea(prisma: PrismaService, idArea: string, cantidadLote: number){
@@ -181,6 +201,7 @@ export function traerEmpleadosArea(prisma: PrismaService, idArea: string, cantid
         });
     }
 }
+
 function obtenerRangoSemestre(){
   const mesAcutal = ServerTime.obtenerMesActual;
   return  mesAcutal <= 6 ? {

@@ -26,4 +26,9 @@ export class ServerTime {
     }
     static get obtenerYearActual(): number { return dayjs().tz(TIMEZONE_PERU).year(); }
     static get obtenerMesActual(): number { return dayjs().tz(TIMEZONE_PERU).month() + 1; }
+    static get obtenerMesesRestantes() : number {
+        const diferencia = 12 - this.obtenerMesActual + 1 ;
+        return  diferencia;
+    }
+    
 }
