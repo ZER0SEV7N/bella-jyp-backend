@@ -81,8 +81,12 @@ export async function traerEmpleadosArea (prisma: PrismaService,idArea: string, 
         //incio de mapeao de datos
         for(const empleado of empleados){
             const acum = ingresosPreviosEmpleado.get(empleado.id);
+            const horario = empleado.jornada?.horario_semanal;
+            const diasLaborales = Array.isArray(horario) ? horario.filter((d: any) => d?.laborable === true).length : 0;
+            
             resultado.push({
                 ...empleado,
+                diasLaborables: diasLaborales,
                 montoAdelanto: MontoAdelanto.get(empleado.id)?? new Decimal(0),
                 mesesTrabajdos: MesesTrabajadosDelSemestre.get(empleado.id)?? 0,
                 ingresosPrevios: acum?.ingresosPrevios ?? new Decimal(0),
