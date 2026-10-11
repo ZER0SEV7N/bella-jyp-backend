@@ -65,8 +65,8 @@ export async function obtenerAdelantosAprobados(prisma: PrismaService, empleadoI
     },
   })
   return{
-    totalSolicitudes: resultado._count.id,
-    totalMonto: resultado._sum.monto?? new Decimal(0)
+    cantidadSolicitudes: resultado._count.id,
+    montoAdelanto: resultado._sum.monto?? new Decimal(0)
   }
 }
 
@@ -160,7 +160,7 @@ export async function obtenerMesesCombradosSemestre(prisma: PrismaService,idEmpl
 export async function ingresosCobrado(prisma: PrismaService,idEmpleado:string) {
   const ingresosCobrados = await prisma.historial_planillas.aggregate({
     _sum:{
-      total_ingresos:true, descuento_quinta:true,
+      total_ingresos:true, total_descuentos:true, descuento_quinta:true,
     },
     where:{
       empleado_id: idEmpleado,
@@ -176,30 +176,7 @@ export async function ingresosCobrado(prisma: PrismaService,idEmpleado:string) {
   }
 }
 
-export function traerEmpleadosArea(prisma: PrismaService, idArea: string, cantidadLote: number){
-    const EmpleadoArea = [];
-    let ultimoEmpleadoProcesado: string | null = null 
-    let registrosCompletos = true;
-    while (registrosCompletos) {
-        const lote =  prisma.empleados.findMany({
-            where:{
-                activo: true,   
-                area:{
-                    id: idArea,
-                    activo:true,    
-                }
-            },
-            take:cantidadLote,
-            ...( ultimoEmpleadoProcesado && {
-                skip: 1,
-                cursor:{nro_documento: ultimoEmpleadoProcesado}
-            }),
-            select:{
 
-            }
-        });
-    }
-}
 
 function obtenerRangoSemestre(){
   const mesAcutal = ServerTime.obtenerMesActual;
