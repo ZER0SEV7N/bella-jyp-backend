@@ -96,7 +96,7 @@ export class SolicitudController {
      */
     @ApiSwaggerObtenerDetalleSolicitud()
     @Get(':idOCodigo')
-    @Roles('ADMIN', 'RRHH', 'COLABORADOR', 'EMPLEADO', 'CONTADOR')
+    @Roles('ADMIN', 'RRHH', 'EMPLEADO', 'CONTADOR')
     async obtenerDetalle(@Param('idOCodigo') idOCodigo: string) {
         return await this.obtenerDetalleUseCase.execute(idOCodigo);
     }

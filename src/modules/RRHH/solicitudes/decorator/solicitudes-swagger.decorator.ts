@@ -65,7 +65,7 @@ export function ApiSwaggerCrearSolicitud() {
           },
           origen: {
             type: 'string',
-            enum: ['PORTAL_EMPLEADO', 'RRHH_MANUAL'],
+            enum: ['PORTAL_EMPLEADO', 'MANUAL_RRHH', 'APLICACION_MOVIL'],
             default: 'PORTAL_EMPLEADO',
           },
           archivo: {

@@ -1,8 +1,12 @@
 //src/modules/rrhh/solicitudes/use-cases/crearSolicitud.useCase.ts
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import type { CrearSolicitudDto } from '@jyp/shared-contracts';
+import type { CrearSolicitudDto, TipoSolicitud } from '@jyp/shared-contracts';
+import { ServerTime } from '@/common/utils/server-time';
+import { Prisma } from '@prisma/client';
+
+const MAX_INTENTOS_CORRELATIVO = 5; //Número máximo de intentos para generar un código correlativo único para la solicitud
 
 /**
  * Funcion auxilias para generar el codigo secuencial correlativo para las solicitudes
@@ -20,16 +24,57 @@ async function generarCodigoCorrelativo(prisma: PrismaService): Promise<string> 
         select: { codigo: true }
     });
 
-    let siguienteSequencia = 1; //Secuencia inicial
+    let siguienteSecuencia = 1; //Secuencia inicial
 
+    //Si existe una solicitud previa, extraer la secuencia y aumentarla en 1
     if(ultimaSolicitud && ultimaSolicitud.codigo) {
         const partes = ultimaSolicitud.codigo.split('-');
-        const secuenciaActual = parseInt(partes[2], 10);
-        if(!isNaN(secuenciaActual)) 
-            siguienteSequencia = secuenciaActual + 1; //Incrementar la secuencia
+        const secuenciaActual = Number.parseInt(partes[2], 10);
+        if (!Number.isNaN(secuenciaActual)) siguienteSecuencia = secuenciaActual + 1;
     }
 
-    return `${prefix}${siguienteSequencia.toString().padStart(3, '0')}`; //Formatear con ceros a la izquierda
+    return `${prefix}${siguienteSecuencia.toString().padStart(3, '0')}`; //Formatear con ceros a la izquierda
+}
+
+/**
+ * Funcion para calcular la fecha límite de revisión de una solicitud.
+ * Si la solicitud tiene una fecha de inicio, la fecha límite será un día antes de esa fecha.
+ * Si no tiene fecha de inicio, la fecha límite será tres días después de la fecha actual del servidor.
+ * @param fechaInicio - Fecha de inicio de la solicitud, puede ser null.
+ * @returns La fecha límite de revisión como un objeto Date.
+ * @example const fechaLimite = calcularFechaLimiteRevision(new Date('2024-06-15'));
+ */
+function calcularFechaLimiteRevision(fechaInicio: Date | null): Date {
+
+    //Si hay fecha de inicio, la fecha límite es 1 día antes
+    if (fechaInicio) {
+        const fechaLimite = new Date(fechaInicio);
+
+        fechaLimite.setUTCDate(fechaLimite.getUTCDate() - 1);
+
+        return fechaLimite;
+    }
+
+    //Si no hay fecha de inicio, la fecha límite es 3 días desde hoy
+    const fechaLimite = new Date( ServerTime.obtenerFechaSimpleActual );
+    fechaLimite.setUTCDate( fechaLimite.getUTCDate() + 3);
+    return fechaLimite;
+}
+
+
+/**
+ * Funcion para validar reglas de negocio específicas según el tipo de solicitud.
+ * Actualmente valida que las solicitudes de tipo "ADELANTO_SUELDO" tengan un monto mayor a cero.
+ * @param dto - Objeto de transferencia de datos que contiene la información de la solicitud a validar.
+ * @throws BadRequestException si las reglas de negocio no se cumplen.
+ */
+function validarReglasPorTipo(dto: CrearSolicitudDto): void {
+
+    if (dto.tipo === 'ADELANTO_SUELDO') 
+        if ( dto.monto === undefined || dto.monto === null || dto.monto <= 0) throw new BadRequestException({
+            title: 'Monto requerido',
+            detail:'Para solicitudes de ADELANTO_SUELDO debe especificar un monto válido mayor a cero.'
+        });
 }
 
 /**
@@ -57,61 +102,88 @@ export class CrearSolicitudUseCase {
         if(!empleadoIdFinal) throw new BadRequestException('El identificador del empleado solicitante es obligatorio.');
 
         //Validar que el empleado exista
-        const empleado = await this.prisma.empleados.findUnique({where: {id: empleadoIdFinal, deleted_at: null}});
+        const empleado = await this.prisma.empleados.findUnique({
+            where: {id: empleadoIdFinal, deleted_at: null}, 
+            select: {id: true, activo: true }
+        });
         if(!empleado  || !empleado.activo) throw new NotFoundException('El empleado especificado no existe en el sistema.');
 
-        // Regla de Negocio: Validación estricta del monto de adelanto
-        if (dto.tipo === 'ADELANTO_SUELDO') 
-            if (!dto.monto || Number(dto.monto) <= 0) throw new BadRequestException({
-                title: 'Monto Requerido',
-                detail: 'Para solicitudes de ADELANTO_SUELDO debe especificar un monto válido y mayor a cero.'
-            });
-        
+        //Validar reglas de negocio según el tipo de solicitud
+        validarReglasPorTipo(dto);
 
-        //Normalizar fechas
-        const fechaInicio = dto.fecha_inicio ? new Date(dto.fecha_inicio) : null;
-        const fechaFin = dto.fecha_fin ? new Date(dto.fecha_fin) : null;
-        if(fechaInicio && fechaFin && fechaInicio > fechaFin) throw new BadRequestException('La fecha de inicio no puede ser posterior a la fecha de fin.');
+        //Regla de Negocio: Validación estricta del monto de adelanto
+        const fechaInicio = dto.fecha_inicio ? ServerTime.desdeFechaSimple(dto.fecha_inicio) : null;
+        const fechaFin = dto.fecha_fin ? ServerTime.desdeFechaSimple(dto.fecha_fin) : null;
 
-        //Calcular la fecha limite de revision
-        const fechaLimiteRevision = new Date();
-        if(fechaInicio) fechaLimiteRevision.setTime(fechaInicio.getTime() - 24 * 60 * 60 * 1000); //1 día antes del período
-        else fechaLimiteRevision.setDate(fechaLimiteRevision.getDate() + 3); //3 días a partir de hoy si no hay fecha de inicio
-
-        //Generar el código correlativo
-        const codigoCorrelativo = await generarCodigoCorrelativo(this.prisma);
-
-        //Crear la solicitud en la base de datos
-        return await this.prisma.solicitud.create({
-            data: {
-                id: IdentityGenerator.generateId(),
-                empleado_id: empleadoIdFinal,
-                codigo: codigoCorrelativo,
-                tipo: dto.tipo,
-                estado: 'PENDIENTE',
-                monto: dto.tipo === 'ADELANTO_SUELDO' ? dto.monto : '00.00',
-                fecha_inicio: fechaInicio,
-                fecha_fin: fechaFin,
-                dias_solicitados: dto.dias_solicitados || 1,
-                motivo: dto.motivo.trim(),
-                observacion: dto.observacion?.trim() || null,
-                sustento_url: archivo?.url || null,
-                sustento_nombre: archivo?.nombreOriginal || null,
-                fecha_limite: fechaLimiteRevision,
-                origen: dto.origen || 'PORTAL_EMPLEADO'
-            },
-            include: {
-                empleados: {
-                    select: {
-                        id: true,
-                        nombre: true,
-                        apellido: true,
-                        nro_documento: true,
-                        area: { select: { id: true, nombre: true } },
-                        cargo: { select: { id: true, nombre: true } }
-                    }
-                }
-            }
+        if (fechaInicio && fechaFin && fechaInicio > fechaFin) throw new BadRequestException({
+            title: 'Rango de fechas inválido',
+            detail: 'La fecha de inicio no puede ser posterior a la fecha de fin.'
         });
+        
+        //Calcular la fecha límite de revisión de la solicitud
+        const fechaLimiteRevision = calcularFechaLimiteRevision(fechaInicio);
+
+        /*
+         * El UNIQUE de codigo en PostgreSQL sigue siendo
+         * la última defensa contra condiciones de carrera.
+         * Si dos solicitudes obtienen el mismo correlativo,
+         * una fallará con P2002 y se vuelve a calcular.
+         */
+        for (let intento = 1; intento <= MAX_INTENTOS_CORRELATIVO; intento++) {
+            const codigoCorrelativo = await generarCodigoCorrelativo(this.prisma);
+
+            try {
+                return await this.prisma.solicitud.create({
+                    data: {
+                        id: IdentityGenerator.generateId(),
+                        empleado_id: empleadoIdFinal,
+                        codigo: codigoCorrelativo,
+                        tipo: dto.tipo as TipoSolicitud,
+                        estado: 'PENDIENTE',
+                        monto: dto.tipo === 'ADELANTO_SUELDO' ? dto.monto : null,
+                        fecha_inicio: fechaInicio,
+                        fecha_fin: fechaFin,
+                        dias_solicitados: dto.dias_solicitados ?? 1,
+                        motivo: dto.motivo.trim(),
+                        observacion: dto.observacion?.trim() ?? null,
+                        sustento_url: archivo?.url ?? null,
+                        sustento_nombre: archivo?.nombreOriginal ?? null,
+                        fecha_limite: fechaLimiteRevision,
+                        origen: dto.origen ?? 'PORTAL_EMPLEADO'
+                    },
+
+                    include: {
+                        empleados: {
+                            select: {
+                                id: true,
+                                nombre: true,
+                                apellido: true,
+                                nro_documento: true,
+                                //Incluir información del área y cargo del empleado
+                                area: { select: { id: true, nombre: true} },
+                                cargo: { select: { id: true, nombre: true } }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+
+                //Si ocurre un error de colisión de código correlativo, intentar nuevamente hasta el máximo de intentos
+                const esColisionCorrelativo = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
+                if ( esColisionCorrelativo && intento < MAX_INTENTOS_CORRELATIVO) 
+                    continue;
+                
+                //Si se alcanza el máximo de intentos y aún hay colisión, lanzar excepción de conflicto
+                if (esColisionCorrelativo) throw new ConflictException({
+                    title: 'Conflicto de correlativo',
+                    detail: 'No fue posible generar un código único para la solicitud. Intente nuevamente.'
+                });
+                
+                throw error;
+            }
+        }
+
+        throw new ConflictException('No fue posible registrar la solicitud.');
     }
 }

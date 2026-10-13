@@ -2,6 +2,8 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { EditarContratoDto } from '@jyp/shared-contracts';
+import { sanitizarFecha } from '@/common/utils/transformacion.util';
+import { estado_contrato_enum } from '@prisma/client';
 
 /**
  * Caso de uso para editar un contrato en el módulo de RRHH
@@ -26,21 +28,26 @@ export class EditarContratoUseCase {
    */
   async execute(idContrato: string, dto: EditarContratoDto) {
     //Validar la existencia del contrato antes de intentar actualizarlo
-    const contrato = await this.prisma.contratos.findUnique({where: { id: idContrato }});
+    const contrato = await this.prisma.contratos.findUnique({where: { id: idContrato, deleted_at: null }});
 
-    if (contrato?.deleted_at !== null) throw new NotFoundException('El contrato especificado no existe o ha sido eliminado.');
+    //Regla de negocio: No se permite cambiar el empleado_id del contrato para evitar fraudes.
+    if (!contrato) throw new NotFoundException('El contrato especificado no existe o ha sido eliminado.');
+    if (contrato.url !== null) throw new BadRequestException('El contrato ya cuenta con un documento PDF firmado y sellado. No es editable.');
     
-    //Regla de negocio: Solo se permite actualizar mientras el pdf del contrato no haya sido subido, es decir, si el campo url es null.
-    if (contrato.url !== null) throw new BadRequestException('El contrato ha sido sellado. No se puede editar porque ya cuenta con un documento físico adjunto.');
+    //Normalizar fechas de inicio y fin si se proporcionan
+    const fechaInicio = dto.fecha_inicio ? sanitizarFecha(dto.fecha_inicio) : undefined;
+    const fechaFin = dto.fecha_fin !== undefined ? sanitizarFecha(dto.fecha_fin) : undefined;
 
     try {
       return await this.prisma.contratos.update({
         where: { id: idContrato },
-        data: { 
-          ...dto,
-          fecha_inicio: dto.fecha_inicio ? new Date(dto.fecha_inicio) : undefined,
-          fecha_fin: dto.fecha_fin ? new Date(dto.fecha_fin) : undefined,
-        }
+        data: {
+          tipo_modalidad: dto.tipo_modalidad ?? undefined,
+          estado: dto.estado ? (dto.estado as estado_contrato_enum) : undefined,
+          observacion: dto.observacion !== undefined ? dto.observacion?.trim() : undefined,
+          ...(fechaInicio && { fecha_inicio: fechaInicio }),
+          ...(fechaFin !== undefined && { fecha_fin: fechaFin }),
+        },
       });
     } catch (error) {
       throw new InternalServerErrorException('Error al actualizar los datos del contrato.');

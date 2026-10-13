@@ -3,6 +3,8 @@ import { Injectable, InternalServerErrorException, NotFoundException, BadRequest
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { RenovarContratoDto } from '@jyp/shared-contracts';
+import { sanitizarFecha } from '@/common/utils/transformacion.util';
+import { estado_contrato_enum } from '@prisma/client';
 
 /**
  * Caso de uso para renovar un contrato en el módulo de RRHH
@@ -25,41 +27,49 @@ export class RenovarContratoUseCase {
   async execute(idViejoContrato: string, dto: RenovarContratoDto) {
     //Buscar el contrato existente para validar su existencia y obtener el empleado asociado
     const contratoViejo = await this.prisma.contratos.findUnique({
-      where: { id: idViejoContrato },
-      include: { empleados: { select: { activo: true } } }
+      where: { id: idViejoContrato, deleted_at: null },
+      include: { empleados: { select: { id: true, activo: true } } },
     });
-    
-    //Validar que el contrato a renovar exista y no haya sido eliminado
-    if (contratoViejo?.deleted_at !== null) throw new NotFoundException('El contrato a renovar no fue encontrado.');
-    
-    if (!contratoViejo.empleados?.activo) throw new BadRequestException('No se puede crear un contrato de renovación para un empleado cesado.');
 
-    //Transaccion ACID para actualizar el contrato viejo y crear el nuevo contrato de renovación
+    //Validaciones de negocio
+    if (!contratoViejo) throw new NotFoundException('El contrato previo a renovar no existe o ha sido eliminado.');
+    if (!contratoViejo.empleados?.activo) throw new BadRequestException('No se puede prorrogar un contrato para un colaborador inactivo o cesado.');
+    if (contratoViejo.estado === estado_contrato_enum.RENOVADO) throw new BadRequestException('Este contrato ya fue renovado previamente por otra adenda.');
+    
+    //Normalizar fechas de inicio y fin del nuevo contrato
+    const nuevaFechaInicio = sanitizarFecha(dto.fecha_inicio);
+    const nuevaFechaFin = sanitizarFecha(dto.fecha_fin);
+
+    //Validaciones de fechas
+    if (!nuevaFechaInicio) throw new BadRequestException('La nueva fecha de inicio es obligatoria.');
+    if (nuevaFechaFin && nuevaFechaInicio > nuevaFechaFin) throw new BadRequestException('La fecha de inicio de la prórroga no puede superar a su fecha de fin.');
+    
     try {
-      const resultados = await this.prisma.$transaction([
-        this.prisma.contratos.update({
+      return await this.prisma.$transaction(async (tx) => {
+        //Cerrar el contrato anterior como RENOVADO
+        await tx.contratos.update({
           where: { id: idViejoContrato },
-          data: { renovado: true },
-        }),
-        
-        this.prisma.contratos.create({
+          data: { estado: estado_contrato_enum.RENOVADO },
+        });
+
+        //Crear la prórroga enlazada genealógicamente
+        return await tx.contratos.create({
           data: {
             id: IdentityGenerator.generateId(),
-            empleado_id: contratoViejo.empleado_id, // Mantenemos al mismo empleado
-            id_estado: dto.id_estado,
-            url: '',
+            empleado_id: contratoViejo.empleado_id,
+            estado: estado_contrato_enum.VIGENTE,
             tipo_modalidad: dto.tipo_modalidad || contratoViejo.tipo_modalidad,
-            fecha_inicio: new Date(dto.fecha_inicio),
-            fecha_fin: dto.fecha_fin ? new Date(dto.fecha_fin) : null,
-            observacion: dto.observacion || `Renovación del contrato ${idViejoContrato}`,
-            renovado: false
-          }
-        })
-      ]);
-
-      //Devolvemos el nuevo contrato creado como resultado de la transacción
-      return resultados[1];
+            fecha_inicio: nuevaFechaInicio,
+            fecha_fin: nuevaFechaFin ?? null,
+            observacion: dto.observacion?.trim() ?? `Prórroga del contrato anterior (${contratoViejo.id})`,
+            url: null, //Nuevo contrato empieza pendiente de firma/PDF
+            contrato_origen_id: idViejoContrato, //Trazabilidad relacional
+          },
+        });
+      });
     } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+
       throw new InternalServerErrorException('Error al procesar la renovación del contrato.', error instanceof Error ? error.message : String(error));
     }
   }
