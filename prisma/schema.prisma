@@ -114,6 +114,14 @@ model bancos {
   @@map("bancos")
 }
 
+model estado_contrato {
+  id        String      @id @db.Uuid
+  nombre    String      @db.VarChar(100)
+  contratos contratos[]
+
+  @@map("estado_contrato")
+}
+
 // =========================================================================
 // MÓDULO PREVISIONAL (AFP / ONP) Y PARÁMETROS LEGALES
 // =========================================================================
@@ -146,7 +154,7 @@ model comisiones_afp {
   comision_sobre_ra  Decimal   @default(0.0000) @db.Decimal(6, 4)
   prima_seguro       Decimal   @default(0.0000) @db.Decimal(6, 4)
   comision_mixta     Decimal   @default(0.0000) @db.Decimal(6, 4)
-  periodo_inicio     DateTime  @db.Date
+  periodo_inicio     DateTime  @db.Date 
   periodo_final      DateTime? @db.Date // null indica vigencia activa actual
   tipo_afp           tipo_afp  @relation(fields: [afp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comisiones_afp_tipo")
 
@@ -156,14 +164,13 @@ model comisiones_afp {
 
 model parametro_legal {
   id            String    @id @db.Uuid
-  codigo        String    @db.VarChar(50) // 'RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'DIVISOR_HORAS_MES', 
+  codigo        String    @db.VarChar(50) // 'RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'DIVISOR_HORAS_MES', 'PRO_VIDA'
   nombre        String    @db.VarChar(100)
   valor         Decimal   @db.Decimal(12, 4)
   vigente_desde DateTime  @db.Date
   vigente_hasta DateTime? @db.Date // null indica vigencia activa actual
   descripcion   String?   @db.VarChar(255)
   created_at    DateTime  @default(now()) @db.Timestamptz(6)
-
   @@unique([codigo, vigente_desde], map: "uq_parametro_codigo_vigencia")
   @@index([codigo, vigente_desde, vigente_hasta], map: "idx_parametro_busqueda")
   @@map("parametro_legal")
@@ -234,28 +241,22 @@ model empleados {
 }
 
 model contratos {
-  id                 String               @id @db.Uuid
-  empleado_id        String               @db.Uuid
-  estado             estado_contrato_enum @default(VIGENTE)
-  tipo_modalidad     String?              @db.VarChar(100) // 'PLAZO_FIJO', 'INDETERMINADO', 'SUPLENCIA'
-  fecha_inicio       DateTime             @db.Date
-  fecha_fin          DateTime?            @db.Date // null si es indeterminado
-  url                String?              @db.VarChar(225)
-  observacion        String?
-  
-  // Trazabilidad de prórroga: apunta al contrato anterior que este documento renueva
-  contrato_origen_id String?              @db.Uuid
-  contrato_origen    contratos?           @relation("RenovacionContrato", fields: [contrato_origen_id], references: [id])
-  prorrogas          contratos[]          @relation("RenovacionContrato")
+  id             String          @id @db.Uuid
+  empleado_id    String          @db.Uuid
+  id_estado      String          @db.Uuid
+  tipo_modalidad String?         @db.VarChar(100)
+  fecha_inicio   DateTime        @db.Date
+  fecha_fin      DateTime?       @db.Date
+  renovado       Boolean         @default(false)
+  observacion    String?
+  deleted_at     DateTime?       @db.Timestamptz(6)
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  url            String?         @db.VarChar(225)
+  empleados      empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
+  estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
 
-  deleted_at         DateTime?            @db.Timestamptz(6)
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
-
-  empleados          empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
-
+  @@index([deleted_at], map: "idx_contratos_deleted", where: raw("(deleted_at IS NULL)"))
   @@index([empleado_id], map: "idx_contratos_empleado")
-  @@index([estado], map: "idx_contratos_estado")
   @@map("contratos")
 }
 
@@ -458,7 +459,8 @@ model historial_planillas {
 
   // Aportes asumidos por la empresa (No descuentan del sueldo)
   aporte_essalud         Decimal              @default(0.0000) @db.Decimal(12, 4) // 9% o crédito EPS
-
+  aporte_vida_ley        Decimal              @default(0.0000) @db.Decimal(12, 4) // Seguro de Vida Ley (1.25%)
+  
   // Totales
   total_ingresos         Decimal              @default(0.0000) @db.Decimal(12, 4)
   total_descuentos       Decimal              @default(0.0000) @db.Decimal(12, 4)
@@ -653,8 +655,6 @@ enum estado_sincronizacion_enum {
 
 enum tipo_marcacion_enum {
   ENTRADA
-  SALIDA_ALMUERZO
-  ENTRADA_ALMUERZO
   SALIDA
 }
 
@@ -666,8 +666,6 @@ enum estado_incidencia_enum {
 
 enum TipoSolicitud {
   VACACIONES
-  ADELANTO_VACACIONES
-  VENTA_VACACIONES
   LICENCIA_MEDICA
   PERMISO
   JUSTIFICACION_ASISTENCIA
@@ -733,13 +731,7 @@ enum estado_empleado_enum {
   ACTIVO
   VACACIONES
   LICENCIA
-  CESADO  
+  CESADO
+  DESPEDIDO
   SUSPENDIDO
-}
-
-enum estado_contrato_enum {
-  VIGENTE
-  VENCIDO
-  RENOVADO
-  ANULADO
 }
