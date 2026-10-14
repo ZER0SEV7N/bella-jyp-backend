@@ -1,6 +1,8 @@
 //src/modules/RRHH/solicitudes/use-cases/anularSolicitud.useCase.ts
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { SOLICITUD_INCLUDE, construirCondicionActual, lanzarConflictoSiCambio, obtenerSolicitudOperativa, validarMotivo, validarSolicitudAbierta } from '../helpers/validacionesSolicitud.helper';
+
 
 /**
  * Caso de uso para anular una solicitud de RRHH.
@@ -21,19 +23,19 @@ export class AnularSolicitudUseCase {
      * @throws {BadRequestException} Si la solicitud ya fue aprobada o si el motivo de anulación es inválido.
      */
     async execute(solicitudId: string, motivoAnulacion: string) {
-        const solicitud = await this.prisma.solicitud.findUnique({ where: { id: solicitudId, deleted_at: null } });
+       const motivo = validarMotivo(motivoAnulacion, 'Motivo de anulación requerido');
+        const solicitud = await obtenerSolicitudOperativa(this.prisma, solicitudId);
+        validarSolicitudAbierta(solicitud);
 
-        if(!solicitud) throw new NotFoundException('La solicitud especificada no existe o ha sido eliminada.');
-
-        if(solicitud.estado === 'APROBADA') throw new BadRequestException('No se puede anular una solicitud que ya fue formalmente aprobada.');
-
-        return await this.prisma.solicitud.update({
-            where: { id: solicitudId },
-            data: {
-                estado: 'ANULADA',
-                observacion: motivoAnulacion.trim() ? `[ANULADA]: ${motivoAnulacion.trim()}` : solicitud.observacion,
-                deleted_at: new Date() //Marca la solicitud como eliminada
-            }
-        });
+        try {
+            return await this.prisma.solicitud.update({
+                where: construirCondicionActual(solicitud),
+                // ANULADA es un estado de negocio; el registro continúa visible en detalle e historial.
+                data: { estado: 'ANULADA', observacion: motivo },
+                include: SOLICITUD_INCLUDE
+            });
+        } catch (error) {
+            return lanzarConflictoSiCambio(error);
+        }
     }
 }

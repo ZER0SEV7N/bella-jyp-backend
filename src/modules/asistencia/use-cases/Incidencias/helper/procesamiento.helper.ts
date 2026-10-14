@@ -1,3 +1,6 @@
+import { BadRequestException, ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { ServerTime } from '@/common/utils/server-time';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { GenerarIncidenciasPeriodoDto } from '@jyp/shared-contracts';
@@ -33,12 +36,17 @@ export const PERU_TIMEZONE_OFFSET_MINUTES = -5 * 60;
  */
 export function obtenerPeriodo(periodo: string) {
   //Validación básica del formato "YYYY-MM"
-  const [year, month] = periodo.split('-').map(Number);
-  if (isNaN(year) || isNaN(month) || month < 1 || month > 12) throw new Error('Formato de período inválido. Debe ser "YYYY-MM".');
+  let year: number;
+  let month: number;
+  try {
+    ({ year, month } = ServerTime.validarPeriodo(periodo));
+  } catch {
+    throw new BadRequestException('Formato de período inválido. Debe ser YYYY-MM.');
+  }
 
   //Cálculo de fechas de inicio y fin del mes en UTC
   const fechaInicioMes = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-  const fechaFinMes = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+  const fechaFinMes = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
   //Retorno del objeto con la información del período
   return { year, month, fechaInicioMes, fechaFinMes, diasDelMes: fechaFinMes.getUTCDate() };
@@ -62,6 +70,8 @@ export async function obtenerColaboradores(prisma: PrismaService, dto: GenerarIn
   if (dto.empleado_id) whereEmpleado.id = dto.empleado_id;
   if (dto.area_id) whereEmpleado.area_id = dto.area_id;
 
+  const rangoMarcaciones = ServerTime.obtenerRangoMes(dto.periodo);
+
   return await prisma.empleados.findMany({
     where: whereEmpleado,
     include: {
@@ -69,6 +79,7 @@ export async function obtenerColaboradores(prisma: PrismaService, dto: GenerarIn
       solicitudes: {
         where: {
           estado: 'APROBADA',
+          tipo: { in: ['VACACIONES', 'LICENCIA_MEDICA', 'PERMISO', 'JUSTIFICACION_ASISTENCIA'] },
           deleted_at: null,
           OR: [{
             fecha_inicio: { lte: periodo.fechaFinMes },
@@ -79,8 +90,8 @@ export async function obtenerColaboradores(prisma: PrismaService, dto: GenerarIn
       asistencias: {
         where: {
           fecha_hora: {
-            gte: new Date(periodo.fechaInicioMes.getTime() - 24 * 60 * 60 * 1000),
-            lte: new Date(periodo.fechaFinMes.getTime() + 24 * 60 * 60 * 1000)
+            gte: rangoMarcaciones.inicioMes,
+            lt: rangoMarcaciones.inicioSiguienteMes
           }
         }
       }
@@ -88,6 +99,13 @@ export async function obtenerColaboradores(prisma: PrismaService, dto: GenerarIn
   });
 }
 
+/**
+ * Función para indexar las marcaciones de asistencia de los empleados en la zona horaria de Perú.
+ * Agrupa las entradas y salidas por fecha, considerando la conversión de UTC a la hora local de Perú (UTC-5).
+ * @param asistencias - Un array de objetos que representan las marcaciones de asistencia, cada uno con una fecha y hora en UTC y un tipo de marcación (ENTRADA o SALIDA).
+ * @returns - Un Map donde la clave es la fecha en formato "YYYY-MM-DD" y el valor es un objeto que contiene arrays de horas de entrada y salida en minutos desde medianoche.
+ * @throws - Lanza un error si ocurre algún problema al procesar las marcaciones.
+ */
 export function indexarMarcacionesPeru(asistencias: any[]) {
   const resultado = new Map<string, { entradas: number[]; salidas: number[] }>();
 
@@ -112,18 +130,31 @@ export function indexarMarcacionesPeru(asistencias: any[]) {
   return resultado;
 }
 
-// =========================================================================
-// SUBFUNCIONES PARA REDUCIR COMPLEJIDAD COGNITIVA (SONARQUBE S3776)
-// =========================================================================
+//=========================================================================
+//SUBFUNCIONES PARA REDUCIR COMPLEJIDAD COGNITIVA (SONARQUBE S3776)
+//=========================================================================
 
+/**
+ * Verifica si un empleado está activo en un día específico, considerando su fecha de inicio y cese.
+ * @param emp - Objeto que representa al empleado, incluyendo sus fechas de inicio y cese.
+ * @param fecha - La fecha a evaluar, en formato Date.
+ * @returns - true si el empleado está activo en la fecha proporcionada; false en caso contrario.
+ */
 function estaEnPeriodoLaboral(emp: any, fecha: Date): boolean {
   if (emp.fecha_inicio && fecha < new Date(emp.fecha_inicio)) return false;
   if (emp.fecha_cese && fecha > new Date(emp.fecha_cese)) return false;
   return true;
 }
 
+/**
+ * Verifica si un empleado tiene una solicitud aprobada que cubra un día específico.
+ * @param solicitudes - Un array de objetos que representan las solicitudes del empleado, cada uno con un tipo, fecha de inicio y fecha de fin.
+ * @param claveFecha - La fecha a evaluar en formato "YYYY-MM-DD".
+ * @returns - true si existe una solicitud aprobada que cubra la fecha proporcionada; false en caso contrario.
+ */
 function tieneSolicitudAprobada(solicitudes: any[], claveFecha: string): boolean {
   return solicitudes.some((s: any) => {
+    if (!['VACACIONES', 'LICENCIA_MEDICA', 'PERMISO', 'JUSTIFICACION_ASISTENCIA'].includes(s.tipo)) return false;
     if (!s.fecha_inicio || !s.fecha_fin) return false;
     const fInicio = new Date(s.fecha_inicio).toISOString().split('T')[0];
     const fFin = new Date(s.fecha_fin).toISOString().split('T')[0];
@@ -131,6 +162,13 @@ function tieneSolicitudAprobada(solicitudes: any[], claveFecha: string): boolean
   });
 }
 
+/**
+ * Calcula la tardanza de un empleado en minutos, considerando sus entradas, la hora de entrada configurada y la tolerancia permitida.
+ * @param entradas - Un array de números que representan las horas de entrada en minutos desde medianoche.
+ * @param horaEntradaConfig - La hora de entrada configurada en formato "HH:mm".
+ * @param toleranciaMinutos - La cantidad de minutos de tolerancia permitida antes de considerar una tardanza.
+ * @returns - La cantidad de minutos de tardanza; 0 si no hay tardanza.
+ */
 function calcularTardanza(entradas: number[], horaEntradaConfig: string, toleranciaMinutos: number): number {
   const [h, m] = horaEntradaConfig.split(':').map(Number);
   const minutosProgramados = h * 60 + m;
@@ -193,6 +231,12 @@ export function evaluarDia(emp: any, dia: number, periodo: ReturnType<typeof obt
   return { falta: 0, tardanza, he25, he35 };
 }
 
+/**
+ * Calcula los días base de un empleado en un período determinado, considerando su fecha de inicio y cese.
+ * @param emp - Objeto que representa al empleado, incluyendo sus fechas de inicio y cese.
+ * @param periodo - 
+ * @returns 
+ */
 export function calcularDiasBase(emp: any, periodo: ReturnType<typeof obtenerPeriodo>): number {
   const inicioMes = periodo.fechaInicioMes;
   const finMes = periodo.fechaFinMes;
@@ -232,28 +276,38 @@ export async function procesarColaborador(prisma: PrismaService, emp: any, perio
   const base = calcularDiasBase(emp, periodo);
   const diasComputables = Math.max(0, base - faltas);
 
-  await prisma.incidencias_mes.upsert({
-    where: { empleado_id_periodo: { empleado_id: emp.id, periodo: periodoTexto } },
-    create: {
-      id: IdentityGenerator.generateId(),
-      empleado_id: emp.id,
-      periodo: periodoTexto,
-      dias_trabajados: diasComputables,
-      faltas,
-      minutos_tardanza: tardanza,
-      horas_extras_25: horasExtras25,
-      horas_extras_35: horasExtras35,
-      estado: 'PENDIENTE'
-    },
-    update: {
-      dias_trabajados: diasComputables,
-      faltas,
-      minutos_tardanza: tardanza,
-      horas_extras_25: horasExtras25,
-      horas_extras_35: horasExtras35,
-      estado: 'PENDIENTE'
+  const clave = { empleado_id_periodo: { empleado_id: emp.id, periodo: periodoTexto } };
+  const datos = {
+    dias_trabajados: diasComputables,
+    faltas,
+    minutos_tardanza: tardanza,
+    horas_extras_25: horasExtras25,
+    horas_extras_35: horasExtras35,
+    estado: 'PENDIENTE' as const
+  };
+  const existente = await prisma.incidencias_mes.findUnique({ where: clave, select: { id: true, estado: true } });
+
+  if (existente?.estado === 'APROBADO')
+    throw new ConflictException('La incidencia ya fue aprobada. Debe existir una reapertura explícita antes de regenerarla.');
+
+  try {
+    if (existente) {
+      // El estado forma parte del UPDATE: una aprobación concurrente no se sobrescribe.
+      await prisma.incidencias_mes.update({
+        where: { ...clave, estado: { in: ['PENDIENTE', 'RECHAZADO'] } },
+        data: datos
+      });
+    } else {
+      await prisma.incidencias_mes.create({
+        data: { id: IdentityGenerator.generateId(), empleado_id: emp.id, periodo: periodoTexto, ...datos }
+      });
     }
-  });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2025' || error.code === 'P2002'))
+      throw new ConflictException('La incidencia cambió durante el procesamiento. Consulte su estado antes de reintentar.');
+
+    throw error;
+  }
 
   return {
     empleado_id: emp.id,

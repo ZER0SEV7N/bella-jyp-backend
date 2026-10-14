@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { EvaluarSolicitudDto } from '@jyp/shared-contracts';
+import { SOLICITUD_INCLUDE, construirCondicionActual, lanzarConflictoSiCambio, obtenerSolicitudOperativa, validarMotivo, validarResponsable, validarSolicitudAbierta, verificarRevisorActivo } from '../helpers/validacionesSolicitud.helper';
 
 /**
  * Caso de uso para evaluar una solicitud de RRHH.
@@ -14,94 +15,35 @@ export class EvaluarSolicitudUseCase {
 
     /**
      * Ejecuta el caso de uso para evaluar una solicitud de RRHH.
-     * @param solicitudId - El ID de la solicitud a evaluar.
-     * @param dto - Los datos para evaluar la solicitud.
+     * @param solicitudId - El ID de la solicitud que se va a evaluar.
+     * @param dto - Objeto que contiene el estado de la solicitud y un comentario opcional.
+     * @param usuarioEvaluadorId - El ID del usuario que está evaluando la solicitud.
+     * @returns - La solicitud actualizada después de la evaluación.
+     * @throws BadRequestException - Si el estado proporcionado no es válido.
+     * @throws NotFoundException - Si la solicitud no existe o no está operativa.
+     * @throws ForbiddenException - Si el usuario evaluador no tiene permisos para evaluar la solicitud.
+     * @throws ConflictException - Si la solicitud ha sido modificada por otro usuario durante la evaluación.
      */
     async execute(solicitudId: string, dto: EvaluarSolicitudDto, usuarioEvaluadorId: string) {
-        
-        //Validar que la solicitud exista y no haya sido eliminada
-        const solicitud = await this.prisma.solicitud.findUnique({
-            where: { id: solicitudId, deleted_at: null },
-            select: {
-                id: true,
-                codigo: true,
-                estado: true,
-                observacion: true,
-                responsable_id: true
-            }
-        });
-        
-        if(!solicitud) throw new NotFoundException('La solicitud especificada no existe o ha sido eliminada.');
+        if (dto.estado !== 'APROBADA' && dto.estado !== 'RECHAZADA')
+            throw new BadRequestException('El dictamen debe ser APROBADA o RECHAZADA.');
 
-        if(solicitud.estado === 'APROBADA' || solicitud.estado === 'RECHAZADA' || solicitud.estado === 'ANULADA') throw new ConflictException({
-            title: 'Solicitud finalizada',
-            detail: `La solicitud ${solicitud.codigo} ya se encuentra en estado ${solicitud.estado}.`
-        });
+        //Si el estado es RECHAZADA, se valida que se proporcione un motivo de rechazo; de lo contrario, se permite un comentario opcional.
+        const observacion = dto.estado === 'RECHAZADA' ? validarMotivo(dto.observacion, 'Motivo de rechazo requerido') : dto.observacion?.trim();
+        await verificarRevisorActivo(this.prisma, usuarioEvaluadorId);
+        const solicitud = await obtenerSolicitudOperativa(this.prisma, solicitudId);
+        validarSolicitudAbierta(solicitud);
+        validarResponsable(solicitud, usuarioEvaluadorId);
 
-        /*
-         * No permitimos saltarnos el workflow.
-         *
-         * Primero tiene que haber sido tomada para revisión.
-         */
-        if (solicitud.estado !== 'EN_REVISION') throw new ConflictException({
-            title: 'Solicitud no iniciada en revisión',
-            detail: 'La solicitud debe encontrarse en estado EN_REVISION antes de poder ser evaluada.'
-        });
-        
-
-        //Validar que la solicitud tenga un responsable asignado
-        if (!solicitud.responsable_id) throw new ConflictException({
-            title: 'Solicitud sin responsable',
-            detail: 'La solicitud no tiene un responsable asignado para realizar la evaluación.'
-        });
-        
-
-        // Validar que el usuario evaluador sea el responsable asignado a la solicitud
-        if ( solicitud.responsable_id !== usuarioEvaluadorId ) throw new ForbiddenException({
-            title: 'Solicitud asignada a otro revisor',
-            detail: 'Solo el responsable actualmente asignado puede aprobar o rechazar esta solicitud.'
-        });
-    
-
-        //Validación de reglas de negocio según el estado de la solicitud
-        if (dto.estado === 'RECHAZADA' && ( !dto.observacion || dto.observacion.trim().length < 5 )) throw new BadRequestException({
-            title: 'Motivo de rechazo requerido',
-            detail: 'Debe ingresar una observación descriptiva de al menos 5 caracteres.'
-        });
-        
-
-        //Actualizar la solicitud con el nuevo estado y la observación proporcionada
-        return await this.prisma.solicitud.update({
-            where: { id: solicitudId},
-            data: {
-                estado: dto.estado,
-                observacion:
-                    dto.observacion?.trim() ??
-                    solicitud.observacion
-            },
-            include: {
-                empleados: {
-                    select: {
-                        id: true,
-                        nombre: true,
-                        apellido: true,
-                        nro_documento: true
-                    }
-                },
-
-                responsable: {
-                    select: {
-                        id: true,
-                        email: true,
-                        empleados: {
-                            select: {
-                                nombre: true,
-                                apellido: true
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        //Se intenta actualizar la solicitud con el nuevo estado y observación, manejando posibles conflictos de concurrencia.
+        try {
+            return await this.prisma.solicitud.update({
+                where: construirCondicionActual(solicitud),
+                data: { estado: dto.estado, observacion: observacion || solicitud.observacion },
+                include: SOLICITUD_INCLUDE
+            });
+        } catch (error) {
+            return lanzarConflictoSiCambio(error);
+        }
     }
 }

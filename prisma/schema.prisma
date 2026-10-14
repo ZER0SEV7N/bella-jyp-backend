@@ -1,3 +1,4 @@
+// PROPUESTA COMPLETA: NO APLICADA. Revisar diseno_bd.md antes de migrar.
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["partialIndexes"]
@@ -231,6 +232,7 @@ model empleados {
   incidencias         incidencias_mes[]
   usuarios            usuarios?
   solicitudes         solicitud[]
+  vinculos_laborales   vinculo_laboral[]
 
   @@index([activo], map: "idx_empleado_activo", where: raw("(activo = true)"))
   @@index([estado_laboral], map: "idx_empleado_estado_laboral")
@@ -416,6 +418,8 @@ model solicitud {
   empleados   empleados @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_empleado")
   responsable usuarios? @relation("ResponsableRevision", fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitud_responsable")
 
+  vacacion    vacacion?
+
   @@index([empleado_id], map: "idx_solicitud_empleado")
   @@index([estado], map: "idx_solicitud_estado")
   @@index([tipo], map: "idx_solicitud_tipo")
@@ -502,6 +506,11 @@ model usuarios {
   tokens_seguridad                                         tokens_seguridad[]
   empleados                                                empleados          @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuarios_empleado")
   solicitudes_revisadas                                    solicitud[]        @relation("ResponsableRevision")
+
+  vacaciones_aprobadas   vacacion[] @relation("AprobadorVacacion")
+  liquidaciones_creadas  liquidacion[] @relation("CreadorLiquidacion")
+  liquidaciones_validadas liquidacion[] @relation("ValidadorLiquidacion")
+  remuneraciones_registradas historial_remuneracion[] @relation("AutorRemuneracion")
 
   @@index([activo], map: "idx_usuarios_activo", where: raw("(activo = true)"))
   @@index([deleted_at], map: "idx_usuarios_deleted", where: raw("(deleted_at IS NULL)"))
@@ -592,6 +601,146 @@ model CargaMasivaJob {
   estado           estado_job_enum @default(EN_COLA)
 
   @@map("carga_masiva_jobs")
+}
+
+// DISEÑO PROPUESTO, pendiente de prisma validate y migración con backfill.
+// Integrar las relaciones inversas indicadas en diseno_bd.md.
+// No sustituye empresa_id, aislamiento SaaS ni cabecera de planilla.
+
+model vinculo_laboral {
+  id                  String   @id @db.Uuid
+  empleado_id         String   @db.Uuid
+  fecha_inicio        DateTime @db.Date
+  fecha_cese          DateTime? @db.Date
+  regimen_laboral      String   @default("GENERAL_PRIVADO") @db.VarChar(40)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  empleados           empleados @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  periodos_vacacionales periodo_vacacional[]
+  vacaciones          vacacion[]
+  liquidaciones       liquidacion[]
+  remuneraciones      historial_remuneracion[]
+
+  @@unique([empleado_id, fecha_inicio], map: "uq_vinculo_empleado_inicio")
+  @@index([empleado_id, fecha_cese], map: "idx_vinculo_empleado_cese")
+}
+
+model periodo_vacacional {
+  id                    String   @id @db.Uuid
+  vinculo_laboral_id     String   @db.Uuid
+  fecha_desde           DateTime @db.Date
+  fecha_hasta           DateTime @db.Date
+  fecha_adquisicion      DateTime? @db.Date
+  fecha_limite_goce      DateTime? @db.Date
+  record_exigido         Int?
+  record_acreditado      Int      @default(0)
+  dias_derecho          Int      @default(0)
+  estado                estado_periodo_vacacional_enum @default(EN_FORMACION)
+  regla_aplicada         String? @db.VarChar(100)
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  vinculo_laboral        vinculo_laboral @relation(fields: [vinculo_laboral_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  imputaciones          vacacion_imputacion[]
+
+  @@unique([vinculo_laboral_id, fecha_desde], map: "uq_periodo_vacacional_vinculo_desde")
+}
+
+model vacacion {
+  id                    String   @id @db.Uuid
+  vinculo_laboral_id     String   @db.Uuid
+  solicitud_id          String?  @unique @db.Uuid
+  fecha_inicio          DateTime @db.Date
+  fecha_fin             DateTime @db.Date
+  dias_calendario       Int
+  tipo                  tipo_vacacion_enum @default(GOCE)
+  estado                estado_vacacion_enum @default(PROGRAMADA)
+  acuerdo_url           String? @db.VarChar(255)
+  acuerdo_sha256        String? @db.Char(64)
+  aprobada_por_id        String   @db.Uuid
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  vinculo_laboral        vinculo_laboral @relation(fields: [vinculo_laboral_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  solicitud             solicitud? @relation(fields: [solicitud_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  aprobada_por          usuarios @relation("AprobadorVacacion", fields: [aprobada_por_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  imputaciones          vacacion_imputacion[]
+
+  @@index([vinculo_laboral_id, fecha_inicio, fecha_fin], map: "idx_vacacion_vinculo_fechas")
+}
+
+model vacacion_imputacion {
+  id                    String   @id @db.Uuid
+  vacacion_id           String   @db.Uuid
+  periodo_vacacional_id  String   @db.Uuid
+  dias                  Int
+  vacacion              vacacion @relation(fields: [vacacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  periodo_vacacional    periodo_vacacional @relation(fields: [periodo_vacacional_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([vacacion_id, periodo_vacacional_id], map: "uq_vacacion_imputacion")
+}
+
+model liquidacion {
+  id                    String   @id @db.Uuid
+  vinculo_laboral_id     String   @db.Uuid
+  version               Int      @default(1)
+  fecha_cese            DateTime @db.Date
+  estado                estado_planilla_enum @default(ABIERTO)
+  motor_version         String   @db.VarChar(60)
+  snapshot_calculo      Json
+  total_ingresos        Decimal  @db.Decimal(18, 4)
+  total_descuentos      Decimal  @db.Decimal(18, 4)
+  neto_a_pagar          Decimal  @db.Decimal(18, 4)
+  creada_por_id         String   @db.Uuid
+  validada_por_id       String?  @db.Uuid
+  validada_en           DateTime? @db.Timestamptz(6)
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  vinculo_laboral        vinculo_laboral @relation(fields: [vinculo_laboral_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creada_por            usuarios @relation("CreadorLiquidacion", fields: [creada_por_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  validada_por          usuarios? @relation("ValidadorLiquidacion", fields: [validada_por_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  conceptos             liquidacion_concepto[]
+
+  @@unique([vinculo_laboral_id, version], map: "uq_liquidacion_vinculo_version")
+}
+
+model liquidacion_concepto {
+  id                    String   @id @db.Uuid
+  liquidacion_id        String   @db.Uuid
+  orden                 Int
+  codigo                String   @db.VarChar(60)
+  naturaleza            naturaleza_concepto_enum
+  descripcion           String   @db.VarChar(200)
+  base_calculo          Decimal  @db.Decimal(18, 6)
+  cantidad              Decimal  @db.Decimal(12, 6)
+  unidad                String   @db.VarChar(30)
+  factor_aplicado       Decimal  @db.Decimal(18, 8)
+  monto                 Decimal  @db.Decimal(18, 4)
+  afecto_quinta         Boolean
+  afecto_onp            Boolean
+  afecto_afp            Boolean
+  afecto_essalud        Boolean
+  computable_cts        Boolean
+  computable_gratificacion Boolean
+  computable_vacaciones Boolean
+  codigo_plame          String? @db.VarChar(10)
+  detalle_calculo       Json
+  liquidacion           liquidacion @relation(fields: [liquidacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([liquidacion_id, orden], map: "uq_liquidacion_concepto_orden")
+}
+
+model historial_remuneracion {
+  id                    String   @id @db.Uuid
+  vinculo_laboral_id     String   @db.Uuid
+  vigente_desde         DateTime @db.Date
+  vigente_hasta         DateTime? @db.Date
+  sueldo_basico         Decimal  @db.Decimal(18, 4)
+  motivo                String   @db.VarChar(255)
+  registrado_por_id     String   @db.Uuid
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  vinculo_laboral        vinculo_laboral @relation(fields: [vinculo_laboral_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  registrado_por        usuarios @relation("AutorRemuneracion", fields: [registrado_por_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([vinculo_laboral_id, vigente_desde], map: "uq_remuneracion_vinculo_vigencia")
 }
 
 // =========================================================================
@@ -734,4 +883,28 @@ enum estado_empleado_enum {
   CESADO
   DESPEDIDO
   SUSPENDIDO
+}
+
+enum estado_periodo_vacacional_enum {
+  EN_FORMACION
+  ADQUIRIDO
+  LIQUIDADO
+}
+
+enum tipo_vacacion_enum {
+  GOCE
+  ADELANTO
+}
+
+enum estado_vacacion_enum {
+  PROGRAMADA
+  EN_GOCE
+  GOZADA
+  ANULADA
+}
+
+enum naturaleza_concepto_enum {
+  INGRESO
+  DESCUENTO
+  APORTE_EMPLEADOR
 }

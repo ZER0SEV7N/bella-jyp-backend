@@ -1,14 +1,16 @@
 //src/modules/payroll/services/parametros-legales.service.ts
-import { Injectable, NotFoundException, Inject } from "@nestjs/common";
-import { PrismaService } from "@/common/prisma/prisma.service";
-import Redis from "ioredis";
-import { REDIS_CLIENT } from "@/common/cls/redis.constants";
-import dayjs from "dayjs";
+import { Injectable, NotFoundException, ConflictException, Inject, Logger } from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
+import Redis from 'ioredis';
+import { Decimal } from '@prisma/client/runtime/client';
+import { REDIS_CLIENT } from '@/common/cls/redis.constants';
+import { ServerTime } from '@/common/utils/server-time';
 
 @Injectable()
 export class ParametrosLegalesService{
     private readonly REDIS_PREFIX = 'payroll:config:';
-
+    private readonly logger = new Logger(ParametrosLegalesService.name);
+    
     constructor(
         private readonly prisma: PrismaService,
         @Inject(REDIS_CLIENT) private readonly redis: Redis
@@ -24,46 +26,62 @@ export class ParametrosLegalesService{
      * @returns Valor numerico del parametro legal vigente para la fecha o periodo especifico.
      * @throws NotFoundException si no se encuentra un valor vigente para el parametro legal en la fecha especificada.
      */
+    async obtenerValor(codigo: string, fechaReferencia: Date = ServerTime.obtenerFechaSimpleActual): Promise<number> {
+        return (await this.obtenerDecimal(codigo, fechaReferencia)).toNumber();
+    }
 
-    async obtenerValor(codigo: string, fechaReferencia: Date = new Date()): Promise<number> {
-        const periodoKey = dayjs(fechaReferencia).format('YYYY-MM');
-        const cacheKey = `${this.REDIS_PREFIX}${codigo}:${periodoKey}`;
+    /** fechaReferencia representa una fecha civil @db.Date a medianoche UTC. */
+    async obtenerDecimal(codigo: string, fechaReferencia: Date = ServerTime.obtenerFechaSimpleActual): Promise<Decimal> {
+        const normalizado = codigo.trim().toUpperCase();
+        if (!normalizado) throw new RangeError('El código del parámetro es obligatorio.');
+        if (!Number.isFinite(fechaReferencia.getTime())) throw new RangeError('La fecha de referencia es inválida.');
 
-        //Intentar resolver desde el cache volatil en redis
-        const cachedValue = await this.redis.get(cacheKey);
-        if(cachedValue !== null) return parseFloat(cachedValue);
+        const fechaTexto = fechaReferencia.toISOString().slice(0, 10);
+        const fecha = ServerTime.desdeFechaSimple(fechaTexto);
+        const cacheKey = `${this.REDIS_PREFIX}${normalizado}:${fechaTexto}`;
 
-        //Consulta en base de datos evaluando los limites de vigencia del parametro legal
-        const parametro = await this.prisma.parametro_legal.findFirst({
+        try {
+            const cached = await this.redis.get(cacheKey);
+            if (cached !== null) {
+                const valor = new Decimal(cached);
+                if (valor.isFinite()) return valor;
+            }
+        } catch {
+            this.logger.warn('No se pudo leer el parámetro de la caché. Se consultará PostgreSQL.');
+        }
+
+        const parametros = await this.prisma.parametro_legal.findMany({
             where: {
-                codigo: codigo.trim().toUpperCase(),
-                vigente_desde: { lte: fechaReferencia },
-                OR: [
-                    { vigente_hasta: { gte: fechaReferencia } },
-                    { vigente_hasta: null },
-                ]
+                codigo: normalizado,
+                vigente_desde: { lte: fecha },
+                OR: [{ vigente_hasta: { gte: fecha } }, { vigente_hasta: null }]
             },
             orderBy: { vigente_desde: 'desc' },
+            take: 2,
             select: { valor: true }
         });
 
-        if (!parametro) throw new NotFoundException(`No se encontró configuración vigente para el parámetro legal '${codigo}' al ${dayjs(fechaReferencia).format('YYYY-MM-DD')}.`);
+        if (parametros.length === 0) throw new NotFoundException(`No existe configuración de ${normalizado} para ${fechaTexto}.`);
+        if (parametros.length > 1) throw new ConflictException(`Existen vigencias superpuestas para ${normalizado} en ${fechaTexto}.`);
 
-        const valorNumerico = Number(parametro.valor);
+        const valor = new Decimal(parametros[0].valor.toString());
+        try {
+            await this.redis.set(cacheKey, valor.toString(), 'EX', 86400);
+        } catch {
+            this.logger.warn('No se pudo guardar el parámetro en caché. Se conserva el valor de PostgreSQL.');
+        }
 
-        //Persistir en Redis con un tiempo de expiración de 24 horas (86400 segundos)
-        await this.redis.set(cacheKey, valorNumerico.toString(), 'EX', 86400);
-
-        return valorNumerico;
+        return valor;
     }
 
-    /**
-     * Metodo para invalidar el cache de un parametro legal especifico.
-     * Esto es útil cuando se actualiza un parametro legal y se desea que las futuras consultas reflejen el nuevo valor sin esperar a que expire el cache.
-     * @param codigo - Codigo del parametro legal a invalidar en cache
-     */
     async invalidarCache(codigo: string): Promise<void> {
-        const keys = await this.redis.keys(`${this.REDIS_PREFIX}${codigo.trim().toUpperCase()}:*`);
-        if (keys.length > 0) await this.redis.del(keys);
-    }        
+        // Fallar permite al caso de uso registrar/reintentar la invalidación tras el commit.
+        let cursor = '0';
+        do {
+            const [siguienteCursor, keys] = await this.redis.scan(cursor, 'MATCH', `${this.REDIS_PREFIX}${codigo.trim().toUpperCase()}:*`, 'COUNT', 500);
+            cursor = siguienteCursor;
+            for (let inicio = 0; inicio < keys.length; inicio += 500)
+                await this.redis.del(...keys.slice(inicio, inicio + 500));
+        } while (cursor !== '0');
+    }
 }

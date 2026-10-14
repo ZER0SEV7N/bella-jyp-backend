@@ -1,5 +1,5 @@
 //src/modules/asistencia/use-cases/generarIncidenciasMes.useCase.ts
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from "@nestjs/common";
+import { Injectable, HttpException, BadRequestException, NotFoundException, InternalServerErrorException } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import type { GenerarIncidenciasPeriodoDto } from "@jyp/shared-contracts";
 import { obtenerPeriodo, obtenerColaboradores, procesarColaborador } from "./helper/procesamiento.helper";
@@ -46,7 +46,7 @@ export class GenerarIncidenciasMesUseCase {
                 detalle: resultadosProcesados,
             };
         } catch (error) {
-            if (error instanceof BadRequestException || error instanceof NotFoundException) 
+            if (error instanceof HttpException) 
                 throw error;
             
             throw new InternalServerErrorException({

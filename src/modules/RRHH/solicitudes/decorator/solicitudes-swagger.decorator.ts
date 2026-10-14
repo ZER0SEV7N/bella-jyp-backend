@@ -133,13 +133,14 @@ export function ApiSwaggerAsignarRevision() {
       description: 'UUID de la solicitud a tomar en revisión.',
       schema: { type: 'string', format: 'uuid' },
     }),
+    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
     ApiResponse({
       status: 200,
       description: 'Solicitud tomada en revisión exitosamente.',
     }),
     ApiResponse({
       status: 400,
-      description: 'La solicitud ya fue dictaminada o ya está tomada por otro revisor.',
+      description: 'Usuario revisor inválido.',
     }),
     ApiResponse({
       status: 404,
@@ -156,7 +157,7 @@ export function ApiSwaggerEvaluarSolicitud() {
     ApiOperation({
       summary: 'Evaluar Solicitud (Aprobar o Rechazar)',
       description:
-        'Dictamina una solicitud en estado PENDIENTE o EN_REVISION. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.',
+        'Dictamina exclusivamente una solicitud EN_REVISION tomada por el usuario autenticado. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({
@@ -182,13 +183,14 @@ export function ApiSwaggerEvaluarSolicitud() {
         },
       },
     }),
+    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
     ApiResponse({
       status: 200,
       description: 'Solicitud evaluada y dictaminada exitosamente.',
     }),
     ApiResponse({
       status: 400,
-      description: 'Solicitud ya dictaminada previamente o rechazo sin motivo descriptivo.',
+      description: 'Rechazo sin motivo descriptivo.',
     }),
     ApiResponse({
       status: 404,
@@ -203,9 +205,9 @@ export function ApiSwaggerEvaluarSolicitud() {
 export function ApiSwaggerAnularSolicitud() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Anular Solicitud (Baja Lógica)',
+      summary: 'Anular Solicitud',
       description:
-        'Aplica una baja lógica a una solicitud que no haya sido aprobada formalmente, registrando el motivo de anulación.',
+        'Anula una solicitud PENDIENTE o EN_REVISION, exige un motivo y conserva el registro consultable. No modifica deleted_at.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({
@@ -225,17 +227,28 @@ export function ApiSwaggerAnularSolicitud() {
         },
       },
     }),
+    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
     ApiResponse({
       status: 200,
       description: 'Solicitud anulada exitosamente.',
     }),
     ApiResponse({
       status: 400,
-      description: 'No se puede anular una solicitud formalmente aprobada o motivo insuficiente.',
+      description: 'Motivo de anulación inválido.',
     }),
     ApiResponse({
       status: 404,
       description: 'Solicitud no encontrada.',
     }),
   );
+}
+
+/** Historial administrativo de una solicitud, incluyendo anulaciones. */
+export function ApiSwaggerObtenerHistorialSolicitud() {
+    return applyDecorators(
+        ApiOperation({ summary: 'Obtener historial de solicitud', description: 'Consulta por UUID o código. El EMPLEADO solo puede consultar su propia solicitud; los registros proceden de audit_log.' }),
+        ApiParam({ name: 'idOCodigo', description: 'UUID o código SOL-YYYY-NNN.', example: 'SOL-2026-001' }),
+        ApiResponse({ status: 200, description: 'Historial ordenado cronológicamente; puede estar vacío si no hay eventos registrados.' }),
+        ApiResponse({ status: 404, description: 'Solicitud inexistente o fuera del acceso del colaborador.' })
+    );
 }

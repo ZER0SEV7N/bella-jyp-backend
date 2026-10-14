@@ -196,7 +196,7 @@ export function calculoPlanilla(
         parametrosLegales.UIT, SUELDO_COMPUTABLE, total_ingresos,
         acumulados.ingresosPrevios, acumulados.retencionesPrevias, epsValida,
     );
-    const descuento_adelanto = new Decimal(adelantados.totalMonto);
+    const descuento_adelanto = new Decimal(adelantados.montoAdelanto);
     const descuento_eps = epsValida ? datosFinanciero.eps_costo_adicional : new Decimal(0);
 
     // ---------- aportes de la empresa (no descuentan del trabajador)
