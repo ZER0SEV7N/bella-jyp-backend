@@ -115,14 +115,6 @@ model bancos {
   @@map("bancos")
 }
 
-model estado_contrato {
-  id        String      @id @db.Uuid
-  nombre    String      @db.VarChar(100)
-  contratos contratos[]
-
-  @@map("estado_contrato")
-}
-
 // =========================================================================
 // MÓDULO PREVISIONAL (AFP / ONP) Y PARÁMETROS LEGALES
 // =========================================================================
@@ -243,22 +235,30 @@ model empleados {
 }
 
 model contratos {
-  id             String          @id @db.Uuid
-  empleado_id    String          @db.Uuid
-  id_estado      String          @db.Uuid
-  tipo_modalidad String?         @db.VarChar(100)
-  fecha_inicio   DateTime        @db.Date
-  fecha_fin      DateTime?       @db.Date
-  renovado       Boolean         @default(false)
-  observacion    String?
-  deleted_at     DateTime?       @db.Timestamptz(6)
-  created_at     DateTime        @default(now()) @db.Timestamptz(6)
-  url            String?         @db.VarChar(225)
-  empleados      empleados       @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
-  estado_contrato estado_contrato @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
+  id                 String               @id @default(uuid()) @db.Uuid
+  empleado_id        String               @db.Uuid
+  estado             estado_contrato_enum @default(VIGENTE)
+  id_estado          String?              @db.Uuid // Opcional si decides deprecar la tabla estado_contrato
+  contrato_origen_id String?              @db.Uuid
+  tipo_modalidad     String?              @db.VarChar(100)
+  fecha_inicio       DateTime             @db.Date
+  fecha_fin          DateTime?            @db.Date
+  renovado           Boolean              @default(false)
+  observacion        String?
+  deleted_at         DateTime?            @db.Timestamptz(6)
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  url                String?              @db.VarChar(225)
+
+  empleados          empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
+  estado_contrato    estado_contrato?     @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
+  
+  // Auto-relación para trazabilidad de prórrogas / renovaciones
+  contrato_origen    contratos?           @relation("RenovacionContrato", fields: [contrato_origen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  prorrogas          contratos[]          @relation("RenovacionContrato")
 
   @@index([deleted_at], map: "idx_contratos_deleted", where: raw("(deleted_at IS NULL)"))
   @@index([empleado_id], map: "idx_contratos_empleado")
+  @@index([estado], map: "idx_contratos_estado")
   @@map("contratos")
 }
 
@@ -907,4 +907,12 @@ enum naturaleza_concepto_enum {
   INGRESO
   DESCUENTO
   APORTE_EMPLEADOR
+}
+
+enum estado_contrato_enum {
+  VIGENTE     // CONTRATO ACTUAL
+  RENOVADO    // CONTRATO RENOVADO
+  VENCIDO     // CONTRATO VENCIDO (SE REQUIERE RENOVACION)
+  ANULADO     // CONTRATO ANULADO (VUELVA A MANDAR OTRO)
+  FINALIZADO  // CONTRATO FINALIZADO (SE TERMINO EL CONTRATO Y NO SE RENOVO O SE FINALIZO)
 }

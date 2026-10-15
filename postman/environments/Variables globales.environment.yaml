@@ -6,3 +6,5 @@ values:
     value: ''
   - key: baseUrl
     value: ''
+  - key: base_url
+    value: ''

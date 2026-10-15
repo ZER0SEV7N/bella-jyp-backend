@@ -1,0 +1,11 @@
+$kind: http-request
+description: OpenAPI generado por Nest; permite contrastar el inventario cuando el backend arranque.
+url: "{{base_url}}/api/docs-json"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test('HTTP 200',()=>pm.response.to.have.status(200)); if(pm.response.code===200) pm.test('OpenAPI',()=>pm.expect(pm.response.json().paths).to.be.an('object'));
+    language: text/javascript
+order: 1000

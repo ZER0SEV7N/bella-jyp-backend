@@ -89,8 +89,14 @@ const TRAMOS_QUINTA: { hasta: number | null; tasa: string }[] = [
 ];
 
 // Divisor según el mes (verificar contra la tabla vigente de SUNAT)
-const divisor_quinta = (mes: number) =>
-    mes <= 3 ? 12 : mes === 4 ? 9 : mes <= 7 ? 8 : mes === 8 ? 5 : mes <= 11 ? 4 : 1;
+const divisor_quinta = (mes: number) => {
+    if (mes <= 3) return 12;
+    if (mes === 4) return 9;
+    if (mes <= 7) return 8;
+    if (mes === 8) return 5;
+    if (mes <= 11) return 4;
+    return 1;
+};
 
 const impuesto_anual = (rentaNeta: Decimal, uit: Decimal) => {
     let impuesto = new Decimal(0);
@@ -98,6 +104,7 @@ const impuesto_anual = (rentaNeta: Decimal, uit: Decimal) => {
 
     for (const tramo of TRAMOS_QUINTA) {
         if (rentaNeta.lte(limiteAnterior)) break;
+        
         const limite = tramo.hasta === null ? rentaNeta : uit.mul(tramo.hasta);
         const montoEnTramo = Decimal.min(rentaNeta, limite).sub(limiteAnterior);
         impuesto = impuesto.add(montoEnTramo.mul(tramo.tasa));
@@ -106,9 +113,7 @@ const impuesto_anual = (rentaNeta: Decimal, uit: Decimal) => {
     return impuesto;
 };
 
-const calcular_quinta = (
-    uit: Decimal,
-    sueldoComputable: Decimal,
+const calcular_quinta = ( uit: Decimal, sueldoComputable: Decimal,
     ingresosMesActual: Decimal,   // total_ingresos del mes (con gratificación si toca)
     ingresosPrevios: Decimal,     // suma total_ingresos de enero al mes anterior
     retencionesPrevias: Decimal,  // suma descuento_quinta de enero al mes anterior
@@ -117,7 +122,12 @@ const calcular_quinta = (
     const mes = ServerTime.obtenerMesActual;
     const mesesFuturos = 12 - mes;
     // En julio la gratificación del mes ya está en ingresosMesActual; queda la de diciembre
-    const gratificacionesFuturas = mes < 7 ? 2 : mes < 12 ? 1 : 0;
+    let gratificacionesFuturas = 0;
+    if (mes < 7) {
+        gratificacionesFuturas = 2;
+    } else if (mes < 12) {
+        gratificacionesFuturas = 1;
+    }
     const factorBonificacion = tieneEPS ? '1.0675' : '1.09';
 
     const rentaAnual = ingresosPrevios

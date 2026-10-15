@@ -26,8 +26,8 @@ export class CrearContratoUseCase {
     try {
       //Validar que el empleado exista y esté activo
       const empleado = await this.prisma.empleados.findUnique({
-        where: { id: dto.empleado_id },
-        select: { id: true, activo: true, deleted_at: null }
+        where: { id: dto.empleado_id, deleted_at: null },
+        select: { id: true, activo: true, deleted_at: true }
       });
 
       if (!empleado || !empleado.activo) throw new NotFoundException({

@@ -1,0 +1,25 @@
+$kind: http-request
+description: |-
+  PATCH /api/rrhh/solicitudes/:id/anular
+  Origen: src/modules/RRHH/solicitudes/controller/solicitud.controller.ts:155
+  Handler: anular
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 200.
+  Usar solicitud_anular_id de una solicitud PENDIENTE o EN_REVISION, distinta de la aprobada.
+url: "{{base_url}}/api/rrhh/solicitudes/{{solicitud_anular_id}}/anular"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "motivo": "Solicitud cancelada para probar la anulación"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [200]', () => pm.expect([200]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+    language: text/javascript
+order: 6000

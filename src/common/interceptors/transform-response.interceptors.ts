@@ -38,13 +38,14 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<T, Respo
     const ctx = context.switchToHttp(); //Contexto de la petición HTTP
     const request = ctx.getRequest<FastifyRequest>(); //Petición HTTP
     const response = ctx.getResponse<FastifyReply>(); //Respuesta HTTP
-    const statusCode = response.statusCode; //Código de estado HTTP de la respuesta
 
     //Transformar la respuesta
     return next.handle().pipe(
       map((data: any) => {
+        const statusCode = response.statusCode; //Código de estado HTTP de la respuesta
+        if (response.sent) return data;
         //En caso de que la data tenga la estructura {data: [], meta: {}} se respeta esa estructura
-        if (data?.data && data?.meta) 
+        if (data?.meta && Object.prototype.hasOwnProperty.call(data, 'data')) 
           return {
             statusCode,
             data: data.data,
@@ -59,7 +60,7 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<T, Respo
 
         return {
           statusCode,
-          data: (data || null) as T,
+          data: (data ?? null) as T,
           meta: {
             message: this.obtenerMensaje(statusCode),
             path: request.url,

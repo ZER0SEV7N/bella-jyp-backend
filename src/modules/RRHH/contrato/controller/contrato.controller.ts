@@ -1,5 +1,6 @@
 //src/modules/RRHH/contrato/controller/contrato.controller.ts
-import { Controller, Post, Get, Param, Body, Patch, Delete, Req, Res, UseGuards, UsePipes, HttpCode, HttpStatus, BadRequestException, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Patch, Delete, Req, Res, UseGuards, UsePipes, HttpCode, HttpStatus, BadRequestException, NotFoundException, ForbiddenException, ParseUUIDPipe, Query } from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -29,7 +30,7 @@ import { ApiSwaggerContratoController, ApiSwaggerCrearContrato, ApiSwaggerEditar
  * USO: Unicamente para los roles de Administrador y RRHH, ya que son los encargados de gestionar los contratos de los empleados.
  */
 @ApiSwaggerContratoController()
-@Controller('api/contrato')
+@Controller('api/v1/rrhh/contrato')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class ContratoController {
   constructor(
@@ -38,7 +39,8 @@ export class ContratoController {
     private readonly renovaContratoUseCase: RenovarContratoUseCase,
     private readonly listarContratoUseCase: ListarContratoUseCase,
     private readonly editarContratoUseCase: EditarContratoUseCase,
-    private readonly subirContratoPdfUseCase: SubirContratoPdfUseCase
+    private readonly subirContratoPdfUseCase: SubirContratoPdfUseCase,
+    private readonly prisma: PrismaService
   ) {}
 
   /**
@@ -86,7 +88,7 @@ export class ContratoController {
   @Patch(':id/actualizar')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
-  @UsePipes(new ZodValidationPipe(EditarContratoSchema))
+  @UsePipes(new ZodValidationPipe(EditarContratoSchema, true))
   async actualizarContrato(@Param('id', ParseUUIDPipe) id: string, @Body() payload: EditarContratoDto) {
     return await this.editarContratoUseCase.execute(id, payload);
   }
@@ -163,6 +165,7 @@ export class ContratoController {
   @Get('empleado/:empleadoId')
   @ApiSwaggerListarContratosEmpleado()
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
+  @UsePipes(new ZodValidationPipe(ListarContratosQuerySchema))
   async obtenerHistorialEmpleado(@Param('empleadoId', ParseUUIDPipe) empleadoId: string, @Query() query: ListarContratosQueryDto) {
     return await this.listarContratoUseCase.execute({...query, empleado_id: empleadoId});
   }
@@ -191,6 +194,10 @@ export class ContratoController {
     const data = await req.file();
     if (!data) throw new BadRequestException('No se adjuntó ningún archivo en el campo "file"');
 
+    if (data.mimetype !== 'application/pdf' || path.extname(data.filename).toLowerCase() !== '.pdf') {
+      data.file.resume();
+      throw new BadRequestException('El contrato firmado debe ser un archivo PDF.');
+    }
     return await this.subirContratoPdfUseCase.execute(id, data);
   }
 
@@ -207,10 +214,19 @@ export class ContratoController {
   @ApiSwaggerDescargarPdf()
   @Get('descargar/:filename')
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'EMPLEADO')
-  descargarContratoPdf(@Param('filename') filename: string, @Res() res: FastifyReply) {
+  async descargarContratoPdf(@Param('filename') filename: string, @Res() res: FastifyReply, @Req() req: FastifyRequest & { user: { rol: string; empleado_id: string } }) {
 
     //Evitar ataques de path traversal asegurando que el nombre del archivo sea seguro y no contenga rutas relativas.
     const safeFilename = path.basename(filename);
+    if (safeFilename !== filename || path.extname(safeFilename).toLowerCase() !== '.pdf')
+      throw new BadRequestException('El nombre del archivo PDF es inválido.');
+    if (req.user.rol === 'EMPLEADO' && !req.user.empleado_id)
+      throw new ForbiddenException('El usuario no tiene un colaborador asociado.');
+    const contrato = await this.prisma.contratos.findFirst({
+      where: { url: `/archivos/contratos/${safeFilename}`, deleted_at: null, ...(req.user.rol === 'EMPLEADO' ? { empleado_id: req.user.empleado_id } : {}) },
+      select: { id: true }
+    });
+    if (!contrato) throw new NotFoundException('El contrato no existe o no pertenece al colaborador.');
     const filePath = path.join(process.cwd(), 'archivos', 'contratos', safeFilename);
 
     if (!fs.existsSync(filePath)) throw new BadRequestException('El archivo solicitado no existe.');

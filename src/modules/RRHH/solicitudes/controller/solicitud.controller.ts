@@ -31,7 +31,7 @@ type SolicitudRequest = FastifyRequest & { user: Pick<usuarios, 'id' | 'rol' | '
  * Este controlador expone endpoints para crear, obtener detalles, asignar revisiones, evaluar y anular solicitudes.
  * Se asegura de que solo usuarios autenticados y con los roles adecuados puedan acceder a estos endpoints.
  */
-@Controller('api/rrhh/solicitudes')
+@Controller('api/v1/rrhh/solicitudes')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @ApiSwaggerSolicitudController()
 export class SolicitudController {

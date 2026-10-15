@@ -6,7 +6,6 @@ import { CryptoUtil } from '@/common/utils/crypto.util';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 
-
 /**
  * Caso de uso para registar los datos financieros de un empleado.
  * Encripta los datos sensibles antes de almacenarlos en la base de datos.

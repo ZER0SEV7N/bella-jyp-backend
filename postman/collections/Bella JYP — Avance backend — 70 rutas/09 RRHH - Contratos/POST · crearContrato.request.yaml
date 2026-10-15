@@ -1,0 +1,30 @@
+$kind: http-request
+description: |-
+  POST /api/contrato
+  Origen: src/modules/RRHH/contrato/controller/contrato.controller.ts:65
+  Handler: crearContrato
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 201.
+url: "{{base_url}}/api/contrato"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "empleado_id": "{{empleado_id}}",
+      "tipo_modalidad": "PLAZO_FIJO",
+      "fecha_inicio": "2026-01-01",
+      "fecha_fin": "2026-12-31",
+      "observacion": "Contrato de prueba del avance",
+      "estado": "VIGENTE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [201]', () => pm.expect([201]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+      if (pm.response.code < 300) { const r=pm.response.json(); const d=r.data || r; const entity=d.id ? d : d.data; if (entity && entity.id) pm.environment.set('contrato_id',entity.id); }
+    language: text/javascript
+order: 1000

@@ -1,75 +1,63 @@
+//src/modules/payroll/planillas/use-case/generarPlanilla.useCase.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as path from 'path';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ServerTime } from '@/common/utils/server-time';
-import {
-  guardarHistorialPlanilla,
-  ingresosCobrado,
-  obtenerAdelantosAprobados,
-  obtenerIncidenciaAprobada,
-  obtenerMesesCombradosSemestre,
-  obtenerParametrosLegalesPlanillas,
-  traerDatosEmpleado,
-  traerFinancierosEmpleado,
-} from '../helpers/empleados.helper';
+import { guardarHistorialPlanilla, ingresosCobrado, obtenerAdelantosAprobados, obtenerIncidenciaAprobada, obtenerMesesCombradosSemestre, obtenerParametrosLegalesPlanillas, traerDatosEmpleado, traerFinancierosEmpleado} from '../helpers/empleados.helper';
 import { calculoPlanilla } from '../helpers/calculo_planillas.helper';
-import {
-  generateBoletaPdf,
-  EmpresaData,
-  CabezalEmpleado,
-  IngresosEmpleado,
-  DescuentosEmpleado,
-  AportacionesEmpleado,
-  AportesEmpleador,
-  TotalesPlanilla,
-  PeriodoPlanilla,
-} from '../helpers/generarBoleta.helper';
+import { generateBoletaPdf, EmpresaData, CabezalEmpleado, IngresosEmpleado, DescuentosEmpleado, AportacionesEmpleado, AportesEmpleador, TotalesPlanilla, PeriodoPlanilla} from '../helpers/generarBoleta.helper';
 
+/**
+ * Caso de uso para generar la planilla de un empleado.
+ * Este caso de uso realiza los siguientes pasos:
+ * 1. Obtiene los datos del empleado y sus datos financieros.
+ * 2. Valida que el empleado tenga incidencia aprobada para el periodo actual.
+ * 3. Calcula los ingresos, descuentos y aportaciones del empleado.
+ * 4. Guarda el historial de la planilla en la base de datos.
+ * 5. Genera un PDF de la boleta de pago del empleado.
+ * 6. Retorna la ruta del archivo PDF generado y el ID de la planilla guardada.
+ */
 @Injectable()
 export class GenerarPlanillaUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Metodo de ejecución del caso de uso para generar la planilla de un empleado.
+   * Este método realiza la generación de la planilla y la boleta de pago del empleado para el periodo actual.
+   * @param idEmpleado - El ID del empleado para el cual se generará la planilla.
+   * @returns - Un objeto que contiene un mensaje de éxito, la ruta del archivo PDF generado y el ID de la planilla guardada.
+   * @throws NotFoundException si el empleado no tiene datos financieros o no hay incidencia aprobada para el periodo actual.
+   */
   async execute(idEmpleado: string) {
     const periodo = ServerTime.obtenerPeriodoActual;
-    const { inicioMes, finMes } = ServerTime.obtenerRangoMesAcutal;
+    const { inicioMes, finMes } = ServerTime.obtenerRangoMesActual;
 
+    //Validar si el mes es julio o diciembre para determinar si se debe calcular gratificación
     const mes = Number(periodo.slice(5, 7));
     const esMesGratificacion = mes === 7 || mes === 12;
 
-    const [
-      empleado,
-      datosFinanciero,
-      incidencia,
-      adelantos,
-      parametros,
-      acumulados,
-      mesesTrabajados,
-    ] = await Promise.all([
+    // ---------- Obtener datos del empleado y sus finanzas ----------
+    const [ empleado, datosFinanciero, incidencia, adelantos, parametros, acumulados, mesesTrabajados ] = await Promise.all([
       traerDatosEmpleado(this.prisma, idEmpleado),
       traerFinancierosEmpleado(this.prisma, idEmpleado),
       obtenerIncidenciaAprobada(this.prisma, idEmpleado, periodo),
       obtenerAdelantosAprobados(this.prisma, idEmpleado, inicioMes, finMes),
       obtenerParametrosLegalesPlanillas(this.prisma),
       ingresosCobrado(this.prisma, idEmpleado),
-      esMesGratificacion
-        ? obtenerMesesCombradosSemestre(this.prisma, idEmpleado)
-        : Promise.resolve(0),
+      esMesGratificacion ? obtenerMesesCombradosSemestre(this.prisma, idEmpleado) : Promise.resolve(0),
     ]);
 
+    // ---------- Validaciones ----------
     if (!datosFinanciero) throw new NotFoundException('El empleado no tiene datos financieros');
-    if (!incidencia)
-      throw new NotFoundException(`No hay incidencia aprobada para el periodo ${periodo}`);
+    if (!incidencia) throw new NotFoundException(`No hay incidencia aprobada para el periodo ${periodo}`);
     if (!empleado.jornada) throw new BadRequestException('El empleado no tiene jornada asignada');
 
+    //Calcular la cantidad de días laborables en la jornada del empleado para el periodo actual
     const horario = empleado.jornada.horario_semanal;
-    if (!Array.isArray(horario))
-      throw new BadRequestException('El horario semanal de la jornada es inválido');
+    if (!Array.isArray(horario)) throw new BadRequestException('El horario semanal de la jornada es inválido');
 
-    const diasLaborales = (horario as unknown as { laborable: boolean }[]).filter(
-      (d) => d.laborable,
-    ).length;
-    if (diasLaborales === 0)
-      throw new BadRequestException('La jornada no tiene días laborables');
+    const diasLaborales = (horario as unknown as { laborable: boolean }[]).filter((d) => d.laborable).length;
+    if (diasLaborales === 0) throw new BadRequestException('La jornada no tiene días laborables');
 
     const calculos = calculoPlanilla(
       empleado.jornada.total_horas_semana,
@@ -81,22 +69,21 @@ export class GenerarPlanillaUseCase {
       adelantos,
       parametros,
       datosFinanciero.tipo_comision,
-      acumulados,
+      acumulados
     );
 
     const planilla_guardada = await guardarHistorialPlanilla(
       this.prisma,
       empleado.id,
       periodo,
-      calculos,
+      calculos
     );
 
     // ---------- Datos separados por categoría ----------
-
     const empresaInfo: EmpresaData = {
       nombreEmpresa: 'J&P PERIFERICOS S.A.C.',
       ruc: null,
-      direccion: null,
+      direccion: null
     };
 
     const cabezal: CabezalEmpleado = {
@@ -106,7 +93,7 @@ export class GenerarPlanillaUseCase {
       area: empleado.area.nombre,
       asignacion_familiar: empleado.asig_familiar,
       dias_laborados: planilla_guardada.dias_laborados,
-      regimen_pension: datosFinanciero.regimen_pension.nombre,
+      regimen_pension: datosFinanciero.regimen_pension.nombre
     };
 
     const ingresos: IngresosEmpleado = {
@@ -151,7 +138,6 @@ export class GenerarPlanillaUseCase {
     };
 
     // ---------- Generar PDF ----------
-
     const outputPath = path.join(
       process.cwd(),
       'storage',

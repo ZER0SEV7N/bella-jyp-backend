@@ -1,0 +1,36 @@
+$kind: http-request
+description: |-
+  GET /api/contrato/empleado/:empleadoId
+  Origen: src/modules/RRHH/contrato/controller/contrato.controller.ts:165
+  Handler: obtenerHistorialEmpleado
+  Roles: ADMIN, RRHH, CONTADOR, ASISTENTE
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/contrato/empleado/{{empleado_id}}?page=1&limit=10"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: limit
+    value: "10"
+  - key: search
+    value: demo
+    disabled: true
+  - key: empleado_id
+    value: "{{empleado_id}}"
+    disabled: true
+  - key: estado
+    value: ""
+    disabled: true
+  - key: area_id
+    value: "{{area_id}}"
+    disabled: true
+  - key: por_vencer_dias
+    value: "30"
+    disabled: true
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [200]', () => pm.expect([200]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+    language: text/javascript
+order: 6000

@@ -1,12 +1,7 @@
 //src/common/filters/rfc7807-exception.filter.ts
 //Filtro para manejar las excepciones y formatearlas según el estándar RFC 7807
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 /**
@@ -27,6 +22,7 @@ export class Rfc7807ExceptionFilter implements ExceptionFilter {
     let title = 'Error Interno del Servidor';
     let detail = 'Ocurrió un error inesperado en el servidor.';
     let type = 'https://api.jyp.com/errors/internal-server-error';
+    let errores: unknown;
 
     //Si la excepción es una instancia de HttpException, se obtiene el status y el mensaje de la excepción
     if (exception instanceof HttpException) {
@@ -34,17 +30,30 @@ export class Rfc7807ExceptionFilter implements ExceptionFilter {
       const exceptionResponse = exception.getResponse() as any;
 
       //Si el error ya esta formatedo por el Auth, se mantiene el formato original
-      if (exceptionResponse?.type && exceptionResponse?.title) {
+      if (exceptionResponse?.title) {
         title = exceptionResponse.title;
-        detail = exceptionResponse.detail;
-        type = exceptionResponse.type;
+        detail = exceptionResponse.detail ?? exceptionResponse.message ?? exception.message;
+        type = exceptionResponse.type ?? `https://api.jyp.com/errors/${status}`;
       } else {
         //Si el error no esta formateado, se formatea según el estándar RFC 7807
         title = exceptionResponse?.error || exception.name;
-        detail = exceptionResponse?.message || exception.message;
+        detail = typeof exceptionResponse === 'string' ? exceptionResponse : exceptionResponse?.message || exception.message;
         type = `https://api.jyp.com/errors/${status}`;
       }
+      errores = exceptionResponse?.errores;
+      if (Array.isArray(detail)) detail = detail.join('; ');
       //Atrapar errores del Prisma
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2003', 'P2025'].includes(exception.code)) {
+      status = exception.code === 'P2025' ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
+      title = status === HttpStatus.NOT_FOUND ? 'Recurso no encontrado' : 'Conflicto de datos';
+      if (exception.code === 'P2002') {
+        detail = 'Ya existe un registro con estos datos únicos.';
+      } else if (exception.code === 'P2003') {
+        detail = 'La operación referencia datos inexistentes o todavía relacionados.';
+      } else {
+        detail = 'El recurso ya no existe o cambió durante la operación.';
+      }
+      type = `https://api.jyp.com/errors/${status}`;
     } else {
       console.error('Error no manejado:', exception);
     }
@@ -56,6 +65,7 @@ export class Rfc7807ExceptionFilter implements ExceptionFilter {
       status,
       detail,
       instance: req.url,
+      ...(errores !== undefined ? { errores } : {}),
       timestamp: new Date().toISOString()
     });
   }

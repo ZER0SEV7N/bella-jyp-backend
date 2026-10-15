@@ -34,7 +34,7 @@ export class LogoutUseCase {
     //Si se proporciona un refresh token, intentar invalidarlo en la base de datos
     if (refreshToken) {
       try {
-        const payload = this.jwtService.decode(refreshToken) as { sub?: string };
+        const payload = this.jwtService.verify(refreshToken, { secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234' }) as { sub?: string };
         const userId = payload?.sub;
 
         if (userId) 
@@ -55,7 +55,7 @@ export class LogoutUseCase {
     //Bloquear Access Token en Redis por el tiempo restante de su vigencia
     if (accessToken) {
       try {
-        const decoded = this.jwtService.decode(accessToken) as { exp?: number };
+        const decoded = this.jwtService.verify(accessToken, { secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234' }) as { exp?: number };
         if (decoded?.exp) {
           const ahoraSegundos = Math.floor(Date.now() / 1000);
           const ttlRestante = decoded.exp - ahoraSegundos;

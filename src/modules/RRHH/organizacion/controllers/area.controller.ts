@@ -22,7 +22,7 @@ import { ApiSwaggerAreasController, ApiSwaggerCrearArea, ApiSwaggerActualizarAre
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 @ApiSwaggerAreasController()
-@Controller('api/rrhh/area')
+@Controller('api/v1/rrhh/area')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class AreaController {
   //Inyectar los casos de uso necesarios para manejar las operaciones relacionadas con las areas
@@ -65,7 +65,7 @@ export class AreaController {
   @ApiSwaggerActualizarArea()
   @Patch(':id/actualizar')
   @Roles('ADMIN', 'RRHH')
-  @UsePipes(new ZodValidationPipe(ActualizarAreaSchema))
+  @UsePipes(new ZodValidationPipe(ActualizarAreaSchema, true))
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() payload: ActualizarAreaDto,
@@ -85,7 +85,7 @@ export class AreaController {
   @Patch(':id/reactive')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
-  async reactive(@Param('id') id: string) {
+  async reactive(@Param('id', ParseUUIDPipe) id: string) {
     return await this.estadoAreaUseCase.reactivar(id);
   }
 
@@ -101,7 +101,7 @@ export class AreaController {
   @Delete(':id/desactive')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
-  async eliminar(@Param('id') id: string) {
+  async eliminar(@Param('id', ParseUUIDPipe) id: string) {
     return await this.estadoAreaUseCase.desactivar(id);
   }
 

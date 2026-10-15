@@ -22,9 +22,6 @@ export class ServerTime {
     static get obtenerFechaSimpleActual(): Date { return this.desdeFechaSimple(dayjs().tz(TIMEZONE_PERU).format('YYYY-MM-DD')); }
     static get obtenerRangoMesActual() { return this.obtenerRangoMes(this.obtenerPeriodoActual); }
 
-    /** @deprecated Usar obtenerRangoMesActual. Se conserva por compatibilidad. */
-    static get obtenerRangoMesAcutal() { return this.obtenerRangoMesActual; }
-
 
     /**
      * Convierte una fecha en formato "YYYY-MM-DD" a un objeto Date representando la medianoche UTC de esa fecha.

@@ -1,5 +1,5 @@
 //src/modules/RRHH/solicitudes/use-cases/asignarRevisionDeSolicitud.useCase.ts
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { SOLICITUD_INCLUDE, construirCondicionActual, lanzarConflictoSiCambio, obtenerSolicitudOperativa, validarSolicitudAbierta, verificarRevisorActivo } from '../helpers/validacionesSolicitud.helper';
 

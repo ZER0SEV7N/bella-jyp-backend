@@ -2,7 +2,7 @@
 //Caso de uso para la recuperacion de contraseña
 //Se encarga de manejar la lógica de negocio relacionada con la recuperación de contraseña,
 //incluyendo la generación de tokens de seguridad y el envío de correos electrónicos.
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import * as crypto from 'node:crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -26,6 +26,8 @@ export class RecuperacionPasswordUseCases {
    * @returns Un mensaje indicando que se enviarán las instrucciones si el documento es válido.
    */
   async solicitar(dto: SolicitudRecuperacionDTO) {
+    if (!process.env.N8N_WEBHOOK_URL_RESET_PASSWORD)
+      throw new ServiceUnavailableException('La recuperación por correo todavía no está configurada.');
     const usuario = await this.prisma.usuarios.findFirst({
       where: {
         empleados: { nro_documento: dto.nro_documento },
@@ -65,7 +67,7 @@ export class RecuperacionPasswordUseCases {
     //Token compuesto para enviar al usuario:
     const tokenCompuesto = `${tokenRecord.id}.${plainToken}`;
 
-    this.dispararWebhookN8n(usuario.email, tokenCompuesto);
+    await this.dispararWebhookN8n(usuario.email, tokenCompuesto);
 
     return {message: 'Si el documento es válido, se enviarán las instrucciones.'};
   }
@@ -131,7 +133,7 @@ export class RecuperacionPasswordUseCases {
   }
 
   //Metodo privado para disparar un webhook a n8n, que se encargará de enviar el correo electrónico
-  private dispararWebhookN8n(email: string, token: string) {
+  private async dispararWebhookN8n(email: string, token: string) {
     const payload = JSON.stringify({ email, token_recuperacion: token });
 
     //Firma Criptografica HMAC-SHA256 para validar la integridad del payload
@@ -145,11 +147,15 @@ export class RecuperacionPasswordUseCases {
       throw new Error('N8N_WEBHOOK_URL_RESET_PASSWORD no está configurado en las variables de entorno.');
 
     //Disparo del webhook a n8n con el payload y la firma en los headers
-    axios.post(webHookUrl, payload, {
+    return axios.post(webHookUrl, payload, {
+      timeout: 7000,
       headers: {
         'Content-Type': 'application/json',
         'X-Signature': signature
       }})
-    .catch((error) => console.error('Error al disparar el webhook a n8n:', error.message));
+    .catch((error) => {
+      console.error('Error al disparar el webhook a n8n:', error.message);
+      throw new ServiceUnavailableException('No se pudo enviar la recuperación por correo.');
+    });
   }
 }

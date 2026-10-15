@@ -74,6 +74,22 @@ export class IncidenciasController {
         return await this.aprobarIncidenciasUseCase.execute(dto);
     }
 
+    /**
+     * Endpoint para listar las incidencias de asistencia de un período específico.
+     * @Get /api/asistencia/incidencias
+     * @HttpCode 200 - OK
+     * @Roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
+     * @UsePipes ZodValidationPipe(ListarIncidenciasQuerySchema) - Valida los parámetros de consulta contra el esquema definido.
+     * @param query {
+     *   - periodo: string - El período para el cual se listarán las incidencias (formato YYYY-MM).
+     *   - area_id?: string - (Opcional) ID del área para filtrar los empleados.
+     *   - empleado_id?: string - (Opcional) ID del empleado para filtrar las incidencias.
+     *   }
+     * @returns un objeto con el resumen de las incidencias encontradas, incluyendo detalles de cada empleado y sus incidencias.
+     * @throws BadRequestException - Si los parámetros de consulta son inválidos.
+     * @throws NotFoundException - Si no se encuentran incidencias para el período especificado.
+     * @throws InternalServerErrorException - Si ocurre un error inesperado durante la consulta de las incidencias.
+     */
     @Get()
     @UseGuards(JwtAccessGuard, RolesGuard)
     @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')

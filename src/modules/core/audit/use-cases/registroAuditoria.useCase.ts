@@ -1,5 +1,6 @@
 //src/modules/core/audit/use-cases/RegistroAuditoria.useCase.ts
 //Caso de uso para registrar auditoría en el sistema
+import { crearSnapshotAuditoria } from '@/common/utils/audit-snaphot.util';
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '@/common/cls/cls.constants';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -35,11 +36,12 @@ export class RegistroAuditoriaUseCase {
         if (value === undefined || value === null) 
           return value;
         
+        //Utiliza structuredClone si está disponible, 
+        //de lo contrario utiliza la funcion crearSnapshotAuditoria para clonar el valor y ocultar credenciales sensibles.
         if (typeof structuredClone === 'function') 
-          return structuredClone(value);
+          return crearSnapshotAuditoria(value) as T;
         
-
-        return structuredClone(value);
+        return crearSnapshotAuditoria(value) as T;
       };
 
       const auditLog = await this.prisma.audit_log.create({

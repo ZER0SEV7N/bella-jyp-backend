@@ -12,7 +12,7 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 //Importar esquemas y DTOs para validación y tipado
-import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
+import { CrearCargoSchema, ActualizarCargoSchema, ListarCargosQuerySchema } from '@jyp/shared-contracts';
 import type {CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto} from '@jyp/shared-contracts';
 //Importar decoradores de Swagger para documentación de la API
 import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarCargo, ApiSwaggerDesactivarCargo, ApiSwaggerReactivarCargo, ApiSwaggerListarCargos } from '../decorators/cargo-swagger.decorator';
@@ -23,7 +23,7 @@ import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarC
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 @ApiSwaggerCargosController()
-@Controller('api/rrhh/cargo')
+@Controller('api/v1/rrhh/cargo')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class CargoController {
   constructor(
@@ -74,7 +74,7 @@ export class CargoController {
    */
   @ApiSwaggerActualizarCargo()
   @Put(':id/actualizar')
-  @UsePipes(new ZodValidationPipe(ActualizarCargoSchema))
+  @UsePipes(new ZodValidationPipe(ActualizarCargoSchema, true))
   @Roles('ADMIN', 'RRHH')
   async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ActualizarCargoDto) {
     return await this.editarCargoUseCase.execute(id, payload);
@@ -125,6 +125,7 @@ export class CargoController {
   @ApiSwaggerListarCargos()
   @Get()
   @Roles('ADMIN', 'RRHH')
+  @UsePipes(new ZodValidationPipe(ListarCargosQuerySchema))
   async listarCargos(@Query() queryParams: ListarCargosQueryDto) {
     return await this.listarCargosUseCase.listar(queryParams);
   }

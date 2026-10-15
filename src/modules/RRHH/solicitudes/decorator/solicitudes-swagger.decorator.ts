@@ -19,8 +19,7 @@ export function ApiSwaggerCrearSolicitud() {
   return applyDecorators(
     ApiOperation({
       summary: 'Crear Solicitud de Permiso / Vacaciones / Descanso',
-      description:
-        'Registra una solicitud formal de colaborador con generación automática de código correlativo (SOL-YYYY-NNN). Soporta subida de archivos adjuntos (PDF o Word, máx. 5MB) mediante multipart/form-data.',
+      description: 'Registra una solicitud formal de colaborador con generación automática de código correlativo (SOL-YYYY-NNN). Soporta subida de archivos adjuntos (PDF o Word, máx. 5MB) mediante multipart/form-data.',
     }),
     ApiConsumes('multipart/form-data', 'application/json'),
     ApiBody({
@@ -98,8 +97,7 @@ export function ApiSwaggerObtenerDetalleSolicitud() {
   return applyDecorators(
     ApiOperation({
       summary: 'Obtener Detalle de Solicitud',
-      description:
-        'Recupera la información integral de una solicitud por su UUID o código correlativo (ej. SOL-2026-001), calculando antigüedad laboral y alertas de urgencia.',
+      description: 'Recupera la información integral de una solicitud por su UUID o código correlativo (ej. SOL-2026-001), calculando antigüedad laboral y alertas de urgencia.',
     }),
     ApiParam({
       name: 'idOCodigo',
@@ -124,8 +122,7 @@ export function ApiSwaggerAsignarRevision() {
   return applyDecorators(
     ApiOperation({
       summary: 'Tomar Solicitud en Revisión',
-      description:
-        'Asigna la solicitud al usuario autenticado (ADMIN o RRHH) y cambia su estado a EN_REVISION.',
+      description: 'Asigna la solicitud al usuario autenticado (ADMIN o RRHH) y cambia su estado a EN_REVISION.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({
@@ -156,8 +153,7 @@ export function ApiSwaggerEvaluarSolicitud() {
   return applyDecorators(
     ApiOperation({
       summary: 'Evaluar Solicitud (Aprobar o Rechazar)',
-      description:
-        'Dictamina exclusivamente una solicitud EN_REVISION tomada por el usuario autenticado. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.',
+      description: 'Dictamina exclusivamente una solicitud EN_REVISION tomada por el usuario autenticado. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({
@@ -206,8 +202,7 @@ export function ApiSwaggerAnularSolicitud() {
   return applyDecorators(
     ApiOperation({
       summary: 'Anular Solicitud',
-      description:
-        'Anula una solicitud PENDIENTE o EN_REVISION, exige un motivo y conserva el registro consultable. No modifica deleted_at.',
+      description: 'Anula una solicitud PENDIENTE o EN_REVISION, exige un motivo y conserva el registro consultable. No modifica deleted_at.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({

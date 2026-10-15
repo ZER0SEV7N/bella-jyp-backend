@@ -29,7 +29,7 @@ import { ApiSwaggerDerechohabienteController, ApiSwaggerRegistrarDerechohabiente
  * - PATCH /api/rrhh/derechohabientes/:id/reactivar: Reactivar un derechohabiente previamente desactivado.
  * - POST /api/rrhh/derechohabientes/sustento/abrir: Subir un sustento documental para un derechohabiente.
  */
-@Controller('api/rrhh/derechohabientes')
+@Controller('api/v1/rrhh/derechohabientes')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @ApiSwaggerDerechohabienteController()
 export class DerechohabienteController {
@@ -80,6 +80,8 @@ export class DerechohabienteController {
     @ApiSwaggerSubirSustentoDerechohabiente()
     @Roles('ADMIN', 'RRHH')
     async subirSustento(@Req() req: FastifyRequest) {
+        if (!req.isMultipart()) throw new BadRequestException('La petición debe ser multipart/form-data.');
+
         //Extraccion de archivo multipart y campos con fastify
         const data = await req.file();
         if(!data) throw new BadRequestException({
@@ -92,7 +94,13 @@ export class DerechohabienteController {
         for(const [key, value] of Object.entries(data.fields)) 
             rawFields[key] = (value as any).value;
 
-        const parsedDto: SubirSustentoDerechohabienteDto = SubirSustentoDerechohabienteSchema.parse(rawFields);
+        let parsedDto: SubirSustentoDerechohabienteDto;
+        try {
+            parsedDto = new ZodValidationPipe(SubirSustentoDerechohabienteSchema).transform(rawFields, { type: 'body' });
+        } catch (error) {
+            data.file.resume();
+            throw error;
+        }
 
         return await this.subirSustentoUseCase.execute(parsedDto, data);   
     }

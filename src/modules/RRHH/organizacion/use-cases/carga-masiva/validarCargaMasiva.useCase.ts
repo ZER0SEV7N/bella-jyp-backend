@@ -60,7 +60,7 @@ export class ValidarCargaMasivaUseCase {
         return {
             total_filas: filasSanitizadasRaw.length,
             filas_validas: filasValidas.length,
-            filas_invalidas: errores.length,
+            filas_invalidas: new Set(errores.map((error) => error.fila)).size,
             errores_detalle: errores,
             filas_validas_data: filasValidas
         };

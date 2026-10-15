@@ -2,6 +2,7 @@
 import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { DesactivarEmpleadoDto, CambiarEstadoLaboralDto } from '@jyp/shared-contracts';
+import { ServerTime } from '@/common/utils/server-time';
 import { estado_empleado_enum } from '@prisma/client';
 
 /**
@@ -31,7 +32,14 @@ export class EstadoEmpleadoUseCase {
       });
       
       //Actualizar el estado del empleado a inactivo, estableciendo la fecha de cese y marcando el registro como eliminado (soft delete)
-      const fechaCese = dto?.fecha_cese ? new Date(dto.fecha_cese) : new Date();
+      let fechaCese: Date;
+      try {
+        fechaCese = dto?.fecha_cese ? ServerTime.desdeFechaSimple(dto.fecha_cese) : ServerTime.obtenerFechaSimpleActual;
+      } catch {
+        throw new BadRequestException('La fecha de cese no existe en el calendario.');
+      }
+      if (empleado.fecha_inicio && fechaCese < empleado.fecha_inicio)
+        throw new BadRequestException('La fecha de cese no puede preceder al ingreso.');
 
       return await this.prisma.empleados.update({
         where: { id },
@@ -47,7 +55,7 @@ export class EstadoEmpleadoUseCase {
         },
       });
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
 
       throw new InternalServerErrorException({
         title: 'Error al dar de baja al colaborador',
@@ -83,6 +91,7 @@ export class EstadoEmpleadoUseCase {
         where: { id },
         data: {
           activo: true,
+          estado_laboral: estado_empleado_enum.ACTIVO,
           fecha_cese: null,
           deleted_at: null
         },

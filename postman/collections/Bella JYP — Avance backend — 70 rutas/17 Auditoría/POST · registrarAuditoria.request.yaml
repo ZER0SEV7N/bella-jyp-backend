@@ -1,0 +1,32 @@
+$kind: http-request
+description: |-
+  POST /api/audit/logs
+  Origen: src/modules/core/audit/controller/audit.controller.ts:70
+  Handler: registrarAuditoria
+  Roles: ADMIN, CONTADOR, ASISTENTE, RRHH
+  HTTP esperado con datos y estado válidos: 201.
+url: "{{base_url}}/api/audit/logs"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "accion": "UPDATE",
+      "tabla_afectada": "empleados",
+      "registro_id": "{{empleado_id}}",
+      "valores_antes": {
+        "observacion": "Prueba manual anterior"
+      },
+      "valores_despues": {
+        "observacion": "Prueba manual nueva"
+      }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [201]', () => pm.expect([201]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+    language: text/javascript
+order: 2000

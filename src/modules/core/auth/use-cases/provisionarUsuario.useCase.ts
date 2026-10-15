@@ -1,14 +1,10 @@
 //src/modules/core/auth/use-cases/crearUsuarioInterno.useCase.ts
 //Caso de uso para provisionar un usuario interno
 //Se encarga de crear un usuario interno en la base de datos, asociado a un empleado existente
-import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, ConflictException, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { ProvisionarUsuarioDTO } from '@jyp/shared-contracts';
 
 /**
@@ -25,6 +21,7 @@ export class ProvisionarUsuarioUseCase {
 
   //Metodo principal para ejecutar el caso de uso
   async execute(dto: ProvisionarUsuarioDTO) {
+    if (dto.rol === 'JYP') throw new ForbiddenException('El rol JYP se provisiona desde la administración del software.');
     if (!dto.email)
       throw new BadRequestException('El correo corporativo es estrictamente obligatorio para crear credenciales.');
 
@@ -32,7 +29,7 @@ export class ProvisionarUsuarioUseCase {
     const empleado = await this.prisma.empleados.findUnique({where: { nro_documento: dto.nro_documento }});
 
     //Validación: Si el empleado no existe, lanzar una excepción NotFoundException
-    if (!empleado)
+    if (!empleado || !empleado.activo || empleado.deleted_at !== null)
       throw new NotFoundException({
         type: 'https://api.jyp.com/errors/not-found',
         title: 'Empleado Inexistente',
@@ -56,7 +53,7 @@ export class ProvisionarUsuarioUseCase {
     //Crear el nuevo usuario en la base de datos
     const nuevoUsuario = await this.prisma.usuarios.create({
       data: {
-        id: crypto.randomUUID(), //Usando UUIDv7 si lo tienes, o randomUUID nativo
+        id: IdentityGenerator.generateId(), //Usando UUIDv7 si lo tienes, o randomUUID nativo
         empleado_id: empleado.id,
         email: dto.email,
         password_hash: passwordHash,

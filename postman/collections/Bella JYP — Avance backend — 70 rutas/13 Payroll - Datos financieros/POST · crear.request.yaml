@@ -1,0 +1,29 @@
+$kind: http-request
+description: |-
+  POST /api/dato-financiero
+  Origen: src/modules/payroll/datoFinanciero/controller/datoFinanciero.controller.ts:75
+  Handler: crear
+  Roles: ADMIN, CONTADOR, RRHH
+  HTTP esperado con datos y estado válidos: 201.
+url: "{{base_url}}/api/dato-financiero"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "empleado_id": "{{empleado_id}}",
+      "id_regimen": "{{regimen_onp_id}}",
+      "sueldo_basico": 2400,
+      "regimen_salud": "ESSALUD_REGULAR",
+      "tipo_cuenta_sueldo": "SUELDO",
+      "tipo_cuenta_cts": "AHORROS"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [201]', () => pm.expect([201]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+    language: text/javascript
+order: 2000

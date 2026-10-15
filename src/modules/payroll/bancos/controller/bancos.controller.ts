@@ -15,7 +15,7 @@ import { ApiSwaggerBancosController, ApiSwaggerListarBancos } from "../decorator
  * @ApiSwaggerBancosController() - Aplica los decoradores de Swagger para documentar el controlador en la API.
  */
 @ApiSwaggerBancosController()
-@Controller('api/payroll/bancos')
+@Controller('api/v1/payroll/bancos')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class BancosController {
     constructor(private readonly listarBancosUseCase: ListarBancosUseCase) {}

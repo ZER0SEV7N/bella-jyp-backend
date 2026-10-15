@@ -1,0 +1,100 @@
+name: Bella JYP — Local — completar credenciales e IDs
+values:
+  - key: base_url
+    value: 'http://localhost:3000'
+  - key: login_documento
+    value: ''
+  - key: login_password
+    value: ''
+  - key: password_actor_actual
+    value: ''
+  - key: access_token
+    value: ''
+  - key: rol_actual
+    value: ''
+  - key: usuario_id
+    value: ''
+  - key: usuario_asistente_id
+    value: ''
+  - key: area_id
+    value: ''
+  - key: cargo_id
+    value: ''
+  - key: jornada_id
+    value: ''
+  - key: empleado_id
+    value: ''
+  - key: documento_id
+    value: ''
+  - key: contrato_id
+    value: ''
+  - key: contrato_filename
+    value: ''
+  - key: derechohabiente_id
+    value: ''
+  - key: solicitud_id
+    value: ''
+  - key: solicitud_codigo
+    value: ''
+  - key: solicitud_anular_id
+    value: ''
+  - key: tarea_id
+    value: ''
+  - key: job_id
+    value: ''
+  - key: tipo_afp_id
+    value: ''
+  - key: regimen_onp_id
+    value: ''
+  - key: regimen_afp_id
+    value: ''
+  - key: documento_demo
+    value: '90000001'
+  - key: documento_derechohabiente
+    value: '90000002'
+  - key: email_demo
+    value: demo.postman@example.test
+  - key: password_nuevo_usuario
+    value: CambiarDemo2026!
+  - key: periodo
+    value: 2026-10
+  - key: fecha_marcacion
+    value: '2026-10-13T09:00:00-05:00'
+  - key: filas_validas_json
+    value: '[]'
+  - key: admin_documento
+    value: ''
+  - key: admin_password
+    value: ''
+  - key: token_admin
+    value: ''
+  - key: rrhh_documento
+    value: ''
+  - key: rrhh_password
+    value: ''
+  - key: token_rrhh
+    value: ''
+  - key: contador_documento
+    value: ''
+  - key: contador_password
+    value: ''
+  - key: token_contador
+    value: ''
+  - key: asistente_documento
+    value: ''
+  - key: asistente_password
+    value: ''
+  - key: token_asistente
+    value: ''
+  - key: empleado_documento
+    value: ''
+  - key: empleado_password
+    value: ''
+  - key: token_empleado
+    value: ''
+  - key: jyp_documento
+    value: ''
+  - key: jyp_password
+    value: ''
+  - key: token_jyp
+    value: ''

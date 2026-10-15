@@ -1,4 +1,4 @@
-//src/modules/RRHH/organizacion/decorators/jordana-swagger.decorator.ts
+//src/modules/RRHH/organizacion/decorators/jornada-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiExtension } from '@nestjs/swagger';
 

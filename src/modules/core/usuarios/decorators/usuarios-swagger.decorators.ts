@@ -19,8 +19,7 @@ export function ApiSwaggerObtenerMiPerfil() {
   return applyDecorators(
     ApiOperation({
       summary: 'Obtener información del perfil en sesión',
-      description: `
-Devuelve los metadatos de identidad, credenciales y vínculo laboral del usuario conectado.
+      description: `Devuelve los metadatos de identidad, credenciales y vínculo laboral del usuario conectado.
 - **Fuente de Identidad**: Extrae el identificador de usuario (\`req.user.id\`) verificado por el \`JwtAccessGuard\`.
 - **Uso en Frontend**: Permite poblar el store global (Zustand/Redux) para autorizaciones en la UI, menús laterales y renderizado condicional de componentes según rol.`,
     }),

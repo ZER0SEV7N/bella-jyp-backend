@@ -27,7 +27,7 @@ import { ApiSwaggerEmpleadosController, ApiSwaggerCrearEmpleado, ApiSwaggerActua
  * - PATCH /api/rrhh/empleado/:id/reactivar: Reactivar un empleado previamente desactivado.
  */
 @ApiSwaggerEmpleadosController()
-@Controller('api/rrhh/empleado')
+@Controller('api/v1/rrhh/empleado')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class EmpleadoController {
   constructor(
@@ -95,10 +95,10 @@ export class EmpleadoController {
    */
   @ApiSwaggerActualizarEmpleado()
   @Roles('ADMIN', 'RRHH')
-  @UsePipes(new ZodValidationPipe(EditarEmpleadoSchema))
+  @UsePipes(new ZodValidationPipe(EditarEmpleadoSchema, true))
   @Patch(':id/actualizar')
   @HttpCode(HttpStatus.OK)
-  async actualizarEmpleado( @Param('id') id: string, @Body() payload: EditarEmpleadoDto ) {
+  async actualizarEmpleado( @Param('id', ParseUUIDPipe) id: string, @Body() payload: EditarEmpleadoDto ) {
     return this.editarEmpleadoUseCase.execute(id, payload);
   }
 
@@ -124,7 +124,7 @@ export class EmpleadoController {
   @Patch(':id/reactivar')
   @HttpCode(HttpStatus.OK)
   @Roles('ADMIN', 'RRHH')
-  async reactivar(@Param('id') id: string) {
+  async reactivar(@Param('id', ParseUUIDPipe) id: string) {
     return await this.estadoEmpleadoUseCase.reactivar(id);
   }
 

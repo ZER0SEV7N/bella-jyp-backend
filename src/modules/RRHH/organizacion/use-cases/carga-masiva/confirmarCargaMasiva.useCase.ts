@@ -3,7 +3,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
+import { CargaMasivaFilaSchema, type CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 
 /**
@@ -43,6 +43,13 @@ export class ConfirmarCargaMasivaUseCase {
             throw new BadRequestException('No hay filas válidas proporcionadas para procesar.');
         
         
+        if (!usuarioId) throw new BadRequestException('No se pudo identificar al usuario de la carga.');
+        filasAProcesar = filasAProcesar.map((fila, index) => {
+            const parsed = CargaMasivaFilaSchema.safeParse(fila);
+            if (!parsed.success) throw new BadRequestException({ title: 'Fila de carga inválida', detail: `La fila ${index + 1} no cumple el contrato.`, errores: parsed.error.flatten().fieldErrors });
+            return parsed.data;
+        });
+
         const jobId = IdentityGenerator.generateId();
         const totalRegistros = filasAProcesar.length;
 

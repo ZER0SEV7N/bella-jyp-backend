@@ -50,7 +50,6 @@ export class EditarEmpleadoUseCase {
           cargo_id: payload.cargo_id,
           area_id: payload.area_id,
           documento_id: payload.documento_id,
-          estado_laboral: 'ACTIVO',
           jornada_id: payload.jornada_id,
           nro_documento: sanitizarTexto(payload.nro_documento),
           nombre: sanitizarTexto(payload.nombre),

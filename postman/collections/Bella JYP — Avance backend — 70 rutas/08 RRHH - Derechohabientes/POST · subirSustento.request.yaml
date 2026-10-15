@@ -1,0 +1,33 @@
+$kind: http-request
+description: |-
+  POST /api/rrhh/derechohabientes/sustento/abrir
+  Origen: src/modules/RRHH/organizacion/controllers/derechohabiente.controller.ts:79
+  Handler: subirSustento
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 201.
+  Elegir el archivo local en el campo file. Los campos de texto van antes del archivo; Postman genera el boundary.
+url: "{{base_url}}/api/rrhh/derechohabientes/sustento/abrir"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: derechohabiente_id
+      value: "{{derechohabiente_id}}"
+    - type: text
+      key: tipo_documento
+      value: DNI_DERECHOHABIENTE
+    - type: text
+      key: fecha_emision
+      value: 2026-10-13
+    - type: file
+      key: file
+      src: []
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [201]', () => pm.expect([201]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+      if (pm.response.code < 300) { const r=pm.response.json(); const d=r.data || r; const entity=d.id ? d : d.data; if (entity && entity.id) pm.environment.set('derechohabiente_id',entity.id); }
+    language: text/javascript
+order: 2000

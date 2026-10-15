@@ -1,0 +1,24 @@
+$kind: http-request
+description: |-
+  POST /api/rrhh/empleados/bulk/validar
+  Origen: src/modules/RRHH/organizacion/controllers/empleado-bulk.controller.ts:73
+  Handler: validateBulk
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 201.
+  Elegir el archivo local en el campo file. Los campos de texto van antes del archivo; Postman genera el boundary.
+url: "{{base_url}}/api/rrhh/empleados/bulk/validar"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: file
+      key: file
+      src: []
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [201]', () => pm.expect([201]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+      if (pm.response.code === 201) { const r=pm.response.json(); const d=r.data || r; const reporte=d.filas_validas_data ? d : d.data; if (reporte) pm.environment.set('filas_validas_json', JSON.stringify(reporte.filas_validas_data || [])); }
+    language: text/javascript
+order: 2000

@@ -1,7 +1,7 @@
 //src/modules/RRHH/controller/empleado-bulk.controller.ts
 //Controlador para manejar la carga masiva de empleados desde un archivo CSV
 //Importaciones necesarias para el controlador
-import {Controller, Post, Req, Res, UseGuards, BadRequestException, HttpStatus, Get, Param, Body } from '@nestjs/common';
+import {Controller, Post, Req, Res, UseGuards, BadRequestException, HttpStatus, Get, Param, Body, ParseUUIDPipe } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -31,7 +31,7 @@ import { generarPlantillaExcel } from '../use-cases/carga-masiva/helpers/generar
 
 //Decorador para definir el controlador y la ruta base
 @ApiSwaggerEmpleadosBulkController()
-@Controller('api/rrhh/empleados/bulk')
+@Controller('api/v1/rrhh/empleados-bulk')
 @UseGuards(JwtAccessGuard, RolesGuard) //Protege el endpoint con JWT y roles
 @Roles('ADMIN', 'RRHH') //Define los roles permitidos para acceder a este endpoint
 export class EmpleadoBulkController {
@@ -50,7 +50,7 @@ export class EmpleadoBulkController {
    */
   @ApiSwaggerGetBulkStatus()
   @Get(':jobId')
-  async getBulkStatus(@Param('jobId') jobId: string) {
+  async getBulkStatus(@Param('jobId', ParseUUIDPipe) jobId: string) {
     //Obtener el ID del usuario desde el contexto CLS para asegurar que solo el usuario que inició la carga pueda consultar su estado
     const usuarioId = this.cls.get(CLS_USER_ID);
     if (!jobId) throw new BadRequestException('El parámetro jobId es obligatorio.');

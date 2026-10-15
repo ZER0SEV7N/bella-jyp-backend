@@ -1,15 +1,6 @@
 //src/modules/core/audit/controller/audit.controller.ts
 //Controlador para manejar las solicitudes relacionadas con la auditoría, como obtener logs de auditoría y registrar auditorías manuales.
-import {
-  Controller,
-  Get,
-  Query,
-  Post,
-  Body,
-  UseGuards,
-  Req,
-  UsePipes,
-} from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, UseGuards, Req, UsePipes } from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -19,14 +10,18 @@ import type { ObtenerAuditQueryDto, AuditLogDto } from '@jyp/shared-contracts';
 import { ObtenerLogsUseCase } from '../use-cases/obtenerLogs.useCase';
 import { RegistroAuditoriaUseCase } from '../use-cases/registroAuditoria.useCase';
 import type { FastifyRequest } from 'fastify';
-import {
-  ApiSwaggerAuditoriaController,
-  ApiSwaggerCrearAuditoria,
-  ApiSwaggerListarAuditoria,
-} from '../decorators/audit-swagger.decorator';
+import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria } from '../decorators/audit-swagger.decorator';
 
+/**
+ * Controlador para manejar las solicitudes relacionadas con la auditoría.
+ * Proporciona endpoints para obtener logs de auditoría y registrar auditorías manuales.
+ * Requiere autenticación mediante JWT y autorización basada en roles.
+ * Los roles permitidos son: ADMIN, CONTADOR, ASISTENTE, RRHH.
+ * @Uri /api/audit
+ * @roles ADMIN, CONTADOR, ASISTENTE, RRHH
+ */
 @ApiSwaggerAuditoriaController()
-@Controller('api/audit')
+@Controller('api/v1/audit')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class AuditController {
   constructor(
@@ -62,7 +57,19 @@ export class AuditController {
    * Registra un log de auditoría manual.
    * Requiere que el usuario tenga el rol de 'ADMIN', 'CONTADOR' o 'ASISTENTE' o 'RRHH'.
    * POST /api/audit/logs
-   * @param payload: Datos del log de auditoría a registrar.
+   * @param payload: Objeto que contiene la información del log de auditoría a registrar.
+   * @dto : AuditLogDto : {
+   *    - id: string (UUID) - Identificador único del log de auditoría (opcional).
+   *    - usuario_id: string (UUID) - Identificador del usuario que realiza la acción (opcional).
+   *    - accion: string - Acción realizada (obligatorio).
+   *    - tabla_afectada: string - Nombre de la tabla afectada (obligatorio). 
+   *    - registro_id: string (UUID) - Identificador del registro afectado (obligatorio).
+   *    - valores_antes: Record<string, unknown> (opcional) - Valores antes de la acción.
+   *    - valores_despues: Record<string, unknown> (opcional) - Valores después de la acción.
+   *    - direccion_ip: string (IP) - Dirección IP del usuario que realiza la acción (opcional).
+   *  }
+   * @body: AuditLogDto - Objeto que contiene la información del log de auditoría a registrar.
+   * }
    * @returns: El log de auditoría registrado.
    */
   @ApiSwaggerCrearAuditoria()

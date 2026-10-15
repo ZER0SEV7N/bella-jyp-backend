@@ -1,0 +1,35 @@
+$kind: http-request
+description: |-
+  POST /api/rrhh/solicitudes
+  Origen: src/modules/RRHH/solicitudes/controller/solicitud.controller.ts:59
+  Handler: crear
+  Roles: ADMIN, RRHH, EMPLEADO
+  HTTP esperado con datos y estado válidos: 201.
+url: "{{base_url}}/api/rrhh/solicitudes"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "empleado_id": "{{empleado_id}}",
+      "tipo": "PERMISO",
+      "fecha_inicio": "2026-10-20",
+      "fecha_fin": "2026-10-20",
+      "dias_solicitados": 1,
+      "motivo": "Permiso personal para una cita programada",
+      "origen": "MANUAL_RRHH"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP esperado: [201]', () => pm.expect([201]).to.include(pm.response.code));
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
+      if (pm.response.code < 300) { const r=pm.response.json(); const d=r.data || r; const entity=d.id ? d : d.data; if (entity && entity.id) pm.environment.set('solicitud_id',entity.id); }
+      if (pm.response.code < 300) { const r=pm.response.json(); const d=r.data || r; if (d.codigo) pm.environment.set('solicitud_codigo',d.codigo); }
+    language: text/javascript
+  - type: afterResponse
+    code: if (pm.response.code === 201) { const r=pm.response.json(); const d=r.data || r; pm.environment.set('solicitud_anular_id',d.id); }
+    language: text/javascript
+order: 8000

@@ -33,7 +33,7 @@ export class ObtenerLogsUseCase {
     if (registro_id) where.registro_id = registro_id; //Agregar filtro por ID de registro si se proporciona
 
     //REGLA DE NEGOCIO: Privacidad de Auditoría
-    if (userRequesting.rol === 'ADMIN' || userRequesting.rol === 'JYP') {
+    if (userRequesting.rol === 'ADMIN' || userRequesting.rol === 'RRHH') {
       //El administrador puede filtrar libremente por cualquier usuario_id si lo desea
       if (usuario_id) where.usuario_id = usuario_id;
     } else if (userRequesting.rol === 'CONTADOR') {
@@ -80,11 +80,7 @@ export class ObtenerLogsUseCase {
     ]);
     return {
       data: logs,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit)
       }
     };
   }

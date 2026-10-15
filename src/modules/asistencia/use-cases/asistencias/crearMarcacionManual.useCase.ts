@@ -1,8 +1,8 @@
 //src/modules/asistencia/use-cases/asistencias/crearMarcacionManual.useCase.ts
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { MarcarAsistenciaDto } from "@jyp/shared-contracts";
-import { ConflictException, Injectable } from "@nestjs/common";
-import { convertirAUtc, obtenerColaborador, validarExistencia} from "./helper/procesarAsistenciaWeb.helper";
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { obtenerColaborador, validarExistencia } from './helper/procesarAsistenciaWeb.helper';
 import { IdentityGenerator } from "@/common/utils/uuid.util";
 import { tipo_marcacion_enum } from "@prisma/client";
 
@@ -23,14 +23,28 @@ export class CrearMarcacionManualUseCase{
      * @throws ConflictException - Si ya existe una marcación para el mismo empleado, fecha y tipo de marcación.
      */
     async execute(dto:MarcarAsistenciaDto){
+        if (!Object.values(tipo_marcacion_enum).includes(dto.tipo_marcacion as tipo_marcacion_enum))
+            throw new BadRequestException('El tipo de marcación todavía no está habilitado en el esquema Prisma.');
+
         //Validar existencia del colaborador
         const empleado = await obtenerColaborador(this.prisma, dto.nro_documento);
 
         //Convertir hora a UTC respetando zona horaria de Perú
-        const fecha = convertirAUtc(dto.fecha_hora);
+        //La fecha validada por el contrato ya representa un instante.
+        const fecha = dto.fecha_hora;
+
+        if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime()))
+            throw new BadRequestException('La fecha y hora de marcación no es válida.');
+
+        //Validar que el tipo esté habilitado en el modelo de datos.
+        const tipoMarcacion = Object.values(tipo_marcacion_enum).find(tipo => tipo === dto.tipo_marcacion);
+
+        if (!tipoMarcacion)
+            throw new BadRequestException('Este tipo de marcación todavía no está habilitado en el modelo de datos.');
 
         //Validar duplicidad
-        const yaExiste = await validarExistencia(this.prisma, empleado, fecha, dto.tipo_marcacion);
+        const yaExiste = await validarExistencia(this.prisma, empleado.id, fecha, tipoMarcacion);
+        
         if (yaExiste) throw new ConflictException({
             title: 'Marcación Duplicada',
             detail: 'Ya existe una marcación registrada para este colaborador con la misma fecha y tipo.',
@@ -42,7 +56,7 @@ export class CrearMarcacionManualUseCase{
             data: {
                 id: IdentityGenerator.generateId(),
                 fecha_hora: fecha,
-                tipo_marcacion: dto.tipo_marcacion as tipo_marcacion_enum, // <-- Soluciona ts(2322)
+                tipo_marcacion: tipoMarcacion,
                 empleado_id: empleado.id,
                 metodo: "MANUAL"
             }

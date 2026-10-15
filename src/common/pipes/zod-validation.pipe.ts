@@ -24,7 +24,7 @@ export class ZodValidationPipe implements PipeTransform {
    * Recibe cualquier esquema Zod mediante la interfaz estructural ZodSchemaLike,
    * garantizando compatibilidad con esquemas complejos de @jyp/shared-contracts.
    */
-  constructor(private readonly schema: ZodSchemaLike) {}
+  constructor(private readonly schema: ZodSchemaLike, private readonly preservarCamposParciales = false) {}
 
   transform(value: unknown, metadata: ArgumentMetadata) {
     // Excluir parámetros de ruta (solo validamos Body y Query)
@@ -52,6 +52,9 @@ export class ZodValidationPipe implements PipeTransform {
     }
 
     // Retorna la data purificada y tipada por Zod
+    if (this.preservarCamposParciales && metadata.type === 'body' && value && typeof value === 'object' && !Array.isArray(value))
+      return Object.fromEntries(Object.keys(value).filter((key) => Object.prototype.hasOwnProperty.call(parsedValue.data, key)).map((key) => [key, parsedValue.data[key]]));
+
     return parsedValue.data;
   }
 }

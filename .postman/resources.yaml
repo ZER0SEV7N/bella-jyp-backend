@@ -2,6 +2,10 @@
 workspace:
   id: 352bb797-3e36-413a-a196-fe684b713e57
 
+cloudResources:
+  collections:
+    ../postman/collections/Bella JYP — Avance backend — 70 rutas: a741dfd4-dda3-4090-83ae-13e9e055dc48
+
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:
 #localResources:

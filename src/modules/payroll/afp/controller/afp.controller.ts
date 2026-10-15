@@ -28,7 +28,7 @@ import { ApiSwaggerAfpController, ApiSwaggerComisionCrear, ApiSwaggerComisionLis
  * - GET /api/afp/tipos: Lista los tipos de AFP con soporte para paginación y filtrado.
  */
 @ApiSwaggerAfpController()
-@Controller('api/afp')
+@Controller('api/v1/payroll/afp')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class AfpController {
   constructor(

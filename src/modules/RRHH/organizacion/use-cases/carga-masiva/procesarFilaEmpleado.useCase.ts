@@ -117,6 +117,8 @@ export class ProcesarFilaEmpleadoUseCase {
     //Resolver Régimen de Pensión y Tipo de AFP
     const regimen = await tx.regimen_pension.findFirst({where: { nombre: { contains: fila.regimen_pension, mode: 'insensitive' } },});
 
+    if (!regimen) throw new Error(`El régimen '${fila.regimen_pension}' no existe en el catálogo.`);
+
     let tipoAfpId: string | null = null;
     if (fila.regimen_pension === 'AFP' && fila.tipo_afp) {
       const afp = await tx.tipo_afp.findFirst({where: { nombre: { contains: fila.tipo_afp, mode: 'insensitive' } } });
@@ -137,7 +139,7 @@ export class ProcesarFilaEmpleadoUseCase {
 
     //Construir el payload de datos financieros a persistir
     const dataPayload = {
-      id_regimen: regimen?.id ?? '018f4a7c-4444-7000-d000-000000000001',
+      id_regimen: regimen.id,
       id_tipo_afp: tipoAfpId,
       sueldo_basico: fila.sueldo_basico,
       cuspp: sanitizarTexto(fila.cuspp),
