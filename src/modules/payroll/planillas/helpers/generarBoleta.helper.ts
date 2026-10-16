@@ -1,4 +1,12 @@
-const PdfPrinter = require('pdfmake');
+//src/modules/payroll/planillas/helpers/generarBoleta.helper.ts
+
+//La versión 0.3 expone una API asíncrona; no utiliza el constructor público de la versión anterior.
+const pdfmake = require('pdfmake') as {
+  addFonts(fonts: Record<string, Record<string, string>>): void;
+  setUrlAccessPolicy(validar: (url: string) => boolean): void;
+  setLocalAccessPolicy(validar: (ruta: string) => boolean): void;
+  createPdf(definicion: import('pdfmake/interfaces').TDocumentDefinitions): { write(ruta: string): Promise<void> };
+};
 import { TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -33,11 +41,15 @@ export interface IngresosEmpleado {
   recargo_nocturno: Amount;
   gratificacion: Amount;
   bonif_extraordinaria: Amount;
+  bono_extraordinario?: Amount;
 }
 
 export interface DescuentosEmpleado {
   descuento_faltas: Amount;
   descuento_tardanzas: Amount;
+  descuento_sin_goce?: Amount;
+  descuento_dso?: Amount;
+  descuento_autorizado?: Amount;
   descuento_quinta: Amount;
   descuento_adelanto: Amount;
   descuento_eps: Amount;
@@ -54,6 +66,8 @@ export interface AportacionesEmpleado {
 export interface AportesEmpleador {
   aporte_essalud: Amount;
   aporte_vida_ley: Amount;
+  base_essalud?: Amount;
+  base_previsional?: Amount;
 }
 
 export interface TotalesPlanilla {
@@ -70,11 +84,8 @@ export interface PeriodoPlanilla {
 
 const formatAmount = (val: Amount): string => {
   if (val === undefined || val === null) return '0.00';
-  if (val instanceof Decimal) {
-    return val.toFixed(2);
-  }
-  const num = typeof val === 'string' ? parseFloat(val) : Number(val);
-  return isNaN(num) ? '0.00' : num.toFixed(2);
+  const valor = new Decimal(String(val));
+  return valor.isFinite() ? valor.toFixed(2) : '0.00';
 };
 
 const formatPercentage = (val: Amount): string => {
@@ -95,7 +106,9 @@ const fonts = {
   },
 };
 
-const printer = new PdfPrinter(fonts);
+pdfmake.addFonts(fonts);
+pdfmake.setUrlAccessPolicy(() => false);
+pdfmake.setLocalAccessPolicy(ruta => path.resolve(ruta).startsWith(path.resolve(__dirname, '..', 'fonts') + path.sep));
 
 // ---------- Función principal ----------
 
@@ -112,8 +125,7 @@ export const generateBoletaPdf = async (
 ): Promise<string> => {
   await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
 
-  return new Promise((resolve, reject) => {
-    try {
+  try {
       const nombreEmpresaText = empresa.nombreEmpresa ?? 'J&P PERIFERICOS S.A.C.';
       const rucText = empresa.ruc ?? '----- RUC EMPRESA -----';
       const direccionText = empresa.direccion ?? '----- DIRECCIÓN EMPRESA -----';
@@ -132,6 +144,9 @@ export const generateBoletaPdf = async (
       const listaDescuentos: Array<[string, string]> = [
         ['Descuento Faltas', formatAmount(descuentos.descuento_faltas)],
         ['Descuento Tardanzas', formatAmount(descuentos.descuento_tardanzas)],
+        ['Permisos sin goce', formatAmount(descuentos.descuento_sin_goce)],
+        ['Descanso semanal', formatAmount(descuentos.descuento_dso)],
+        ['Descuento autorizado', formatAmount(descuentos.descuento_autorizado)],
       ];
 
       if (isONP) {
@@ -159,6 +174,7 @@ export const generateBoletaPdf = async (
       const listaIngresos: Array<[string, string]> = [
         ['Sueldo Base', formatAmount(ingresos.sueldo_base)],
         ['Asignación Familiar', formatAmount(ingresos.asignacion_familia)],
+        ['Bono extraordinario', formatAmount(ingresos.bono_extraordinario)],
         ['Horas Extras 25%', formatAmount(ingresos.horas_extras_25)],
         ['Horas Extras 35%', formatAmount(ingresos.horas_extras_35)],
         ['Recargo Nocturno', formatAmount(ingresos.recargo_nocturno)],
@@ -338,7 +354,7 @@ export const generateBoletaPdf = async (
                 [
                   { text: 'Aporte EsSalud (9%)' },
                   {
-                    text: `S/ ${formatAmount(totales.total_ingresos)}`,
+                    text: `S/ ${formatAmount(aportesEmpleador.base_essalud)}`,
                     alignment: 'right',
                   },
                   { text: formatAmount(aportesEmpleador.aporte_essalud), alignment: 'right' },
@@ -346,7 +362,7 @@ export const generateBoletaPdf = async (
                 [
                   { text: 'Aporte Seguro Vida Ley' },
                   {
-                    text: `S/ ${formatAmount(totales.total_ingresos)}`,
+                    text: `S/ ${formatAmount(aportesEmpleador.base_previsional)}`,
                     alignment: 'right',
                   },
                   { text: formatAmount(aportesEmpleador.aporte_vida_ley), alignment: 'right' },
@@ -437,16 +453,10 @@ export const generateBoletaPdf = async (
         ],
       };
 
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-      const writeStream = fs.createWriteStream(outputPath);
-
-      pdfDoc.pipe(writeStream);
-      pdfDoc.end();
-
-      writeStream.on('finish', () => resolve(outputPath));
-      writeStream.on('error', (err) => reject(err));
-    } catch (error) {
-      reject(error);
-    }
-  });
+      await pdfmake.createPdf(docDefinition).write(outputPath);
+      return outputPath;
+  } catch (error) {
+      await fs.promises.rm(outputPath, { force: true });
+      throw error;
+  }
 };

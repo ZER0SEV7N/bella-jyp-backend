@@ -40,8 +40,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      secrets:
-        - github_token
     container_name: planillas_backend
     restart: unless-stopped
     depends_on:
@@ -55,19 +53,19 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-bella}@postgres:5432/${DB_NAME:-planillas_db}?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-jyp-dev-secret-key-1234}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-jyp-dev-refresh-secret-1234}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-01234567890123456789012345678901}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Defina la llave de acceso JWT}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Defina la llave de refresco JWT}
+      FINANCIAL_DATA_ENCRYPTION_KEY: ${FINANCIAL_DATA_ENCRYPTION_KEY:?Defina la llave de cifrado financiero}
+      COOKIE_SECRET: ${COOKIE_SECRET:?Defina la llave de cookies}
+      EMPRESA_NOMBRE: ${EMPRESA_NOMBRE:?Defina el nombre de la empresa}
+      EMPRESA_RUC: ${EMPRESA_RUC:?Defina el RUC de la empresa}
+      EMPRESA_DIRECCION: ${EMPRESA_DIRECCION:?Defina la direccion de la empresa}
     ports:
       - "3000:3000"
     volumes:
       - uploads_data:/app/archivos
     networks:
       - planillas_net
-
-secrets:
-  github_token:
-    environment: GITHUB_TOKEN
 
 volumes:
   postgres_payroll_data:

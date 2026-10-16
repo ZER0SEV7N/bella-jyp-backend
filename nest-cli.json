@@ -6,8 +6,8 @@
     "deleteOutDir": true,
     "assets": [
       {
-        "include": "modules/planillas/helpers/fonts/**/*",
-        "outDir": "dist/modules/planillas/helpers",
+        "include": "modules/payroll/planillas/fonts/**/*",
+        "outDir": "dist",
         "watchAssets": true
       }
     ]

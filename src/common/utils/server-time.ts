@@ -22,13 +22,52 @@ export class ServerTime {
     static get obtenerFechaSimpleActual(): Date { return this.desdeFechaSimple(dayjs().tz(TIMEZONE_PERU).format('YYYY-MM-DD')); }
     static get obtenerRangoMesActual() { return this.obtenerRangoMes(this.obtenerPeriodoActual); }
 
+    /**
+     * Convierte un objeto Date a una cadena de fecha en formato "YYYY-MM-DD" en la zona horaria de Perú.
+     * @param instante - El objeto Date a convertir.
+     * @returns - Una cadena de fecha en formato "YYYY-MM-DD".
+     */
+    static fechaPeru(instante: Date): string {
+        if (!Number.isFinite(instante.getTime())) throw new RangeError('El instante no es válido.');
+        return dayjs(instante).tz(TIMEZONE_PERU).format('YYYY-MM-DD');
+    }
+
+    /**
+     * Obtiene el período en formato "YYYY-MM" correspondiente a un instante de tiempo dado.
+     * @param instante - El objeto Date del cual se desea obtener el período.
+     * @returns - Una cadena de período en formato "YYYY-MM".
+     */
+    static periodoDeInstante(instante: Date): string { return this.fechaPeru(instante).slice(0, 7); }
+
+    /**
+     * Convierte una fecha en formato "YYYY-MM-DD" y una hora en formato "HH:mm" o "HH:mm:ss" a un objeto Date en la zona horaria de Perú.
+     * @param fecha - La fecha en formato "YYYY-MM-DD".
+     * @param hora - La hora en formato "HH:mm" o "HH:mm:ss".
+     */
+    static desdeHoraPeru(fecha: string, hora: string): Date {
+        this.desdeFechaSimple(fecha);
+        if (!/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(hora)) throw new RangeError('La hora debe usar HH:mm o HH:mm:ss.');
+        return dayjs.tz(`${fecha} ${hora}`, TIMEZONE_PERU).toDate();
+    }
+
+    /**
+     * Obtiene el rango de fechas para un día específico en la zona horaria de Perú.
+     * @param fecha - La fecha en formato "YYYY-MM-DD".
+     * @returns - Un objeto con las propiedades inicio y siguiente, representando el inicio del día y el inicio del siguiente día.
+     */
+    static rangoDiaPeru(fecha: string): { inicio: Date; siguiente: Date } {
+        const civil = this.desdeFechaSimple(fecha);
+        civil.setUTCDate(civil.getUTCDate() + 1);
+        return { inicio: this.desdeHoraPeru(fecha, '00:00:00'), siguiente: this.desdeHoraPeru(civil.toISOString().slice(0, 10), '00:00:00') };
+    }
 
     /**
      * Convierte una fecha en formato "YYYY-MM-DD" a un objeto Date representando la medianoche UTC de esa fecha.
      * @param fecha  - La fecha en formato "YYYY-MM-DD".
      * @returns - Un objeto Date representando la medianoche UTC de la fecha proporcionada.
      * @throws - RangeError si la fecha no tiene el formato correcto o no existe en el calendario.
-     * @example
+     * @example - ServerTime.desdeFechaSimple('2024-06-15') 
+     * devuelve un objeto Date representando la medianoche UTC del 15 de junio de 2024.
      */
     static desdeFechaSimple(fecha: string): Date {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha))

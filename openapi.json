@@ -1,0 +1,4980 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "AppController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Estado del Sistema, Health Check y Metadata Backend",
+        "tags": [
+          "Core System"
+        ]
+      }
+    },
+    "/api/v1/payroll/afp/comisiones": {
+      "post": {
+        "description": "Abre un nuevo periodo de tasas y cierra el anterior (SCD Tipo 2). Requiere permisos de administrador o contador.",
+        "operationId": "AfpController_agregarComision",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tipo_afp_id",
+                  "nueva_comision"
+                ],
+                "properties": {
+                  "tipo_afp_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID de la AFP a la que aplica"
+                  },
+                  "anterior_comision": {
+                    "type": "object",
+                    "description": "Opcional. Datos de la comisión vigente para cerrarla.",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "periodo_final": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-31"
+                      }
+                    }
+                  },
+                  "nueva_comision": {
+                    "type": "object",
+                    "properties": {
+                      "periodo_inicio": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-08-01"
+                      },
+                      "aporte_obligatorio": {
+                        "type": "number",
+                        "example": 10
+                      },
+                      "comision_sobre_ra": {
+                        "type": "number",
+                        "example": 1.55
+                      },
+                      "prima_seguro": {
+                        "type": "number",
+                        "example": 1.84
+                      },
+                      "comision_mixta": {
+                        "type": "number",
+                        "example": 0.78
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comisión registrada exitosamente."
+          },
+          "400": {
+            "description": "Error de validación o datos duplicados."
+          },
+          "401": {
+            "description": "No autorizado. Token JWT inválido o ausente."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene los roles necesarios para realizar esta acción."
+          },
+          "404": {
+            "description": "No se encontró la AFP o la comisión anterior especificada."
+          },
+          "500": {
+            "description": "Error interno del servidor al intentar registrar la comisión."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Registrar nueva Comisión",
+        "tags": [
+          "Módulo AFP y Pensiones"
+        ],
+        "x-role": {
+          "roles": [
+            "ADMIN",
+            "CONTADOR"
+          ]
+        }
+      },
+      "get": {
+        "description": "Obtiene el historial de tasas. Filtre por vigentes para el cálculo de planillas. Requiere permisos de administrador, contador, asistente o RRHH.",
+        "operationId": "AfpController_listarComision",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "afp_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "solo_vigentes",
+            "required": false,
+            "in": "query",
+            "description": "Trae solo las tasas actuales (sin fecha de fin)",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de comisiones obtenido exitosamente."
+          },
+          "401": {
+            "description": "No autorizado. Token JWT inválido o ausente."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene los roles necesarios para realizar esta acción."
+          },
+          "500": {
+            "description": "Error interno del servidor al intentar obtener el listado de comisiones."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar Comisiones",
+        "tags": [
+          "Módulo AFP y Pensiones"
+        ],
+        "x-role": {
+          "roles": [
+            "ADMIN",
+            "CONTADOR"
+          ]
+        }
+      }
+    },
+    "/api/v1/payroll/afp/tipos": {
+      "post": {
+        "description": "Registra una nueva Administradora (Ej. Integra, Prima). Requiere permisos de administrador o contador.",
+        "operationId": "AfpController_asignarTipoAfp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombre",
+                  "id_regimen"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "example": "AFP Integra"
+                  },
+                  "id_regimen": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID del Régimen Privado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tipo de AFP registrado exitosamente."
+          },
+          "400": {
+            "description": "Error de validación o datos duplicados."
+          },
+          "401": {
+            "description": "No autorizado. Token JWT inválido o ausente."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene los roles necesarios para realizar esta acción."
+          },
+          "500": {
+            "description": "Error interno del servidor al intentar registrar el tipo de AFP."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Tipo de AFP",
+        "tags": [
+          "Módulo AFP y Pensiones"
+        ],
+        "x-role": {
+          "roles": [
+            "ADMIN",
+            "CONTADOR"
+          ]
+        }
+      },
+      "get": {
+        "operationId": "AfpController_listarAfp",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de tipos de AFP obtenido exitosamente."
+          },
+          "401": {
+            "description": "No autorizado. Token JWT inválido o ausente."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene los roles necesarios para realizar esta acción."
+          },
+          "500": {
+            "description": "Error interno del servidor al intentar obtener el listado de tipos de AFP."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar Tipos de AFP",
+        "tags": [
+          "Módulo AFP y Pensiones"
+        ],
+        "x-role": {
+          "roles": [
+            "ADMIN",
+            "CONTADOR"
+          ]
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Valida credenciales contra hash Argon2id y establece la sesión:\n1. Emite un **Access Token** (JWT de 15 min) en el cuerpo JSON para uso en memoria.\n2. Inyecta un **Refresh Token** (7 días) en una cookie `HttpOnly`, protegida contra ataques XSS.\n3. Registra el token hash en Redis para permitir revocación centralizada.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tipo_documento",
+                  "nro_documento",
+                  "password"
+                ],
+                "properties": {
+                  "tipo_documento": {
+                    "type": "string",
+                    "example": "DNI"
+                  },
+                  "nro_documento": {
+                    "type": "string",
+                    "example": "72345678"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "Admin2026*"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso. Devuelve Access Token en JSON y configura cookie HttpOnly con Refresh Token.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "refreshToken=eyJhbG...; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Strict",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "expires_in": 900,
+                    "usuario": {
+                      "id": "c2eebc11-9c0b-4ef8-bb6d-6bb9bd380aaa",
+                      "rol": "ADMIN",
+                      "nombres": "Daniel Singer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas o cuenta de usuario inactiva."
+          }
+        },
+        "summary": "Iniciar Sesión (Estrategia Dual Token)",
+        "tags": [
+          "Core - Autenticación"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "Genera un nuevo Access Token sin requerir que el usuario vuelva a ingresar su contraseña:\n- Lee automáticamente la cookie segura `refreshToken`.\n- Valida la firma del token y comprueba en Redis que la sesión no haya sido revocada.\n- Retorna un nuevo JWT para reactivar las llamadas a la API.",
+        "operationId": "AuthController_refreshToken",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Token refrescado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.nuevoToken...",
+                    "expires_in": 900
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Cookie ausente, token revocado en Redis o expirado."
+          }
+        },
+        "security": [
+          {
+            "refreshToken": []
+          }
+        ],
+        "summary": "Refrescar Access Token",
+        "tags": [
+          "Core - Autenticación"
+        ]
+      }
+    },
+    "/api/v1/auth/provisionar": {
+      "post": {
+        "description": "Crea credenciales iniciales para un nuevo trabajador. Exclusivo para ADMIN o RRHH.",
+        "operationId": "AuthController_provisionar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tipo_documento",
+                  "nro_documento",
+                  "password",
+                  "rol"
+                ],
+                "properties": {
+                  "tipo_documento": {
+                    "type": "string",
+                    "example": "DNI"
+                  },
+                  "nro_documento": {
+                    "type": "string",
+                    "example": "72345678"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "UsuarioInicial2026*"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "operador@empresa.com"
+                  },
+                  "rol": {
+                    "type": "string",
+                    "enum": [
+                      "ADMIN",
+                      "RRHH",
+                      "CONTADOR",
+                      "ASISTENTE"
+                    ],
+                    "example": "ASISTENTE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario provisionado con éxito en PostgreSQL con hash Argon2id."
+          },
+          "400": {
+            "description": "Datos inválidos o documento duplicado."
+          },
+          "403": {
+            "description": "Acceso denegado: Se requiere rol ADMIN o RRHH."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Provisionar Usuario Interno",
+        "tags": [
+          "Core - Autenticación"
+        ]
+      }
+    },
+    "/api/v1/auth/recuperar-password": {
+      "post": {
+        "description": "Genera un token efímero firmado y remite un enlace de recuperación al correo registrado.",
+        "operationId": "AuthController_solicitarRecuperacion",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nro_documento"
+                ],
+                "properties": {
+                  "nro_documento": {
+                    "type": "string",
+                    "example": "72345678"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud procesada (retorna 200 genérico para prevenir enumeración de usuarios)."
+          },
+          "400": {
+            "description": "Documento con formato inválido."
+          }
+        },
+        "summary": "Solicitar Recuperación de Contraseña",
+        "tags": [
+          "Core - Autenticación"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "description": "Finaliza de forma determinista la sesión del usuario:\n1. Elimina la clave de sesión en Redis vinculada al usuario autenticado.\n2. Limpia la cookie del navegador seteando `Max-Age=0`.\n3. Cualquier intento posterior de usar el Refresh Token expirará con 401 Unauthorized.",
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada con éxito y cookie eliminada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "message": "Sesión cerrada exitosamente."
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token de acceso no válido o sesión ya expirada."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          },
+          {
+            "refreshToken": []
+          }
+        ],
+        "summary": "Cerrar Sesión e Invalidar Tokens",
+        "tags": [
+          "Core - Autenticación"
+        ]
+      }
+    },
+    "/api/v1/rrhh/area/crear": {
+      "post": {
+        "description": "Registra una nueva área o departamento de la empresa en el sistema. Requiere rol ADMIN o RRHH.",
+        "operationId": "AreaController_crear",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombre"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "example": "Recursos Humanos"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "example": "Gestión de talento"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Área creada exitosamente."
+          },
+          "400": {
+            "description": "Datos inválidos. Devuelve un mensaje de error."
+          },
+          "401": {
+            "description": "No autorizado. El usuario no tiene un token válido."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene el rol necesario para realizar esta acción."
+          },
+          "409": {
+            "description": "Conflicto. El nombre del área ya existe."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Área",
+        "tags": [
+          "Modulo RRHH - Areas"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/area/{id}/actualizar": {
+      "patch": {
+        "description": "Actualiza los detalles de un área existente. Requiere rol ADMIN o RRHH.",
+        "operationId": "AreaController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del área a actualizar (UUID).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "example": "Recursos Humanos"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "example": "Gestión de talento"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Área actualizada exitosamente."
+          },
+          "400": {
+            "description": "Datos inválidos. Devuelve un mensaje de error."
+          },
+          "401": {
+            "description": "No autorizado. El usuario no tiene un token válido."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene el rol necesario para realizar esta acción."
+          },
+          "404": {
+            "description": "No encontrado. El área con el ID proporcionado no existe."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Actualizar Área",
+        "tags": [
+          "Modulo RRHH - Areas"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/area/{id}/reactive": {
+      "patch": {
+        "description": "Reactiva un área desactivada. Requiere rol ADMIN o RRHH.",
+        "operationId": "AreaController_reactive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del área a reactivar (UUID).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Área reactivada exitosamente."
+          },
+          "401": {
+            "description": "No autorizado. El usuario no tiene un token válido."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene el rol necesario para realizar esta acción."
+          },
+          "404": {
+            "description": "No encontrado. El área con el ID proporcionado no existe."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Reactivar Área",
+        "tags": [
+          "Modulo RRHH - Areas"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/area/{id}/desactive": {
+      "delete": {
+        "description": "Desactiva un área existente. Requiere rol ADMIN o RRHH.",
+        "operationId": "AreaController_eliminar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del área a desactivar (UUID).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Área desactivada exitosamente."
+          },
+          "401": {
+            "description": "No autorizado. El usuario no tiene un token válido."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene el rol necesario para realizar esta acción."
+          },
+          "404": {
+            "description": "No encontrado. El área con el ID proporcionado no existe."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Desactivar Área",
+        "tags": [
+          "Modulo RRHH - Areas"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/area": {
+      "get": {
+        "description": "Obtiene un listado de áreas con paginación y filtros opcionales. Requiere rol ADMIN o RRHH.",
+        "operationId": "AreaController_listarAreas",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Número de página para la paginación.",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Cantidad de resultados por página.",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "activo",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado de actividad del área (true para activas, false para inactivas).",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de áreas obtenido exitosamente."
+          },
+          "401": {
+            "description": "No autorizado. El usuario no tiene un token válido."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene el rol necesario para realizar esta acción."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar Áreas",
+        "tags": [
+          "Modulo RRHH - Areas"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/cargo/crear": {
+      "post": {
+        "description": "Registra un nuevo cargo dentro de la estructura organizacional, asociándolo a un área y definiendo su banda salarial (sueldo mínimo y sueldo máximo).",
+        "operationId": "CargoController_crear",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id_area",
+                  "nombre"
+                ],
+                "properties": {
+                  "id_area": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "018f4a7c-7777-7000-1111-000000000001",
+                    "description": "UUID del área organizacional a la que pertenece el cargo."
+                  },
+                  "nombre": {
+                    "type": "string",
+                    "example": "Analista de Nóminas Senior",
+                    "description": "Nombre descriptivo del cargo o puesto."
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Responsable de la liquidación, fiscalización y cierre de planillas mensuales.",
+                    "description": "Descripción opcional de las responsabilidades del puesto."
+                  },
+                  "sueldo_minimo": {
+                    "type": "number",
+                    "example": 1500,
+                    "default": 1130,
+                    "description": "Sueldo mínimo base o referencial de ingreso para el puesto."
+                  },
+                  "sueldo_maximo": {
+                    "type": "number",
+                    "nullable": true,
+                    "example": 3500,
+                    "description": "Tope máximo o techo de la banda salarial para el cargo."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cargo registrado exitosamente con sus bandas salariales y área asignada."
+          },
+          "400": {
+            "description": "Datos inválidos, nombre duplicado en el área o sueldo máximo menor al mínimo."
+          },
+          "401": {
+            "description": "No autorizado. Token JWT ausente o inválido."
+          },
+          "403": {
+            "description": "Prohibido. Se requieren permisos de ADMIN o RRHH."
+          },
+          "404": {
+            "description": "El área especificada no existe o se encuentra inactiva/eliminada."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Cargo / Puesto de Trabajo",
+        "tags": [
+          "Módulo RRHH - Cargos y Puestos de Trabajo"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/cargo/{id}/actualizar": {
+      "put": {
+        "description": "Actualiza los parámetros de un cargo existente (área, nombre, descripción o bandas salariales). Soporta modificaciones parciales.",
+        "operationId": "CargoController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del cargo a actualizar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_area": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "018f4a7c-7777-7000-1111-000000000001",
+                    "description": "UUID de la nueva área destino (si se desea transferir el cargo)."
+                  },
+                  "nombre": {
+                    "type": "string",
+                    "example": "Especialista Contable y Tributario",
+                    "description": "Nuevo nombre para el cargo."
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Encargado de declaraciones tributarias PLAME y auditoría de beneficios sociales.",
+                    "description": "Descripción actualizada de las responsabilidades del puesto."
+                  },
+                  "sueldo_minimo": {
+                    "type": "number",
+                    "example": 1800,
+                    "description": "Nuevo sueldo mínimo base para el puesto."
+                  },
+                  "sueldo_maximo": {
+                    "type": "number",
+                    "nullable": true,
+                    "example": 4200,
+                    "description": "Nuevo sueldo máximo para el puesto."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cargo actualizado exitosamente."
+          },
+          "400": {
+            "description": "Datos inválidos, nombre duplicado en el área destino o banda salarial inconsistente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Prohibido. Privilegios insuficientes."
+          },
+          "404": {
+            "description": "Cargo no encontrado o área destino no válida."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Actualizar Cargo",
+        "tags": [
+          "Módulo RRHH - Cargos y Puestos de Trabajo"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/cargo/{id}/desactive": {
+      "delete": {
+        "description": "Desactiva un cargo organizacional. Bloquea la acción si existen colaboradores activos asignados actualmente a este puesto.",
+        "operationId": "CargoController_eliminar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del cargo a desactivar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cargo desactivado exitosamente."
+          },
+          "400": {
+            "description": "Operación bloqueada. Existen empleados activos asignados a este cargo."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Prohibido."
+          },
+          "404": {
+            "description": "Cargo no encontrado o ya eliminado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Desactivar Cargo (Baja Lógica)",
+        "tags": [
+          "Módulo RRHH - Cargos y Puestos de Trabajo"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/cargo/{id}/reactive": {
+      "patch": {
+        "description": "Reactiva un cargo previamente dado de baja lógica. Valida que el área a la que pertenece se encuentre activa.",
+        "operationId": "CargoController_reactive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del cargo a reactivar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cargo reactivado exitosamente."
+          },
+          "400": {
+            "description": "El cargo ya está activo o el área matriz se encuentra inactiva."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Prohibido."
+          },
+          "404": {
+            "description": "Cargo no encontrado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Reactivar Cargo",
+        "tags": [
+          "Módulo RRHH - Cargos y Puestos de Trabajo"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/cargo": {
+      "get": {
+        "description": "Obtiene el catálogo de cargos paginado, permitiendo realizar búsquedas por término y filtrar por área organizacional y estado.",
+        "operationId": "CargoController_listarCargos",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Número de página.",
+            "schema": {
+              "type": "number",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Cantidad de registros por página.",
+            "schema": {
+              "type": "number",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Término de búsqueda para filtrar por coincidencia en nombre o descripción del cargo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id_area",
+            "required": false,
+            "in": "query",
+            "description": "Filtra cargos pertenecientes a un área específica.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "activo",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado activo o inactivo.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de cargos paginado obtenido exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Prohibido."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar Cargos",
+        "tags": [
+          "Módulo RRHH - Cargos y Puestos de Trabajo"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH",
+          "CONTADOR"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleado/crear": {
+      "post": {
+        "description": "Crea un nuevo legajo maestro. Si no se envía nombre y apellido para DNI de 8 dígitos, se autocompleta vía RENIEC. Incluye datos de filiación, domicilio, ubigeo y jornada.",
+        "operationId": "EmpleadoController_crear",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cargo_id",
+                  "area_id",
+                  "documento_id",
+                  "estado_empleado_id",
+                  "nro_documento"
+                ],
+                "properties": {
+                  "cargo_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "018f4a7c-8888-7000-2222-000000000001"
+                  },
+                  "area_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "018f4a7c-7777-7000-1111-000000000001"
+                  },
+                  "documento_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "018f4a7c-3333-7000-0000-000000000001"
+                  },
+                  "estado_empleado_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "018f4a7c-4444-7000-0000-000000000001"
+                  },
+                  "jornada_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "example": "018f4a7c-5555-7000-aaaa-000000000001"
+                  },
+                  "nro_documento": {
+                    "type": "string",
+                    "example": "70112233"
+                  },
+                  "nombre": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Carlos"
+                  },
+                  "apellido": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Mendoza Pérez"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "nullable": true,
+                    "example": "cmendoza@empresa.pe"
+                  },
+                  "telefono": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "998877665"
+                  },
+                  "sexo": {
+                    "type": "string",
+                    "enum": [
+                      "MASCULINO",
+                      "FEMENINO"
+                    ],
+                    "nullable": true,
+                    "example": "MASCULINO"
+                  },
+                  "estado_civil": {
+                    "type": "string",
+                    "enum": [
+                      "SOLTERO",
+                      "CASADO",
+                      "CONVIVIENTE",
+                      "DIVORCIADO",
+                      "VIUDO"
+                    ],
+                    "default": "SOLTERO"
+                  },
+                  "nacionalidad": {
+                    "type": "string",
+                    "default": "PERUANA",
+                    "example": "PERUANA"
+                  },
+                  "direccion": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Av. Nicolás Arriola 1234"
+                  },
+                  "referencia_direccion": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Frente al parque"
+                  },
+                  "ubigeo": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "150115",
+                    "description": "Código de 6 dígitos SUNAT"
+                  },
+                  "distrito": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "La Victoria"
+                  },
+                  "provincia": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Lima"
+                  },
+                  "departamento": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Lima"
+                  },
+                  "fecha_nacimiento": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "1995-05-15T00:00:00.000Z"
+                  },
+                  "fecha_inicio": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "2026-09-01T00:00:00.000Z"
+                  },
+                  "afp_fecha_filiacion": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "2026-09-01T00:00:00.000Z"
+                  },
+                  "asig_familiar": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Empleado registrado exitosamente."
+          },
+          "400": {
+            "description": "Documento duplicado o datos inválidos."
+          },
+          "404": {
+            "description": "Área, cargo, jornada o tipo de documento no encontrado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Colaborador / Legajo",
+        "tags": [
+          "Módulo RRHH - Empleados y Colaboradores"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleado": {
+      "get": {
+        "description": "Obtiene el catálogo paginado de colaboradores con soporte de búsqueda global y filtros.",
+        "operationId": "EmpleadoController_obtenerTodos",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Coincidencia en DNI, nombre, apellido o email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "area_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cargo_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "jornada_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "activo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado obtenido exitosamente."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar Colaboradores",
+        "tags": [
+          "Módulo RRHH - Empleados y Colaboradores"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH",
+          "CONTADOR"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleado/{id}/actualizar": {
+      "patch": {
+        "description": "Actualiza campos biográficos, de filiación, domicilio o reasignación de área/cargo.",
+        "operationId": "EmpleadoController_actualizarEmpleado",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del colaborador a actualizar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cargo_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "area_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "jornada_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "telefono": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "direccion": {
+                    "type": "string"
+                  },
+                  "asig_familiar": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Legajo actualizado exitosamente."
+          },
+          "400": {
+            "description": "Documento colisiona con otro registro o datos inconsistentes."
+          },
+          "404": {
+            "description": "Colaborador no encontrado o dado de baja."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Actualizar Colaborador",
+        "tags": [
+          "Módulo RRHH - Empleados y Colaboradores"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleado/{id}/desactivar": {
+      "delete": {
+        "description": "Registra la baja laboral estableciendo la fecha de cese actual y aplicando soft delete.",
+        "operationId": "EmpleadoController_desactivar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del colaborador.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Colaborador dado de baja correctamente."
+          },
+          "404": {
+            "description": "Colaborador no encontrado o ya inactivo."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Desactivar Colaborador (Cese / Baja)",
+        "tags": [
+          "Módulo RRHH - Empleados y Colaboradores"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleado/{id}/reactivar": {
+      "patch": {
+        "description": "Restaura el estado activo del colaborador limpiando la fecha de cese y preservando sus datos biográficos.",
+        "operationId": "EmpleadoController_reactivar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del colaborador a reactivar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Colaborador reactivado exitosamente."
+          },
+          "400": {
+            "description": "El colaborador ya se encuentra activo."
+          },
+          "404": {
+            "description": "Colaborador no encontrado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Reactivar Colaborador",
+        "tags": [
+          "Módulo RRHH - Empleados y Colaboradores"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleado/{id}/estado-laboral": {
+      "patch": {
+        "operationId": "EmpleadoController_cambiarEstadoLaboral",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "tags": [
+          "Módulo RRHH - Empleados y Colaboradores"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleados-bulk/{jobId}": {
+      "get": {
+        "description": "\nPermite supervisar la ejecución asíncrona procesada por el worker de BullMQ:\n- **Estados posibles**: `EN_COLA`, `PROCESANDO`, `COMPLETADO`, `FALLIDO`.\n- **Métricas**: Retorna el porcentaje de avance, filas procesadas, errores y tiempo de ejecución.",
+        "operationId": "EmpleadoBulkController_getBulkStatus",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "description": "UUID del trabajo devuelto al confirmar la ingesta",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado de procesamiento recuperado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "data": {
+                      "jobId": "f72a4ebd-6e4d-4a11-bb6d-8cc9bd380c33",
+                      "estado": "PROCESANDO",
+                      "porcentaje": 65,
+                      "total_registros": 100,
+                      "procesados": 65,
+                      "fallidos": 2,
+                      "errores": [
+                        {
+                          "fila": 12,
+                          "nro_documento": "71122334",
+                          "error": "El cargo \"Arquitecto Cloud\" no existe en la base de datos."
+                        }
+                      ]
+                    },
+                    "timestamp": "2026-09-24T18:03:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Identificador jobId con formato inválido."
+          },
+          "404": {
+            "description": "El trabajo no existe o pertenece a otro usuario."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Consultar estado y métricas de avance de la carga masiva",
+        "tags": [
+          "RRHH - Carga Masiva de Empleados (Two-Step Ingestion)"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleados-bulk/validar": {
+      "post": {
+        "operationId": "EmpleadoBulkController_validateBulk",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "tags": [
+          "RRHH - Carga Masiva de Empleados (Two-Step Ingestion)"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleados-bulk/confirmar": {
+      "post": {
+        "operationId": "EmpleadoBulkController_confirmBulk",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "tags": [
+          "RRHH - Carga Masiva de Empleados (Two-Step Ingestion)"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/empleados-bulk/plantilla": {
+      "get": {
+        "description": "\nDescarga el libro oficial generado con ExcelJS:\n- Contiene los 28 encabezados estándar requeridos por el pipeline de ingesta.\n- Incluye validaciones de datos nativas de Excel (listas desplegables para Sexo, Estado Civil, Departamentos, Régimen de Salud, AFPs y Comisiones).\n- Incorpora filas de ejemplo con datos válidos para guiar al usuario de RRHH.",
+        "operationId": "EmpleadoBulkController_descargarPlantilla",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Libro de Excel descargado con éxito.",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado."
+          },
+          "403": {
+            "description": "Acceso denegado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Descargar plantilla oficial de carga masiva en Excel (.xlsx)",
+        "tags": [
+          "RRHH - Carga Masiva de Empleados (Two-Step Ingestion)"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/jornadas": {
+      "post": {
+        "description": "Registra una nueva jornada laboral definiendo duración, turno, modalidad general, áreas aplicables, la grilla semanal completa (con refrigerios) y el patrón de rotación si corresponde.",
+        "operationId": "JornadaController_crearJornada",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombre",
+                  "duracion",
+                  "turno",
+                  "modalidad",
+                  "areas_ids",
+                  "horario_semanal"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "example": "Jornada Estándar Oficina",
+                    "description": "Nombre identificativo de la jornada"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "example": "Horario administrativo de 40h semanales de Lunes a Viernes",
+                    "description": "Detalle o notas sobre la jornada"
+                  },
+                  "duracion": {
+                    "type": "string",
+                    "enum": [
+                      "TIEMPO_COMPLETO",
+                      "TIEMPO_PARCIAL"
+                    ],
+                    "default": "TIEMPO_COMPLETO",
+                    "example": "TIEMPO_COMPLETO"
+                  },
+                  "turno": {
+                    "type": "string",
+                    "enum": [
+                      "MANANA",
+                      "TARDE",
+                      "NOCHE",
+                      "MIXTO",
+                      "ROTATIVO"
+                    ],
+                    "default": "MANANA",
+                    "example": "MANANA"
+                  },
+                  "modalidad": {
+                    "type": "string",
+                    "enum": [
+                      "PRESENCIAL",
+                      "REMOTO",
+                      "HIBRIDO"
+                    ],
+                    "default": "PRESENCIAL",
+                    "example": "PRESENCIAL"
+                  },
+                  "tolerancia_minutos": {
+                    "type": "number",
+                    "example": 10,
+                    "default": 5,
+                    "description": "Minutos de gracia al ingreso antes de computar tardanza"
+                  },
+                  "areas_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "example": [
+                      "018f4a7c-7777-7000-1111-000000000001"
+                    ],
+                    "description": "IDs de las áreas habilitadas para utilizar este turno"
+                  },
+                  "horario_semanal": {
+                    "type": "array",
+                    "description": "Configuración detallada de los 7 días de la semana",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "dia": {
+                          "type": "string",
+                          "enum": [
+                            "LUNES",
+                            "MARTES",
+                            "MIERCOLES",
+                            "JUEVES",
+                            "VIERNES",
+                            "SABADO",
+                            "DOMINGO"
+                          ],
+                          "example": "LUNES"
+                        },
+                        "laborable": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "modalidad": {
+                          "type": "string",
+                          "enum": [
+                            "PRESENCIAL",
+                            "REMOTO"
+                          ],
+                          "example": "PRESENCIAL"
+                        },
+                        "entrada": {
+                          "type": "string",
+                          "example": "08:00"
+                        },
+                        "inicio_descanso": {
+                          "type": "string",
+                          "example": "13:00"
+                        },
+                        "fin_descanso": {
+                          "type": "string",
+                          "example": "14:00"
+                        },
+                        "salida": {
+                          "type": "string",
+                          "example": "17:00"
+                        }
+                      }
+                    }
+                  },
+                  "patron_rotacion": {
+                    "type": "object",
+                    "description": "Parámetros del ciclo rotativo (obligatorio si turno == ROTATIVO)",
+                    "properties": {
+                      "tipo_ciclo": {
+                        "type": "string",
+                        "example": "6x1"
+                      },
+                      "dias_trabajo": {
+                        "type": "number",
+                        "example": 6
+                      },
+                      "dias_descanso": {
+                        "type": "number",
+                        "example": 1
+                      },
+                      "frecuencia_cambio": {
+                        "type": "string",
+                        "enum": [
+                          "SEMANAL",
+                          "QUINCENAL",
+                          "MENSUAL"
+                        ],
+                        "example": "SEMANAL"
+                      },
+                      "turnos_base": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "MANANA",
+                          "TARDE"
+                        ]
+                      }
+                    }
+                  },
+                  "activo": {
+                    "type": "boolean",
+                    "default": true,
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Jornada creada exitosamente."
+          },
+          "400": {
+            "description": "Datos inválidos, nombre duplicado o excede 48 horas semanales."
+          },
+          "401": {
+            "description": "No autorizado. Token JWT ausente o expirado."
+          },
+          "403": {
+            "description": "Prohibido. Se requieren privilegios de ADMIN o RRHH."
+          },
+          "404": {
+            "description": "Una o más áreas seleccionadas no existen o están inactivas."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Jornada / Turno",
+        "tags": [
+          "Módulo RRHH - Jornadas y Horarios Laborales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      },
+      "get": {
+        "description": "Obtiene una lista paginada de las jornadas laborales registradas con filtros avanzados por estado, modalidad, turno, duración o área.",
+        "operationId": "JornadaController_listarJornadas",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Número de página.",
+            "schema": {
+              "type": "number",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Cantidad de elementos por página.",
+            "schema": {
+              "type": "number",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Búsqueda por coincidencia en nombre o descripción.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "area_id",
+            "required": false,
+            "in": "query",
+            "description": "Filtra jornadas aplicables a un área específica.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "turno",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por tipo de turno.",
+            "schema": {
+              "enum": [
+                "MANANA",
+                "TARDE",
+                "NOCHE",
+                "MIXTO",
+                "ROTATIVO"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "modalidad",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por modalidad laboral general.",
+            "schema": {
+              "enum": [
+                "PRESENCIAL",
+                "REMOTO",
+                "HIBRIDO"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "duracion",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por tipo de duración de jornada.",
+            "schema": {
+              "enum": [
+                "TIEMPO_COMPLETO",
+                "TIEMPO_PARCIAL"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "activo",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por jornadas activas o inactivas.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de jornadas obtenida exitosamente."
+          },
+          "401": {
+            "description": "No autorizado. Token JWT inválido."
+          },
+          "403": {
+            "description": "Prohibido. El rol autenticado no posee privilegios de consulta."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar Jornadas y Turnos",
+        "tags": [
+          "Módulo RRHH - Jornadas y Horarios Laborales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH",
+          "CONTADOR"
+        ]
+      }
+    },
+    "/api/v1/rrhh/jornadas/{id}": {
+      "put": {
+        "description": "Actualiza los parámetros, áreas aplicables o distribución horaria de una jornada laboral existente.",
+        "operationId": "JornadaController_actualizarJornada",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la jornada a actualizar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "example": "Turno Mañana Flexible"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "example": "Actualización de tolerancia y áreas"
+                  },
+                  "duracion": {
+                    "type": "string",
+                    "enum": [
+                      "TIEMPO_COMPLETO",
+                      "TIEMPO_PARCIAL"
+                    ]
+                  },
+                  "turno": {
+                    "type": "string",
+                    "enum": [
+                      "MANANA",
+                      "TARDE",
+                      "NOCHE",
+                      "MIXTO",
+                      "ROTATIVO"
+                    ]
+                  },
+                  "modalidad": {
+                    "type": "string",
+                    "enum": [
+                      "PRESENCIAL",
+                      "REMOTO",
+                      "HIBRIDO"
+                    ]
+                  },
+                  "tolerancia_minutos": {
+                    "type": "number",
+                    "example": 10
+                  },
+                  "areas_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "horario_semanal": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "patron_rotacion": {
+                    "type": "object"
+                  },
+                  "activo": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Jornada actualizada exitosamente."
+          },
+          "400": {
+            "description": "Datos inválidos o nombre duplicado en otra jornada."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Prohibido. Permisos insuficientes."
+          },
+          "404": {
+            "description": "Jornada no encontrada o áreas no válidas."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Actualizar Jornada",
+        "tags": [
+          "Módulo RRHH - Jornadas y Horarios Laborales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/jornadas/{id}/desactivar": {
+      "delete": {
+        "description": "Desactiva una jornada laboral del catálogo. Bloquea la acción si existen colaboradores activos asignados a ella.",
+        "operationId": "JornadaController_desactivarJornada",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la jornada a desactivar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Jornada desactivada exitosamente."
+          },
+          "400": {
+            "description": "Operación bloqueada. Existen colaboradores activos usando este turno."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Prohibido."
+          },
+          "404": {
+            "description": "Jornada no encontrada o ya desactivada."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Desactivar Jornada (Baja Lógica)",
+        "tags": [
+          "Módulo RRHH - Jornadas y Horarios Laborales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/jornadas/{id}/reactivar": {
+      "patch": {
+        "description": "Reactiva una jornada laboral desactivada previamente en el sistema.",
+        "operationId": "JornadaController_reactivarJornada",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la jornada a reactivar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Jornada reactivada exitosamente."
+          },
+          "400": {
+            "description": "La jornada ya se encuentra activa."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Prohibido."
+          },
+          "404": {
+            "description": "Jornada no encontrada."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Reactivar Jornada",
+        "tags": [
+          "Módulo RRHH - Jornadas y Horarios Laborales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/derechohabientes/registrar": {
+      "post": {
+        "description": "\nRegistra un familiar o dependiente directo con derecho a cobertura de EsSalud/EPS conforme a la normativa laboral peruana.\n- **Roles Autorizados**: `ADMIN`, `RRHH`.\n- **Vínculos Contemplados**:\n  - `CONYUGE`: Cónyuge en matrimonio civil.\n  - `CONCUBINO`: Unión de hecho declarada formalmente.\n  - `HIJO_MENOR`: Hijos menores de 18 años.\n  - `HIJO_MAYOR_INCAPACITADO`: Hijos mayores de edad con incapacidad física/mental total y permanente.\n  - `HIJO_MAYOR_ESTUDIANTE`: Hijos entre 18 y 28 años cursando estudios superiores continuos.\n  - `MADRE_GESTANTE`: Cobertura prenatal para cónyuge/concubina.",
+        "operationId": "DerechohabienteController_registrarDerechohabiente",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Payload validado contra RegistrarDerechohabienteSchema",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "empleado_id",
+                  "documento_id",
+                  "nro_documento",
+                  "nombres",
+                  "apellidos",
+                  "vinculo",
+                  "estado_civil",
+                  "sexo",
+                  "fecha_nacimiento"
+                ],
+                "properties": {
+                  "empleado_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                    "description": "UUID del trabajador titular afiliado"
+                  },
+                  "documento_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "b1ffbc88-9c0b-4ef8-bb6d-7cc9bd380b22",
+                    "description": "UUID del tipo de documento de identidad (DNI, Carné de Extranjería, etc.)"
+                  },
+                  "nro_documento": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 20,
+                    "example": "74125896",
+                    "description": "Número de documento oficial del derechohabiente"
+                  },
+                  "nombres": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "example": "Valeria Lucía",
+                    "description": "Nombres del dependiente"
+                  },
+                  "apellidos": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "example": "Singer Torres",
+                    "description": "Apellidos del dependiente"
+                  },
+                  "vinculo": {
+                    "type": "string",
+                    "enum": [
+                      "CONYUGE",
+                      "CONCUBINO",
+                      "HIJO_MENOR",
+                      "HIJO_MAYOR_INCAPACITADO",
+                      "HIJO_MAYOR_ESTUDIANTE",
+                      "MADRE_GESTANTE"
+                    ],
+                    "example": "HIJO_MENOR",
+                    "description": "Tipo de filiación legal con el titular"
+                  },
+                  "estado_civil": {
+                    "type": "string",
+                    "example": "SOLTERO",
+                    "description": "Estado civil del derechohabiente"
+                  },
+                  "sexo": {
+                    "type": "string",
+                    "enum": [
+                      "M",
+                      "F"
+                    ],
+                    "example": "F",
+                    "description": "Sexo biológico registrado"
+                  },
+                  "fecha_nacimiento": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "example": "2018-05-14",
+                    "description": "Fecha de nacimiento en formato ISO YYYY-MM-DD"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Derechohabiente registrado satisfactoriamente en estado ACTIVO.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                    "empleado_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                    "nro_documento": "74125896",
+                    "nombres": "Valeria Lucía",
+                    "apellidos": "Singer Torres",
+                    "vinculo": "HIJO_MENOR",
+                    "estado": "ACTIVO",
+                    "fecha_nacimiento": "2018-05-14",
+                    "created_at": "2026-09-24T18:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos (error de validación RFC 7807 por Zod)."
+          },
+          "403": {
+            "description": "Acceso denegado: Se requiere rol ADMIN o RRHH."
+          },
+          "404": {
+            "description": "El empleado titular indicado no existe o se encuentra inactivo."
+          },
+          "409": {
+            "description": "Conflicto: Ya existe un derechohabiente registrado con el mismo documento."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Registrar un nuevo derechohabiente para un empleado titular",
+        "tags": [
+          "RRHH - Derechohabientes"
+        ]
+      }
+    },
+    "/api/v1/rrhh/derechohabientes/sustento/abrir": {
+      "post": {
+        "description": "\nCarga el archivo digital de respaldo legal requerido por SUNAT/T-Registro para acreditar el vínculo del derechohabiente.\n- **Roles Autorizados**: `ADMIN`, `RRHH`.\n- **Formatos admitidos**: PDF (`application/pdf`), DOC, DOCX.\n- **Límite de tamaño**: Máximo 5 MB.\n- **Tipos de documento**:\n  - `PARTIDA_NACIMIENTO`: Para hijos menores.\n  - `PARTIDA_MATRIMONIO`: Para cónyuges.\n  - `ESCRITURA_CONCUBINATO`: Acta notarial o judicial de unión de hecho.\n  - `CONSTANCIA_ESTUDIOS`: Para hijos mayores de 18 años estudiantes (renovación semestral).\n  - `CERTIFICADO_INCAPACIDAD`: Dictamen médico de EsSalud/MINSA.\n  - `DNI_DERECHOHABIENTE` / `OTRO`.",
+        "operationId": "DerechohabienteController_subirSustento",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Formulario multipart con archivo adjunto y metadatos del sustento",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "derechohabiente_id",
+                  "tipo_documento"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo probatorio digitalizado (PDF o Word)"
+                  },
+                  "derechohabiente_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                    "description": "UUID del derechohabiente al que pertenece el expediente"
+                  },
+                  "tipo_documento": {
+                    "type": "string",
+                    "enum": [
+                      "PARTIDA_NACIMIENTO",
+                      "PARTIDA_MATRIMONIO",
+                      "ESCRITURA_CONCUBINATO",
+                      "DNI_DERECHOHABIENTE",
+                      "CONSTANCIA_ESTUDIOS",
+                      "CERTIFICADO_INCAPACIDAD",
+                      "OTRO"
+                    ],
+                    "example": "PARTIDA_NACIMIENTO",
+                    "description": "Clasificación del documento probatorio"
+                  },
+                  "fecha_emision": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "example": "2026-01-15",
+                    "nullable": true,
+                    "description": "Fecha de expedición del documento oficial (YYYY-MM-DD)"
+                  },
+                  "fecha_vencimiento": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "example": "2026-12-31",
+                    "nullable": true,
+                    "description": "Fecha de expiración (obligatoria para constancias de estudio semestrales)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sustento documental cargado y almacenado correctamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "d3ffbc88-9c0b-4ef8-bb6d-9cc9bd380d44",
+                    "derechohabiente_id": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                    "tipo_documento": "PARTIDA_NACIMIENTO",
+                    "nombre_archivo": "partida_nacimiento_valeria.pdf",
+                    "ruta_almacenamiento": "/archivos/sustentos/2026/09/partida_nacimiento_valeria.pdf",
+                    "fecha_emision": "2026-01-15",
+                    "fecha_vencimiento": null,
+                    "created_at": "2026-09-24T18:05:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Archivo ausente, extensión de archivo no permitida o metadatos inválidos."
+          },
+          "403": {
+            "description": "Acceso denegado: Se requiere rol ADMIN o RRHH."
+          },
+          "404": {
+            "description": "El derechohabiente especificado no existe o se encuentra inactivo."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Adjuntar sustento documental probatorio (PDF / Word)",
+        "tags": [
+          "RRHH - Derechohabientes"
+        ]
+      }
+    },
+    "/api/v1/rrhh/derechohabientes/empleado/{empleadoId}": {
+      "get": {
+        "description": "\nDevuelve todos los dependientes vinculados al trabajador titular, detallando su parentesco, estado actual y sustentos cargados.\n- **Roles Autorizados**: `ADMIN`, `RRHH`.",
+        "operationId": "DerechohabienteController_listarPorEmpleado",
+        "parameters": [
+          {
+            "name": "empleadoId",
+            "required": true,
+            "in": "path",
+            "description": "UUID del trabajador titular",
+            "schema": {
+              "format": "uuid",
+              "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de dependientes recuperada exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": [
+                    {
+                      "id": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                      "documento_id": "b1ffbc88-9c0b-4ef8-bb6d-7cc9bd380b22",
+                      "tipo_documento_nombre": "DNI",
+                      "nro_documento": "74125896",
+                      "nombres": "Valeria Lucía",
+                      "apellidos": "Singer Torres",
+                      "vinculo": "HIJO_MENOR",
+                      "estado_civil": "SOLTERO",
+                      "sexo": "F",
+                      "fecha_nacimiento": "2018-05-14",
+                      "estado": "ACTIVO",
+                      "sustentos": [
+                        {
+                          "id": "d3ffbc88-9c0b-4ef8-bb6d-9cc9bd380d44",
+                          "tipo_documento": "PARTIDA_NACIMIENTO",
+                          "nombre_archivo": "partida_nacimiento_valeria.pdf"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Formato de UUID de empleado inválido."
+          },
+          "401": {
+            "description": "Token JWT ausente o no válido."
+          },
+          "403": {
+            "description": "Acceso denegado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar derechohabientes de un empleado titular",
+        "tags": [
+          "RRHH - Derechohabientes"
+        ]
+      }
+    },
+    "/api/v1/rrhh/derechohabientes/{id}/desactivar": {
+      "delete": {
+        "description": "\nCambia el estado del dependiente a `INACTIVO` para suspender la cobertura de seguro de salud.\n- **Roles Autorizados**: `ADMIN`, `RRHH`.\n- **Casos de Uso Típicos**: Hijos que alcanzaron mayoría de edad sin constancia de estudios, disolución conyugal o deceso.",
+        "operationId": "DerechohabienteController_desactivar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del derechohabiente a desactivar",
+            "schema": {
+              "format": "uuid",
+              "example": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Derechohabiente desactivado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "message": "Derechohabiente desactivado exitosamente.",
+                    "id": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                    "estado": "INACTIVO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "UUID no válido."
+          },
+          "404": {
+            "description": "El derechohabiente no existe o ya se encuentra en estado inactivo."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Desactivar un derechohabiente (Baja lógica)",
+        "tags": [
+          "RRHH - Derechohabientes"
+        ]
+      }
+    },
+    "/api/v1/rrhh/derechohabientes/{id}/reactivar": {
+      "patch": {
+        "description": "\nRestablece el estado del dependiente a `ACTIVO` tras la presentación de nuevos sustentos (ej. renovación de matrícula universitaria).\n- **Roles Autorizados**: `ADMIN`, `RRHH`.",
+        "operationId": "DerechohabienteController_reactivar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del derechohabiente a reactivar",
+            "schema": {
+              "format": "uuid",
+              "example": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Derechohabiente reactivado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "message": "Derechohabiente reactivado exitosamente.",
+                    "id": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                    "estado": "ACTIVO"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "UUID no válido."
+          },
+          "404": {
+            "description": "El derechohabiente no existe o ya se encuentra en estado activo."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Reactivar un derechohabiente suspendido",
+        "tags": [
+          "RRHH - Derechohabientes"
+        ]
+      }
+    },
+    "/api/v1/audit/logs": {
+      "get": {
+        "description": "Obtiene una lista de registros de auditoría filtrados y paginados según los parámetros proporcionados. Requiere rol ADMIN o CONTADOR.",
+        "operationId": "AuditController_obtenerLogs",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Número de página para la paginación.",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Cantidad de registros por página para la paginación.",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "tabla_afectada",
+            "required": false,
+            "in": "query",
+            "description": "Nombre de la tabla afectada para filtrar los registros.",
+            "schema": {
+              "example": "empleados",
+              "type": "string"
+            }
+          },
+          {
+            "name": "accion",
+            "required": false,
+            "in": "query",
+            "description": "Acción realizada para filtrar los registros.",
+            "schema": {
+              "example": "CREAR_EMPLEADO",
+              "type": "string"
+            }
+          },
+          {
+            "name": "usuario_id",
+            "required": false,
+            "in": "query",
+            "description": "ID del usuario que realizó la acción para filtrar los registros.",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "registro_id",
+            "required": false,
+            "in": "query",
+            "description": "ID del registro afectado para filtrar los registros.",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna un objeto con los registros de auditoría filtrados y paginados según los parámetros proporcionados."
+          },
+          "400": {
+            "description": "Solicitud inválida. Devuelve un mensaje de error si los parámetros de consulta no son válidos."
+          },
+          "401": {
+            "description": "No autorizado. El usuario no tiene un token válido."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar Registros de Auditoría",
+        "tags": [
+          "Modulo Auditoria"
+        ]
+      },
+      "post": {
+        "description": "Registra un nuevo evento de auditoría en el sistema. Requiere rol ADMIN o CONTADOR.",
+        "operationId": "AuditController_registrarAuditoria",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "accion",
+                  "usuario_id",
+                  "descripcion"
+                ],
+                "properties": {
+                  "accion": {
+                    "type": "string",
+                    "example": "CREAR_EMPLEADO"
+                  },
+                  "usuario_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "example": "Se creó un nuevo empleado con ID 123."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registro de auditoría creado exitosamente."
+          },
+          "400": {
+            "description": "Datos inválidos. Devuelve un mensaje de error."
+          },
+          "401": {
+            "description": "No autorizado. El usuario no tiene un token válido."
+          },
+          "403": {
+            "description": "Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Registro de Auditoría",
+        "tags": [
+          "Modulo Auditoria"
+        ]
+      }
+    },
+    "/api/v1/tareas": {
+      "post": {
+        "operationId": "TareasController_crearTarea",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tareas"
+        ]
+      },
+      "get": {
+        "operationId": "TareasController_obtenerTareas",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tareas"
+        ]
+      }
+    },
+    "/api/v1/tareas/{id}/estado": {
+      "patch": {
+        "operationId": "TareasController_cambiarEstado",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tareas"
+        ]
+      }
+    },
+    "/api/v1/tareas/{id}/anotaciones": {
+      "post": {
+        "operationId": "TareasController_agregarAnotacion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tareas"
+        ]
+      }
+    },
+    "/api/v1/rrhh/contrato": {
+      "post": {
+        "description": "Registra un nuevo contrato laboral sin documento PDF adjunto. \n        - **Estado**: Queda registrado en estado borrador/pendiente y habilitado para modificaciones.\n        - **Roles Autorizados**: `ADMIN`, `RRHH`.",
+        "operationId": "ContratoController_crearContrato",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "empleado_id",
+                  "id_estado",
+                  "fecha_inicio"
+                ],
+                "properties": {
+                  "empleado_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                    "description": "UUID del empleado al que se le vincula el contrato"
+                  },
+                  "id_estado": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "b1ffbc88-9c0b-4ef8-bb6d-7cc9bd380b22",
+                    "description": "UUID del catálogo de estado del contrato"
+                  },
+                  "tipo_modalidad": {
+                    "type": "string",
+                    "example": "Plazo Fijo - Modalidad por Inicio o Incremento de Actividad",
+                    "description": "Régimen o modalidad del contrato laboral según D.L. 728"
+                  },
+                  "fecha_inicio": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-01",
+                    "description": "Fecha de inicio del vínculo laboral"
+                  },
+                  "fecha_fin": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2027-09-30",
+                    "nullable": true,
+                    "description": "Fecha de culminación (opcional si es contrato indeterminado)"
+                  },
+                  "observacion": {
+                    "type": "string",
+                    "example": "Periodo de prueba superado en contrato previo.",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contrato registrado exitosamente en borrador."
+          },
+          "400": {
+            "description": "Error de validación (ZodValidationPipe): Fechas incoherentes o datos inválidos."
+          },
+          "401": {
+            "description": "Token de autenticación ausente o expirado."
+          },
+          "403": {
+            "description": "Acceso denegado: Se requiere rol ADMIN o RRHH."
+          },
+          "409": {
+            "description": "Conflicto: El empleado ya posee un contrato vigente en el mismo rango de fechas."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Contrato en Borrador",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      },
+      "get": {
+        "description": "Endpoint multipropósito para la gestión central de contratos de RRHH y alimentación del Dashboard:\n        - **Alerta de Vencimiento para Dashboard**: Parámetro `por_vencer_dias=30` (o 15, 60) para obtener los contratos que expirarán próximamente.\n        - **Filtros Operativos**: Filtrado por área departamental, estado de contrato o búsqueda textual por empleado (nombre, apellido, DNI).\n        - **Roles Autorizados**: `ADMIN`, `RRHH`, `CONTADOR`, `ASISTENTE`.",
+        "operationId": "ContratoController_listarContratos",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Número de página para paginación (por defecto: 1)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Cantidad de elementos por página (por defecto: 10, máx: 100)",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Búsqueda por nombres, apellidos o número de documento del empleado",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "por_vencer_dias",
+            "required": false,
+            "in": "query",
+            "description": "Filtra contratos cuya fecha de fin vence dentro de los próximos N días (ideal para modales y widgets de alertas)",
+            "schema": {
+              "example": 30,
+              "type": "number"
+            }
+          },
+          {
+            "name": "area_id",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar contratos de empleados pertenecientes a un área específica",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "empleado_id",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar por UUID de un empleado específico",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "id_estado",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar por UUID del estado del contrato (Vigente, Vencido, En Renovación)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de contratos obtenido con éxito con metadatos de paginación.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "data": [
+                      {
+                        "id": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                        "empleado": {
+                          "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                          "nombres": "Daniel Enrique",
+                          "apellidos": "Singer Rojas",
+                          "nro_documento": "72345678",
+                          "area": "Tecnología de la Información",
+                          "cargo": "Backend Lead"
+                        },
+                        "estado": "VIGENTE",
+                        "tipo_modalidad": "Plazo Fijo",
+                        "fecha_inicio": "2026-01-01",
+                        "fecha_fin": "2026-10-31",
+                        "dias_restantes": 37,
+                        "tiene_pdf": true,
+                        "nombre_archivo": "contrato_firmado_daniel_singer.pdf"
+                      }
+                    ],
+                    "meta": {
+                      "total": 45,
+                      "page": 1,
+                      "limit": 10,
+                      "totalPages": 5
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros de consulta no conformes con ListarContratosQuerySchema."
+          },
+          "401": {
+            "description": "No autenticado."
+          },
+          "403": {
+            "description": "Acceso denegado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar contratos con paginación y filtros dinámicos",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/contrato/{id}/actualizar": {
+      "patch": {
+        "description": "Permite modificar los términos y fechas de un contrato existente.\n        - **Regla de Inmutabilidad**: **Solo editable si aún no se ha subido el PDF firmado**. Una vez cargado el archivo digital, el contrato queda congelado legalmente.\n        - **Roles Autorizados**: `ADMIN`, `RRHH`.",
+        "operationId": "ContratoController_actualizarContrato",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del contrato a modificar",
+            "schema": {
+              "format": "uuid",
+              "example": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_estado": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "tipo_modalidad": {
+                    "type": "string",
+                    "example": "Plazo Indeterminado"
+                  },
+                  "fecha_inicio": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "fecha_fin": {
+                    "type": "string",
+                    "format": "date",
+                    "nullable": true
+                  },
+                  "observacion": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contrato actualizado exitosamente."
+          },
+          "400": {
+            "description": "No se puede editar: El contrato ya cuenta con un PDF firmado o datos inválidos."
+          },
+          "404": {
+            "description": "El contrato no existe."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Editar Contrato en Borrador",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/contrato/{id}/renovar": {
+      "post": {
+        "description": "Cierra el ciclo del contrato actual marcándolo como renovado y genera de manera atómica un nuevo contrato para el siguiente periodo laboral.\n        - **Roles Autorizados**: `ADMIN`, `RRHH`.",
+        "operationId": "ContratoController_renovarContrato",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del contrato previo que finaliza",
+            "schema": {
+              "format": "uuid",
+              "example": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id_estado",
+                  "fecha_inicio"
+                ],
+                "properties": {
+                  "id_estado": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Estado para el nuevo contrato generado"
+                  },
+                  "fecha_inicio": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2027-10-01"
+                  },
+                  "fecha_fin": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2028-09-30",
+                    "nullable": true
+                  },
+                  "tipo_modalidad": {
+                    "type": "string",
+                    "example": "Prórroga de Plazo Fijo"
+                  },
+                  "observacion": {
+                    "type": "string",
+                    "example": "Renovación anual por desempeño satisfactorio."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Renovación generada con éxito. Devuelve el nuevo contrato activo."
+          },
+          "400": {
+            "description": "Error en la secuencia de fechas o estado incompatible para renovación."
+          },
+          "404": {
+            "description": "Contrato base no encontrado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Renovar Contrato (Adenda / Prórroga)",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/contrato/{id}/anular": {
+      "delete": {
+        "description": "Realiza la invalidación o soft-delete de un contrato por cancelación de ingreso o anulación administrativa.\n        - **Roles Autorizados**: `ADMIN`, `RRHH`.",
+        "operationId": "ContratoController_anularContrato",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del contrato a anular",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contrato anulado exitosamente."
+          },
+          "404": {
+            "description": "El contrato no existe."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Anular Contrato (Baja Lógica)",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/contrato/empleado/{empleadoId}": {
+      "get": {
+        "description": "Recupera la línea de tiempo completa de contratos, adendas y renovaciones históricas de un trabajador para visualización en su expediente/legajo digital.\n        - **Roles Autorizados**: `ADMIN`, `RRHH`, `CONTADOR`, `ASISTENTE`.",
+        "operationId": "ContratoController_obtenerHistorialEmpleado",
+        "parameters": [
+          {
+            "name": "empleadoId",
+            "required": true,
+            "in": "path",
+            "description": "UUID del empleado titular del expediente",
+            "schema": {
+              "format": "uuid",
+              "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historial cronológico de contratos obtenido con éxito."
+          },
+          "400": {
+            "description": "UUID de empleado inválido."
+          },
+          "404": {
+            "description": "Empleado no encontrado o sin contratos registrados."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Historial contractual completo de un empleado",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/contrato/{id}/subir-pdf": {
+      "post": {
+        "description": "Carga el contrato físico escaneado con las firmas de ley.\n        - **Bloqueo Inmutable**: Al completar la subida, el contrato pasa a ser estrictamente de solo lectura y ya no podrá ser editado ni alterado.\n        - **Almacenamiento**: Se guarda en el volumen seguro persistente del servidor y se registra la ruta relativa.\n        - **Roles Autorizados**: `ADMIN`, `RRHH`.",
+        "operationId": "ContratoController_subirContratoPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID del contrato a vincular",
+            "schema": {
+              "format": "uuid",
+              "example": "c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Archivo PDF del contrato firmado por el trabajador y el representante legal",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo en formato PDF (application/pdf, máx 10 MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Documento PDF vinculado exitosamente y contrato bloqueado."
+          },
+          "400": {
+            "description": "Petición no multipart, formato distinto de PDF o archivo corrupto."
+          },
+          "404": {
+            "description": "El contrato no existe."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Cargar PDF firmado del contrato (Bloqueo de Inmutabilidad)",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/contrato/descargar/{filename}": {
+      "get": {
+        "description": "Descarga el binario PDF en streaming desde el almacenamiento del servidor.\n        - **Seguridad**: Aplica validación estricta de `path.basename` para evitar ataques de Path Traversal (`../../`).\n        - **Roles Autorizados**: `ADMIN`, `RRHH`, `CONTADOR`, `EMPLEADO`.",
+        "operationId": "ContratoController_descargarContratoPdf",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "Nombre seguro del archivo físico generado en el servidor",
+            "schema": {
+              "example": "contrato_a0eebc99_2026.pdf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo binario del contrato retornado con cabecera application/pdf.",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nombre de archivo inseguro o archivo inexistente en disco."
+          },
+          "401": {
+            "description": "No autenticado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Descargar documento PDF del contrato",
+        "tags": [
+          "RRHH - Contratos"
+        ]
+      }
+    },
+    "/api/v1/usuarios/me": {
+      "get": {
+        "description": "Devuelve los metadatos de identidad, credenciales y vínculo laboral del usuario conectado.\n- **Fuente de Identidad**: Extrae el identificador de usuario (`req.user.id`) verificado por el `JwtAccessGuard`.\n- **Uso en Frontend**: Permite poblar el store global (Zustand/Redux) para autorizaciones en la UI, menús laterales y renderizado condicional de componentes según rol.",
+        "operationId": "UsuariosController_obtenerMiPerfil",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Perfil de usuario obtenido con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "c2eebc11-9c0b-4ef8-bb6d-6bb9bd380aaa",
+                    "tipo_documento": "DNI",
+                    "nro_documento": "72345678",
+                    "email": "admin.planillas@empresa.com",
+                    "rol": "ADMIN",
+                    "estado": "ACTIVO",
+                    "ultimo_acceso": "2026-09-24T18:30:00.000Z",
+                    "empleado": {
+                      "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                      "nombres": "Daniel Enrique",
+                      "apellidos": "Singer Rojas",
+                      "cargo": "Arquitecto de Software",
+                      "area": "Tecnología de la Información"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token de acceso ausente, vencido o con firma no válida."
+          },
+          "404": {
+            "description": "El usuario autenticado ya no existe o fue dado de baja."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Obtener información del perfil en sesión",
+        "tags": [
+          "Core - Usuarios"
+        ]
+      }
+    },
+    "/api/v1/payroll/dato-financiero/empleado/{idEmpleado}": {
+      "get": {
+        "description": "Recupera la ficha completa bancaria, previsional (AFP/ONP) y de salud (EsSalud/EPS).\n- **Roles Autorizados**: `ADMIN`, `CONTADOR`, `RRHH`, `ASISTENTE`.\n- **Enmascaramiento de Seguridad (Data Masking)**:\n  - CUSPP: se enmascaran los dígitos centrales (ej. `1023****9871`).\n  - Cuentas de Sueldo y CTS: se muestran únicamente los últimos 4 dígitos (ej. `****4321`).\n  - Códigos Interbancarios (CCI): se protegen mostrando solo los dígitos finales (ej. `**** **** **** 1234`).",
+        "operationId": "DatoFinancieroController_obtenerDatos",
+        "parameters": [
+          {
+            "name": "idEmpleado",
+            "required": true,
+            "in": "path",
+            "description": "Identificador único (UUID v4) del trabajador",
+            "schema": {
+              "format": "uuid",
+              "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expediente financiero recuperado exitosamente con campos sensibles enmascarados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "b1ffbc88-8b0b-4ef8-bb6d-7cc9bd380b22",
+                    "empleado_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                    "id_regimen": "c3ffbc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                    "regimen_nombre": "SPP - Sistema Privado de Pensiones",
+                    "id_tipo_afp": "d4ffbc88-9c0b-4ef8-bb6d-9cc9bd380d44",
+                    "afp_nombre": "AFP Integra",
+                    "cuspp_mascara": "1122****CDE4",
+                    "tipo_comision": "MIXTA",
+                    "sueldo_basico": 3500,
+                    "id_banco_sueldo": "e5ffbc88-9c0b-4ef8-bb6d-0cc9bd380e55",
+                    "banco_sueldo_nombre": "Banco de Crédito del Perú (BCP)",
+                    "tipo_cuenta_sueldo": "SUELDO",
+                    "nro_cuenta_sueldo_mascara": "****2012",
+                    "cci_sueldo_mascara": "**** **** **** 0124",
+                    "id_banco_cts": "f6ffbc88-9c0b-4ef8-bb6d-1cc9bd380f66",
+                    "banco_cts_nombre": "Interbank",
+                    "tipo_cuenta_cts": "AHORROS",
+                    "nro_cuenta_cts_mascara": "****6055",
+                    "cci_cts_mascara": "**** **** **** 9087",
+                    "regimen_salud": "ESSALUD_Y_EPS",
+                    "eps_nombre": "Rímac Seguros",
+                    "eps_plan": "Plan Base Familiar",
+                    "eps_costo_adicional": 145.5,
+                    "created_at": "2026-04-10T14:20:00.000Z",
+                    "updated_at": "2026-09-24T18:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El parámetro idEmpleado no corresponde a un formato UUID válido."
+          },
+          "401": {
+            "description": "Token JWT ausente, inválido o expirado."
+          },
+          "403": {
+            "description": "Acceso denegado: El usuario autenticado carece del rol necesario."
+          },
+          "404": {
+            "description": "No se encontró ningún registro financiero para el empleado indicado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Obtener expediente financiero y previsional del empleado",
+        "tags": [
+          "Payroll - Datos Financieros"
+        ]
+      },
+      "put": {
+        "description": "Modifica cuentas bancarias (Sueldo/CTS), condiciones de seguro de salud o esquema previsional.\n- **Roles Autorizados**: `ADMIN`, `RRHH`.\n- **Mecanismo de Step-Up Authentication**:\n  - Para evitar fraudes de desvío de fondos o transferencias no autorizadas, el campo `password_confirmacion` es **estrictamente obligatorio**.\n  - El caso de uso verifica mediante **Argon2id** la contraseña del usuario que ejecuta la solicitud (`req.user.id`) antes de realizar cualquier actualización en la base de datos.",
+        "operationId": "DatoFinancieroController_actualizar",
+        "parameters": [
+          {
+            "name": "idEmpleado",
+            "required": true,
+            "in": "path",
+            "description": "UUID del trabajador cuyo expediente financiero se actualizará",
+            "schema": {
+              "format": "uuid",
+              "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Payload parcial validado contra ActualizarDatoFinancieroSchema con contraseña requerida",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password_confirmacion"
+                ],
+                "properties": {
+                  "id_regimen": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "c3ffbc88-9c0b-4ef8-bb6d-8cc9bd380c33"
+                  },
+                  "id_tipo_afp": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "cuspp": {
+                    "type": "string",
+                    "pattern": "^[0-9A-Z]{12}$",
+                    "nullable": true
+                  },
+                  "tipo_comision": {
+                    "type": "string",
+                    "enum": [
+                      "FLUJO",
+                      "MIXTA"
+                    ],
+                    "nullable": true
+                  },
+                  "sueldo_basico": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "maximum": 999999.9999,
+                    "example": 3800
+                  },
+                  "id_banco_sueldo": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "tipo_cuenta_sueldo": {
+                    "type": "string",
+                    "enum": [
+                      "SUELDO",
+                      "AHORROS",
+                      "CORRIENTE"
+                    ]
+                  },
+                  "nro_cuenta_sueldo": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "example": "19155554444099"
+                  },
+                  "cci_sueldo": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "example": "00219100555544440998"
+                  },
+                  "id_banco_cts": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "tipo_cuenta_cts": {
+                    "type": "string",
+                    "enum": [
+                      "SUELDO",
+                      "AHORROS",
+                      "CORRIENTE"
+                    ]
+                  },
+                  "nro_cuenta_cts": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "example": "19144443333011"
+                  },
+                  "cci_cts": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "example": "00219100444433330112"
+                  },
+                  "regimen_salud": {
+                    "type": "string",
+                    "enum": [
+                      "ESSALUD_REGULAR",
+                      "EPS",
+                      "ESSALUD_Y_EPS",
+                      "SCTR"
+                    ]
+                  },
+                  "eps_nombre": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "nullable": true
+                  },
+                  "eps_plan": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "nullable": true
+                  },
+                  "eps_costo_adicional": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "password_confirmacion": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "PasswordActual2026*",
+                    "description": "Contraseña en texto plano del usuario en sesión requerida para autorizar la operación."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Datos financieros actualizados correctamente."
+          },
+          "400": {
+            "description": "Datos de entrada no conformes con las reglas de validación Zod."
+          },
+          "401": {
+            "description": "Fallo de Step-Up Auth: Contraseña de confirmación incorrecta."
+          },
+          "403": {
+            "description": "Acceso denegado: Se requiere rol ADMIN o RRHH."
+          },
+          "404": {
+            "description": "No se localizó el expediente financiero asociado al empleado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Actualizar expediente financiero (Step-Up Authentication)",
+        "tags": [
+          "Payroll - Datos Financieros"
+        ]
+      }
+    },
+    "/api/v1/payroll/dato-financiero": {
+      "post": {
+        "description": "Registra las cuentas de dispersión de fondos, régimen previsional y cobertura de salud de un empleado.\n- **Roles Autorizados**: `ADMIN`, `CONTADOR`, `RRHH`.\n- **Estructura Bancaria Doble**: Separa de forma explícita la cuenta corriente/ahorros de **Sueldo** mensual frente a la cuenta intangible de **CTS** (depósitos semestrales de mayo y noviembre).\n- **Validaciones Normativas Peruanas**:\n  - `cuspp`: exactamente 12 caracteres alfanuméricos en mayúsculas (regex: `^[0-9A-Z]{12}$`).\n  - `sueldo_basico`: número decimal positivo estrictamente mayor a 0 y menor a 1,000,000.\n  - `regimen_salud`: controla aportes según D.L. 26790 (`ESSALUD_REGULAR`, `EPS`, `ESSALUD_Y_EPS`, `SCTR`).",
+        "operationId": "DatoFinancieroController_crear",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Payload validado contra CrearDatoFinancieroSchema",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "empleado_id",
+                  "id_regimen",
+                  "sueldo_basico"
+                ],
+                "properties": {
+                  "empleado_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                    "description": "UUID del empleado registrado en la organización"
+                  },
+                  "id_regimen": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "c3ffbc88-9c0b-4ef8-bb6d-8cc9bd380c33",
+                    "description": "UUID del régimen previsional (Catálogo ONP/AFP)"
+                  },
+                  "id_tipo_afp": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "example": "d4ffbc88-9c0b-4ef8-bb6d-9cc9bd380d44",
+                    "description": "UUID de la administradora (Integra, Prima, Profuturo, Habitat). Requerido si el régimen es SPP."
+                  },
+                  "cuspp": {
+                    "type": "string",
+                    "pattern": "^[0-9A-Z]{12}$",
+                    "example": "112233ABCDE4",
+                    "nullable": true,
+                    "description": "Código Único de Afiliado al Sistema Privado de Pensiones (12 caracteres alfanuméricos)"
+                  },
+                  "tipo_comision": {
+                    "type": "string",
+                    "enum": [
+                      "FLUJO",
+                      "MIXTA"
+                    ],
+                    "nullable": true,
+                    "example": "FLUJO",
+                    "description": "Tipo de comisión aplicada por la AFP para el cobro por administración"
+                  },
+                  "sueldo_basico": {
+                    "type": "number",
+                    "example": 3200,
+                    "minimum": 0.01,
+                    "maximum": 999999.9999,
+                    "description": "Remuneración ordinaria computable mensual fijada en el contrato"
+                  },
+                  "id_banco_sueldo": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "example": "e5ffbc88-9c0b-4ef8-bb6d-0cc9bd380e55",
+                    "description": "UUID de la entidad financiera para depósito de haberes"
+                  },
+                  "tipo_cuenta_sueldo": {
+                    "type": "string",
+                    "enum": [
+                      "SUELDO",
+                      "AHORROS",
+                      "CORRIENTE"
+                    ],
+                    "default": "SUELDO",
+                    "example": "SUELDO",
+                    "description": "Modalidad de la cuenta de abono de sueldo"
+                  },
+                  "nro_cuenta_sueldo": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "nullable": true,
+                    "example": "19198765432012",
+                    "description": "Número de cuenta bancaria local para abono de sueldo"
+                  },
+                  "cci_sueldo": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "nullable": true,
+                    "example": "00219100987654320124",
+                    "description": "Código de Cuenta Interbancario (CCI) de 20 dígitos o con formato guiones"
+                  },
+                  "id_banco_cts": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "example": "f6ffbc88-9c0b-4ef8-bb6d-1cc9bd380f66",
+                    "description": "UUID de la entidad financiera elegida por el trabajador para custodia de CTS"
+                  },
+                  "tipo_cuenta_cts": {
+                    "type": "string",
+                    "enum": [
+                      "SUELDO",
+                      "AHORROS",
+                      "CORRIENTE"
+                    ],
+                    "default": "AHORROS",
+                    "example": "AHORROS",
+                    "description": "Tipo de cuenta para abono de compensación por tiempo de servicios"
+                  },
+                  "nro_cuenta_cts": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "nullable": true,
+                    "example": "19199887766055",
+                    "description": "Número de cuenta intangible de CTS"
+                  },
+                  "cci_cts": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "nullable": true,
+                    "example": "00219100998877660551",
+                    "description": "CCI correspondiente a la cuenta de depósito de CTS"
+                  },
+                  "regimen_salud": {
+                    "type": "string",
+                    "enum": [
+                      "ESSALUD_REGULAR",
+                      "EPS",
+                      "ESSALUD_Y_EPS",
+                      "SCTR"
+                    ],
+                    "default": "ESSALUD_REGULAR",
+                    "example": "ESSALUD_REGULAR",
+                    "description": "Régimen de aseguramiento de salud aplicable a la relación laboral"
+                  },
+                  "eps_nombre": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "nullable": true,
+                    "example": "Pacífico EPS",
+                    "description": "Razón social de la Entidad Prestadora de Salud contratada"
+                  },
+                  "eps_plan": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "nullable": true,
+                    "example": "Plan Integral Plus",
+                    "description": "Denominación del plan de cobertura médica seleccionado"
+                  },
+                  "eps_costo_adicional": {
+                    "type": "number",
+                    "default": 0,
+                    "minimum": 0,
+                    "example": 85,
+                    "description": "Monto mensual descontado al trabajador por dependientes o upgrade de plan EPS"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expediente financiero registrado con éxito."
+          },
+          "400": {
+            "description": "Error de validación (ZodValidationPipe): Campos requeridos omitidos, sueldo inválido o formato de CUSPP incorrecto."
+          },
+          "403": {
+            "description": "Acceso denegado: El usuario autenticado no cuenta con permisos para crear datos de planilla."
+          },
+          "409": {
+            "description": "Conflicto: Ya existe un registro financiero vinculado a este empleado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Registrar la ficha financiera y bancaria inicial",
+        "tags": [
+          "Payroll - Datos Financieros"
+        ]
+      }
+    },
+    "/api/v1/rrhh/solicitudes": {
+      "post": {
+        "description": "Registra una solicitud formal de colaborador con generación automática de código correlativo (SOL-YYYY-NNN). Soporta subida de archivos adjuntos (PDF o Word, máx. 5MB) mediante multipart/form-data.",
+        "operationId": "SolicitudController_crear",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tipo",
+                  "motivo"
+                ],
+                "properties": {
+                  "empleado_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID del empleado (opcional; si se omite, se deduce del usuario en sesión).",
+                    "example": "018f4a7c-8888-7000-2222-000000000001"
+                  },
+                  "tipo": {
+                    "type": "string",
+                    "enum": [
+                      "VACACIONES",
+                      "LICENCIA_MEDICA",
+                      "PERMISO",
+                      "JUSTIFICACION_ASISTENCIA",
+                      "ACTUALIZACION_DATOS",
+                      "ADELANTO_SUELDO",
+                      "RENUNCIA"
+                    ],
+                    "example": "VACACIONES"
+                  },
+                  "fecha_inicio": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-01"
+                  },
+                  "fecha_fin": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-15"
+                  },
+                  "dias_solicitados": {
+                    "type": "integer",
+                    "example": 15,
+                    "default": 1
+                  },
+                  "motivo": {
+                    "type": "string",
+                    "example": "Vacaciones correspondientes al periodo 2025-2026"
+                  },
+                  "observacion": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Coordinado previamente con jefatura de área."
+                  },
+                  "origen": {
+                    "type": "string",
+                    "enum": [
+                      "PORTAL_EMPLEADO",
+                      "MANUAL_RRHH",
+                      "APLICACION_MOVIL"
+                    ],
+                    "default": "PORTAL_EMPLEADO"
+                  },
+                  "archivo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo de sustento en formato PDF o Word (.doc, .docx), máx. 5MB."
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tipo",
+                  "motivo"
+                ],
+                "properties": {
+                  "empleado_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID del empleado (opcional; si se omite, se deduce del usuario en sesión).",
+                    "example": "018f4a7c-8888-7000-2222-000000000001"
+                  },
+                  "tipo": {
+                    "type": "string",
+                    "enum": [
+                      "VACACIONES",
+                      "LICENCIA_MEDICA",
+                      "PERMISO",
+                      "JUSTIFICACION_ASISTENCIA",
+                      "ACTUALIZACION_DATOS",
+                      "ADELANTO_SUELDO",
+                      "RENUNCIA"
+                    ],
+                    "example": "VACACIONES"
+                  },
+                  "fecha_inicio": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-01"
+                  },
+                  "fecha_fin": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-15"
+                  },
+                  "dias_solicitados": {
+                    "type": "integer",
+                    "example": 15,
+                    "default": 1
+                  },
+                  "motivo": {
+                    "type": "string",
+                    "example": "Vacaciones correspondientes al periodo 2025-2026"
+                  },
+                  "observacion": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Coordinado previamente con jefatura de área."
+                  },
+                  "origen": {
+                    "type": "string",
+                    "enum": [
+                      "PORTAL_EMPLEADO",
+                      "MANUAL_RRHH",
+                      "APLICACION_MOVIL"
+                    ],
+                    "default": "PORTAL_EMPLEADO"
+                  },
+                  "archivo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo de sustento en formato PDF o Word (.doc, .docx), máx. 5MB."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Solicitud registrada exitosamente en estado PENDIENTE."
+          },
+          "400": {
+            "description": "Datos inválidos, rango de fechas inconsistente o tipo de archivo no permitido."
+          },
+          "404": {
+            "description": "Empleado solicitante no encontrado o inactivo."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Crear Solicitud de Permiso / Vacaciones / Descanso",
+        "tags": [
+          "Módulo RRHH - Gestión de Solicitudes y Permisos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/solicitudes/{idOCodigo}/historial": {
+      "get": {
+        "description": "Consulta por UUID o código. El EMPLEADO solo puede consultar su propia solicitud; los registros proceden de audit_log.",
+        "operationId": "SolicitudController_obtenerHistorial",
+        "parameters": [
+          {
+            "name": "idOCodigo",
+            "required": true,
+            "in": "path",
+            "description": "UUID o código SOL-YYYY-NNN.",
+            "schema": {
+              "example": "SOL-2026-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historial ordenado cronológicamente; puede estar vacío si no hay eventos registrados."
+          },
+          "404": {
+            "description": "Solicitud inexistente o fuera del acceso del colaborador."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Obtener historial de solicitud",
+        "tags": [
+          "Módulo RRHH - Gestión de Solicitudes y Permisos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/solicitudes/{idOCodigo}": {
+      "get": {
+        "description": "Recupera la información integral de una solicitud por su UUID o código correlativo (ej. SOL-2026-001), calculando antigüedad laboral y alertas de urgencia.",
+        "operationId": "SolicitudController_obtenerDetalle",
+        "parameters": [
+          {
+            "name": "idOCodigo",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la solicitud o código correlativo (ej: SOL-2026-001).",
+            "schema": {
+              "example": "SOL-2026-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalle de la solicitud obtenido con éxito."
+          },
+          "404": {
+            "description": "Solicitud no encontrada."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Obtener Detalle de Solicitud",
+        "tags": [
+          "Módulo RRHH - Gestión de Solicitudes y Permisos"
+        ]
+      }
+    },
+    "/api/v1/rrhh/solicitudes/{id}/asignar-revision": {
+      "patch": {
+        "description": "Asigna la solicitud al usuario autenticado (ADMIN o RRHH) y cambia su estado a EN_REVISION.",
+        "operationId": "SolicitudController_asignarRevision",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la solicitud a tomar en revisión.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud tomada en revisión exitosamente."
+          },
+          "400": {
+            "description": "Usuario revisor inválido."
+          },
+          "404": {
+            "description": "Solicitud no encontrada."
+          },
+          "409": {
+            "description": "Solicitud finalizada, tomada por otro usuario o modificada concurrentemente."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Tomar Solicitud en Revisión",
+        "tags": [
+          "Módulo RRHH - Gestión de Solicitudes y Permisos"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/solicitudes/{id}/evaluar": {
+      "patch": {
+        "description": "Dictamina exclusivamente una solicitud EN_REVISION tomada por el usuario autenticado. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.",
+        "operationId": "SolicitudController_evaluar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la solicitud a evaluar.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "estado"
+                ],
+                "properties": {
+                  "estado": {
+                    "type": "string",
+                    "enum": [
+                      "APROBADA",
+                      "RECHAZADA"
+                    ],
+                    "example": "APROBADA"
+                  },
+                  "observacion": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Aprobado conforme al rol de descanso programado."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud evaluada y dictaminada exitosamente."
+          },
+          "400": {
+            "description": "Rechazo sin motivo descriptivo."
+          },
+          "404": {
+            "description": "Solicitud no encontrada."
+          },
+          "409": {
+            "description": "Solicitud finalizada, tomada por otro usuario o modificada concurrentemente."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Evaluar Solicitud (Aprobar o Rechazar)",
+        "tags": [
+          "Módulo RRHH - Gestión de Solicitudes y Permisos"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/v1/rrhh/solicitudes/{id}/anular": {
+      "patch": {
+        "description": "Anula una solicitud PENDIENTE o EN_REVISION, exige un motivo y conserva el registro consultable. No modifica deleted_at.",
+        "operationId": "SolicitudController_anular",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID de la solicitud a anular.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "motivo"
+                ],
+                "properties": {
+                  "motivo": {
+                    "type": "string",
+                    "example": "Colaborador cancela la solicitud por reprogramación interna de vacaciones."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud anulada exitosamente."
+          },
+          "400": {
+            "description": "Motivo de anulación inválido."
+          },
+          "404": {
+            "description": "Solicitud no encontrada."
+          },
+          "409": {
+            "description": "Solicitud finalizada, tomada por otro usuario o modificada concurrentemente."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Anular Solicitud",
+        "tags": [
+          "Módulo RRHH - Gestión de Solicitudes y Permisos"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH"
+        ]
+      }
+    },
+    "/api/asistencia/incidencias/generar-cierre": {
+      "post": {
+        "description": "Procesa las marcaciones del mes contra los horarios programados y solicitudes aprobadas. Computa días trabajados (base 30 comercial peruana), faltas injustificadas y minutos de tardanza, persistiendo el resultado en la tabla incidencias_mes para el cálculo de nómina (CU-20).",
+        "operationId": "IncidenciasController_generarCierre",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "periodo"
+                ],
+                "properties": {
+                  "periodo": {
+                    "type": "string",
+                    "example": "2026-09",
+                    "description": "Periodo fiscal a consolidar en formato YYYY-MM."
+                  },
+                  "area_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "example": "018f4a7c-7777-7000-1111-000000000001",
+                    "description": "UUID opcional para procesar únicamente a colaboradores de un área."
+                  },
+                  "empleado_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "example": "018f4a7c-8888-7000-2222-000000000001",
+                    "description": "UUID opcional para reprocesar a un colaborador individual."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Incidencias consolidadas y persistidas exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "mensaje": "Se procesaron exitosamente las incidencias para 12 colaborador(es) en el periodo 2026-09.",
+                    "periodo": "2026-09",
+                    "total_procesados": 12,
+                    "detalle": [
+                      {
+                        "empleado_id": "018f4a7c-8888-7000-2222-000000000001",
+                        "nombre_completo": "Carlos Mendoza",
+                        "nro_documento": "72345678",
+                        "periodo": "2026-09",
+                        "dias_computables": 30,
+                        "faltas": 0,
+                        "minutos_tardanza": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Formato de periodo inválido (debe ser YYYY-MM)."
+          },
+          "401": {
+            "description": "No autorizado. Token ausente o inválido."
+          },
+          "403": {
+            "description": "Prohibido. Privilegios insuficientes (requiere ADMIN, RRHH o CONTADOR)."
+          },
+          "404": {
+            "description": "No se encontraron colaboradores activos con los criterios especificados."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "CU-17: Cierre y Consolidación Mensual de Asistencia",
+        "tags": [
+          "Módulo Asistencia - Cierre e Incidencias Mensuales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH",
+          "CONTADOR"
+        ]
+      }
+    },
+    "/api/asistencia/incidencias/aprobar": {
+      "patch": {
+        "operationId": "IncidenciasController_aprobarIncidencias",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "tags": [
+          "Módulo Asistencia - Cierre e Incidencias Mensuales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH",
+          "CONTADOR"
+        ]
+      }
+    },
+    "/api/asistencia/incidencias": {
+      "get": {
+        "operationId": "IncidenciasController_listarIncidencias",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "tags": [
+          "Módulo Asistencia - Cierre e Incidencias Mensuales"
+        ],
+        "x-roles": [
+          "ADMIN",
+          "RRHH",
+          "CONTADOR"
+        ]
+      }
+    },
+    "/api/asistencia/marcacion/web": {
+      "post": {
+        "operationId": "AsistenciaController_generarCierre",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Asistencia"
+        ]
+      }
+    },
+    "/api/asistencia/marcacion": {
+      "get": {
+        "operationId": "AsistenciaController_listarMarcaciones",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Asistencia"
+        ]
+      }
+    },
+    "/api/asistencia/detalle-diario": {
+      "get": {
+        "operationId": "GestionAsistenciaController_detalle",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GestionAsistencia"
+        ]
+      }
+    },
+    "/api/asistencia/decisiones": {
+      "post": {
+        "operationId": "GestionAsistenciaController_resolver",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GestionAsistencia"
+        ]
+      }
+    },
+    "/api/asistencia/jornadas/asignar": {
+      "post": {
+        "operationId": "GestionAsistenciaController_asignar",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GestionAsistencia"
+        ]
+      }
+    },
+    "/api/asistencia/calendario": {
+      "post": {
+        "operationId": "GestionAsistenciaController_calendario",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GestionAsistencia"
+        ]
+      }
+    },
+    "/api/asistencia/incidencias/resolver": {
+      "post": {
+        "operationId": "GestionAsistenciaController_revisar",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GestionAsistencia"
+        ]
+      }
+    },
+    "/api/asistencia/importacion/plantilla": {
+      "get": {
+        "operationId": "ImportacionAsistenciaController_plantilla",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ImportacionAsistencia"
+        ]
+      }
+    },
+    "/api/asistencia/importacion/validar-excel": {
+      "post": {
+        "operationId": "ImportacionAsistenciaController_validar",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ImportacionAsistencia"
+        ]
+      }
+    },
+    "/api/asistencia/importacion/importar-excel": {
+      "post": {
+        "operationId": "ImportacionAsistenciaController_importar",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ImportacionAsistencia"
+        ]
+      }
+    },
+    "/api/v1/payroll/bancos": {
+      "get": {
+        "description": "Devuelve la lista ordenada de bancos disponibles para cuentas de sueldo y CTS.",
+        "operationId": "BancosController_listarBancos",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Catálogo recuperado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": [
+                    {
+                      "id": "018f4a7c-4444-7000-d000-000000000001",
+                      "nombre": "Banco de Crédito del Perú (BCP)"
+                    },
+                    {
+                      "id": "018f4a7c-4444-7000-d000-000000000002",
+                      "nombre": "BBVA Perú"
+                    },
+                    {
+                      "id": "018f4a7c-4444-7000-d000-000000000003",
+                      "nombre": "Interbank"
+                    },
+                    {
+                      "id": "018f4a7c-4444-7000-d000-000000000004",
+                      "nombre": "Scotiabank Perú"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado."
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Listar catálogo de entidades financieras",
+        "tags": [
+          "Payroll - Bancos"
+        ]
+      }
+    },
+    "/api/payroll/planillas/generar": {
+      "post": {
+        "operationId": "PlanillasController_generar",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/trabajos/{id}": {
+      "get": {
+        "operationId": "PlanillasController_consultar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas": {
+      "get": {
+        "operationId": "PlanillasController_listar",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/desembolsos": {
+      "post": {
+        "operationId": "PlanillasController_desembolsar",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/{id}": {
+      "get": {
+        "operationId": "PlanillasController_detalle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/{id}/boleta": {
+      "get": {
+        "operationId": "PlanillasController_boleta",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/novedades": {
+      "post": {
+        "operationId": "PlanillasController_crearNovedad",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/novedades/{id}/resolver": {
+      "post": {
+        "operationId": "PlanillasController_resolverNovedad",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/novedades/listar": {
+      "get": {
+        "operationId": "PlanillasController_listarNovedades",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    },
+    "/api/payroll/planillas/{id}/congelar": {
+      "post": {
+        "operationId": "PlanillasController_congelar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Planillas"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Bella JYP",
+    "description": "",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "JWT-auth": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {}
+  }
+}
