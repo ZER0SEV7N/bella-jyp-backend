@@ -3,7 +3,7 @@ import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import type { ListarMarcacionesQueryDto } from "@jyp/shared-contracts";
 import { Prisma } from "@prisma/client";
-import dayjs from "dayjs";
+import { ServerTime } from '@/common/utils/server-time';
 
 /**
  * Caso de uso para listar las marcaciones de asistencia.
@@ -36,9 +36,9 @@ export class ListarMarcacionesUseCase {
             //Filtro por rango de fechas
             if (fecha_inicio || fecha_fin) {
                 whereClause.fecha_hora = {};
-                if (fecha_inicio) whereClause.fecha_hora.gte = dayjs(fecha_inicio).startOf('day').toDate();
+                if (fecha_inicio) whereClause.fecha_hora.gte = ServerTime.rangoDiaPeru(fecha_inicio).inicio;
                 
-                if (fecha_fin) whereClause.fecha_hora.lte = dayjs(fecha_fin).endOf('day').toDate();
+                if (fecha_fin) whereClause.fecha_hora.lt = ServerTime.rangoDiaPeru(fecha_fin).siguiente;
             }
 
             //Ejecución de la consulta a la base de datos para obtener el total y las marcaciones

@@ -1,5 +1,3 @@
-//src/modules/payroll/planillas/helpers/generarBoleta.helper.ts
-
 //La versión 0.3 expone una API asíncrona; no utiliza el constructor público de la versión anterior.
 const pdfmake = require('pdfmake') as {
   addFonts(fonts: Record<string, Record<string, string>>): void;

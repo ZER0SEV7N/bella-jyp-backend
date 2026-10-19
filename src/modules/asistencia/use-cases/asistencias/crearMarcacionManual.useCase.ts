@@ -5,6 +5,8 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import { obtenerColaborador, validarExistencia } from './helper/procesarAsistenciaWeb.helper';
 import { IdentityGenerator } from "@/common/utils/uuid.util";
 import { tipo_marcacion_enum } from "@prisma/client";
+import { ServerTime } from '@/common/utils/server-time';
+import { ActorOperacion, bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../../services/asistencia-transaccion.helper';
 
 /**
  * Caso de uso para crear una marcación manual de asistencia para un empleado.
@@ -22,12 +24,10 @@ export class CrearMarcacionManualUseCase{
      * @returns - Una promesa que resuelve con el objeto de la marcación creada en la base de datos.
      * @throws ConflictException - Si ya existe una marcación para el mismo empleado, fecha y tipo de marcación.
      */
-    async execute(dto:MarcarAsistenciaDto){
-        if (!Object.values(tipo_marcacion_enum).includes(dto.tipo_marcacion as tipo_marcacion_enum))
-            throw new BadRequestException('El tipo de marcación todavía no está habilitado en el esquema Prisma.');
+    async execute(dto: MarcarAsistenciaDto, actor: ActorOperacion) {
 
         //Validar existencia del colaborador
-        const empleado = await obtenerColaborador(this.prisma, dto.nro_documento);
+        const empleado = await obtenerColaborador(this.prisma, dto.nro_documento, dto.fecha_hora);
 
         //Convertir hora a UTC respetando zona horaria de Perú
         //La fecha validada por el contrato ya representa un instante.
@@ -35,6 +35,7 @@ export class CrearMarcacionManualUseCase{
 
         if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime()))
             throw new BadRequestException('La fecha y hora de marcación no es válida.');
+        if (fecha > ServerTime.obtenerFechaServidor) throw new BadRequestException('No se pueden registrar marcaciones futuras.');
 
         //Validar que el tipo esté habilitado en el modelo de datos.
         const tipoMarcacion = Object.values(tipo_marcacion_enum).find(tipo => tipo === dto.tipo_marcacion);
@@ -43,7 +44,11 @@ export class CrearMarcacionManualUseCase{
             throw new BadRequestException('Este tipo de marcación todavía no está habilitado en el modelo de datos.');
 
         //Validar duplicidad
-        const yaExiste = await validarExistencia(this.prisma, empleado.id, fecha, tipoMarcacion);
+        return transaccionAsistencia(this.prisma, actor, async tx => {
+        await bloquearEmpleado(tx, empleado.id);
+        await obtenerColaborador(tx, dto.nro_documento, fecha);
+        await validarPeriodoEditable(tx, empleado.id, ServerTime.periodoDeInstante(fecha));
+        const yaExiste = await validarExistencia(tx, empleado.id, fecha, tipoMarcacion);
         
         if (yaExiste) throw new ConflictException({
             title: 'Marcación Duplicada',
@@ -52,14 +57,15 @@ export class CrearMarcacionManualUseCase{
         
 
         // 4. Inserción con casteo estricto al enum de Prisma
-        return await this.prisma.asistencia_marcacion.create({
+        return await tx.asistencia_marcacion.create({
             data: {
                 id: IdentityGenerator.generateId(),
                 fecha_hora: fecha,
                 tipo_marcacion: tipoMarcacion,
                 empleado_id: empleado.id,
-                metodo: "MANUAL"
+                metodo: 'MANUAL', motivo: dto.motivo, usuario_id: actor.id
             }
+        });
         });
     }
 }

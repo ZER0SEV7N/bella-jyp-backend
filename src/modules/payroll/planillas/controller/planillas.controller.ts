@@ -9,7 +9,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { actorSolicitud } from '@/modules/asistencia/controller/gestion-asistencia.controller';
 import type { SolicitudAutenticada } from '@/modules/asistencia/controller/gestion-asistencia.controller';
-import { PlanillasService } from '../services/planillas.service';
+import { PlanillasService } from '../services/procesamiento-masivo-planilla.service';
 import { ColaPayrollService } from '../services/cola-payroll.service';
 import { NovedadesPlanillaService } from '../services/novedades-planilla.service';
 import { BoletasService } from '../services/boletas.service';

@@ -1,7 +1,8 @@
+import { AprobacionMasivaAsistenciaService } from '../../services/aprobacion-masiva-asistencia.service';
+import type { ActorOperacion } from '../../services/asistencia-transaccion.helper';
 //src/modules/asistencia/use-cases/Incidencias/aprobarIncidenciaMes.useCase.ts
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from "@nestjs/common";
-import { PrismaService } from "@/common/prisma/prisma.service";
-import type { AprobarIncidenciasDto } from "@jyp/shared-contracts";
+import type { AprobarIncidenciasDto } from '@jyp/shared-contracts';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Caso de uso para aprobar incidencias de asistencia para un período específico.
@@ -11,7 +12,7 @@ import type { AprobarIncidenciasDto } from "@jyp/shared-contracts";
  */
 @Injectable()
 export class AprobarIncidenciaMesUseCase {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly asistencia: AprobacionMasivaAsistenciaService) {}
 
     /**
      * Ejecuta el caso de uso para aprobar incidencias de asistencia.
@@ -21,41 +22,7 @@ export class AprobarIncidenciaMesUseCase {
      * @throws NotFoundException - Si no se encuentran incidencias pendientes para aprobar.
      * @throws InternalServerErrorException - Si ocurre un error inesperado durante la actualización de las incidencias.
      */
-    async execute(dto: AprobarIncidenciasDto) {
-        const { periodo, empleado_id } = dto;
-
-        //Validacion de la existencia de incidencias pendientes para el período y empleado especificados
-        const whereClause: any = { periodo: periodo.trim(), estado: 'PENDIENTE'};
-
-        if(empleado_id) whereClause.empleado_id = empleado_id;
-
-        //Contar incidencias pendientes
-        const pendientes = await this.prisma.incidencias_mes.count({ where: whereClause });
-
-        if(pendientes === 0) throw new NotFoundException({
-            title: 'Sin incidencias pendientes',
-            detail: `No se encontraron incidencias en estado PENDIENTE para el período ${periodo}.`,
-        });
-
-        //Actualizar incidencias a estado APROBADO
-        try{
-            const result = await this.prisma.incidencias_mes.updateMany({
-                where: whereClause,
-                data: { estado: 'APROBADO' },
-            });
-
-            return {
-                success: true,
-                periodo,
-                registros_aprobados: result.count,
-                message: `Se aprobaron ${result.count} incidencia(s) para el período ${periodo}.`,
-            };
-        }
-        catch (error) {
-            throw new InternalServerErrorException(
-                'Error al procesar la aprobación de incidencias mensuales.',
-                error instanceof Error ? error.message : String(error)
-            );
-        }
+    async execute(dto: AprobarIncidenciasDto, actor: ActorOperacion) {
+        return this.asistencia.aprobarLote(dto.periodo, dto.empleado_id, actor);
     }
 }

@@ -21,7 +21,7 @@ import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerList
  * @roles ADMIN, CONTADOR, ASISTENTE, RRHH
  */
 @ApiSwaggerAuditoriaController()
-@Controller('api/v1/audit')
+@Controller('api/v1/core/audit')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class AuditController {
   constructor(
@@ -32,6 +32,7 @@ export class AuditController {
   /**
    * Obtiene los logs de auditoría con filtros y paginación.
    * Requiere que el usuario tenga el rol de 'ADMIN', 'CONTADOR'.
+   * @summary Listar logs de auditoría
    * GET /api/audit/logs
    * @param query: Parámetros de consulta para filtrar los logs de auditoría.
    * @query page: Número de página (opcional, por defecto 1).

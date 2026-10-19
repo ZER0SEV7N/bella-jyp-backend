@@ -7,6 +7,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { AuditLogDto } from '@jyp/shared-contracts';
 import { ClsService } from 'nestjs-cls';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
+import { Prisma } from '@prisma/client';
 
 /**
  * Caso de uso para registrar auditoría en el sistema.
@@ -51,8 +52,12 @@ export class RegistroAuditoriaUseCase {
           accion: payload.accion,
           tabla_afectada: payload.tabla_afectada,
           registro_id: payload.registro_id,
-          valores_antes: payload.valores_antes ? cloneAuditValue(payload.valores_antes) : null,
-          valores_despues: payload.valores_despues ? cloneAuditValue(payload.valores_despues) : null,
+          valores_antes: payload.valores_antes
+            ? (cloneAuditValue(payload.valores_antes) as Prisma.InputJsonValue)
+            : null,
+          valores_despues: payload.valores_despues
+            ? (cloneAuditValue(payload.valores_despues) as Prisma.InputJsonValue)
+            : null,
           direccion_ip: ipAddress,
         },
       });

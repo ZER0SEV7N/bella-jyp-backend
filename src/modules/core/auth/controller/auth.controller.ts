@@ -21,7 +21,7 @@ import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProv
  * Utiliza casos de uso específicos para cada operación y aplica validaciones y guardias según sea necesario.
  */
 @ApiSwaggerController()
-@Controller('api/auth')
+@Controller('api/v1/auth')
 export class AuthController {
   constructor(
     private readonly loginUseCase: LoginUseCase,

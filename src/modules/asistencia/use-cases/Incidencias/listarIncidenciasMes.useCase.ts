@@ -34,7 +34,6 @@ export class ListarIncidenciasMesUseCase {
             if (estado) whereClause.estado = estado;
             if (area_id || busqueda) {
                 whereClause.empleados = {
-                    activo: true,
                     deleted_at: null,
                     ...(area_id && { area_id }),
                     ...(busqueda && {
@@ -82,9 +81,9 @@ export class ListarIncidenciasMesUseCase {
                 dias_trabajados: r.dias_trabajados,
                 faltas: r.faltas,
                 minutos_tardanza: r.minutos_tardanza,
-                horas_extras_25: Number(r.horas_extras_25),
-                horas_extras_35: Number(r.horas_extras_35),
-                estado: r.estado,
+                horas_extras_25: r.horas_extras_25.toString(),
+                horas_extras_35: r.horas_extras_35.toString(),
+                estado: r.estado, vigente: r.vigente, completo: r.completo, pendientes: r.pendientes, version: r.version,
             }));
 
             //Devolución de los datos junto con la información de paginación
