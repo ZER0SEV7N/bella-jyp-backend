@@ -1,0 +1,46 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/auth/login"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "tipo_documento": "DNI",
+        "nro_documento": "{{login_documento}}",
+        "password": "{{login_password}}"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    set-cookie: jyp_rt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMWNiNjNkMi0yMTAyLTc1NzItODg1OC1lNDY5NmU0ZmFjMDciLCJyb2wiOiJFTVBMRUFETyIsImRvYyI6IjcwMDAwMDAxIiwiZW1wSWQiOiIwMThmNGE3Yy05OTk5LTcwMDAtMzMzMy0wMDAwMDAwMDAwMDEiLCJub21icmUiOiJBZG1pbmlzdHJhZG9yIFNpc3RlbWEgQ2VudHJhbCIsImlhdCI6MTc5MjYyNTQxMCwiZXhwIjoxNzkzMjMwMjEwLCJqdGkiOiI5MWQyMTYwMy1jNmZlLTQ1ZGItYjNlNi1mY2RmOWQ3ZmQ5NzQifQ.rE578I1-jMFJcOWoozvJMKtbF-hp-9YbtlOplPX_uiE; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax
+    content-length: "732"
+    date: Wed, 21 Oct 2026 23:30:10 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMWNiNjNkMi0yMTAyLTc1NzItODg1OC1lNDY5NmU0ZmFjMDciLCJyb2wiOiJFTVBMRUFETyIsImRvYyI6IjcwMDAwMDAxIiwiZW1wSWQiOiIwMThmNGE3Yy05OTk5LTcwMDAtMzMzMy0wMDAwMDAwMDAwMDEiLCJub21icmUiOiJBZG1pbmlzdHJhZG9yIFNpc3RlbWEgQ2VudHJhbCIsImlhdCI6MTc5MjYyNTQxMCwiZXhwIjoxNzkyNjI2MzEwLCJqdGkiOiIzNTcyM2Y4ZS03YzM2LTQwNjQtOGQ0ZC04YTc4ODVmZDQ4YTkifQ.AUSZ91TZyVUs3VGDlGWSNfkrvwXBqZ8bA7loF02sEaI",
+          "usuario": {
+            "id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+            "nombre": "Administrador Sistema Central",
+            "email": "demo@example.test",
+            "nro_documento": "70000001",
+            "rol": "EMPLEADO"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/auth/login",
+          "timestamp": "2026-10-21T23:30:10.868Z"
+        }
+      }
+order: 1000

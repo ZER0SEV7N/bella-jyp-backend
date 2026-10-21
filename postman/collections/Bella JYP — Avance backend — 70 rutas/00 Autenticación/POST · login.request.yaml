@@ -5,7 +5,7 @@ description: |-
   Handler: login
   Roles: Público
   HTTP esperado con datos y estado válidos: 200.
-url: "{{base_url}}/api/auth/login"
+url: "{{base_url}}/api/v1/auth/login"
 method: POST
 headers:
   Content-Type: application/json
@@ -38,4 +38,5 @@ scripts:
           }
       }
     language: text/javascript
+examples: .resources/POST · login.resources/examples
 order: 1000

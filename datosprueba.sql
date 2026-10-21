@@ -1,129 +1,272 @@
--- =========================================================================
--- SCRIPT DE MOCK DATA - SISTEMA DE PLANILLAS JYP (CORREGIDO)
--- =========================================================================
+-- ================================================================================================
+-- SISTEMA DE PLANILLAS JYP — DATOS DE PRUEBA DOCUMENTADOS
+-- ================================================================================================
+-- Propósito: crear una demostración ficticia del flujo de asistencia y planilla de septiembre 2026.
+-- Requisitos: ejecutar basededatos.sql y después prisma db seed para obtener los catálogos base.
+-- Habilitación en la MISMA sesión SQL: SET app.entorno_pruebas = 'SI';
+-- Esta carga se separa de los seeders: contiene personas/usuarios/horarios de DEMOSTRACIÓN.
+-- No borra ni trunca tablas. Todos los bloques se confirman juntos al llegar a COMMIT.
+--
+-- CONTENIDO Y ORDEN DE DEPENDENCIAS
+--   1. Configuración de la demostración y variables compartidas.
+--   2. Verificación del entorno y detección de una carga anterior.
+--   3. Consulta de catálogos ya creados por los seeders: DNI y ONP.
+--   4. Área y cargo de demostración.
+--   5. Jornada de lunes a sábado: 08:00–17:00, refrigerio 12:00–13:00, 48 horas efectivas.
+--   6. Empleados ficticios.
+--   7. Usuarios ficticios con roles RRHH, CONTADOR y ASISTENTE.
+--   8. Datos financieros ONP de cada empleado.
+--   9. Vigencias individuales de jornada y contexto de auditoría.
+--  10. Marcaciones de entrada/salida de septiembre en America/Lima.
+--  11. Parámetro Vida Ley exclusivamente DEMO, si todavía no existe el código.
+--  12. Confirmación, credenciales de demostración y recorrido manual.
 
--- 1. Limpieza de tablas (Cascada)
-TRUNCATE TABLE anotacion_tareas CASCADE;
+BEGIN;
 
-TRUNCATE TABLE tareas_asistente CASCADE;
+DO $$
+DECLARE
+    -- --------------------------------------------------------------------------------------------
+    -- 1. CONFIGURACIÓN E IDENTIFICADORES DE LA DEMOSTRACIÓN
+    -- --------------------------------------------------------------------------------------------
+    -- IDs estables: permiten reconocer este conjunto sin depender de IDs aleatorios de catálogos.
+    area_id uuid := '019a0100-0000-7000-8000-000000000001';
+    cargo_id uuid := '019a0100-0000-7000-8000-000000000002';
+    jornada_id uuid := '019a0100-0000-7000-8000-000000000003';
+    -- Este orden vincula RRHH/CONTADOR/ASISTENTE con documentos 90000001/2/3 y sufijos 10/11/12.
+    roles_demo text[] := ARRAY['RRHH', 'CONTADOR', 'ASISTENTE'];
+    empleado_id uuid;
+    usuario_id uuid;
+    documento_id uuid;
+    onp_id uuid;
+    horario jsonb;
+    rol text;
+    indice integer := 0;
+    fecha date;
+BEGIN
+    -- --------------------------------------------------------------------------------------------
+    -- 2. VERIFICACIÓN DEL ENTORNO Y REPETICIÓN DE LA CARGA
+    -- --------------------------------------------------------------------------------------------
+    -- current_setting lee la habilitación de la sesión; no cambia permisos de producción.
+    IF current_setting('app.entorno_pruebas', true) IS DISTINCT FROM 'SI' THEN
+        RAISE EXCEPTION 'Fixture de prueba: habilite app.entorno_pruebas=SI en una base exclusiva de pruebas.';
+    END IF;
 
-TRUNCATE TABLE tokens_seguridad CASCADE;
+    -- El primer empleado identifica una demostración ya instalada. Se omite el bloque completo.
+    -- Este control conserva la carga anterior; no reconstruye una demostración editada parcialmente.
+    IF EXISTS (
+        SELECT 1 FROM empleados
+        WHERE id = '019a0100-0000-7000-8000-000000000010'
+    ) THEN
+        RAISE NOTICE 'La demostración ya está instalada; no se modificó.';
+        RETURN;
+    END IF;
 
-TRUNCATE TABLE audit_log CASCADE;
+    -- --------------------------------------------------------------------------------------------
+    -- 3. CATÁLOGOS REQUERIDOS: TIPO DE DOCUMENTO Y RÉGIMEN PENSIONARIO
+    -- --------------------------------------------------------------------------------------------
+    -- Se consultan por su significado, porque los seeders pueden asignar IDs distintos en cada base.
+    -- Este archivo no vuelve a sembrar bancos, AFP, RMV ni UIT.
+    SELECT id INTO documento_id
+    FROM tipo_documento
+    WHERE tipo_documento = 'DNI';
 
-TRUNCATE TABLE usuarios CASCADE;
+    SELECT id INTO onp_id
+    FROM regimen_pension
+    WHERE nombre = 'ONP'
+    LIMIT 1;
 
-TRUNCATE TABLE asistencia_marcacion CASCADE;
+    IF documento_id IS NULL OR onp_id IS NULL THEN
+        RAISE EXCEPTION 'Ejecute primero prisma db seed para crear los catálogos.';
+    END IF;
 
-TRUNCATE TABLE incidencias_mes CASCADE;
+    -- --------------------------------------------------------------------------------------------
+    -- 4. ORGANIZACIÓN DE PRUEBA: ÁREA Y CARGO
+    -- --------------------------------------------------------------------------------------------
+    -- El cargo pertenece al área creada aquí. Se comparten por los tres empleados ficticios.
+    INSERT INTO area (id, nombre)
+    VALUES (area_id, 'DEMO - Oficina');
 
-TRUNCATE TABLE historial_planillas CASCADE;
+    INSERT INTO cargo (id, id_area, nombre)
+    VALUES (cargo_id, area_id, 'DEMO - Analista');
 
-TRUNCATE TABLE dato_financiero CASCADE;
+    -- --------------------------------------------------------------------------------------------
+    -- 5. CATÁLOGO DE JORNADA: OCHO HORAS EFECTIVAS, DE LUNES A SÁBADO
+    -- --------------------------------------------------------------------------------------------
+    -- El JSON contiene los siete días exactamente una vez. DOMINGO queda como no laborable.
+    -- Nueve horas entre entrada/salida menos una hora de refrigerio = ocho horas efectivas por día.
+    SELECT jsonb_agg(
+        jsonb_build_object(
+            'dia', dia,
+            'laborable', dia <> 'DOMINGO',
+            'modalidad', 'PRESENCIAL',
+            'entrada', '08:00',
+            'inicio_descanso', '12:00',
+            'fin_descanso', '13:00',
+            'salida', '17:00',
+            'total_horas', 8
+        ) ORDER BY orden
+    ) INTO horario
+    FROM unnest(ARRAY[
+        'DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'
+    ]) WITH ORDINALITY AS dias(dia, orden);
 
-TRUNCATE TABLE contratos CASCADE;
+    INSERT INTO jornada (id, nombre, total_horas_semana, horario_semanal)
+    VALUES (jornada_id, 'DEMO - Lunes a sábado, 48 horas', 48, horario);
 
-TRUNCATE TABLE solicitud CASCADE;
+    -- --------------------------------------------------------------------------------------------
+    -- 6. LEGAJO: TRES EMPLEADOS FICTICIOS
+    -- --------------------------------------------------------------------------------------------
+    -- Ingresan el 01/09/2026: la demostración no necesita fabricar planillas de meses anteriores.
+    -- Los nombres DEMO y el dominio .invalid permiten identificar claramente el conjunto de prueba.
+    FOREACH rol IN ARRAY roles_demo LOOP
+        empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
 
-TRUNCATE TABLE jornada_area CASCADE;
+        INSERT INTO empleados (
+            id, cargo_id, area_id, documento_id, jornada_id,
+            nombre, apellido, nro_documento, fecha_inicio
+        ) VALUES (
+            empleado_id, cargo_id, area_id, documento_id, jornada_id,
+            'DEMO', rol, (90000001 + indice)::text, '2026-09-01'
+        );
 
-TRUNCATE TABLE empleado CASCADE;
-TRUNCATE TABLE cargo CASCADE;
+        indice := indice + 1;
+    END LOOP;
 
-TRUNCATE TABLE jornada CASCADE;
+    -- --------------------------------------------------------------------------------------------
+    -- 7. AUTENTICACIÓN: UNA CUENTA POR EMPLEADO
+    -- --------------------------------------------------------------------------------------------
+    -- usuarios.id y empleados.id representan entidades distintas, aunque se vinculen uno a uno.
+    -- El hash Argon2 existente corresponde a la contraseña pública DemoPlanillas2026!.
+    indice := 0;
+    FOREACH rol IN ARRAY roles_demo LOOP
+        empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
+        usuario_id := ('019a0100-0000-7000-8000-0000000000' || (20 + indice)::text)::uuid;
 
-TRUNCATE TABLE area CASCADE;
+        INSERT INTO usuarios (id, empleado_id, email, password_hash, rol)
+        VALUES (
+            usuario_id,
+            empleado_id,
+            lower(rol) || '@demo.invalid',
+            '$argon2id$v=19$m=65536,t=3,p=4$cjjyqWmM/JP6RuxgsOuCkg$4sbNNyU65nGiOsQ09aklpubeEflNzxGIJO3zDBa7Eh8',
+            rol::rol_usuario_enum
+        );
 
+        indice := indice + 1;
+    END LOOP;
 
-TRUNCATE TABLE tipo_documento CASCADE;
+    -- --------------------------------------------------------------------------------------------
+    -- 8. DATOS FINANCIEROS: SUELDO FICTICIO Y ONP
+    -- --------------------------------------------------------------------------------------------
+    -- S/3000 es el sueldo de esta demostración, no un parámetro legal ni una remuneración universal.
+    -- No se inventan cuentas bancarias; las demás columnas conservan sus valores por defecto.
+    indice := 0;
+    FOREACH rol IN ARRAY roles_demo LOOP
+        empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
 
-TRUNCATE TABLE estado_empleado CASCADE;
+        INSERT INTO dato_financiero (id, empleado_id, id_regimen, sueldo_basico)
+        VALUES (asistencia_uuid_v7(), empleado_id, onp_id, 3000);
 
-TRUNCATE TABLE estado_contrato CASCADE;
+        indice := indice + 1;
+    END LOOP;
 
-TRUNCATE TABLE carga_masiva_jobs CASCADE;
+    -- --------------------------------------------------------------------------------------------
+    -- 9. ASISTENCIA: COPIA HISTÓRICA DEL HORARIO ASIGNADO
+    -- --------------------------------------------------------------------------------------------
+    -- Cada persona recibe la misma programación desde su ingreso; 2880 minutos = 48 horas semanales.
+    -- app.usuario_id/app.ip se limitan a esta transacción por el tercer argumento true de set_config.
+    -- El actor de cada fila coincide con su usuario DEMO para conservar la evidencia de este conjunto.
+    indice := 0;
+    FOREACH rol IN ARRAY roles_demo LOOP
+        empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
+        usuario_id := ('019a0100-0000-7000-8000-0000000000' || (20 + indice)::text)::uuid;
+        PERFORM set_config('app.usuario_id', usuario_id::text, true);
+        PERFORM set_config('app.ip', '127.0.0.1', true);
 
--- 2. Catálogos Base
-INSERT INTO tipo_documento (id, tipo_documento)
-VALUES ('018f4a7c-2222-7000-b000-000000000001','DNI'),('018f4a7c-2222-7000-b000-000000000002','CE'),('018f4a7c-2222-7000-b000-000000000003','PASAPORTE');
+        INSERT INTO asistencia_jornada (
+            id, empleado_id, jornada_id, desde, horario,
+            tolerancia_minutos, minutos_semana, motivo, usuario_id
+        ) VALUES (
+            asistencia_uuid_v7(), empleado_id, jornada_id, '2026-09-01', horario,
+            5, 2880, 'Asignación ficticia para validar el flujo de planilla.', usuario_id
+        );
 
--- 3. Áreas
-INSERT INTO area(id,nombre,descripcion,activo)
-VALUES ('018f4a7c-7777-7000-1111-000000000001','Oficina Central / Gerencia','Dirección General y TI',true),
-('018f4a7c-7777-7000-1111-000000000002','Contabilidad y Finanzas','Gestión Financiera y Planillas',true),
-('018f4a7c-7777-7000-1111-000000000003','Recursos Humanos','Gestión de Talento y Personal',true),
-('018f4a7c-7777-7000-1111-000000000004','Seguridad y Operaciones','Personal Operativo y Vigilancia',true);
+        indice := indice + 1;
+    END LOOP;
 
--- 4. Jornadas Laborales
-INSERT INTO jornada (id,nombre,descripcion,duracion,turno,modalidad,tolerancia_minutos,total_horas_semana,horario_semanal,activo,created_at,updated_at)
-VALUES ('018f4a7c-6666-7000-f000-000000000001','Jornada Estándar Oficina','Horario administrativo de 40h semanales de Lunes a Viernes','TIEMPO_COMPLETO','MANANA','PRESENCIAL',15,40.00,
-'[
-    {"dia": "LUNES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "08:00", "inicio_descanso": "13:00", "fin_descanso": "14:00", "salida": "17:00", "total_horas": 8},
-    {"dia": "MARTES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "08:00", "inicio_descanso": "13:00", "fin_descanso": "14:00", "salida": "17:00", "total_horas": 8},
-    {"dia": "MIERCOLES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "08:00", "inicio_descanso": "13:00", "fin_descanso": "14:00", "salida": "17:00", "total_horas": 8},
-    {"dia": "JUEVES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "08:00", "inicio_descanso": "13:00", "fin_descanso": "14:00", "salida": "17:00", "total_horas": 8},
-    {"dia": "VIERNES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "08:00", "inicio_descanso": "13:00", "fin_descanso": "14:00", "salida": "17:00", "total_horas": 8},
-    {"dia": "SABADO", "laborable": false, "modalidad": "PRESENCIAL", "entrada": null, "inicio_descanso": null, "fin_descanso": null, "salida": null, "total_horas": 0},
-    {"dia": "DOMINGO", "laborable": false, "modalidad": "PRESENCIAL", "entrada": null, "inicio_descanso": null, "fin_descanso": null, "salida": null, "total_horas": 0}
-]'::jsonb,true,NOW(),NOW()),
-('018f4a7c-6666-7000-f000-000000000002','Turno Nocturno Seguridad','Turno de noche para vigilancia y control de acceso','TIEMPO_COMPLETO','NOCHE','PRESENCIAL',10,40.00,
-'[
-    {"dia": "LUNES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "22:00", "inicio_descanso": null, "fin_descanso": null, "salida": "06:00", "total_horas": 8},
-    {"dia": "MARTES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "22:00", "inicio_descanso": null, "fin_descanso": null, "salida": "06:00", "total_horas": 8},
-    {"dia": "MIERCOLES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "22:00", "inicio_descanso": null, "fin_descanso": null, "salida": "06:00", "total_horas": 8},
-    {"dia": "JUEVES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "22:00", "inicio_descanso": null, "fin_descanso": null, "salida": "06:00", "total_horas": 8},
-    {"dia": "VIERNES", "laborable": true, "modalidad": "PRESENCIAL", "entrada": "22:00", "inicio_descanso": null, "fin_descanso": null, "salida": "06:00", "total_horas": 8},
-    {"dia": "SABADO", "laborable": false, "modalidad": "PRESENCIAL", "entrada": null, "inicio_descanso": null, "fin_descanso": null, "salida": null, "total_horas": 0},
-    {"dia": "DOMINGO", "laborable": false, "modalidad": "PRESENCIAL", "entrada": null, "inicio_descanso": null, "fin_descanso": null, "salida": null, "total_horas": 0}
-]'::jsonb,true,NOW(),NOW());
+    -- --------------------------------------------------------------------------------------------
+    -- 10. MARCACIONES: ENTRADAS Y SALIDAS DE SEPTIEMBRE DE 2026
+    -- --------------------------------------------------------------------------------------------
+    -- generate_series recorre fechas civiles. Se omiten domingos; cada otro día tiene dos marcas.
+    -- AT TIME ZONE convierte las 08:00/17:00 de Lima a instantes TIMESTAMPTZ sin depender del servidor.
+    -- Se generan 26 días × 2 marcas × 3 empleados = 156 marcas ficticias.
+    -- Método MANUAL: este bloque prueba el cálculo; no representa un archivo importado del biométrico.
+    indice := 0;
+    FOREACH rol IN ARRAY roles_demo LOOP
+        empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
+        usuario_id := ('019a0100-0000-7000-8000-0000000000' || (20 + indice)::text)::uuid;
+        PERFORM set_config('app.usuario_id', usuario_id::text, true);
+        PERFORM set_config('app.ip', '127.0.0.1', true);
 
--- 5. Jornada <-> Áreas
-INSERT INTO jornada_area (jornada_id, area_id)
-VALUES ('018f4a7c-6666-7000-f000-000000000001','018f4a7c-7777-7000-1111-000000000001'),
-('018f4a7c-6666-7000-f000-000000000001','018f4a7c-7777-7000-1111-000000000002'),
-('018f4a7c-6666-7000-f000-000000000001','018f4a7c-7777-7000-1111-000000000003'),
-('018f4a7c-6666-7000-f000-000000000002','018f4a7c-7777-7000-1111-000000000004');
+        FOR fecha IN
+            SELECT generate_series('2026-09-01'::date, '2026-09-30'::date, '1 day'::interval)::date
+        LOOP
+            IF extract(dow FROM fecha) <> 0 THEN
+                INSERT INTO asistencia_marcacion (
+                    id, empleado_id, fecha_hora, tipo_marcacion, metodo, usuario_id, motivo
+                ) VALUES (
+                    asistencia_uuid_v7(), empleado_id,
+                    (fecha + time '08:00') AT TIME ZONE 'America/Lima',
+                    'ENTRADA', 'MANUAL', usuario_id, 'Marca sintética de prueba'
+                );
 
--- 6. Cargos
-INSERT INTO cargo (id,id_area,nombre,descripcion,sueldo_minimo,sueldo_maximo,activo)
-VALUES ('018f4a7c-8888-7000-2222-000000000001','018f4a7c-7777-7000-1111-000000000001','Administrador del Sistema','Gestión integral del sistema TI',3500.00,6000.00,true),
-('018f4a7c-8888-7000-2222-000000000002','018f4a7c-7777-7000-1111-000000000002','Contador Principal','Encargado de Planillas y Cierres',3000.00,5000.00,true),
-('018f4a7c-8888-7000-2222-000000000003','018f4a7c-7777-7000-1111-000000000003','Jefe de Recursos Humanos','Administración de personal y contratos',3500.00,5500.00,true),
-('018f4a7c-8888-7000-2222-000000000004','018f4a7c-7777-7000-1111-000000000003','Asistente de RRHH','Apoyo en tareas y marcaciones',1500.00,2500.00,true),
-('018f4a7c-8888-7000-2222-000000000005','018f4a7c-7777-7000-1111-000000000004','Vigilante Nocturno','Seguridad en sede principal',1300.00,2000.00,true),
-('018f4a7c-8888-7000-2222-000000000006','018f4a7c-7777-7000-1111-000000000001','Director Ejecutivo (JYP)','Socio Director General',6000.00,12000.00,true);
+                INSERT INTO asistencia_marcacion (
+                    id, empleado_id, fecha_hora, tipo_marcacion, metodo, usuario_id, motivo
+                ) VALUES (
+                    asistencia_uuid_v7(), empleado_id,
+                    (fecha + time '17:00') AT TIME ZONE 'America/Lima',
+                    'SALIDA', 'MANUAL', usuario_id, 'Marca sintética de prueba'
+                );
+            END IF;
+        END LOOP;
 
--- 7. Empleados Base (Usando 'empleados')
-INSERT INTO empleados (id,cargo_id,area_id,documento_id,estado_laboral,jornada_id,nombre,apellido,nro_documento,email,asig_familiar,activo,estado_sincronizacion,fecha_nacimiento,fecha_inicio,created_at,updated_at)
-VALUES ('018f4a7c-9999-7000-3333-000000000001','018f4a7c-8888-7000-2222-000000000001','018f4a7c-7777-7000-1111-000000000001','018f4a7c-2222-7000-b000-000000000001','ACTIVO','018f4a7c-6666-7000-f000-000000000001','Administrador','Sistema Central','70000001','admin@jyp.com',false,true,'COMPLETO','1990-01-01','2024-01-01',NOW(),NOW()),
-('018f4a7c-9999-7000-3333-000000000002','018f4a7c-8888-7000-2222-000000000002','018f4a7c-7777-7000-1111-000000000002','018f4a7c-2222-7000-b000-000000000001','ACTIVO','018f4a7c-6666-7000-f000-000000000001','Carlos','Ramírez Silva','70112233','contador@jyp.com',false,true,'COMPLETO','1988-06-15','2024-02-01',NOW(),NOW()),
-('018f4a7c-9999-7000-3333-000000000003','018f4a7c-8888-7000-2222-000000000003','018f4a7c-7777-7000-1111-000000000003','018f4a7c-2222-7000-b000-000000000001','ACTIVO','018f4a7c-6666-7000-f000-000000000001','Laura','Méndez Ruiz','70223344','rrhh@jyp.com',true,true,'COMPLETO','1992-09-20','2024-03-01',NOW(),NOW()),
-('018f4a7c-9999-7000-3333-000000000004','018f4a7c-8888-7000-2222-000000000004','018f4a7c-7777-7000-1111-000000000003','018f4a7c-2222-7000-b000-000000000001','ACTIVO','018f4a7c-6666-7000-f000-000000000001','Ana','Torres Gómez','70334455','asistente@jyp.com',false,true,'COMPLETO','1996-04-12','2024-04-01',NOW(),NOW()),
-('018f4a7c-9999-7000-3333-000000000005','018f4a7c-8888-7000-2222-000000000005','018f4a7c-7777-7000-1111-000000000004','018f4a7c-2222-7000-b000-000000000002','ACTIVO','018f4a7c-6666-7000-f000-000000000002','Miguel','Ángel Osorio','001155998','miguel.osorio@jyp.com',true,true,'COMPLETO','1985-11-30','2024-05-01',NOW(),NOW()),
-('018f4a7c-9999-7000-3333-000000000006','018f4a7c-8888-7000-2222-000000000006','018f4a7c-7777-7000-1111-000000000001','018f4a7c-2222-7000-b000-000000000001','ACTIVO','018f4a7c-6666-7000-f000-000000000001','Jorge','Yupanqui Ponce','70445566','jyp@jyp.com',false,true,'COMPLETO','1980-03-05','2024-01-01',NOW(),NOW());
+        indice := indice + 1;
+    END LOOP;
 
+    -- --------------------------------------------------------------------------------------------
+    -- 11. VIDA LEY DEMO: DATO FICTICIO, SEPARADO DE LA CONFIGURACIÓN LEGAL REAL
+    -- --------------------------------------------------------------------------------------------
+    -- Sólo se añade si no existe ninguna fila del código. No sustituye la configuración ya cargada.
+    -- 0.001 es una fracción de prueba: no se propone como prima de una póliza de producción.
+    IF NOT EXISTS (SELECT 1 FROM parametro_legal WHERE codigo = 'VIDA_LEY_PCT') THEN
+        INSERT INTO parametro_legal (
+            id, codigo, nombre, valor, vigente_desde, vigente_hasta, descripcion
+        ) VALUES (
+            asistencia_uuid_v7(), 'VIDA_LEY_PCT', 'DEMO - Prima ficticia', 0.001,
+            '2026-01-01', '2026-12-31',
+            'SOLO PRUEBAS: no usar como tarifa de una póliza real.'
+        );
+    END IF;
+END $$;
 
--- 8. Datos Financieros Iniciales (Ejemplo para Carlos Ramírez - Contador)
--- Cuentas mock para Sueldo (BCP) y CTS (BBVA) con régimen Essalud Regular
-INSERT INTO dato_financiero (id,empleado_id,id_regimen,id_tipo_afp,sueldo_basico,cuspp,tipo_comision,id_banco_sueldo,tipo_cuenta_sueldo,nro_cuenta_sueldo,cci_sueldo,id_banco_cts,tipo_cuenta_cts,nro_cuenta_cts,cci_cts,regimen_salud,eps_costo_adicional,created_at,updated_at)
-VALUES (
-        '018f4a7c-bbbb-7000-5555-000000000001',
-        '018f4a7c-9999-7000-3333-000000000002', -- Carlos Ramírez
-        '018f4a7c-4444-7000-d000-000000000002', -- AFP
-        '018f4a7c-5555-7000-e000-000000000001', -- AFP INTEGRA
-        3500.0000,
-        '123456CRM001',
-        'FLUJO',
-        '018f4a7c-3333-7000-c000-000000000001', -- BCP Sueldo
-        'SUELDO',
-        '191-12345678-0-12', -- En pruebas directas se descifrará con fallback o vía use case
-        '002-191-00123456780123-88',
-        '018f4a7c-3333-7000-c000-000000000002', -- BBVA CTS
-        'AHORROS',
-        '0011-0123-45-0100012345',
-        '011-123-000100012345-67',
-        'ESSALUD_REGULAR',
-        0.0000,
-        NOW(),
-        NOW()
-    );
+-- ================================================================================================
+-- 12. CONFIRMACIÓN Y USO DE LA DEMOSTRACIÓN
+-- ================================================================================================
+COMMIT;
+
+-- RESUMEN ESPERADO DE LOS REGISTROS AÑADIDOS
+-- Área: 1. Cargo: 1. Jornada catálogo: 1.
+-- Empleados: 3. Usuarios: 3. Datos financieros: 3. Asignaciones históricas: 3. Marcaciones: 156.
+-- Vida Ley: 0 o 1 filas nuevas según la configuración previa. Los triggers añaden su auditoría.
+-- No se insertan solicitudes, incidencias aprobadas ni planillas calculadas: se generan desde la API.
+--
+-- ACCESO DE PRUEBA (contraseña pública: DemoPlanillas2026!)
+-- RRHH:      DNI 90000001 / rrhh@demo.invalid
+-- CONTADOR:  DNI 90000002 / contador@demo.invalid
+-- ASISTENTE: DNI 90000003 / asistente@demo.invalid
+--
+-- RECORRIDO MANUAL
+-- 1. Autenticarse mediante POST /api/v1/auth/login.
+-- 2. Generar el resumen de incidencias para 2026-09 y revisar su detalle diario.
+-- 3. Aprobar la asistencia con RRHH.
+-- 4. Solicitar la generación de planillas y consultar el trabajo de la cola hasta su finalización.
+-- 5. Revisar, congelar como CONTADOR y descargar la boleta del cálculo congelado.

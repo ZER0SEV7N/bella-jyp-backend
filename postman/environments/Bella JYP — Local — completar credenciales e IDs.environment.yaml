@@ -98,3 +98,5 @@ values:
     value: ''
   - key: token_jyp
     value: ''
+  - key: BaseUrl
+    value: ''

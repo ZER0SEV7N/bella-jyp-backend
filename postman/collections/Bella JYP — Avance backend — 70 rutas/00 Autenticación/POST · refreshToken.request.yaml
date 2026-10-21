@@ -5,7 +5,7 @@ description: |-
   Handler: refreshToken
   Roles: Público
   HTTP esperado con datos y estado válidos: 200.
-url: "{{base_url}}/api/auth/refresh"
+url: "{{base_url}}/api/v1/auth/refresh"
 method: POST
 auth:
   type: noauth
@@ -16,4 +16,5 @@ scripts:
       if (pm.response.code < 300) pm.test('Respuesta JSON', () => pm.response.json());
       if (pm.response.code === 200) { const r = pm.response.json(); const d = r.data || r; pm.environment.set('access_token', d.accessToken); const rol = pm.environment.get('rol_actual'); if (rol) pm.environment.set('token_' + rol.toLowerCase(), d.accessToken); }
     language: text/javascript
+examples: .resources/POST · refreshToken.resources/examples
 order: 2000

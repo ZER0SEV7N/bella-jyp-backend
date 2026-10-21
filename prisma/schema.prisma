@@ -1,4 +1,3 @@
-// PROPUESTA COMPLETA: NO APLICADA. Revisar diseno_bd.md antes de migrar.
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["partialIndexes"]

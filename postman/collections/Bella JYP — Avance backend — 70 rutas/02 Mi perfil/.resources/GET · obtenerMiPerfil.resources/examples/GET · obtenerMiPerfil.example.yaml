@@ -1,0 +1,38 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/usuarios/me"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "452"
+    date: Wed, 21 Oct 2026 23:34:13 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+          "email": "demo@example.test",
+          "rol": "EMPLEADO",
+          "ultimo_acceso": null,
+          "empleado": {
+            "id": "018f4a7c-9999-7000-3333-000000000001",
+            "nro_documento": "70000001",
+            "nombre_completo": "Administrador Sistema Central",
+            "cargo": "Administrador del Sistema",
+            "area": "Oficina Central / Gerencia"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/usuarios/me",
+          "timestamp": "2026-10-21T23:34:13.403Z"
+        }
+      }
+order: 1000
