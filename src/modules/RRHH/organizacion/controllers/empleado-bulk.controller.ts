@@ -14,7 +14,7 @@ import { ConfirmarCargaMasivaUseCase } from '../use-cases/carga-masiva/confirmar
 import type { ConfirmarCargaMasivaDTO } from '../use-cases/carga-masiva/confirmarCargaMasiva.useCase';
 //Importaciones para la inyección de dependencias y servicios
 import { ClsService } from 'nestjs-cls';
-import { ApiSwaggerEmpleadosBulkController, ApiSwaggerGetBulkStatus, ApiSwaggerDownloadTemplate } from '../decorators/empleado-bulk-swagger.decorator';
+import { ApiSwaggerEmpleadosBulkController, ApiSwaggerGetBulkStatus, ApiSwaggerDownloadTemplate, ApiSwaggerConfirmBulk, ApiSwaggerValidateBulk } from '../decorators/empleado-bulk-swagger.decorator';
 import { generarPlantillaExcel } from '../use-cases/carga-masiva/helpers/generarPlantilla.helper';
 
 /**
@@ -44,12 +44,14 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint de consulta para el Polling Inteligente del Frontend.
-   * GET /api/rrhh/empleados/bulk/:jobId
+   * @Get /api/v1/rrhh/empleados/bulk/:jobId
+   * @roles ADMIN, RRHH
    * @param jobId string - El ID del job de carga masiva que se desea consultar.
    * @returns Un objeto con el estado actual del job, incluyendo total de registros, procesados y fallidos.
    */
   @ApiSwaggerGetBulkStatus()
   @Get(':jobId')
+  @Roles('ADMIN', 'RRHH')
   async getBulkStatus(@Param('jobId', ParseUUIDPipe) jobId: string) {
     //Obtener el ID del usuario desde el contexto CLS para asegurar que solo el usuario que inició la carga pueda consultar su estado
     const usuarioId = this.cls.get(CLS_USER_ID);
@@ -66,11 +68,14 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint para validar un archivo CSV antes de su procesamiento.
-   * POST /api/rrhh/empleados/bulk/validar
+   * @POST /api/v1/rrhh/empleados/bulk/validar
+   * @roles ADMIN, RRHH
    * @param request FastifyRequest - La solicitud HTTP entrante, que contiene el archivo CSV en el cuerpo.
    * @returns Un objeto con un reporte de pre-validación, incluyendo total de filas, filas válidas, filas inválidas y detalles de errores.
    */
   @Post('validar')
+  @ApiSwaggerValidateBulk()
+  @Roles('ADMIN', 'RRHH')
   async validateBulk(@Req() request: FastifyRequest) {
     if (!request.isMultipart()) throw new BadRequestException('El formato de la petición debe ser multipart/form-data.');
 
@@ -99,16 +104,16 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint para confirmar el procesamiento de las filas pre-validadas.
-   * POST /api/rrhh/empleados/bulk/confirmar
+   * @POST /api/v1/rrhh/empleados/bulk/confirmar
+   * @roles ADMIN, RRHH
    * @param body ConfirmarCargaMasivaDTO - El DTO que contiene las filas validadas para su procesamiento.
    * @param response FastifyReply - La respuesta HTTP que se enviará al cliente.
    * @returns Un objeto con el ID del job de carga masiva que ha sido encolado para procesamiento.
    */
   @Post('confirmar')
-  async confirmBulk(
-    @Body() body: ConfirmarCargaMasivaDTO,
-    @Res({ passthrough: true }) response: FastifyReply,
-  ) {
+  @ApiSwaggerConfirmBulk()
+  @Roles('ADMIN', 'RRHH')
+  async confirmBulk( @Body() body: ConfirmarCargaMasivaDTO, @Res({ passthrough: true }) response: FastifyReply) {
     const usuarioId = this.cls.get(CLS_USER_ID);
 
     const result = await this.confirmarCargaMasiva.execute(usuarioId, body);
@@ -127,11 +132,13 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint para descargar un archivo CSV de plantilla para la carga masiva de empleados.
-   * GET /api/rrhh/empleados/bulk/plantilla
+   * @Get /api/v1/rrhh/empleados/bulk/plantilla
+   * @roles ADMIN, RRHH
    * @returns Un archivo CSV con la estructura necesaria para la carga masiva de empleados.
    */
   @Get('plantilla')
   @ApiSwaggerDownloadTemplate()
+  @Roles('ADMIN', 'RRHH')
   async descargarPlantilla(@Res() res: FastifyReply): Promise<void> {
     const bufferExcel = await generarPlantillaExcel();
 

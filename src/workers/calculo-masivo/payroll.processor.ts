@@ -3,7 +3,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { GenerarPlanillasDto } from '@jyp/shared-contracts';
 import { ProcesamientoMasivoPlanillasService } from '@/modules/payroll/planillas/services/procesamiento-masivo-planilla.service';
-import type { ActorOperacion } from '@/modules/asistencia/services/asistencia-transaccion.helper';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 
 /**
  * Processor de BullMQ para manejar el cálculo masivo de planillas.

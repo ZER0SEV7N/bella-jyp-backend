@@ -1,12 +1,13 @@
 //src/modules/payroll/planillas/use-case/generarPlanilla.useCase.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { ActorOperacion, transaccionAsistencia } from '@/modules/asistencia/services/asistencia-transaccion.helper';
+import { transaccionAsistencia } from '@/modules/asistencia/helpers/asistencia-transaccion.helper';
 import { PayrollPoolService } from '@/workers/calculo-masivo/payroll-pool.service';
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { VERSION_MOTOR_PLANILLA } from '../../domain/calcular-planilla';
-import { prepararPlanilla } from '../helpers/preparar-planilla.helper';
+import { prepararPlanilla } from '../../helpers/preparar-planilla.helper';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 
 /**
  * Caso de uso para generar una planilla de un empleado.

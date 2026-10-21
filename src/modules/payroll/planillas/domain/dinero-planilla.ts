@@ -2,7 +2,7 @@
 import Decimal from 'decimal.js';
 
 /**
- * Entidad de negocio que encapsula la lógica de manejo de dinero y tasas en el sistema de planillas.
+ * Regla de negocio que encapsula la lógica de manejo de dinero y tasas en el sistema de planillas.
  * Se utiliza Decimal.js para garantizar precisión en cálculos financieros y evitar errores de redondeo.
  * Se establecen reglas de validación para asegurar que los valores sean finitos y no negativos.
  * Además, se proporciona una función de redondeo a 4 decimales con validación de límites.

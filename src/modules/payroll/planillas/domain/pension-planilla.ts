@@ -4,7 +4,7 @@ import { Dinero, decimal } from './dinero-planilla';
 import type { EntradaPlanilla } from './planilla.types';
 
 /**
- * Entidad de negocio que encapsula la lógica de cálculo de pensiones y aportes previsionales.
+ * Regla de negocio que encapsula la lógica de cálculo de pensiones y aportes previsionales.
  * Separa el cálculo de ONP y AFP, considerando los diferentes componentes de cada régimen.
  * @param entrada - Datos de entrada de la planilla, incluyendo régimen previsional y datos de AFP si aplica.
  * @param basePrevisional - Monto base sobre el cual se calculan los aportes previsionales.

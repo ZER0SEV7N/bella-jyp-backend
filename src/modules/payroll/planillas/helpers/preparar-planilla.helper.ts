@@ -1,3 +1,4 @@
+//src/modules/payroll/planillas/helpers/preparar-planilla.helper.ts
 import { ServerTime } from '@/common/utils/server-time';
 import { Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
@@ -10,20 +11,45 @@ import { cargarNovedadesPlanilla } from './novedades-planilla.helper';
 import { cargarParametrosPlanilla } from './parametros-planilla.helper';
 import { cargarPensionPlanilla } from './pension-planilla.helper';
 
+/**
+ * Helper para la preparación de la planilla de un empleado para un periodo determinado.
+ * Este helper carga todas las fuentes de datos necesarias, calcula los valores de la planilla y genera un hash de verificación.
+ * Su objetivo es garantizar que la planilla se pueda congelar y verificar posteriormente, asegurando la integridad de los datos.
+ */
+
+//Cada dato que afecta el resultado participa en la huella y se vuelve a verificar al congelar.
 const huella = (datos: unknown) => createHash('sha256').update(JSON.stringify(datos)).digest('hex');
 
-/** Cada dato que afecta el resultado participa en la huella y se vuelve a verificar al congelar. */
-/** Reúne fuentes vigentes; la misma preparación protege la generación y el congelamiento. */
+/**
+ * Prepara la planilla de un empleado para un periodo determinado.
+ * @param tx - Cliente de transacción de Prisma.
+ * @param empleadoId - ID del empleado.
+ * @param periodo - Periodo en formato 'YYYY-MM'.
+ * @returns Un objeto con la entrada de la planilla, cabecera, empresa, versión de incidencia y huella.
+ */
 export async function prepararPlanilla(tx: Prisma.TransactionClient, empleadoId: string, periodo: string) {
+    //Validar el periodo y obtener el año y mes correspondientes
     const { year, month } = ServerTime.validarPeriodo(periodo);
+
+    //Cargar todas las fuentes de datos necesarias para la preparación de la planilla
     const { incidencia, empleado, financiero } = await cargarFuentesPlanilla(tx, empleadoId, periodo);
+
+    //Obtener la fecha de referencia para la carga de parámetros y pensión
     const referencia = new Date(Date.UTC(year, month, 0));
+
+    //Cargar los parámetros de la planilla, pensión y comisiones, historial de ingresos y retenciones, y novedades
     const { parametros, valores } = await cargarParametrosPlanilla(tx, referencia, periodo);
     const { pension, esOnp, comisiones } = await cargarPensionPlanilla(tx, financiero, referencia);
-    const { cerradas, ingresos, retenciones } = await cargarHistorialPlanilla(tx, empleadoId, periodo, empleado.fecha_inicio!);
+    const { cerradas, ingresos, retenciones } = await cargarHistorialPlanilla(tx, empleadoId, periodo, empleado.fecha_inicio);
     const { pagos, aprobadas, adelantos, bono, autorizado, dso } = await cargarNovedadesPlanilla(tx, empleadoId, periodo);
+
+    //Seleccionar la primera comisión si existe
     const comision = comisiones[0];
+
+    //Calcular los meses de gratificación y preparar la entrada de la planilla
     const mesesGratificacion = obtenerMesesGratificacion(periodo, empleado, incidencia, cerradas);
+    
+    //Preparar la entrada de la planilla con todos los datos necesarios
     const entrada: EntradaPlanilla = {
         periodo,
         empleado_id: empleadoId,

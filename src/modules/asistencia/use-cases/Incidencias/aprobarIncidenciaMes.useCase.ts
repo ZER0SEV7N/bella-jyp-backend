@@ -1,5 +1,5 @@
 import { AprobacionMasivaAsistenciaService } from '../../services/aprobacion-masiva-asistencia.service';
-import type { ActorOperacion } from '../../services/asistencia-transaccion.helper';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 //src/modules/asistencia/use-cases/Incidencias/aprobarIncidenciaMes.useCase.ts
 import type { AprobarIncidenciasDto } from '@jyp/shared-contracts';
 import { Injectable } from '@nestjs/common';

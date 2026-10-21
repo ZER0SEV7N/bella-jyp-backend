@@ -10,6 +10,7 @@ const rrhh = ['ADMIN', 'RRHH'];
 export function ApiSwaggerGestionAsistenciaController() {
     return applyDecorators(ApiTags('Asistencia - Gestión'), ApiBearerAuth('JWT-auth'), ApiErroresOperacion());
 }
+
 export function ApiSwaggerDetalleAsistencia() {
     return applyDecorators(
         ApiContratoQuery(DetalleAsistenciaQuerySchema),
@@ -46,6 +47,7 @@ export function ApiSwaggerResolverDiaAsistencia() {
         })
     );
 }
+
 export function ApiSwaggerAsignarJornadaAsistencia() {
     return applyDecorators(
         ApiContratoBody(AsignarJornadaAsistenciaSchema),
@@ -71,6 +73,7 @@ export function ApiSwaggerAsignarJornadaAsistencia() {
         })
     );
 }
+
 export function ApiSwaggerGuardarDescansoAsistencia() {
     return applyDecorators(
         ApiContratoBody(DiaAdicionalCalendarioSchema),
@@ -93,6 +96,7 @@ export function ApiSwaggerGuardarDescansoAsistencia() {
         })
     );
 }
+
 export function ApiSwaggerResolverIncidencia() {
     return applyDecorators(
         ApiContratoBody(ResolverIncidenciaSchema),
@@ -105,6 +109,7 @@ export function ApiSwaggerResolverIncidencia() {
         })
     );
 }
+
 export function ApiSwaggerCrearMarcacion() {
     return applyDecorators(
         ApiContratoBody(marcarAsistenciaSchema),
@@ -117,6 +122,7 @@ export function ApiSwaggerCrearMarcacion() {
         })
     );
 }
+
 export function ApiSwaggerListarMarcaciones() {
     return applyDecorators(
         ApiContratoQuery(ListarMarcacionesQuerySchema),

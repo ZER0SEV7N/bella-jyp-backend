@@ -49,6 +49,7 @@ export const respuestaIncidencia: SchemaObject = {
         }
     }
 };
+
 export const respuestaMarcacion: SchemaObject = {
     type: 'object',
     properties: {
@@ -60,6 +61,7 @@ export const respuestaMarcacion: SchemaObject = {
         motivo: { type: 'string', nullable: true }
     }
 };
+
 export const respuestaImportacion: SchemaObject = {
     type: 'object',
     properties: {

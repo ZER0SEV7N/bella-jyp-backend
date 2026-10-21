@@ -4,7 +4,6 @@ import { GeneracionMasivaAsistenciaService } from './services/generacion-masiva-
 import { GenerarIncidenciaEmpleadoUseCase } from './use-cases/Incidencias/generarIncidenciaEmpleado.useCase';
 import { ResolverIncidenciaUseCase } from './use-cases/Incidencias/resolverIncidencia.useCase';
 import { AsignarJornadaAsistenciaUseCase } from './use-cases/asistencias/asignarJornadaAsistencia.useCase';
-import { DescargarPlantillaMarcacionesUseCase } from './use-cases/asistencias/descargarPlantillaMarcaciones.useCase';
 import { GuardarDescansoAsistenciaUseCase } from './use-cases/asistencias/guardarDescansoAsistencia.useCase';
 import { ImportarMarcacionesUseCase } from './use-cases/asistencias/importarMarcaciones.useCase';
 import { ObtenerDetalleAsistenciaUseCase } from './use-cases/asistencias/obtenerDetalleAsistencia.useCase';
@@ -33,7 +32,6 @@ import { ImportarMarcacionesService } from './services/importar-marcaciones.serv
     imports: [],
     controllers: [IncidenciasController, AsistenciaController, GestionAsistenciaController, ImportacionAsistenciaController],
     providers: [
-        DescargarPlantillaMarcacionesUseCase,
         ValidarImportacionMarcacionesUseCase,
         ImportarMarcacionesUseCase,
         EsquemaAsistenciaService,

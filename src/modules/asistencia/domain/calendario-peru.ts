@@ -1,11 +1,27 @@
-//Calendario nacional del régimen privado. Los días no laborables públicos no se agregan automáticamente.
+//src/modules/asistencia/domain/calendario-peru.ts
+
+/**
+ * Regla de negocio que encapsula la lógica de cálculo de feriados nacionales en Perú.
+ * Separa la determinación de feriados fijos y móviles, considerando las incorporaciones recientes y el algoritmo gregoriano de Pascua.
+ */
+
+/**
+ * Devuelve un arreglo de objetos que representan los feriados nacionales en Perú para un año específico.
+ * @param year - Año para el cual se desea obtener los feriados nacionales. Debe ser un número entero entre 1992 y 9998.
+ * @returns - Un arreglo de objetos, cada uno con la fecha del feriado en formato 'YYYY-MM-DD' y el nombre del feriado.
+ */
 export function feriadosNacionalesPeru(year: number): { fecha: string; nombre: string }[] {
-    if (!Number.isInteger(year) || year < 1992 || year > 9998) throw new RangeError('El calendario admite años desde 1992 hasta 9998.');
+    //Valida que el año esté dentro del rango permitido (1992 a 9998) y que sea un número entero.
+    if (!Number.isInteger(year) || year < 1992 || year > 9998) 
+        throw new RangeError('El calendario admite años desde 1992 hasta 9998.');
+    
+    //Lista de feriados fijos en Perú, con sus fechas y nombres correspondientes.
     const fijos: [string, string][] = [
         ['01-01', 'Año Nuevo'], ['05-01', 'Día del Trabajo'], ['06-29', 'San Pedro y San Pablo'],
         ['07-28', 'Fiestas Patrias'], ['07-29', 'Fiestas Patrias'], ['08-30', 'Santa Rosa de Lima'],
         ['10-08', 'Combate de Angamos'], ['11-01', 'Todos los Santos'], ['12-08', 'Inmaculada Concepción'], ['12-25', 'Navidad']
     ];
+
     //Las incorporaciones recientes no se aplican retroactivamente al recalcular períodos históricos.
     if (year >= 2022) fijos.push(['08-06', 'Batalla de Junín'], ['12-09', 'Batalla de Ayacucho']);
     if (year >= 2023) fijos.push(['06-07', 'Batalla de Arica y Día de la Bandera'], ['07-23', 'Día de la Fuerza Aérea del Perú']);
@@ -18,7 +34,10 @@ export function feriadosNacionalesPeru(year: number): { fecha: string; nombre: s
     const mes = Math.floor((h + l - 7 * m + 114) / 31), dia = (h + l - 7 * m + 114) % 31 + 1;
     const pascua = new Date(Date.UTC(year, mes - 1, dia));
     const resultado = fijos.map(([fecha, nombre]) => ({ fecha: `${year}-${fecha}`, nombre }));
+    //Calcula las fechas de Jueves y Viernes Santo, que son los dos y tres días anteriores a la Pascua, respectivamente.
     for (const [desplazamiento, nombre] of [[3, 'Jueves Santo'], [2, 'Viernes Santo']] as const)
         resultado.push({ fecha: new Date(pascua.getTime() - desplazamiento * 86400000).toISOString().slice(0, 10), nombre });
+
+    //Ordena los feriados por fecha antes de devolver el arreglo final.
     return resultado.sort((x, y) => x.fecha.localeCompare(y.fecha));
 }

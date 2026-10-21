@@ -1,9 +1,11 @@
 //src/modules/payroll/planillas/use-case/crearNovedadPlanilla.useCase.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { ActorOperacion, bloquearEmpleado, transaccionAsistencia } from '@/modules/asistencia/services/asistencia-transaccion.helper';
+import {  bloquearEmpleado, transaccionAsistencia } from '@/modules/asistencia/helpers/asistencia-transaccion.helper';
 import type { CrearNovedadPlanillaDto } from '@jyp/shared-contracts';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
+
 
 /**
  * Caso de uso para crear una novedad de planilla para un empleado.

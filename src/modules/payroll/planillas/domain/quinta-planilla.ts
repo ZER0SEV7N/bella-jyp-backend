@@ -6,7 +6,7 @@ import type { EntradaPlanilla } from './planilla.types';
 import type { calcularRemuneracion, validarEntradaPlanilla } from './remuneracion-planilla';
 
 /**
- * Entidad de negocio que encapsula la lógica de cálculo del impuesto anual de la quinta categoría y su proyección mensual.
+ * Regla de negocio que encapsula la lógica de cálculo del impuesto anual de la quinta categoría y su proyección mensual.
  * Separa la proyección ordinaria del impuesto adicional por ingresos extraordinarios.
  * @returns - Monto del impuesto mensual de la quinta categoría, calculado aplicando las tasas progresivas según los tramos establecidos por la ley.
  * @throws RangeError si la renta neta es negativa o no es un número finito, o si la UIT es negativa o no es un número finito.

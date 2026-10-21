@@ -2,11 +2,13 @@
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { MarcarAsistenciaDto } from "@jyp/shared-contracts";
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
-import { obtenerColaborador, validarExistencia } from './helper/procesarAsistenciaWeb.helper';
+import { obtenerColaborador, validarExistencia } from '../../helpers/procesarAsistenciaWeb.helper';
 import { IdentityGenerator } from "@/common/utils/uuid.util";
 import { tipo_marcacion_enum } from "@prisma/client";
 import { ServerTime } from '@/common/utils/server-time';
-import { ActorOperacion, bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../../services/asistencia-transaccion.helper';
+import { bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../../helpers/asistencia-transaccion.helper';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
+
 
 /**
  * Caso de uso para crear una marcación manual de asistencia para un empleado.
@@ -15,7 +17,7 @@ import { ActorOperacion, bloquearEmpleado, transaccionAsistencia, validarPeriodo
  */
 @Injectable()
 export class CrearMarcacionManualUseCase{
-    constructor(private readonly prisma:PrismaService){}
+    constructor(private readonly prisma: PrismaService){}
 
     /**
      * Ejecuta el caso de uso para crear una marcación manual de asistencia.

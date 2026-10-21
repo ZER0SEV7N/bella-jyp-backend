@@ -1,6 +1,4 @@
-//src/modules/asistencia/use-cases/asistencias/helper/procesarAsistenciaWeb.helper.ts
-//LIBRERIAS
-import { PrismaService } from "@/common/prisma/prisma.service";
+//src/modules/asistencia/use-cases/helpers/procesarAsistenciaWeb.helper.ts
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ServerTime } from '@/common/utils/server-time';
 import type { Prisma, tipo_marcacion_enum } from '@prisma/client';
@@ -22,7 +20,10 @@ export async function obtenerColaborador(prisma: Pick<Prisma.TransactionClient, 
         select: { id: true, fecha_inicio: true, fecha_cese: true }
     });
 
-    if (!empleado) throw new NotFoundException('El colaborador no existe o fue eliminado.');
+    //Si no se encuentra el colaborador, lanzar una excepción NotFoundException.
+    if (!empleado) 
+        throw new NotFoundException('El colaborador no existe o fue eliminado.');
+    
     //El vínculo se verifica en la fecha marcada; un cese posterior no borra la asistencia histórica.
     const civil = ServerTime.fechaPeru(fecha);
     if (!empleado.fecha_inicio || civil < empleado.fecha_inicio.toISOString().slice(0, 10) || empleado.fecha_cese && civil > empleado.fecha_cese.toISOString().slice(0, 10))

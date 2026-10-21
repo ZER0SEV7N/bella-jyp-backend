@@ -47,7 +47,8 @@ export class ContratoController {
    * Endpoint para crear un nuevo contrato en el módulo de RRHH.
    * Este endpoint recibe los datos del contrato en el cuerpo de la solicitud y utiliza el caso de uso CrearContratoUseCase para registrar un nuevo contrato sin PDF adjunto.
    * El contrato queda habilitado para edición y se marca como borrador.
-   * @Url :POST -  http://localhost:3000/api/contrato/crear
+   * @POST http://localhost:3000/api/v1/rrhh/contrato/crear
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param file : pdf
    * @param payload {
    *      * Empleado_id: string (UUID del empleado al que se le asignará el contrato)
@@ -73,7 +74,8 @@ export class ContratoController {
    * Endpoint para actualizar un contrato existente en el módulo de RRHH.
    * Este endpoint permite editar un contrato SOLO si aún no tiene un PDF subido.
    * Recibe el ID del contrato como parámetro de ruta y los datos a actualizar en el cuerpo de la solicitud.
-   * @Url :PATCH -  http://localhost:3000/api/contrato/:id/actualizar
+   * @PATCH -  http://localhost:3000/api/v1/rrhh/contrato/:id/actualizar
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param id : string (UUID del contrato a actualizar)
    * @param payload {
    *      * id_estado: string (UUID del estado del contrato)
@@ -83,6 +85,10 @@ export class ContratoController {
    *      * renovado: boolean (opcional, indica si el contrato ha sido renovado, por defecto es false)
    *      * observacion: string (opcional, observaciones adicionales sobre el contrato)
    * }
+   * @Returns Un objeto con los datos del contrato actualizado y un mensaje de éxito.
+   * @Throws BadRequestException si el contrato ya tiene un PDF subido y no puede ser editado.
+   * @Throws NotFoundException si el contrato con el ID proporcionado no existe.
+   * @Throws ForbiddenException si el usuario no tiene los permisos necesarios para editar el contrato.
    */
   @ApiSwaggerEditarContrato()
   @Patch(':id/actualizar')
@@ -97,7 +103,7 @@ export class ContratoController {
    * Endpoint para renovar un contrato existente en el módulo de RRHH.
    * Este endpoint permite renovar un contrato, creando un nuevo contrato con las fechas y datos proporcionados.
    * Recibe el ID del contrato a renovar como parámetro de ruta y los datos del nuevo contrato en el cuerpo de la solicitud.
-   * @Url :POST -  http://localhost:3000/api/contrato/:id/renovar
+   * @POST -  http://localhost:3000/api/contrato/:id/renovar
    * @param id : string (UUID del contrato a renovar)
    * @param payload {
    *    * id_estado: string (UUID del estado del nuevo contrato)
@@ -112,10 +118,7 @@ export class ContratoController {
   @Post(':id/renovar')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(RenovarContratoSchema))
-  async renovarContrato(
-    @Param('id', ParseUUIDPipe) idViejoContrato: string,
-    @Body() payload: RenovarContratoDto
-  ) {
+  async renovarContrato( @Param('id', ParseUUIDPipe) idViejoContrato: string, @Body() payload: RenovarContratoDto) {
     return await this.renovaContratoUseCase.execute(idViejoContrato, payload);
   }
 
@@ -123,7 +126,8 @@ export class ContratoController {
    * Endpoint para anular (eliminar) un contrato existente en el módulo de RRHH.
    * Este endpoint permite anular un contrato, marcándolo como eliminado en la base de datos.
    * Recibe el ID del contrato a anular como parámetro de ruta.
-   * @Url :DELETE -  http://localhost:3000/api/contrato/:id/anular
+   * @DELETE -  http://localhost:3000/api/contrato/:id/anular
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param id : string (UUID del contrato a anular)
    * @Returns Un objeto con un mensaje de éxito indicando que el contrato ha sido anulado.
    */
@@ -135,15 +139,22 @@ export class ContratoController {
     return await this.anularContratoUseCase.execute(id);
   }
 
-  
   /**
-   * Listar contratos con paginación y filtros dinámicos.
-   * Permite filtrar por:
-   * - por_vencer_dias=30 (para el modal del Dashboard)
-   * - empleado_id=UUID (para la Ficha del Empleado)
-   * - area_id=UUID
-   * - search=Texto
-   * GET /api/contrato
+   * Endpoint para listar los contratos existentes en el módulo de RRHH.
+   * Este endpoint permite listar todos los contratos registrados en el sistema, con la posibilidad de filtrar por empleado, estado del contrato y fechas.
+   * Recibe los parámetros de consulta en la URL.
+   * @GET -  http://localhost:3000/api/contrato
+   * @roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @param query : ListarContratosQueryDto (opcional, parámetros de consulta para filtrar los contratos)
+   * @param ListarContratosQueryDto {
+   *     - empleado_id: string (opcional, UUID del empleado para filtrar los contratos)
+   *     - id_estado: string (opcional, UUID del estado del contrato para filtrar)
+   *     - fecha_inicio: string (opcional, fecha de inicio para filtrar contratos a partir de esta fecha en formato ISO 8601: YYYY-MM-DD-THH:mm:ss.sssZ)
+   *     - fecha_fin: string (opcional, fecha de fin para filtrar contratos hasta esta fecha en formato ISO 8601: YYYY-MM-DD-THH:mm:ss.sssZ)
+   * }
+   * @returns Un objeto con un arreglo de contratos que cumplen con los criterios de filtrado y un mensaje de éxito.
+   * @Throws BadRequestException si los parámetros de consulta son inválidos.
+   * 
    */
   @Get()
   @ApiSwaggerListarContratos()
@@ -157,8 +168,8 @@ export class ContratoController {
    * Endpoint para obtener el historial de contratos de un empleado en el módulo de RRHH.
    * Este endpoint permite listar todos los contratos asociados a un empleado específico, incluyendo información sobre el estado de cada contrato y si tiene un PDF adjunto.
    * Recibe el ID del empleado como parámetro de ruta.
-   * ROLES: Este endpoint es accesible para los roles de Administrador, RRHH, Contador y Asistente.
-   * @Url :GET -  http://localhost:3000/api/contrato/empleado/:empleadoId
+   * @roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @GET -  http://localhost:3000/api/contrato/empleado/:empleadoId
    * @param empleadoId : string (UUID del empleado del cual se desea obtener el historial de contratos)
    * @Returns Un objeto con un arreglo de contratos asociados al empleado y un mensaje de éxito.
    */
@@ -178,8 +189,8 @@ export class ContratoController {
    * Endpoint para subir un archivo PDF asociado a un contrato en el módulo de RRHH.
    * Este endpoint permite subir un archivo PDF que representa el contrato firmado por el empleado.
    * Recibe el ID del contrato como parámetro de ruta y el archivo PDF en el cuerpo de la solicitud (multipart/form-data).
-   * ROLES: Este endpoint es accesible para los roles de Administrador y RRHH.
-   * @Url :POST -  http://localhost:3000/api/contrato/:id/subir-pdf
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @POST -  http://localhost:3000/api/contrato/:id/subir-pdf
    * @param id : string (UUID del contrato al cual se asociará el archivo PDF)
    * @param file : archivo PDF (multipart/form-data) que representa el contrato firmado
    * @Returns Un objeto con un mensaje de éxito indicando que el archivo PDF ha sido subido correctamente y asociado al contrato.
@@ -205,8 +216,8 @@ export class ContratoController {
    * Endpoint para descargar un archivo PDF asociado a un contrato en el módulo de RRHH.
    * Este endpoint permite descargar el archivo PDF que representa el contrato firmado por el empleado.
    * Recibe el nombre del archivo como parámetro de ruta y devuelve el archivo PDF como respuesta.
-   * ROLES: Este endpoint es accesible para los roles de Administrador, RRHH, Contador y Empleado.
-   * @Url :GET -  http://localhost:3000/api/contrato/descargar/:filename
+   * @roles ADMIN, RRHH, CONTADOR, EMPLEADO - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @GET -  http://localhost:3000/api/contrato/descargar/:filename
    * @param filename : string (nombre del archivo PDF a descargar, generado por el sistema al subir el contrato)
    * @Returns El archivo PDF como respuesta, con el tipo de contenido 'application/pdf'.
    * @Throws BadRequestException si el archivo solicitado no existe en el servidor.

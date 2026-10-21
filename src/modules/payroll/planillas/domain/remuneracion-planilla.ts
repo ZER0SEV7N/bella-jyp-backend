@@ -4,7 +4,7 @@ import { Dinero, decimal } from './dinero-planilla';
 import type { EntradaPlanilla } from './planilla.types';
 
 /**
- * Entidad de negocio que encapsula la lógica de validación y cálculo de remuneración, ausencias y base previsional.
+ * Regla de negocio que encapsula la lógica de validación y cálculo de remuneración, ausencias y base previsional.
  * Separa la validación de la entrada de planilla, el cálculo de remuneración y la determinación de la base previsional.
  */
 

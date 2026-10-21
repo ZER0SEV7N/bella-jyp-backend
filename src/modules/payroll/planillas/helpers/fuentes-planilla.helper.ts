@@ -1,6 +1,6 @@
 import { ServerTime } from '@/common/utils/server-time';
-import { cargarContextoAsistencia, huellaAsistencia } from '@/modules/asistencia/services/asistencia-contexto.helper';
-import { bloquearEmpleado } from '@/modules/asistencia/services/asistencia-transaccion.helper';
+import { cargarContextoAsistencia, huellaAsistencia } from '@/modules/asistencia/helpers/asistencia-contexto.helper';
+import { bloquearEmpleado } from '@/modules/asistencia/helpers/asistencia-transaccion.helper';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 

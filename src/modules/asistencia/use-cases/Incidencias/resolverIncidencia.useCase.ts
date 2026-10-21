@@ -1,7 +1,9 @@
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ResolverIncidenciaDto } from '@jyp/shared-contracts';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ActorOperacion, bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../../services/asistencia-transaccion.helper';
+import { bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../../helpers/asistencia-transaccion.helper';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
+
 
 /** Rechaza o reabre incidencias con motivo y auditoría. */
 @Injectable()

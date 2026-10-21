@@ -1,5 +1,5 @@
 //src/modules/asistencia/controller/incidencias.controller.ts
-import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch, Get, Query } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch, Get, Query, Req } from "@nestjs/common";
 import { JwtAccessGuard } from "@/common/guards/jwt-access.guard";
 import { RolesGuard } from "@/common/guards/roles.guard";
 import { Roles } from "@/common/decorators/roles.decorator";
@@ -9,7 +9,9 @@ import type { GenerarIncidenciasPeriodoDto, AprobarIncidenciasDto, ListarInciden
 import { GenerarIncidenciasMesUseCase } from "../use-cases/Incidencias/generarIncidenciasMes.useCase";
 import { AprobarIncidenciaMesUseCase } from "../use-cases/Incidencias/aprobarIncidenciaMes.useCase";
 import { ListarIncidenciasMesUseCase } from "../use-cases/Incidencias/listarIncidenciasMes.useCase";
-import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre } from "../decorator/incidencias-swagger.decorator";
+import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre, ApiSwaggerAprobarIncidencias } from "../decorator/incidencias-swagger.decorator";
+import { actorSolicitud } from "@/common/utils/actor-operacion.util";
+import type { SolicitudAutenticada } from  "@/common/utils/actor-operacion.util";
 
 
 /**
@@ -47,8 +49,8 @@ export class IncidenciasController {
     @Roles('ADMIN', 'RRHH', 'CONTADOR')
     @ApiSwaggerGenerarCierre()
     @UsePipes(new ZodValidationPipe(GenerarIncidenciasPeriodoSchema))
-    async generarCierre(@Body() dto: GenerarIncidenciasPeriodoDto) {
-        return await this.generarIncidenciasMesUseCase.execute(dto);
+    async generarCierre(@Body() dto: GenerarIncidenciasPeriodoDto, @Req() req: SolicitudAutenticada) {
+        return await this.generarIncidenciasMesUseCase.execute(dto, actorSolicitud(req));
     }
 
     /**
@@ -67,11 +69,12 @@ export class IncidenciasController {
      * @throws InternalServerErrorException - Si ocurre un error inesperado durante la actualización de las incidencias.
      */
     @Patch('aprobar')
+    @ApiSwaggerAprobarIncidencias()
     @HttpCode(HttpStatus.OK)
     @Roles('ADMIN', 'RRHH')
     @UsePipes(new ZodValidationPipe(AprobarIncidenciasSchema))
-    async aprobarIncidencias(@Body() dto: AprobarIncidenciasDto) {
-        return await this.aprobarIncidenciasUseCase.execute(dto);
+    async aprobarIncidencias(@Body() dto: AprobarIncidenciasDto, @Req() req: SolicitudAutenticada) {
+        return await this.aprobarIncidenciasUseCase.execute(dto, actorSolicitud(req));
     }
 
     /**

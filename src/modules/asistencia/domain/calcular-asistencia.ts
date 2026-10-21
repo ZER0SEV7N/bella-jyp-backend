@@ -1,8 +1,11 @@
+//src/modules/asistencia/domain/calcular-asistencia.ts
 import { ServerTime } from '../../../common/utils/server-time';
 import type { ContextoAsistencia, MarcaDia, ResultadoAsistencia, ResultadoDia } from './asistencia.types';
 import { feriadosNacionalesPeru } from './calendario-peru';
 import { evaluarFecha } from './evaluar-dia';
 import { diasMedicosAcumulados } from './solicitudes-asistencia';
+
+
 
 export const VERSION_MOTOR_ASISTENCIA = '2026-10-15.1';
 
@@ -38,8 +41,7 @@ export function calcularAsistencia(contexto: ContextoAsistencia): ResultadoAsist
     });
     if (contexto.solicitudes.some((s) => !s.fecha_inicio || !s.fecha_fin))
         (detalle.find((d) => d.estado !== 'FUERA_DE_VINCULO') ?? detalle[0]).alertas.push('SOLICITUD_DE_ASISTENCIA_SIN_FECHAS');
-    const medicasDelMes = contexto.solicitudes.filter(
-        (s) =>
+    const medicasDelMes = contexto.solicitudes.filter((s) =>
             s.tipo === 'LICENCIA_MEDICA' &&
             s.estado === 'APROBADA' &&
             s.fecha_inicio &&
@@ -47,15 +49,10 @@ export function calcularAsistencia(contexto: ContextoAsistencia): ResultadoAsist
             s.fecha_inicio.slice(0, 7) <= contexto.periodo &&
             s.fecha_fin.slice(0, 7) >= contexto.periodo
     );
-    if (
-        medicasDelMes.some(
-            (s) =>
-                s.efecto_asistencia === 'SUBSIDIO' ||
-                (s.efecto_asistencia === 'CON_GOCE' &&
-                    diasMedicosAcumulados(
-                        contexto.solicitudes,
-                        s.fecha_fin!.slice(0, 7) === contexto.periodo ? s.fecha_fin! : `${contexto.periodo}-${String(dias).padStart(2, '0')}`
-                    ) > 20)
+            const finDelPeriodo = `${contexto.periodo}-${String(dias).padStart(2, '0')}`;
+    if (medicasDelMes.some(
+            (s) => s.efecto_asistencia === 'SUBSIDIO' ||
+                (s.efecto_asistencia === 'CON_GOCE' && diasMedicosAcumulados(contexto.solicitudes, s.fecha_fin.slice(0, 7) === contexto.periodo ? s.fecha_fin : finDelPeriodo) > 20)
         )
     )
         (detalle.find((d) => d.estado !== 'FUERA_DE_VINCULO') ?? detalle[0]).alertas.push('INCAPACIDAD_MEDICA_REQUIERE_REVISION_DE_SUBSIDIOS');

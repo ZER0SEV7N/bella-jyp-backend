@@ -1,3 +1,4 @@
+//src/modules/payroll/planillas/helpers/generarBoleta.helper.ts
 //La versión 0.3 expone una API asíncrona; no utiliza el constructor público de la versión anterior.
 const pdfmake = require('pdfmake') as {
   addFonts(fonts: Record<string, Record<string, string>>): void;
@@ -9,6 +10,12 @@ import { TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Decimal } from '@prisma/client/runtime/client';
+
+/**
+ * Helper para generar la boleta de pago en formato PDF.
+ * Este helper utiliza la librería pdfmake para crear un documento PDF con la información de la boleta de pago.
+ * Su objetivo es proporcionar una representación visual de la boleta de pago que pueda ser descargada o impresa.
+ */
 
 // ---------- Tipos de entrada ----------
 

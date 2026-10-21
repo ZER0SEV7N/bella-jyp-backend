@@ -1,6 +1,6 @@
 import { ApiErroresOperacion, ApiOperacionDocumentada } from '@/common/decorators/api-contrato.decorator';
 import { applyDecorators } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiExtension, ApiOperation, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { respuestaImportacion } from './asistencia-respuestas.swagger';
 
 const roles = ['ADMIN', 'RRHH', 'ASISTENTE'];
@@ -9,17 +9,7 @@ const formato = 'application/vnd.openxmlformats-officedocument.spreadsheetml.she
 export function ApiSwaggerImportacionAsistenciaController() {
     return applyDecorators(ApiTags('Asistencia - Importación biométrica'), ApiBearerAuth('JWT-auth'), ApiErroresOperacion());
 }
-export function ApiSwaggerPlantillaMarcaciones() {
-    return applyDecorators(
-        ApiOperation({
-            summary: 'Descargar plantilla de marcaciones',
-            description: 'XLSX de una hoja con nro_documento, fecha, hora y tipo_marcacion; el documento se guarda como texto.'
-        }),
-        ApiExtension('x-roles', roles),
-        ApiProduces(formato),
-        ApiResponse({ status: 200, description: 'Plantilla XLSX.', content: { [formato]: { schema: { type: 'string', format: 'binary' } } } })
-    );
-}
+
 function ApiArchivoMarcaciones() {
     return applyDecorators(
         ApiConsumes('multipart/form-data'),

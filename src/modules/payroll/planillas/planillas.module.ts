@@ -1,3 +1,4 @@
+//src/modules/payroll/planillas/planillas.module.ts
 import { PayrollPoolService } from '@/workers/calculo-masivo/payroll-pool.service';
 import { COLA_PAYROLL, PayrollProcessor } from '@/workers/calculo-masivo/payroll.processor';
 import { BullModule } from '@nestjs/bullmq';
@@ -19,6 +20,11 @@ import { RegistrarDesembolsoUseCase } from './use-case/desembolso/registrarDesem
 import { ResolverNovedadPlanillaUseCase } from './use-case/novedades/resolverNovedadPlanilla.useCase';
 import { SolicitarGeneracionPlanillasUseCase } from './use-case/solicitarGeneracionPlanilla.useCase';
 
+/**
+ * Módulo de Planillas
+ * Este módulo encapsula toda la funcionalidad relacionada con la gestión de planillas, incluyendo controladores, servicios y casos de uso.
+ * Su objetivo es proporcionar una estructura organizada y modular para manejar las operaciones de planillas dentro del sistema.
+ */
 @Module({
     imports: [BullModule.registerQueue({ name: COLA_PAYROLL })],
     controllers: [PlanillasController, NovedadesPlanillaController, DesembolsosPlanillaController],

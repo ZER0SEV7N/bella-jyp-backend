@@ -4,7 +4,7 @@ import { Dinero } from './dinero-planilla';
 import type { EntradaPlanilla } from './planilla.types';
 
 /**
- * Entidad de negocio que encapsula la lógica de cálculo de gratificaciones y bonificaciones.
+ * Regla de negocio que encapsula la lógica de cálculo de gratificaciones y bonificaciones.
  * Separa la proyección ordinaria del impuesto adicional por ingresos extraordinarios.
  * @param entrada - Datos de entrada de la planilla, incluyendo régimen de salud y meses computables para gratificación.
  * @param mes - Mes actual del período de cálculo, utilizado para determinar si corresponde gratificación.

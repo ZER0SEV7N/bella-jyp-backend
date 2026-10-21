@@ -4,8 +4,10 @@ import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { calcularAsistencia } from '../../domain/calcular-asistencia';
-import { cargarContextoAsistencia, huellaAsistencia } from '../../services/asistencia-contexto.helper';
-import { ActorOperacion, bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../../services/asistencia-transaccion.helper';
+import { cargarContextoAsistencia, huellaAsistencia } from '../../helpers/asistencia-contexto.helper';
+import {  bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../../helpers/asistencia-transaccion.helper';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
+
 
 /** Calcula y guarda el resumen mensual de un colaborador. */
 @Injectable()

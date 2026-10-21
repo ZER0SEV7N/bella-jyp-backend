@@ -1,15 +1,15 @@
+
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ServerTime } from '@/common/utils/server-time';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { cargarContextoAsistencia, huellaAsistencia } from './asistencia-contexto.helper';
-import { ActorOperacion, bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from './asistencia-transaccion.helper';
+import { cargarContextoAsistencia, huellaAsistencia } from '../helpers/asistencia-contexto.helper';
+import { bloquearEmpleado, transaccionAsistencia, validarPeriodoEditable } from '../helpers/asistencia-transaccion.helper';
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 
-/** Confirma el lote completo en una transacción para evitar aprobaciones parciales. */
 @Injectable()
 export class AprobacionMasivaAsistenciaService {
     constructor(private readonly prisma: PrismaService) {}
 
-    /** La aprobación masiva valida todo el lote y confirma todo o nada. */
     async aprobarLote(periodo: string, empleadoId: string | undefined, actor: ActorOperacion) {
         return transaccionAsistencia(this.prisma, actor, async (tx) => {
             const filas = await tx.incidencias_mes.findMany({

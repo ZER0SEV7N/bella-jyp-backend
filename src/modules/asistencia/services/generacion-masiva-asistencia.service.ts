@@ -1,16 +1,17 @@
+//src/modules/asistencia/services/generacion-masiva-asistencia.service.ts
 import { ServerTime } from '@/common/utils/server-time';
 import { GenerarIncidenciaEmpleadoUseCase } from '../use-cases/Incidencias/generarIncidenciaEmpleado.useCase';
-import type { ActorOperacion } from './asistencia-transaccion.helper';
-//src/modules/asistencia/use-cases/generarIncidenciasMes.useCase.ts
+import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { GenerarIncidenciasPeriodoDto } from '@jyp/shared-contracts';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 /**
- * Caso de uso para generar incidencias de asistencia para un período específico.
- * Este caso de uso procesa los registros de asistencia de los empleados activos,
- * evaluando faltas y tardanzas según su horario laboral y solicitudes aprobadas.
- * Los resultados se almacenan en la base de datos y se devuelven al final del proceso.
+ * Servicio para la generación masiva de incidencias de asistencia.
+ * Este servicio procesa los empleados activos y genera las incidencias de asistencia para un período específico.
+ * La operación se realiza dentro de una transacción para asegurar la atomicidad y consistencia de los cambios.
+ * @requires - PrismaService para acceder a la base de datos y realizar operaciones de lectura y escritura.
+ * @requires - GenerarIncidenciaEmpleadoUseCase para generar las incidencias de asistencia de cada empleado.
  */
 @Injectable()
 export class GeneracionMasivaAsistenciaService {
@@ -26,8 +27,12 @@ export class GeneracionMasivaAsistenciaService {
      * @throws InternalServerErrorException - Si ocurre un error inesperado durante el procesamiento.
      */
     async generar(dto: GenerarIncidenciasPeriodoDto, actor: ActorOperacion) {
+        //Se valida el período proporcionado en el DTO y se asegura que no sea un período futuro.
         const { year, month } = ServerTime.validarPeriodo(dto.periodo);
-        if (dto.periodo > ServerTime.obtenerPeriodoActual) throw new BadRequestException('No se puede generar un período futuro.');
+        if (dto.periodo > ServerTime.obtenerPeriodoActual) 
+            throw new BadRequestException('No se puede generar un período futuro.');
+
+        //Se calcula el rango de fechas del mes para el período especificado.
         const fin = new Date(Date.UTC(year, month, 0));
         const inicio = ServerTime.desdeFechaSimple(`${dto.periodo}-01`);
         //La fecha del vínculo determina la selección, no el indicador activo actual.
@@ -43,9 +48,16 @@ export class GeneracionMasivaAsistenciaService {
             take: dto.limite + 1,
             ...(dto.cursor ? { cursor: { id: dto.cursor }, skip: 1 } : {})
         });
-        if (!empleados.length) throw new NotFoundException('No se encontraron colaboradores para el período solicitado.');
+
+        //Si no se encuentran empleados activos para procesar, se lanza una excepción NotFoundException.
+        if (!empleados.length) 
+            throw new NotFoundException('No se encontraron colaboradores para el período solicitado.');
+
+        //Se procesa cada empleado en el lote, generando las incidencias de asistencia y registrando los resultados.
         const lote = empleados.slice(0, dto.limite);
         const resultados: { empleado_id: string; id?: string; estado?: string; error?: string }[] = [];
+        
+        //Se itera sobre cada empleado en el lote y se intenta generar la incidencia de asistencia.
         for (const empleado of lote) {
             try {
                 const resumen = await this.asistencia.execute(empleado.id, dto.periodo, actor);
@@ -55,6 +67,8 @@ export class GeneracionMasivaAsistenciaService {
                 resultados.push({ empleado_id: empleado.id, error: mensajeErrorIncidencia(error) });
             }
         }
+
+        //Se devuelve un objeto con el resumen del procesamiento, incluyendo el número de empleados procesados, los errores encontrados y el cursor para la siguiente página.
         return {
             periodo: dto.periodo,
             total_procesados: resultados.filter((r) => !r.error).length,
@@ -65,7 +79,9 @@ export class GeneracionMasivaAsistenciaService {
     }
 }
 
-/** Conserva una explicación útil sin asumir que se lanzó una instancia de Error. */
-function mensajeErrorIncidencia(error: unknown): string {
-    return error instanceof Error ? error.message : 'No fue posible calcular la incidencia.';
-}
+/**
+ * Funcion auxiliar para obtener el mensaje de error de una excepción durante la generación de incidencias.
+ * @param error - La excepción capturada durante el procesamiento de un empleado.
+ * @returns - El mensaje de error si es una instancia de Error, o un mensaje genérico si no lo es.
+ */
+function mensajeErrorIncidencia(error: unknown): string { return error instanceof Error ? error.message : 'No fue posible calcular la incidencia.'; }

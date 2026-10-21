@@ -34,10 +34,12 @@ export class AppService {
         organization: 'J&P Perifericos S.A.C',
         project: 'Bella Planillas Enterprise System',
         makers: [
-          { name: 'Daniel Singer', role: 'Desarrollador', comment: 'Líder del equipo de desarrollo & Backend Developer' },
-          { name: 'Rodrigo del Castillo', role: 'Desarrollador', comment: 'Frontend & UI/UX' },
-          { name: 'Adrian Matias Dueñas', role: 'Desarrollador', comment: 'Backend & Integraciones' },
-          { name: 'Dylan Yessid Florez', role: 'Desarrollador', comment: 'Documentacion & Backend' },
+          { name: 'Daniel Singer', role: 'Desarrollador Principal y Líder de Equipo', comment: 'Líder del equipo de desarrollo & encargado del backend' },
+          { name: 'Rodrigo del Castillo', role: 'Desarrollador Frontend', comment: 'Se encargo de la implementación del frontend y la experiencia del usuario' },
+          { name: 'Adrian Matias Dueñas', role: 'Desarrollador Backend', comment: 'Se encargo de la implementación del backend y las integraciones' },
+          { name: 'Dylan Yessid Florez', role: 'Scrum Master and Developer', comment: 'Documentacion & Backend' },
+          { name: 'Julio Vargas', role: 'Desarrollador Junior', comment: 'Ayudante de Frontend, colaboración en la implementación de funcionalidades y pruebas' },
+          { name: 'Luis Sipion', role: 'Desarrollador Junior', comment: 'Ayudante de Frontend, colavoración en la implementación de funcionalidades y pruebas' },
         ]
       }
     };

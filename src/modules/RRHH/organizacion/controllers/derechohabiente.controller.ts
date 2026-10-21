@@ -42,7 +42,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para registrar un nuevo derechohabiente asociado a un empleado titular.
-     * @Post /api/rrhh/derechohabientes
+     * @Post /api/v1/rrhh/derechohabientes
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param dto : {
      *   - empleado_id: string - ID del empleado titular al que se asociará el derechohabiente.
@@ -69,7 +69,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para subir un sustento documental asociado a un derechohabiente.
-     * @Post /api/rrhh/derechohabientes/sustento/abrir
+     * @Post /api/v1/rrhh/derechohabientes/sustento/abrir
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param req - FastifyRequest que contiene el archivo multipart y los campos del formulario.
      * @returns - La referencia al sustento documental registrado en la base de datos.
@@ -107,7 +107,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para listar los derechohabientes asociados a un empleado titular específico.
-     * @Get /api/rrhh/derechohabientes/empleado/:empleadoId
+     * @Get /api/v1/rrhh/derechohabientes/empleado/:empleadoId
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param empleadoId - ID del empleado titular cuyos derechohabientes se desean listar.
      * @returns - Una lista de derechohabientes asociados al empleado titular especificado.
@@ -122,7 +122,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para desactivar un derechohabiente específico.
-     * @Delete /api/rrhh/derechohabientes/:id/desactivar
+     * @Delete /api/v1/rrhh/derechohabientes/:id/desactivar
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param id - ID del derechohabiente que se desea desactivar.
      * @returns - Un mensaje de confirmación indicando que el derechohabiente ha sido desactivado.
@@ -138,7 +138,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para reactivar un derechohabiente previamente desactivado.
-     * @Patch /api/rrhh/derechohabientes/:id/reactivar
+     * @Patch /api/v1/rrhh/derechohabientes/:id/reactivar
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param id - ID del derechohabiente que se desea reactivar.
      * @returns - Un mensaje de confirmación indicando que el derechohabiente ha sido reactivado.

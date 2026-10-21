@@ -17,6 +17,13 @@ import { ApiSwaggerJordanaController, ApiSwaggerCrearJordana, ApiSwaggerListarJo
  * Controlador para gestionar las jornadas laborales en el módulo de RRHH.
  * @requires - JWT Bearer token para autenticación.
  * @requires - Roles: ADMIN, RRHH para operaciones de escritura; CONTADOR para lectura.
+ * @url /api/v1/rrhh/jornadas
+ * Las URIS implementadas son:
+ * - POST /api/v1/rrhh/jornadas: Permite crear una nueva jornada laboral.
+ * - GET /api/v1/rrhh/jornadas: Permite listar las jornadas laborales con filtros y paginación.
+ * - PUT /api/v1/rrhh/jornadas/:id: Permite actualizar los detalles de una jornada laboral existente.
+ * - PATCH /api/v1/rrhh/jornadas/:id/desactivar: Permite desactivar una jornada laboral.
+ * - PATCH /api/v1/rrhh/jornadas/:id/reactivar: Permite reactivar una jornada laboral previamente desactivada.
  */
 @ApiSwaggerJordanaController()
 @Controller('api/v1/rrhh/jornadas')
@@ -32,7 +39,8 @@ export class JornadaController {
   /**
    * Crear una nueva jornada laboral
    * Permite crear una nueva jornada laboral en el sistema. Se requiere que el usuario tenga el rol de "ADMIN" o "RRHH" para realizar esta acción.
-   * POST /api/rrhh/jornadas
+   * @POST /api/v1/rrhh/jornadas
+   * @roles ADMIN, RRHH
    * @param dto - Datos de la nueva jornada laboral a crear, validados mediante el esquema CrearJornadaSchema.
    * @DTO {
    *   nombre: string (3-100 carácteres),
@@ -75,7 +83,8 @@ export class JornadaController {
   /**
    * Listar jornadas laborales
    * Permite obtener un listado de jornadas laborales con paginación y filtros por estado, modalidad, turno, duración, búsqueda o área aplicable.
-   * GET /api/rrhh/jornadas
+   * @url /api/v1/rrhh/jornadas
+   * @roles ADMIN, RRHH, CONTADOR
    * @Query {
    *   page?: number (default 1),
    *   limit?: number (default 10, max 100),
@@ -99,7 +108,8 @@ export class JornadaController {
   /**
    * Actualizar una jornada laboral
    * Permite actualizar los detalles de una jornada laboral existente. Se requiere que el usuario tenga el rol de "ADMIN" o "RRHH" para realizar esta acción.
-   * PUT /api/rrhh/jornadas/:id
+   * @PUT /api/v1/rrhh/jornadas/:id
+   * @roles ADMIN, RRHH
    * @param id - ID de la jornada laboral a actualizar (UUID).
    * @param dto - Datos actualizados de la jornada laboral, validados mediante el esquema ActualizarJornadaSchema.
    * @DTO {
@@ -145,7 +155,8 @@ export class JornadaController {
   /**
    * Desactivar una jornada laboral
    * Permite desactivar una jornada laboral existente. Se requiere que el usuario tenga el rol de "ADMIN" o "RRHH" para realizar esta acción.
-   * DELETE /api/rrhh/jornadas/:id/desactivar
+   * @DELETE /api/v1/rrhh/jornadas/:id/desactivar
+   * @roles ADMIN, RRHH
    * @param id - ID de la jornada laboral a desactivar (UUID).
    * @returns La jornada laboral desactivada con sus detalles.
    * @throws {NotFoundException, BadRequestException}
@@ -161,7 +172,8 @@ export class JornadaController {
   /**
    * Reactivar una jornada laboral
    * Permite reactivar una jornada laboral desactivada. Se requiere que el usuario tenga el rol de "ADMIN" o "RRHH" para realizar esta acción.
-   * PATCH /api/rrhh/jornadas/:id/reactivar
+   * @PATCH /api/v1/rrhh/jornadas/:id/reactivar
+   * @roles ADMIN, RRHH
    * @param id - ID de la jornada laboral a reactivar (UUID).
    * @returns La jornada laboral reactivada con sus detalles.
    * @throws {NotFoundException}
