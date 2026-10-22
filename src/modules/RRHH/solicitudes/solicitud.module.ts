@@ -8,6 +8,7 @@ import { ObtenerHistorialSolicitudUseCase } from './use-cases/obtenerHistorialSo
 import { AsignarRevisionDeSolicitudUseCase } from './use-cases/asignarRevisionDeSolicitud.useCase';
 import { EvaluarSolicitudUseCase } from './use-cases/evaluarSolicitud.useCase';
 import { AnularSolicitudUseCase } from './use-cases/anularSolicitud.useCase';
+import { ObtenerSolicitudesUseCase } from './use-cases/obtenerSolicitudes.useCase';
 //Servicios
 import { PrismaService } from '@/common/prisma/prisma.service';
 
@@ -26,7 +27,8 @@ import { PrismaService } from '@/common/prisma/prisma.service';
         AsignarRevisionDeSolicitudUseCase,
         EvaluarSolicitudUseCase,
         AnularSolicitudUseCase,
-        ObtenerHistorialSolicitudUseCase
+        ObtenerHistorialSolicitudUseCase,
+        ObtenerSolicitudesUseCase
     ]
 })
 export class SolicitudModule {}

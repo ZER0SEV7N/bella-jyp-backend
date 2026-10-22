@@ -1,5 +1,5 @@
 //src/modules/RRHH/contrato/controller/contrato.controller.ts
-import { Controller, Post, Get, Param, Body, Patch, Delete, Req, Res, UseGuards, UsePipes, HttpCode, HttpStatus, BadRequestException, NotFoundException, ForbiddenException, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Patch, Delete, Req, Res, UseGuards, UsePipes, HttpCode, HttpStatus, BadRequestException, NotFoundException, ForbiddenException, Put, ParseUUIDPipe, Query } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -47,7 +47,7 @@ export class ContratoController {
    * Endpoint para crear un nuevo contrato en el módulo de RRHH.
    * Este endpoint recibe los datos del contrato en el cuerpo de la solicitud y utiliza el caso de uso CrearContratoUseCase para registrar un nuevo contrato sin PDF adjunto.
    * El contrato queda habilitado para edición y se marca como borrador.
-   * @POST http://localhost:3000/api/v1/rrhh/contrato/crear
+   * @POST http://localhost:3000/api/v1/rrhh/contrato
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param file : pdf
    * @param payload {
@@ -74,7 +74,7 @@ export class ContratoController {
    * Endpoint para actualizar un contrato existente en el módulo de RRHH.
    * Este endpoint permite editar un contrato SOLO si aún no tiene un PDF subido.
    * Recibe el ID del contrato como parámetro de ruta y los datos a actualizar en el cuerpo de la solicitud.
-   * @PATCH -  http://localhost:3000/api/v1/rrhh/contrato/:id/actualizar
+   * @PUT -  http://localhost:3000/api/v1/rrhh/contrato/:id
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param id : string (UUID del contrato a actualizar)
    * @param payload {
@@ -91,7 +91,7 @@ export class ContratoController {
    * @Throws ForbiddenException si el usuario no tiene los permisos necesarios para editar el contrato.
    */
   @ApiSwaggerEditarContrato()
-  @Patch(':id/actualizar')
+  @Put(':id')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(EditarContratoSchema, true))
@@ -190,7 +190,7 @@ export class ContratoController {
    * Este endpoint permite subir un archivo PDF que representa el contrato firmado por el empleado.
    * Recibe el ID del contrato como parámetro de ruta y el archivo PDF en el cuerpo de la solicitud (multipart/form-data).
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
-   * @POST -  http://localhost:3000/api/contrato/:id/subir-pdf
+   * @POST -  http://localhost:3000/api/v1/rrhh/contrato/:id/subir-pdf
    * @param id : string (UUID del contrato al cual se asociará el archivo PDF)
    * @param file : archivo PDF (multipart/form-data) que representa el contrato firmado
    * @Returns Un objeto con un mensaje de éxito indicando que el archivo PDF ha sido subido correctamente y asociado al contrato.

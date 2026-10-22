@@ -1,0 +1,23 @@
+$kind: http-request
+description: |-
+  POST /api/auth/logout
+  Origen: src/modules/core/auth/controller/auth.controller.ts:147
+  Handler: logout
+  Roles: Público
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/auth/logout"
+method: POST
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+
+      if (pm.response.code === 200) { pm.environment.unset('access_token');
+      const rol = pm.environment.get('rol_actual'); if (rol)
+      pm.environment.unset('token_' + rol.toLowerCase()); }
+    language: text/javascript
+order: 5000

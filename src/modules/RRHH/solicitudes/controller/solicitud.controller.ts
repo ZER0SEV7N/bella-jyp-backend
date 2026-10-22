@@ -1,5 +1,5 @@
 //src/modules/RRHH/solicitudes/controller/solicitud.controller.ts
-import { Controller, Post, Get, Patch, Body, Param, UseGuards, UsePipes, Req, HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, UsePipes, Req, HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
 //Importación de tipos y servicios necesarios para el controlador
 import type { FastifyRequest } from 'fastify';
 import type { usuarios } from '@prisma/client';
@@ -9,8 +9,8 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 //pipes y validaciones de entrada (schema y DTO)
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { CrearSolicitudSchema, EvaluarSolicitudSchema } from '@jyp/shared-contracts';
-import type { CrearSolicitudDto, EvaluarSolicitudDto } from '@jyp/shared-contracts';
+import { CrearSolicitudSchema, EvaluarSolicitudSchema, ListarSolicitudesQuerySchema } from '@jyp/shared-contracts';
+import type { CrearSolicitudDto, EvaluarSolicitudDto, ListarSolicitudesQueryDto } from '@jyp/shared-contracts';
 //Casos de uso
 import { CrearSolicitudUseCase } from '../use-cases/crearSolicitud.useCase';
 import { ObtenerDetalleSolicitudUseCase } from '../use-cases/obtenerDetalleSolicitud.useCase';
@@ -18,10 +18,11 @@ import { ObtenerHistorialSolicitudUseCase } from '../use-cases/obtenerHistorialS
 import { AsignarRevisionDeSolicitudUseCase } from '../use-cases/asignarRevisionDeSolicitud.useCase';
 import { EvaluarSolicitudUseCase } from '../use-cases/evaluarSolicitud.useCase';
 import { AnularSolicitudUseCase } from '../use-cases/anularSolicitud.useCase';
+import { ObtenerSolicitudesUseCase } from '../use-cases/obtenerSolicitudes.useCase';
 //Helpers de validación y procesamiento de solicitudes
 import { leerMultipartSolicitud, limpiarSustentoSolicitud } from '../helpers/multipartSolicitud.helper';
 //Decorators de Swagger para documentación de API
-import { ApiSwaggerSolicitudController, ApiSwaggerCrearSolicitud, ApiSwaggerObtenerDetalleSolicitud, ApiSwaggerObtenerHistorialSolicitud, ApiSwaggerAsignarRevision, ApiSwaggerEvaluarSolicitud, ApiSwaggerAnularSolicitud } from '../decorator/solicitudes-swagger.decorator';
+import { ApiSwaggerSolicitudController, ApiSwaggerCrearSolicitud, ApiSwaggerListarSolicitudes, ApiSwaggerObtenerDetalleSolicitud, ApiSwaggerObtenerHistorialSolicitud, ApiSwaggerAsignarRevision, ApiSwaggerEvaluarSolicitud, ApiSwaggerAnularSolicitud } from '../decorator/solicitudes-swagger.decorator';
 
 //Define un tipo de solicitud que extiende FastifyRequest para incluir información del usuario autenticado.
 type SolicitudRequest = FastifyRequest & { user: Pick<usuarios, 'id' | 'rol' | 'empleado_id'> };
@@ -41,8 +42,28 @@ export class SolicitudController {
         private readonly asignarRevisionUseCase: AsignarRevisionDeSolicitudUseCase,
         private readonly evaluarSolicitudUseCase: EvaluarSolicitudUseCase,
         private readonly anularSolicitudUseCase: AnularSolicitudUseCase,
-        private readonly obtenerHistorialUseCase: ObtenerHistorialSolicitudUseCase
+        private readonly obtenerHistorialUseCase: ObtenerHistorialSolicitudUseCase,
+        private readonly obtenerSolicitudesUseCase: ObtenerSolicitudesUseCase
     ) {}
+
+    /**
+     * Lista todas las solicitudes de permisos, vacaciones y descansos médicos según los filtros proporcionados en la query.
+     * Este endpoint permite filtrar por estado, tipo de solicitud, fechas y búsqueda por código o motivo.
+     * @Get /api/v1/rrhh/solicitudes
+     * @Roles ADMIN, RRHH, CONTADOR, EMPLEADO - Solo usuarios con estos roles pueden acceder a este endpoint.
+     * @param query - ListarSolicitudesQueryDto - Parámetros de consulta para filtrar y paginar los resultados.
+     * @param req - Solicitud HTTP entrante, utilizada para obtener la identidad del usuario desde el JWT.
+     * @returns - Un objeto con la lista de solicitudes que cumplen con los filtros proporcionados, incluyendo información paginada.
+     * @throws BadRequestException - Si los parámetros de consulta son inválidos.
+     * @throws ForbiddenException - Si el rol del usuario no tiene acceso a las solicitudes de RRHH.
+     */
+    @Get()
+    @Roles('ADMIN', 'RRHH', 'CONTADOR', 'EMPLEADO')
+    @UsePipes(new ZodValidationPipe(ListarSolicitudesQuerySchema))
+    @ApiSwaggerListarSolicitudes()
+    async listar(@Query() query: ListarSolicitudesQueryDto, @Req() req: SolicitudRequest) {
+        return this.obtenerSolicitudesUseCase.execute(query, req.user.empleado_id, req.user.rol);
+    }
 
     /**
      * Crea una nueva solicitud de permiso, vacaciones o descanso.

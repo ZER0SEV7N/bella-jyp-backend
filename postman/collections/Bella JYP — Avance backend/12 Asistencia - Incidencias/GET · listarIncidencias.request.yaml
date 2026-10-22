@@ -1,0 +1,42 @@
+$kind: http-request
+description: |-
+  GET /api/asistencia/incidencias
+  Origen: src/modules/asistencia/controller/incidencias.controller.ts:77
+  Handler: listarIncidencias
+  Roles: ADMIN, RRHH, CONTADOR, ASISTENTE
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/v1/asistencia/incidencias?page=1&limit=10&periodo={{peri\
+  odo}}"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+    disabled: false
+    description: ""
+  - key: limit
+    value: "10"
+    disabled: false
+    description: ""
+  - key: periodo
+    value: "{{periodo}}"
+    disabled: false
+    description: ""
+  - key: area_id
+    value: "{{area_id}}"
+    disabled: true
+  - key: estado
+    value: ""
+    disabled: true
+  - key: busqueda
+    value: demo
+    disabled: true
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+    language: text/javascript
+order: 3000

@@ -59,7 +59,7 @@ export class CargoController {
   /**
    * Editar un cargo existente
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden editar un cargo existente.
-   * @PUT /api/rrhh/cargo/:id/actualizar
+   * @PUT /api/rrhh/cargo/:id
    * @param id - string (UUID)
    * @DTO : {
    *    "id_area"?: string (UUID válido),
@@ -73,7 +73,7 @@ export class CargoController {
    *           400 Bad Request - Datos inválidos, nombre duplicado en el área destino o banda salarial inconsistente.
    */
   @ApiSwaggerActualizarCargo()
-  @Put(':id/actualizar')
+  @Put(':id')
   @UsePipes(new ZodValidationPipe(ActualizarCargoSchema, true))
   @Roles('ADMIN', 'RRHH')
   async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ActualizarCargoDto) {
@@ -83,7 +83,7 @@ export class CargoController {
   /**
    * Eliminar un cargo (SOFT DELETE)
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden eliminar un cargo.
-   * @DELETE /api/rrhh/cargo/@param /desactive
+   * @DELETE /api/rrhh/cargo/@param /desactivar
    * @param id string - uuid
    */
   @ApiSwaggerDesactivarCargo()
@@ -98,11 +98,11 @@ export class CargoController {
    * Reactivar un cargo que se encuentra desactivado
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden reactivar un cargo desactivado.
    * Valida que el área a la que pertenece se encuentre activa.
-   * @PATCH /api/rrhh/cargo/:id/reactive
+   * @PATCH /api/rrhh/cargo/:id/reactivar
    * @param id - string (UUID)
    */
   @ApiSwaggerReactivarCargo()
-  @Patch(':id/reactive')
+  @Patch(':id/reactivar')
   @HttpCode(HttpStatus.OK)
   @Roles('ADMIN', 'RRHH')
   async reactive(@Param('id', ParseUUIDPipe) id: string) {

@@ -1,0 +1,33 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/area/{{area_id}/actualizar"
+  method: PUT
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "descripcion": "Área actualizada desde Postman"
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "222"
+    date: Thu, 22 Oct 2026 03:41:16 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "type": "https://api.jyp.com/errors/400",
+        "title": "Bad Request",
+        "status": 400,
+        "detail": "Validation failed (uuid is expected)",
+        "instance": "/api/v1/rrhh/area/%7B%7Barea_id%7D/actualizar",
+        "timestamp": "2026-10-22T03:41:16.151Z"
+      }
+order: 2000

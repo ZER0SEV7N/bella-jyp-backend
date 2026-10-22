@@ -1,0 +1,34 @@
+$kind: http-request
+description: |-
+  POST /api/tareas
+  Origen: src/modules/RRHH/tareas/controller/tareas.controller.ts:60
+  Handler: crearTarea
+  Roles: ADMIN, CONTADOR
+  HTTP esperado con datos y estado válidos: 201.
+url: "{{base_url}}/api/v1/rrhh/tareas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "asignado_a": "{{usuario_asistente_id}}",
+      "titulo": "Revisar incidencias del período",
+      "descripcion": "Tarea de prueba del avance",
+      "fecha_entrega": "2026-10-20T22:00:00.000Z"
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [201]', () =>
+      pm.expect([201]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+
+      if (pm.response.code < 300) { const r=pm.response.json(); const d=r.data
+      || r; const entity=d.id ? d : d.data; if (entity && entity.id)
+      pm.environment.set('tarea_id',entity.id); }
+    language: text/javascript
+order: 1000

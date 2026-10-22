@@ -182,30 +182,30 @@ model empleados {
   documento_id        String                @db.Uuid
   jornada_id          String?               @db.Uuid
   estado_laboral      estado_empleado_enum  @default(ACTIVO)
-  nombre              String?               @db.VarChar(100)
-  apellido            String?               @db.VarChar(100)
+  nombre              String                @db.VarChar(100)
+  apellido            String                @db.VarChar(100)
   nro_documento       String                @unique @db.VarChar(20)
-  email               String?               @db.VarChar(150)
-  telefono            String?               @db.VarChar(20)
+  email               String                @db.VarChar(150)
+  telefono            String                @db.VarChar(20)
 
   // Identidad y filiación civil
-  sexo                sexo_enum?
+  sexo                sexo_enum 
   estado_civil        estado_civil_enum     @default(SOLTERO)
   nacionalidad        String                @default("PERUANA") @db.VarChar(50)
-  fecha_nacimiento    DateTime?             @db.Date
+  fecha_nacimiento    DateTime              @db.Date
 
   // Domicilio y Ubigeo (SUNAT)
-  direccion            String?              @db.VarChar(255)
-  referencia_direccion String?              @db.VarChar(255)
-  ubigeo               String?              @db.VarChar(6)
-  distrito             String?              @db.VarChar(100)
-  provincia            String?              @db.VarChar(100)
-  departamento         String?              @db.VarChar(100)
+  direccion            String               @db.VarChar(255)
+  referencia_direccion String               @db.VarChar(255)
+  ubigeo               String               @db.VarChar(6)
+  distrito             String               @db.VarChar(100)
+  provincia            String               @db.VarChar(100)
+  departamento         String               @db.VarChar(100)
 
   // Vínculo laboral
-  fecha_inicio          DateTime?                  @db.Date
-  fecha_cese            DateTime?                  @db.Date
-  afp_fecha_filiacion   DateTime?                  @db.Date
+  fecha_inicio          DateTime                   @db.Date
+  fecha_cese            DateTime                   @db.Date
+  afp_fecha_filiacion   DateTime                   @db.Date
   asig_familiar         Boolean                    @default(false)
   activo                Boolean                    @default(true)
   deleted_at            DateTime?                  @db.Timestamptz(6)

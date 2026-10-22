@@ -1,6 +1,6 @@
 //src/modules/RRHH/solicitudes/decorator/solicitudes-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes, ApiExtension } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes, ApiExtension, ApiQuery } from '@nestjs/swagger';
 
 /**
  * Decorador Swagger para documentar el controlador de solicitudes en OpenAPI.
@@ -87,6 +87,24 @@ export function ApiSwaggerCrearSolicitud() {
       status: 404,
       description: 'Empleado solicitante no encontrado o inactivo.',
     }),
+  );
+}
+
+export function ApiSwaggerListarSolicitudes() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Listar solicitudes',
+      description: 'Obtiene el listado paginado de solicitudes con filtros por estado, tipo, área, texto y rango de fechas.'
+    }),
+    ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
+    ApiQuery({ name: 'limit', required: false, type: Number, example: 10, maximum: 100 }),
+    ApiQuery({ name: 'estado', required: false, enum: ['PENDIENTE', 'EN_REVISION', 'APROBADA', 'RECHAZADA', 'ANULADA'] }),
+    ApiQuery({ name: 'tipo', required: false, enum: ['VACACIONES', 'ADELANTO_VACACIONES', 'VENTA_VACACIONES', 'LICENCIA_MEDICA', 'PERMISO', 'JUSTIFICACION_ASISTENCIA', 'ACTUALIZACION_DATOS', 'ADELANTO_SUELDO', 'RENUNCIA'] }),
+    ApiQuery({ name: 'area_id', required: false, type: String, format: 'uuid' }),
+    ApiQuery({ name: 'search', required: false, type: String }),
+    ApiQuery({ name: 'fecha_desde', required: false, type: String, example: '2026-01-01' }),
+    ApiQuery({ name: 'fecha_hasta', required: false, type: String, example: '2026-12-31' }),
+    ApiResponse({ status: 200, description: 'Listado paginado de solicitudes.' })
   );
 }
 

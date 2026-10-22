@@ -1,0 +1,28 @@
+$kind: http-request
+description: |-
+  PUT /api/rrhh/jornadas/:id
+  Origen: src/modules/RRHH/organizacion/controllers/jornada.controller.ts:135
+  Handler: actualizarJornada
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/v1/rrhh/jornadas/{{jornada_id}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "descripcion": "Jornada de oficina actualizada"
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+    language: text/javascript
+examples: .resources/PUT · actualizarJornada.resources/examples
+order: 3000

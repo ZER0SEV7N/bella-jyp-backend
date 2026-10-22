@@ -20,10 +20,10 @@ import { generarPlantillaExcel } from '../use-cases/carga-masiva/helpers/generar
 /**
  * Controlador para manejar la carga masiva de empleados desde un archivo CSV.
  * Este controlador expone dos endpoints:
- * 1. GET /api/rrhh/empleados/bulk/:jobId: Para consultar el estado del procesamiento del archivo CSV.
- * 2. GET /api/rrhh/empleados/bulk/plantilla: Para descargar un archivo CSV de plantilla para la carga masiva.
- * 3. POST /api/rrhh/empleados/bulk/validar: Para validar un archivo CSV antes de su procesamiento.
- * 4. POST /api/rrhh/empleados/bulk/confirmar: Para confirmar el procesamiento de las filas pre-validadas.
+ * 1. GET /api/rrhh/empleados-bulk/:jobId: Para consultar el estado del procesamiento del archivo CSV.
+ * 2. GET /api/rrhh/empleados-bulk/plantilla: Para descargar un archivo CSV de plantilla para la carga masiva.
+ * 3. POST /api/rrhh/empleados-bulk/validar: Para validar un archivo CSV antes de su procesamiento.
+ * 4. POST /api/rrhh/empleados-bulk/confirmar: Para confirmar el procesamiento de las filas pre-validadas.
  * 
  * El controlador utiliza JWT y roles para proteger los endpoints, permitiendo el acceso solo a usuarios con roles 'ADMIN' o 'RRHH'.
  * La carga masiva se procesa de manera asíncrona, retornando un ID de job que puede ser usado para consultar el estado del procesamiento.
@@ -44,7 +44,7 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint de consulta para el Polling Inteligente del Frontend.
-   * @Get /api/v1/rrhh/empleados/bulk/:jobId
+   * @Get /api/v1/rrhh/empleados-bulk/:jobId
    * @roles ADMIN, RRHH
    * @param jobId string - El ID del job de carga masiva que se desea consultar.
    * @returns Un objeto con el estado actual del job, incluyendo total de registros, procesados y fallidos.
@@ -68,7 +68,7 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint para validar un archivo CSV antes de su procesamiento.
-   * @POST /api/v1/rrhh/empleados/bulk/validar
+   * @POST /api/v1/rrhh/empleados-bulk/validar
    * @roles ADMIN, RRHH
    * @param request FastifyRequest - La solicitud HTTP entrante, que contiene el archivo CSV en el cuerpo.
    * @returns Un objeto con un reporte de pre-validación, incluyendo total de filas, filas válidas, filas inválidas y detalles de errores.
@@ -104,7 +104,7 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint para confirmar el procesamiento de las filas pre-validadas.
-   * @POST /api/v1/rrhh/empleados/bulk/confirmar
+   * @POST /api/v1/rrhh/empleados-bulk/confirmar
    * @roles ADMIN, RRHH
    * @param body ConfirmarCargaMasivaDTO - El DTO que contiene las filas validadas para su procesamiento.
    * @param response FastifyReply - La respuesta HTTP que se enviará al cliente.
@@ -132,7 +132,7 @@ export class EmpleadoBulkController {
 
   /**
    * Endpoint para descargar un archivo CSV de plantilla para la carga masiva de empleados.
-   * @Get /api/v1/rrhh/empleados/bulk/plantilla
+   * @Get /api/v1/rrhh/empleados-bulk/plantilla
    * @roles ADMIN, RRHH
    * @returns Un archivo CSV con la estructura necesaria para la carga masiva de empleados.
    */

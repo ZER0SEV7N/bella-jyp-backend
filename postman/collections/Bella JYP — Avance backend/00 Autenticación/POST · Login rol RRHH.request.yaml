@@ -1,0 +1,49 @@
+$kind: http-request
+description: |-
+  POST /api/auth/login
+  Origen: src/modules/core/auth/controller/auth.controller.ts:48
+  Handler: login
+  Roles: Público
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "tipo_documento": "DNI",
+      "nro_documento": "{{rrhh_documento}}",
+      "password": "{{rrhh_password}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+
+      if (pm.response.code === 200) {
+          const root = pm.response.json();
+          const data = root.data || root;
+          pm.test('Login devuelve accessToken', () => pm.expect(data.accessToken).to.be.a('string').and.not.empty);
+          if (data.accessToken) pm.environment.set('access_token', data.accessToken);
+          pm.environment.set('password_actor_actual', pm.environment.get('login_password'));
+          if (data.usuario) {
+              pm.environment.set('usuario_id', data.usuario.id);
+              pm.environment.set('rol_actual', data.usuario.rol);
+              pm.environment.set('token_' + data.usuario.rol.toLowerCase(), data.accessToken);
+              if (data.usuario.rol === 'ASISTENTE') pm.environment.set('usuario_asistente_id', data.usuario.id);
+          }
+      }
+    language: text/javascript
+  - type: afterResponse
+    code: if (pm.response.code === 200) pm.environment.set('password_actor_actual',
+      pm.environment.get('rrhh_password'));
+    language: text/javascript
+order: 7000

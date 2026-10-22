@@ -1,0 +1,500 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/core/audit/logs?page=1&limit=10"
+  method: GET
+  queryParams:
+    - key: page
+      value: "1"
+      disabled: false
+      description: ""
+    - key: limit
+      value: "10"
+      disabled: false
+      description: ""
+    - key: tabla_afectada
+      value: empleados
+      disabled: true
+    - key: accion
+      value: UPDATE
+      disabled: true
+    - key: usuario_id
+      value: "{{usuario_id}}"
+      disabled: true
+    - key: registro_id
+      value: "{{empleado_id}}"
+      disabled: true
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "12286"
+    date: Thu, 22 Oct 2026 04:47:28 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "a1def5a3-1003-70f0-aa15-8e1ae1c81c5f",
+            "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+            "accion": "UPDATE",
+            "tabla_afectada": "derechohabientes",
+            "registro_id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+            "valores_antes": {
+              "id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+              "sexo": "MASCULINO",
+              "activo": false,
+              "nombres": "Hijo Demo",
+              "vinculo": "HIJO_MENOR",
+              "apellidos": "Pruebas",
+              "created_at": "2026-10-22T04:26:54.388Z",
+              "deleted_at": "2026-10-22T04:29:03.819Z",
+              "updated_at": "2026-10-22T04:29:03.824Z",
+              "empleado_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "SOLTERO",
+              "nro_documento": "90000002",
+              "fecha_nacimiento": "2018-05-10T00:00:00.000Z",
+              "fecha_alta_seguro": null,
+              "acreditado_essalud": false
+            },
+            "valores_despues": {
+              "id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+              "sexo": "MASCULINO",
+              "activo": true,
+              "nombres": "Hijo Demo",
+              "vinculo": "HIJO_MENOR",
+              "apellidos": "Pruebas",
+              "created_at": "2026-10-22T04:26:54.388Z",
+              "deleted_at": null,
+              "updated_at": "2026-10-22T04:29:24.254Z",
+              "empleado_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "SOLTERO",
+              "nro_documento": "90000002",
+              "fecha_nacimiento": "2018-05-10T00:00:00.000Z",
+              "fecha_alta_seguro": null,
+              "acreditado_essalud": false
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:29:24.260Z",
+            "usuarios": {
+              "email": "demo@example.test",
+              "rol": "ADMIN",
+              "empleados": {
+                "nro_documento": "70000001",
+                "nombre": "Administrador",
+                "apellido": "Sistema Central"
+              }
+            }
+          },
+          {
+            "id": "a1dea5d6-3306-7c0b-8472-2f2ed9fba1bf",
+            "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+            "accion": "UPDATE",
+            "tabla_afectada": "derechohabientes",
+            "registro_id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+            "valores_antes": {
+              "id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+              "sexo": "MASCULINO",
+              "activo": true,
+              "nombres": "Hijo Demo",
+              "vinculo": "HIJO_MENOR",
+              "apellidos": "Pruebas",
+              "created_at": "2026-10-22T04:26:54.388Z",
+              "deleted_at": null,
+              "updated_at": "2026-10-22T04:26:54.388Z",
+              "empleado_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "SOLTERO",
+              "nro_documento": "90000002",
+              "fecha_nacimiento": "2018-05-10T00:00:00.000Z",
+              "fecha_alta_seguro": null,
+              "acreditado_essalud": false
+            },
+            "valores_despues": {
+              "id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+              "sexo": "MASCULINO",
+              "activo": false,
+              "nombres": "Hijo Demo",
+              "vinculo": "HIJO_MENOR",
+              "apellidos": "Pruebas",
+              "created_at": "2026-10-22T04:26:54.388Z",
+              "deleted_at": "2026-10-22T04:29:03.819Z",
+              "updated_at": "2026-10-22T04:29:03.824Z",
+              "empleado_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "SOLTERO",
+              "nro_documento": "90000002",
+              "fecha_nacimiento": "2018-05-10T00:00:00.000Z",
+              "fecha_alta_seguro": null,
+              "acreditado_essalud": false
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:29:03.831Z",
+            "usuarios": {
+              "email": "demo@example.test",
+              "rol": "ADMIN",
+              "empleados": {
+                "nro_documento": "70000001",
+                "nombre": "Administrador",
+                "apellido": "Sistema Central"
+              }
+            }
+          },
+          {
+            "id": "a1dd7d95-3d05-7e76-be18-87a71a9d4360",
+            "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+            "accion": "CREATE",
+            "tabla_afectada": "derechohabiente_documentos",
+            "registro_id": "a1dd7d89-3d09-7cc1-a9a3-a104ce3e53a0",
+            "valores_antes": null,
+            "valores_despues": {
+              "id": "a1dd7d89-3d09-7cc1-a9a3-a104ce3e53a0",
+              "vigente": true,
+              "created_at": "2026-10-22T04:27:47.980Z",
+              "deleted_at": null,
+              "updated_at": "2026-10-22T04:27:47.980Z",
+              "archivo_url": "/archivos/derechohabientes/1792643267956-a1dd7d74-3b04-7460-96fc-abdcaf2b9e92.pdf",
+              "fecha_emision": "2026-10-13T00:00:00.000Z",
+              "nombre_archivo": "Acta de nacimiento Daniela.pdf",
+              "tipo_documento": "DNI_DERECHOHABIENTE",
+              "fecha_vencimiento": null,
+              "derechohabiente_id": "a1dcac2d-170d-7b56-84c6-84088cc560d3"
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:27:47.990Z",
+            "usuarios": {
+              "email": "demo@example.test",
+              "rol": "ADMIN",
+              "empleados": {
+                "nro_documento": "70000001",
+                "nombre": "Administrador",
+                "apellido": "Sistema Central"
+              }
+            }
+          },
+          {
+            "id": "a1dcac65-1b05-71e5-b4a0-06d4dd303a1f",
+            "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+            "accion": "UPDATE",
+            "tabla_afectada": "empleados",
+            "registro_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+            "valores_antes": {
+              "id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+              "sexo": "FEMENINO",
+              "email": "demo@example.test",
+              "activo": true,
+              "nombre": "Ana Demo",
+              "ubigeo": null,
+              "area_id": "a1b20d1c-090c-7601-9138-94c8aa9e401a",
+              "apellido": "Pruebas",
+              "cargo_id": "a1b796a1-0201-7cb4-9c33-1eb8eddd4356",
+              "distrito": null,
+              "telefono": "900000000",
+              "direccion": "Dirección de prueba, Lima",
+              "provincia": null,
+              "created_at": "2026-10-22T04:04:32.060Z",
+              "deleted_at": null,
+              "fecha_cese": null,
+              "jornada_id": "a1bc55d8-0808-7172-bcd6-6d1218d2b436",
+              "updated_at": "2026-10-22T04:07:44.993Z",
+              "departamento": null,
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "SOLTERO",
+              "fecha_inicio": "2026-01-01T00:00:00.000Z",
+              "nacionalidad": "PERUANA",
+              "asig_familiar": false,
+              "nro_documento": "90000002",
+              "estado_laboral": "LICENCIA",
+              "fecha_nacimiento": "1995-04-20T00:00:00.000Z",
+              "afp_fecha_filiacion": null,
+              "referencia_direccion": null,
+              "estado_sincronizacion": "COMPLETO"
+            },
+            "valores_despues": {
+              "id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+              "sexo": "FEMENINO",
+              "email": "demo@example.test",
+              "activo": true,
+              "nombre": "Ana Demo",
+              "ubigeo": null,
+              "area_id": "a1b20d1c-090c-7601-9138-94c8aa9e401a",
+              "apellido": "Pruebas",
+              "cargo_id": "a1b796a1-0201-7cb4-9c33-1eb8eddd4356",
+              "distrito": null,
+              "telefono": "900000000",
+              "direccion": "Dirección de prueba, Lima",
+              "provincia": null,
+              "created_at": "2026-10-22T04:04:32.060Z",
+              "deleted_at": null,
+              "fecha_cese": null,
+              "jornada_id": "a1bc55d8-0808-7172-bcd6-6d1218d2b436",
+              "updated_at": "2026-10-22T04:26:54.428Z",
+              "departamento": null,
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "SOLTERO",
+              "fecha_inicio": "2026-01-01T00:00:00.000Z",
+              "nacionalidad": "PERUANA",
+              "asig_familiar": true,
+              "nro_documento": "90000002",
+              "estado_laboral": "LICENCIA",
+              "fecha_nacimiento": "1995-04-20T00:00:00.000Z",
+              "afp_fecha_filiacion": null,
+              "referencia_direccion": null,
+              "estado_sincronizacion": "COMPLETO"
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:26:54.439Z",
+            "usuarios": {
+              "email": "demo@example.test",
+              "rol": "ADMIN",
+              "empleados": {
+                "nro_documento": "70000001",
+                "nombre": "Administrador",
+                "apellido": "Sistema Central"
+              }
+            }
+          },
+          {
+            "id": "a1dcac3d-180d-79d9-bf6e-7567baff0461",
+            "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+            "accion": "CREATE",
+            "tabla_afectada": "derechohabientes",
+            "registro_id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+            "valores_antes": null,
+            "valores_despues": {
+              "id": "a1dcac2d-170d-7b56-84c6-84088cc560d3",
+              "sexo": "MASCULINO",
+              "activo": true,
+              "nombres": "Hijo Demo",
+              "vinculo": "HIJO_MENOR",
+              "apellidos": "Pruebas",
+              "created_at": "2026-10-22T04:26:54.388Z",
+              "deleted_at": null,
+              "updated_at": "2026-10-22T04:26:54.388Z",
+              "empleado_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "SOLTERO",
+              "nro_documento": "90000002",
+              "tipo_documento": {
+                "id": "018f4a7c-2222-7000-b000-000000000001",
+                "tipo_documento": "DNI"
+              },
+              "fecha_nacimiento": "2018-05-10T00:00:00.000Z",
+              "fecha_alta_seguro": null,
+              "acreditado_essalud": false
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:26:54.398Z",
+            "usuarios": {
+              "email": "demo@example.test",
+              "rol": "ADMIN",
+              "empleados": {
+                "nro_documento": "70000001",
+                "nombre": "Administrador",
+                "apellido": "Sistema Central"
+              }
+            }
+          },
+          {
+            "id": "a1cf67c3-3803-76c6-ac52-3acd1945b6f9",
+            "usuario_id": null,
+            "accion": "UPDATE",
+            "tabla_afectada": "CargaMasivaJob",
+            "registro_id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+            "valores_antes": {
+              "id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+              "estado": "PROCESANDO",
+              "fallidos": 0,
+              "created_at": "2026-10-22T04:12:24.511Z",
+              "procesados": 0,
+              "updated_at": "2026-10-22T04:12:24.595Z",
+              "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+              "errores_detalle": null,
+              "total_registros": 2
+            },
+            "valores_despues": {
+              "id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+              "estado": "COMPLETADO",
+              "fallidos": 1,
+              "created_at": "2026-10-22T04:12:24.511Z",
+              "procesados": 1,
+              "updated_at": "2026-10-22T04:12:24.895Z",
+              "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+              "errores_detalle": [
+                {
+                  "Dni": "70122334",
+                  "causa": "El régimen 'AFP' no existe en el catálogo."
+                }
+              ],
+              "total_registros": 2
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:12:24.901Z",
+            "usuarios": null
+          },
+          {
+            "id": "a1cf6751-3101-72ca-8338-0e35fb8fc930",
+            "usuario_id": null,
+            "accion": "UPSERT",
+            "tabla_afectada": "empleados",
+            "registro_id": "018f4a7c-9999-7000-3333-000000000005",
+            "valores_antes": null,
+            "valores_despues": {
+              "id": "018f4a7c-9999-7000-3333-000000000005",
+              "sexo": "MASCULINO",
+              "email": "miguel.osorio@jyp.com",
+              "activo": true,
+              "nombre": "Miguel Ángel",
+              "ubigeo": "150141",
+              "area_id": "018f4a7c-7777-7000-1111-000000000004",
+              "apellido": "Osorio Díaz",
+              "cargo_id": "018f4a7c-8888-7000-2222-000000000005",
+              "distrito": "SURQUILLO",
+              "telefono": "912345678",
+              "direccion": "Jr. Los Álamos 124",
+              "provincia": "LIMA",
+              "created_at": "2026-10-03T16:05:49.046Z",
+              "deleted_at": null,
+              "fecha_cese": null,
+              "jornada_id": "018f4a7c-6666-7000-f000-000000000002",
+              "updated_at": "2026-10-22T04:12:24.763Z",
+              "departamento": "LIMA",
+              "documento_id": "018f4a7c-2222-7000-b000-000000000002",
+              "estado_civil": "SOLTERO",
+              "fecha_inicio": "2024-05-01T00:00:00.000Z",
+              "nacionalidad": "PERUANA",
+              "asig_familiar": false,
+              "nro_documento": "001155998",
+              "estado_laboral": "ACTIVO",
+              "fecha_nacimiento": "1985-11-30T00:00:00.000Z",
+              "afp_fecha_filiacion": null,
+              "referencia_direccion": null,
+              "estado_sincronizacion": "COMPLETO"
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:12:24.785Z",
+            "usuarios": null
+          },
+          {
+            "id": "a1cf66ea-2a0a-736c-baa2-76355f8a5c99",
+            "usuario_id": null,
+            "accion": "UPSERT",
+            "tabla_afectada": "empleados",
+            "registro_id": "a1cf66cf-280f-77c6-87eb-a80af682c67f",
+            "valores_antes": null,
+            "valores_despues": {
+              "id": "a1cf66cf-280f-77c6-87eb-a80af682c67f",
+              "sexo": "MASCULINO",
+              "email": "contador@jyp.com",
+              "activo": true,
+              "nombre": "Carlos",
+              "ubigeo": "150131",
+              "area_id": "018f4a7c-7777-7000-1111-000000000002",
+              "apellido": "Ramírez Silva",
+              "cargo_id": "018f4a7c-8888-7000-2222-000000000002",
+              "distrito": "SAN ISIDRO",
+              "telefono": "987654321",
+              "direccion": "Av. Las Camelias 450 Dpto 302",
+              "provincia": "LIMA",
+              "created_at": "2026-10-22T04:12:24.665Z",
+              "deleted_at": null,
+              "fecha_cese": null,
+              "jornada_id": "018f4a7c-6666-7000-f000-000000000001",
+              "updated_at": "2026-10-22T04:12:24.665Z",
+              "departamento": "LIMA",
+              "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+              "estado_civil": "CASADO",
+              "fecha_inicio": "2024-02-01T00:00:00.000Z",
+              "nacionalidad": "PERUANA",
+              "asig_familiar": true,
+              "nro_documento": "70122334",
+              "estado_laboral": "ACTIVO",
+              "fecha_nacimiento": "1988-06-15T00:00:00.000Z",
+              "afp_fecha_filiacion": null,
+              "referencia_direccion": null,
+              "estado_sincronizacion": "COMPLETO"
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:12:24.684Z",
+            "usuarios": null
+          },
+          {
+            "id": "a1cf669b-250b-714b-be50-cdff86196c68",
+            "usuario_id": null,
+            "accion": "UPDATE",
+            "tabla_afectada": "CargaMasivaJob",
+            "registro_id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+            "valores_antes": {
+              "id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+              "estado": "EN_COLA",
+              "fallidos": 0,
+              "created_at": "2026-10-22T04:12:24.511Z",
+              "procesados": 0,
+              "updated_at": "2026-10-22T04:12:24.511Z",
+              "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+              "errores_detalle": null,
+              "total_registros": 2
+            },
+            "valores_despues": {
+              "id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+              "estado": "PROCESANDO",
+              "fallidos": 0,
+              "created_at": "2026-10-22T04:12:24.511Z",
+              "procesados": 0,
+              "updated_at": "2026-10-22T04:12:24.595Z",
+              "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+              "errores_detalle": null,
+              "total_registros": 2
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:12:24.605Z",
+            "usuarios": null
+          },
+          {
+            "id": "a1cf6654-2104-7b20-95a7-6d70085ee872",
+            "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+            "accion": "CREATE",
+            "tabla_afectada": "CargaMasivaJob",
+            "registro_id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+            "valores_antes": null,
+            "valores_despues": {
+              "id": "a1cf6633-1f03-7e6f-9fbe-6294302e5392",
+              "estado": "EN_COLA",
+              "fallidos": 0,
+              "created_at": "2026-10-22T04:12:24.511Z",
+              "procesados": 0,
+              "updated_at": "2026-10-22T04:12:24.511Z",
+              "usuario_id": "a1cb63d2-2102-7572-8858-e4696e4fac07",
+              "errores_detalle": null,
+              "total_registros": 2
+            },
+            "direccion_ip": "127.0.0.1",
+            "created_at": "2026-10-22T04:12:24.540Z",
+            "usuarios": {
+              "email": "demo@example.test",
+              "rol": "ADMIN",
+              "empleados": {
+                "nro_documento": "70000001",
+                "nombre": "Administrador",
+                "apellido": "Sistema Central"
+              }
+            }
+          }
+        ],
+        "meta": {
+          "total": 23,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 3,
+          "message": "Operación exitosa.",
+          "path": "/api/v1/core/audit/logs?page=1&limit=10",
+          "timestamp": "2026-10-22T04:47:28.044Z"
+        }
+      }
+order: 1000

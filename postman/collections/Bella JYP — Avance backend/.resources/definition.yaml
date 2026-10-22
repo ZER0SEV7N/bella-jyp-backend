@@ -1,0 +1,17 @@
+$kind: collection
+description: Generada desde src(1).zip y contrastada con contratos/YML. 70 rutas de controllers, variantes de login/multipart y diagnóstico Swagger. Incluye correcciones propuestas; no contiene rutas futuras de planillas ni de restablecimiento. Elegir cuentas/IDs reales del entorno de prueba; probar por flujo, no asumir que todas las mutaciones son independientes.
+variables:
+  - key: json_web_token_0n3j
+    secret: true
+  - key: json_web_token_0dwu
+    secret: true
+  - key: json_web_token_0lvc
+    secret: true
+  - key: json_web_token_06r4
+    secret: true
+auth:
+  - id: a84168dd-7373-4921-97a9-a31c48674b3b
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{access_token}}"

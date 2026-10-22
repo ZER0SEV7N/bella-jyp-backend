@@ -1,0 +1,331 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/empleado?page=1&limit=10"
+  method: GET
+  queryParams:
+    - key: page
+      value: "1"
+      disabled: false
+      description: ""
+    - key: limit
+      value: "10"
+      disabled: false
+      description: ""
+    - key: search
+      value: demo
+      disabled: true
+    - key: area_id
+      value: "{{area_id}}"
+      disabled: true
+    - key: cargo_id
+      value: "{{cargo_id}}"
+      disabled: true
+    - key: jornada_id
+      value: "{{jornada_id}}"
+      disabled: true
+    - key: activo
+      value: "true"
+      disabled: true
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "7243"
+    date: Thu, 22 Oct 2026 03:58:52 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "018f4a7c-9999-7000-3333-000000000003",
+            "cargo_id": "018f4a7c-8888-7000-2222-000000000003",
+            "area_id": "018f4a7c-7777-7000-1111-000000000003",
+            "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+            "jornada_id": "018f4a7c-6666-7000-f000-000000000001",
+            "estado_laboral": "ACTIVO",
+            "nombre": "Laura",
+            "apellido": "Méndez Ruiz",
+            "nro_documento": "70223344",
+            "email": "rrhh@jyp.com",
+            "telefono": null,
+            "sexo": null,
+            "estado_civil": "SOLTERO",
+            "nacionalidad": "PERUANA",
+            "fecha_nacimiento": "1992-09-20T00:00:00.000Z",
+            "direccion": null,
+            "referencia_direccion": null,
+            "ubigeo": null,
+            "distrito": null,
+            "provincia": null,
+            "departamento": null,
+            "fecha_inicio": "2024-03-01T00:00:00.000Z",
+            "fecha_cese": null,
+            "afp_fecha_filiacion": null,
+            "asig_familiar": true,
+            "activo": true,
+            "deleted_at": null,
+            "created_at": "2026-10-03T16:05:49.046Z",
+            "updated_at": "2026-10-03T16:05:49.046Z",
+            "estado_sincronizacion": "COMPLETO",
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000003",
+              "nombre": "Recursos Humanos"
+            },
+            "cargo": {
+              "id": "018f4a7c-8888-7000-2222-000000000003",
+              "nombre": "Jefe de Recursos Humanos"
+            },
+            "jornada": {
+              "id": "018f4a7c-6666-7000-f000-000000000001",
+              "nombre": "Jornada Estándar Oficina",
+              "turno": "MANANA"
+            },
+            "dato_financiero": null
+          },
+          {
+            "id": "018f4a7c-9999-7000-3333-000000000002",
+            "cargo_id": "018f4a7c-8888-7000-2222-000000000002",
+            "area_id": "018f4a7c-7777-7000-1111-000000000002",
+            "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+            "jornada_id": "018f4a7c-6666-7000-f000-000000000001",
+            "estado_laboral": "ACTIVO",
+            "nombre": "Carlos",
+            "apellido": "Ramírez Silva",
+            "nro_documento": "70112233",
+            "email": "contador@jyp.com",
+            "telefono": null,
+            "sexo": null,
+            "estado_civil": "SOLTERO",
+            "nacionalidad": "PERUANA",
+            "fecha_nacimiento": "1988-06-15T00:00:00.000Z",
+            "direccion": null,
+            "referencia_direccion": null,
+            "ubigeo": null,
+            "distrito": null,
+            "provincia": null,
+            "departamento": null,
+            "fecha_inicio": "2024-02-01T00:00:00.000Z",
+            "fecha_cese": null,
+            "afp_fecha_filiacion": null,
+            "asig_familiar": false,
+            "activo": true,
+            "deleted_at": null,
+            "created_at": "2026-10-03T16:05:49.046Z",
+            "updated_at": "2026-10-03T16:05:49.046Z",
+            "estado_sincronizacion": "COMPLETO",
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000002",
+              "nombre": "Contabilidad y Finanzas"
+            },
+            "cargo": {
+              "id": "018f4a7c-8888-7000-2222-000000000002",
+              "nombre": "Contador Principal"
+            },
+            "jornada": {
+              "id": "018f4a7c-6666-7000-f000-000000000001",
+              "nombre": "Jornada Estándar Oficina",
+              "turno": "MANANA"
+            },
+            "dato_financiero": null
+          },
+          {
+            "id": "018f4a7c-9999-7000-3333-000000000001",
+            "cargo_id": "018f4a7c-8888-7000-2222-000000000001",
+            "area_id": "018f4a7c-7777-7000-1111-000000000001",
+            "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+            "jornada_id": "018f4a7c-6666-7000-f000-000000000001",
+            "estado_laboral": "ACTIVO",
+            "nombre": "Administrador",
+            "apellido": "Sistema Central",
+            "nro_documento": "70000001",
+            "email": "admin@jyp.com",
+            "telefono": null,
+            "sexo": null,
+            "estado_civil": "SOLTERO",
+            "nacionalidad": "PERUANA",
+            "fecha_nacimiento": "1990-01-01T00:00:00.000Z",
+            "direccion": null,
+            "referencia_direccion": null,
+            "ubigeo": null,
+            "distrito": null,
+            "provincia": null,
+            "departamento": null,
+            "fecha_inicio": "2024-01-01T00:00:00.000Z",
+            "fecha_cese": null,
+            "afp_fecha_filiacion": null,
+            "asig_familiar": false,
+            "activo": true,
+            "deleted_at": null,
+            "created_at": "2026-10-03T16:05:49.046Z",
+            "updated_at": "2026-10-03T16:05:49.046Z",
+            "estado_sincronizacion": "COMPLETO",
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000001",
+              "nombre": "Oficina Central / Gerencia"
+            },
+            "cargo": {
+              "id": "018f4a7c-8888-7000-2222-000000000001",
+              "nombre": "Administrador del Sistema"
+            },
+            "jornada": {
+              "id": "018f4a7c-6666-7000-f000-000000000001",
+              "nombre": "Jornada Estándar Oficina",
+              "turno": "MANANA"
+            },
+            "dato_financiero": null
+          },
+          {
+            "id": "018f4a7c-9999-7000-3333-000000000004",
+            "cargo_id": "018f4a7c-8888-7000-2222-000000000004",
+            "area_id": "018f4a7c-7777-7000-1111-000000000003",
+            "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+            "jornada_id": "018f4a7c-6666-7000-f000-000000000001",
+            "estado_laboral": "ACTIVO",
+            "nombre": "Ana",
+            "apellido": "Torres Gómez",
+            "nro_documento": "70334455",
+            "email": "asistente@jyp.com",
+            "telefono": null,
+            "sexo": null,
+            "estado_civil": "SOLTERO",
+            "nacionalidad": "PERUANA",
+            "fecha_nacimiento": "1996-04-12T00:00:00.000Z",
+            "direccion": null,
+            "referencia_direccion": null,
+            "ubigeo": null,
+            "distrito": null,
+            "provincia": null,
+            "departamento": null,
+            "fecha_inicio": "2024-04-01T00:00:00.000Z",
+            "fecha_cese": null,
+            "afp_fecha_filiacion": null,
+            "asig_familiar": false,
+            "activo": true,
+            "deleted_at": null,
+            "created_at": "2026-10-03T16:05:49.046Z",
+            "updated_at": "2026-10-03T16:05:49.046Z",
+            "estado_sincronizacion": "COMPLETO",
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000003",
+              "nombre": "Recursos Humanos"
+            },
+            "cargo": {
+              "id": "018f4a7c-8888-7000-2222-000000000004",
+              "nombre": "Asistente de RRHH"
+            },
+            "jornada": {
+              "id": "018f4a7c-6666-7000-f000-000000000001",
+              "nombre": "Jornada Estándar Oficina",
+              "turno": "MANANA"
+            },
+            "dato_financiero": null
+          },
+          {
+            "id": "018f4a7c-9999-7000-3333-000000000006",
+            "cargo_id": "018f4a7c-8888-7000-2222-000000000006",
+            "area_id": "018f4a7c-7777-7000-1111-000000000001",
+            "documento_id": "018f4a7c-2222-7000-b000-000000000001",
+            "jornada_id": "018f4a7c-6666-7000-f000-000000000001",
+            "estado_laboral": "ACTIVO",
+            "nombre": "Jorge",
+            "apellido": "Yupanqui Ponce",
+            "nro_documento": "70445566",
+            "email": "jyp@jyp.com",
+            "telefono": null,
+            "sexo": null,
+            "estado_civil": "SOLTERO",
+            "nacionalidad": "PERUANA",
+            "fecha_nacimiento": "1980-03-05T00:00:00.000Z",
+            "direccion": null,
+            "referencia_direccion": null,
+            "ubigeo": null,
+            "distrito": null,
+            "provincia": null,
+            "departamento": null,
+            "fecha_inicio": "2024-01-01T00:00:00.000Z",
+            "fecha_cese": null,
+            "afp_fecha_filiacion": null,
+            "asig_familiar": false,
+            "activo": true,
+            "deleted_at": null,
+            "created_at": "2026-10-03T16:05:49.046Z",
+            "updated_at": "2026-10-03T16:05:49.046Z",
+            "estado_sincronizacion": "COMPLETO",
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000001",
+              "nombre": "Oficina Central / Gerencia"
+            },
+            "cargo": {
+              "id": "018f4a7c-8888-7000-2222-000000000006",
+              "nombre": "Director Ejecutivo (JYP)"
+            },
+            "jornada": {
+              "id": "018f4a7c-6666-7000-f000-000000000001",
+              "nombre": "Jornada Estándar Oficina",
+              "turno": "MANANA"
+            },
+            "dato_financiero": null
+          },
+          {
+            "id": "018f4a7c-9999-7000-3333-000000000005",
+            "cargo_id": "018f4a7c-8888-7000-2222-000000000005",
+            "area_id": "018f4a7c-7777-7000-1111-000000000004",
+            "documento_id": "018f4a7c-2222-7000-b000-000000000002",
+            "jornada_id": "018f4a7c-6666-7000-f000-000000000002",
+            "estado_laboral": "ACTIVO",
+            "nombre": "Miguel",
+            "apellido": "Ángel Osorio",
+            "nro_documento": "001155998",
+            "email": "miguel.osorio@jyp.com",
+            "telefono": null,
+            "sexo": null,
+            "estado_civil": "SOLTERO",
+            "nacionalidad": "PERUANA",
+            "fecha_nacimiento": "1985-11-30T00:00:00.000Z",
+            "direccion": null,
+            "referencia_direccion": null,
+            "ubigeo": null,
+            "distrito": null,
+            "provincia": null,
+            "departamento": null,
+            "fecha_inicio": "2024-05-01T00:00:00.000Z",
+            "fecha_cese": null,
+            "afp_fecha_filiacion": null,
+            "asig_familiar": true,
+            "activo": true,
+            "deleted_at": null,
+            "created_at": "2026-10-03T16:05:49.046Z",
+            "updated_at": "2026-10-03T16:05:49.046Z",
+            "estado_sincronizacion": "COMPLETO",
+            "area": {
+              "id": "018f4a7c-7777-7000-1111-000000000004",
+              "nombre": "Seguridad y Operaciones"
+            },
+            "cargo": {
+              "id": "018f4a7c-8888-7000-2222-000000000005",
+              "nombre": "Vigilante Nocturno"
+            },
+            "jornada": {
+              "id": "018f4a7c-6666-7000-f000-000000000002",
+              "nombre": "Turno Nocturno Seguridad",
+              "turno": "NOCHE"
+            },
+            "dato_financiero": null
+          }
+        ],
+        "meta": {
+          "total": 6,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1,
+          "message": "Operación exitosa.",
+          "path": "/api/v1/rrhh/empleado?page=1&limit=10",
+          "timestamp": "2026-10-22T03:58:52.748Z"
+        }
+      }
+order: 1000

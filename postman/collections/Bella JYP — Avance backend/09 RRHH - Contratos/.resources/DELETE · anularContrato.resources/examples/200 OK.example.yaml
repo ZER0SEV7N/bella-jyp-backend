@@ -1,0 +1,40 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/contrato/{{contrato_id}}/anular"
+  method: DELETE
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "632"
+    date: Thu, 22 Oct 2026 04:51:24 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "a1f2d409-1709-70f9-99be-ff9e861baf6a",
+          "empleado_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+          "estado": "ANULADO",
+          "id_estado": null,
+          "contrato_origen_id": "a1f0dc7b-1d0b-7f10-80fc-2ad6bd713ce1",
+          "tipo_modalidad": "PLAZO_FIJO",
+          "fecha_inicio": "2027-01-01T00:00:00.000Z",
+          "fecha_fin": "2027-12-31T00:00:00.000Z",
+          "renovado": false,
+          "observacion": "Renovación de prueba",
+          "deleted_at": "2026-10-22T04:51:24.476Z",
+          "created_at": "2026-10-22T04:51:06.381Z",
+          "url": null
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/rrhh/contrato/a1f2d409-1709-70f9-99be-ff9e861baf6a/anular",
+          "timestamp": "2026-10-22T04:51:24.496Z"
+        }
+      }
+order: 1000

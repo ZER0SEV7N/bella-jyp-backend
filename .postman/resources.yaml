@@ -1,13 +1,14 @@
-# Use this workspace to collaborate
 workspace:
   id: 352bb797-3e36-413a-a196-fe684b713e57
 
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
 cloudResources:
   collections:
-    ../postman/collections/Bella JYP — Avance backend — 70 rutas: a741dfd4-dda3-4090-83ae-13e9e055dc48
-
-# All resources in the `postman/` folder are automatically registered in Local View.
-# Point to additional files outside the `postman/` folder to register them individually. Example:
-#localResources:
-#  collections:
-#    - ../tests/E2E Test Collection/
+    ../postman/collections/Planilla: 48827145-af15ecd3-ccf3-457a-a6a9-1e6ba7b40f57
+    ../postman/collections/Bella JYP — Avance backend: 48827145-e271376c-9d19-433a-9da2-1a052d57b9aa
+  environments:
+    ../postman/environments/Bella JYP — Local — completar credenciales e IDs.environment.yaml: 48827145-62a95b38-391e-46c9-b452-42dfc9e03abf
+    ../postman/environments/Variables globales.environment.yaml: 48827145-658ba0e6-c8d2-496e-8d7e-8b66d82d7ca2
+  globals:
+    ../postman/globals/workspace.globals.yaml: ca6510ac-d402-47e7-84b2-b00e1450258b

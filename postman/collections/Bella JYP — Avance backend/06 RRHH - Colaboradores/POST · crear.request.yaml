@@ -1,0 +1,44 @@
+$kind: http-request
+description: |-
+  POST /api/rrhh/empleado/crear
+  Origen: src/modules/RRHH/organizacion/controllers/empleado.controller.ts:61
+  Handler: crear
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 201.
+url: "{{base_url}}/api/v1/rrhh/empleado"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "cargo_id": "{{cargo_id}}",
+      "area_id": "{{area_id}}",
+      "documento_id": "{{documento_id}}",
+      "jornada_id": "{{jornada_id}}",
+      "nro_documento": "{{documento_demo}}",
+      "nombre": "Ana Demo",
+      "apellido": "Pruebas",
+      "email": "{{email_demo}}",
+      "sexo": "FEMENINO",
+      "estado_civil": "SOLTERO",
+      "fecha_nacimiento": "1995-04-20",
+      "fecha_inicio": "2026-01-01",
+      "asig_familiar": false
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [201]', () =>
+      pm.expect([201]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+
+      if (pm.response.code < 300) { const r=pm.response.json(); const d=r.data
+      || r; const entity=d.id ? d : d.data; if (entity && entity.id)
+      pm.environment.set('empleado_id',entity.id); }
+    language: text/javascript
+examples: .resources/POST · crear.resources/examples
+order: 1000

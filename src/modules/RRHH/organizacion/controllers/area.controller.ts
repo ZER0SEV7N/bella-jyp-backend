@@ -1,5 +1,5 @@
 //src/modules/RRHH/controller/Area.controller.ts
-import { Controller, Post, Body, HttpCode, HttpStatus, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query, Put } from '@nestjs/common';
 //Casos de uso para las operaciones de area
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { EditarAreaUseCase } from '../use-cases/area/editarArea.useCase';
@@ -52,7 +52,7 @@ export class AreaController {
 
   /**
    * Actualizar un area existente
-   * @PATCH - /api/rrhh/area/:id/actualizar
+   * @Put - /api/rrhh/area/:id
    * @param id_area string - UUID
    * @param payload : dtoActualizarAreaInput{
    *    "nombre" : "Area-Nro1",
@@ -63,7 +63,7 @@ export class AreaController {
    *          400 Bad Request - Los datos proporcionados son inválidos.
    */
   @ApiSwaggerActualizarArea()
-  @Patch(':id/actualizar')
+  @Put(':id')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ActualizarAreaSchema, true))
   async update(
@@ -82,7 +82,7 @@ export class AreaController {
    *          400 Bad Request - El area ya está activa.
    */
   @ApiSwaggerReactivarArea()
-  @Patch(':id/reactive')
+  @Patch(':id/reactivar')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
   async reactive(@Param('id', ParseUUIDPipe) id: string) {
@@ -98,7 +98,7 @@ export class AreaController {
    *        400 Bad Request - El area tiene cargos activos asociados y no puede ser desactivada.
    */
   @ApiSwaggerDesactivarArea()
-  @Delete(':id/desactive')
+  @Delete(':id/desactivar')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
   async eliminar(@Param('id', ParseUUIDPipe) id: string) {

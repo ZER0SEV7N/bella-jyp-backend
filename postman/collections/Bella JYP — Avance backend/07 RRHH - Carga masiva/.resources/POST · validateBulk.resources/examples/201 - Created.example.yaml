@@ -1,0 +1,116 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/empleados-bulk/validar"
+  method: POST
+  body:
+    type: formdata
+    content:
+      - type: file
+        key: file
+        src:
+          - /C:/Users/ZER0SEV7N/Downloads/plantilla_carga_masiva_empleados.xlsx
+        disabled: false
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "2204"
+    date: Thu, 22 Oct 2026 04:11:40 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "type": "https://api.jyp.com/bulk/pre-validation",
+          "title": "Reporte de Pre-Visualización",
+          "status": 200,
+          "data": {
+            "total_filas": 2,
+            "filas_validas": 2,
+            "filas_invalidas": 0,
+            "errores_detalle": [],
+            "filas_validas_data": [
+              {
+                "tipo_documento": "DNI",
+                "nro_documento": "70122334",
+                "nombre": "Carlos",
+                "apellido": "Ramírez Silva",
+                "sexo": "MASCULINO",
+                "estado_civil": "CASADO",
+                "fecha_nacimiento": "1988-06-15",
+                "email": "contador@jyp.com",
+                "telefono": "987654321",
+                "direccion": "Av. Las Camelias 450 Dpto 302",
+                "departamento": "LIMA",
+                "provincia": "LIMA",
+                "distrito": "SAN ISIDRO",
+                "ubigeo": "150131",
+                "fecha_inicio": "2024-02-01",
+                "asig_familiar": true,
+                "area": "Contabilidad y Finanzas",
+                "cargo": "Contador Principal",
+                "jornada": "Jornada Estándar Oficina",
+                "sueldo_basico": 3500,
+                "regimen_pension": "AFP",
+                "tipo_afp": "INTEGRA",
+                "cuspp": "123456CRM001",
+                "tipo_comision": "FLUJO",
+                "banco_sueldo": "BCP",
+                "tipo_cuenta_sueldo": "SUELDO",
+                "nro_cuenta_sueldo": "191-12345678-0-12",
+                "cci_sueldo": "002-191-00123456780123-88",
+                "banco_cts": "BBVA",
+                "tipo_cuenta_cts": "AHORROS",
+                "nro_cuenta_cts": "0011-0123-45-0100012345",
+                "cci_cts": "011-123-000100012345-67",
+                "regimen_salud": "ESSALUD_REGULAR",
+                "eps_costo_adicional": 0
+              },
+              {
+                "tipo_documento": "CE",
+                "nro_documento": "001155998",
+                "nombre": "Miguel Ángel",
+                "apellido": "Osorio Díaz",
+                "sexo": "MASCULINO",
+                "estado_civil": "SOLTERO",
+                "fecha_nacimiento": "1985-11-30",
+                "email": "miguel.osorio@jyp.com",
+                "telefono": "912345678",
+                "direccion": "Jr. Los Álamos 124",
+                "departamento": "LIMA",
+                "provincia": "LIMA",
+                "distrito": "SURQUILLO",
+                "ubigeo": "150141",
+                "fecha_inicio": "2024-05-01",
+                "asig_familiar": false,
+                "area": "Seguridad y Operaciones",
+                "cargo": "Vigilante Nocturno",
+                "jornada": "Turno Nocturno Seguridad",
+                "sueldo_basico": 1800,
+                "regimen_pension": "ONP",
+                "banco_sueldo": "INTERBANK",
+                "tipo_cuenta_sueldo": "SUELDO",
+                "nro_cuenta_sueldo": "200-3001234567",
+                "cci_sueldo": "003-200-00300123456789-11",
+                "banco_cts": "INTERBANK",
+                "tipo_cuenta_cts": "AHORROS",
+                "nro_cuenta_cts": "200-3009876543",
+                "cci_cts": "003-200-00300987654321-22",
+                "regimen_salud": "EPS",
+                "eps_costo_adicional": 45.5
+              }
+            ]
+          },
+          "timestamp": "2026-10-22T04:11:40.968Z"
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/v1/rrhh/empleados-bulk/validar",
+          "timestamp": "2026-10-22T04:11:40.970Z"
+        }
+      }
+order: 1000

@@ -96,7 +96,7 @@ export function ApiSwaggerCrearDatoFinanciero() {
 - **Roles Autorizados**: \`ADMIN\`, \`CONTADOR\`, \`RRHH\`.
 - **Estructura Bancaria Doble**: Separa de forma explícita la cuenta corriente/ahorros de **Sueldo** mensual frente a la cuenta intangible de **CTS** (depósitos semestrales de mayo y noviembre).
 - **Validaciones Normativas Peruanas**:
-  - \`cuspp\`: exactamente 12 caracteres alfanuméricos en mayúsculas (regex: \`^[0-9A-Z]{12}$\`).
+  - \`cuspp\`: exactamente 12 caracteres alfanuméricos en mayúsculas (regex: \`[0-9A-Z]{12}\`).
   - \`sueldo_basico\`: número decimal positivo estrictamente mayor a 0 y menor a 1,000,000.
   - \`regimen_salud\`: controla aportes según D.L. 26790 (\`ESSALUD_REGULAR\`, \`EPS\`, \`ESSALUD_Y_EPS\`, \`SCTR\`).`,
     }),

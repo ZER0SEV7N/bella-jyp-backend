@@ -1,0 +1,26 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/derechohabientes/empleado/{{empleado_id}}"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "193"
+    date: Thu, 22 Oct 2026 04:26:38 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [],
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/rrhh/derechohabientes/empleado/a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+          "timestamp": "2026-10-22T04:26:38.312Z"
+        }
+      }
+order: 1000

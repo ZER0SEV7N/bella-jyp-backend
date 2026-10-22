@@ -20,7 +20,7 @@ import { ApiSwaggerEmpleadosController, ApiSwaggerCrearEmpleado, ApiSwaggerActua
  * Este controlador expone endpoints para crear, actualizar, listar, desactivar y reactivar empleados.
  * Se aplican guardias de autenticación y autorización para proteger los endpoints según los roles definidos.
  * Endpoints disponibles:
- * - POST /api/v1/rrhh/empleado/crear: Crear un nuevo empleado.
+ * - POST /api/v1/rrhh/empleado: Crear un nuevo empleado.
  * - PATCH /api/v1/rrhh/empleado/:id/actualizar: Actualizar un empleado existente.
  * - GET /api/v1/rrhh/empleado: Listar empleados con paginación y filtros.
  * - DELETE /api/v1/rrhh/empleado/:id/desactivar: Desactivar un empleado (soft delete).
@@ -40,7 +40,7 @@ export class EmpleadoController {
   /**
    * Endpoint para crear un nuevo empleado en el sistema.
    * Requiere que el usuario tenga los roles de ADMIN o RRHH para acceder a este endpoint.
-   * @POST /api/v1/rrhh/empleado/crear
+   * @POST /api/v1/rrhh/empleado
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param payload : CrearEmpleadoDto {
    *   - cargo_id: string (UUID del cargo),
@@ -72,7 +72,7 @@ export class EmpleadoController {
    *          403 Forbidden - El usuario no tiene los permisos necesarios.
    */
   @ApiSwaggerCrearEmpleado()
-  @Post('crear')
+  @Post()
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(CrearEmpleadoSchema))
   async crear(@Body() payload: CrearEmpleadoDto) {
@@ -111,7 +111,7 @@ export class EmpleadoController {
   /**
    * Endpoint para actualizar la información de un empleado existente.
    * Requiere que el usuario tenga los roles de ADMIN o RRHH para acceder a este endpoint.
-   * @PUT - /api/rrhh/empleado/:id/actualizar
+   * @PUT - /api/rrhh/empleado/:id
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param id : string - UUID del empleado a actualizar.
    * @param payload : EditarEmpleadoDto{
@@ -147,7 +147,7 @@ export class EmpleadoController {
   @ApiSwaggerActualizarEmpleado()
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(EditarEmpleadoSchema, true))
-  @Put(':id/actualizar')
+  @Put(':id')
   @HttpCode(HttpStatus.OK)
   async actualizarEmpleado( @Param('id', ParseUUIDPipe) id: string, @Body() payload: EditarEmpleadoDto ) {
     return this.editarEmpleadoUseCase.execute(id, payload);
