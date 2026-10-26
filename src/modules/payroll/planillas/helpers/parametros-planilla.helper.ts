@@ -13,6 +13,7 @@ const CODIGOS = ['RMV', 'UIT', 'ESSALUD_PCT', 'ONP_PCT', 'VIDA_LEY_PCT'] as cons
  * @returns - Un objeto que contiene los parámetros legales y sus valores correspondientes para el periodo.
  */
 export async function cargarParametrosPlanilla(tx: Prisma.TransactionClient, referencia: Date, periodo: string) {
+    //Cargar los parámetros legales para el periodo y la referencia especificados.
     const parametros = await tx.parametro_legal.findMany({
         where: { codigo: { in: [...CODIGOS] }, 
             vigente_desde: { lte: referencia }, OR: [{ vigente_hasta: null }, { vigente_hasta: { gte: referencia } }] },
@@ -21,8 +22,11 @@ export async function cargarParametrosPlanilla(tx: Prisma.TransactionClient, ref
 
     //Verificar que exista una sola vigencia de cada parámetro legal para el periodo
     for (const codigo of CODIGOS)
+        //Si no existe una sola vigencia de un parámetro legal para el periodo, lanza una excepción de conflicto indicando el parámetro y el periodo.
         if (parametros.filter((p) => p.codigo === codigo).length !== 1)
             throw new ConflictException(`Debe existir una sola vigencia de ${codigo} para ${periodo}.`);
+
+    //Crear un objeto con los valores de los parámetros legales para el periodo, utilizando el código como clave y el valor como valor.
     const valores = Object.fromEntries(parametros.map((p) => [p.codigo, p.valor.toString()])) as EntradaPlanilla['parametros'];
 
     return { parametros, valores };

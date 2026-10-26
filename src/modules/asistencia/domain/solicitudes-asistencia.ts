@@ -16,7 +16,7 @@ import { minutos } from './intervalos-asistencia';
  * @returns - Un arreglo de dos números que representan el inicio y fin del intervalo en minutos desde la medianoche.
  * @throws Error si la solicitud no es válida o si las horas no cumplen con el formato esperado.
  */
-export function intervaloSolicitud(solicitud: SolicitudAsistencia): Intervalo {
+export function intervaloSolicitud(solicitud: SolicitudAsistencia): Intervalo { 
     return solicitud.hora_inicio && solicitud.hora_fin ? [minutos(solicitud.hora_inicio), minutos(solicitud.hora_fin)] : [0, 1440];
 }
 

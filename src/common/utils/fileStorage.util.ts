@@ -41,10 +41,14 @@ export class FileStorageUtil {
      */
     static async guardarArchivoMultipart(data: MultipartFile, subFolder: string): Promise<string> {
         if (!data) throw new BadRequestException('No se adjuntó ningún archivo.');
+        //Verificar que la carpeta de destino sea válida y no contenga rutas relativas peligrosas
+        if (!/^[a-z0-9_-]+$/i.test(subFolder)) 
+            throw new BadRequestException('Carpeta de archivos inválida.');
 
         //Verificar que el tipo de archivo y la extensión sean válidos
         const extension = path.extname(data.filename).toLowerCase();
 
+        //Verificar que el tipo MIME y la extensión del archivo sean compatibles con las extensiones permitidas
         if (!EXTENSIONES_PERMITIDAS[data.mimetype]?.includes(extension)) {
             data.file.resume();
             throw new BadRequestException('Solo se permiten archivos PDF o Word con extensión y MIME compatibles.');

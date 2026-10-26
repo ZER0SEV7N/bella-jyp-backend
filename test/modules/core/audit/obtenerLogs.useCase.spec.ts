@@ -55,6 +55,7 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
             skip: 0,
             take: 50,
             orderBy: { created_at: 'desc' },
+            omit: { valores_antes: true, valores_despues: true },
             include: expect.any(Object),
         });
 

@@ -76,7 +76,11 @@ export async function leerMultipartSolicitud(req: FastifyRequest) {
 
         //Manejo de errores específicos relacionados con el tamaño del archivo y los límites del formulario, lanzando excepciones adecuadas.
         if (error && typeof error === 'object' && 'code' in error) {
-            if (error.code === 'FST_REQ_FILE_TOO_LARGE') throw new PayloadTooLargeException('El archivo no puede superar los 5 MB.');
+            //Si el error es debido a que el archivo es demasiado grande, lanza una excepción PayloadTooLargeException.
+            if (error.code === 'FST_REQ_FILE_TOO_LARGE') 
+                throw new PayloadTooLargeException('El archivo no puede superar los 5 MB.');
+
+            //Si el error es debido a que se exceden los límites de archivos o campos, lanza una excepción BadRequestException.
             if (['FST_FILES_LIMIT', 'FST_FIELDS_LIMIT', 'FST_PARTS_LIMIT'].includes(String(error.code)))
                 throw new BadRequestException('El formulario excede los límites permitidos de archivos o campos.');
         }

@@ -1,6 +1,7 @@
 //src/modules/core/audit/use-cases/ObtenerLogs.useCase.ts
 //Caso de uso para obtener logs de auditoría con filtros y paginación
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ObtenerAuditQueryDto } from '@jyp/shared-contracts';
 
@@ -25,7 +26,7 @@ export class ObtenerLogsUseCase {
     const { page, limit, tabla_afectada, accion, usuario_id, registro_id } = query; //Parametros de consulta para filtrar los logs de auditoría
     const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
 
-    const where: any = {}; //Objeto para almacenar los filtros de consulta
+    const where: Prisma.audit_logWhereInput = {}; //Objeto para almacenar los filtros de consulta
 
     if (tabla_afectada) where.tabla_afectada = tabla_afectada; //Agregar filtro por tabla afectada si se proporciona
     if (accion) where.accion = accion; //Agregar filtro por acción si se proporciona
@@ -48,8 +49,7 @@ export class ObtenerLogsUseCase {
       //Si el contador intentó buscar un ID específico en los filtros,
       //validamos que no esté intentando espiar a otro Contador o al Admin.
       if (usuario_id) where.usuario_id = usuario_id; // Prisma unirá este AND con el OR de arriba
-    } else
-      throw new ForbiddenException( 'No tiene los privilegios para auditar el sistema.'); //Si por algún motivo otro rol llega aquí (RRHH), le denegamos la vista global
+    } else throw new ForbiddenException('No tiene los privilegios para auditar el sistema.'); //Si por algún motivo otro rol llega aquí (RRHH), le denegamos la vista global
 
     //Ejecutar la consulta
     const [total, logs] = await this.prisma.$transaction([
@@ -58,7 +58,8 @@ export class ObtenerLogsUseCase {
         where: where,
         skip: skip,
         take: limit,
-        orderBy: { created_at: 'desc' }, //Ordenar los resultados por fecha de creación en orden descendente
+        orderBy: { created_at: 'desc' },
+        omit: { valores_antes: true, valores_despues: true }, //Ordenar los resultados por fecha de creación en orden descendente
         //Traer información del usuario que realizó la acción
         include: {
           usuarios: {
@@ -70,18 +71,44 @@ export class ObtenerLogsUseCase {
                 select: {
                   nro_documento: true,
                   nombre: true,
-                  apellido: true
-                }
-              }
-            }
-          }
-        }
-      })
+                  apellido: true,
+                },
+              },
+            },
+          },
+        },
+      }),
     ]);
     return {
       data: logs,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit)
-      }
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  /**
+   * Ejecucion de la consulta para obtener un log de auditoría por su ID.
+   * Sirve para obtener un registro específico de auditoría, asegurando que el usuario que realiza la solicitud tenga los privilegios necesarios.
+   * @param id - ID del log de auditoría a obtener.
+   * @param usuario - Información del usuario que realiza la solicitud, incluyendo su ID y rol.
+   * @returns El registro de auditoría correspondiente al ID proporcionado.
+   */
+  async obtenerPorId(id: string, usuario: { id: string; rol: string }) {
+    //Regla de negocio: Solo los roles ADMIN, RRHH y CONTADOR pueden acceder a los logs de auditoría
+    if (!['ADMIN', 'RRHH', 'CONTADOR'].includes(usuario.rol)) 
+      throw new ForbiddenException('No tiene privilegios para auditar el sistema.');
+
+    //Construir la condición de búsqueda según el rol del usuario
+    const where: Prisma.audit_logWhereUniqueInput = { id };
+
+    //Regla de negocio: Si el usuario es CONTADOR, solo puede ver sus propios logs o los de los asistentes
+    if (usuario.rol === 'CONTADOR') 
+      where.usuarios = { OR: [{ id: usuario.id }, { rol: 'ASISTENTE' }] };
+    
+    //Ejecutar la consulta para obtener el registro de auditoría
+    const registro = await this.prisma.audit_log.findUnique({ where });
+    if (!registro) 
+      throw new NotFoundException('Registro de auditoría no encontrado.');
+    
+    return registro;
   }
 }

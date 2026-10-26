@@ -33,17 +33,20 @@ export class RenovarContratoUseCase {
 
     //Validaciones de negocio
     if (!contratoViejo) throw new NotFoundException('El contrato previo a renovar no existe o ha sido eliminado.');
-    if (!contratoViejo.empleados?.activo) throw new BadRequestException('No se puede prorrogar un contrato para un colaborador inactivo o cesado.');
-    if (contratoViejo.estado === estado_contrato_enum.RENOVADO) throw new BadRequestException('Este contrato ya fue renovado previamente por otra adenda.');
-    
+    if (!contratoViejo.empleados?.activo)
+      throw new BadRequestException('No se puede prorrogar un contrato para un colaborador inactivo o cesado.');
+    if (contratoViejo.estado === estado_contrato_enum.RENOVADO)
+      throw new BadRequestException('Este contrato ya fue renovado previamente por otra adenda.');
+
     //Normalizar fechas de inicio y fin del nuevo contrato
     const nuevaFechaInicio = sanitizarFecha(dto.fecha_inicio);
     const nuevaFechaFin = sanitizarFecha(dto.fecha_fin);
 
     //Validaciones de fechas
     if (!nuevaFechaInicio) throw new BadRequestException('La nueva fecha de inicio es obligatoria.');
-    if (nuevaFechaFin && nuevaFechaInicio > nuevaFechaFin) throw new BadRequestException('La fecha de inicio de la prórroga no puede superar a su fecha de fin.');
-    
+    if (nuevaFechaFin && nuevaFechaInicio > nuevaFechaFin)
+      throw new BadRequestException('La fecha de inicio de la prórroga no puede superar a su fecha de fin.');
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         //Cerrar el contrato anterior como RENOVADO
@@ -70,7 +73,10 @@ export class RenovarContratoUseCase {
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
 
-      throw new InternalServerErrorException('Error al procesar la renovación del contrato.', error instanceof Error ? error.message : String(error));
+      throw new InternalServerErrorException(
+        'Error al procesar la renovación del contrato.',
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 }

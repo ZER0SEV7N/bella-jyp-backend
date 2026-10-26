@@ -1,75 +1,31 @@
-//test/common/websocket/Notificacion.gateway.spec.ts
-import { NotificacionesGateway, AlertaGlobal } from '@/common/alertas/gateways/notificaciones.gateway';
-import { Socket, Server } from 'socket.io';
+import { NotificacionesGateway } from '@/common/notificaciones/gateways/notificaciones.gateway';
+import { AutenticacionWsService } from '@/common/notificaciones/autenticacion-ws.service';
+import { NotificacionesService } from '@/common/notificaciones/notificaciones.service';
 
-/**
- * Pruebas unitarias para el NotificacionesGateway, que maneja la comunicación en tiempo real mediante WebSockets.
- * Estas pruebas verifican la correcta suscripción de clientes a salas (rooms) y la transmisión de alertas globales.
- * Se utilizan mocks para simular el comportamiento del servidor y los sockets, permitiendo un aislamiento completo de las pruebas.
- */
-describe('NotificacionesGateway - Pruebas Unitarias de WebSockets', () => {
-  let gateway: NotificacionesGateway;
-  let mockServer: jest.Mocked<Server>;
-  let mockSocket: jest.Mocked<Socket>;
-
-  beforeEach(() => {
-    gateway = new NotificacionesGateway();
-
-    mockServer = {
-      to: jest.fn().mockReturnThis(),
-      emit: jest.fn()
-    } as unknown as jest.Mocked<Server>;
-
-    mockSocket = {
-      id: 'socket-client-id-100',
-      join: jest.fn()
-    } as unknown as jest.Mocked<Socket>;
-
-    gateway.server = mockServer;
+/** La identificación proviene del handshake validado; ningún payload elige salas privilegiadas. */
+describe('NotificacionesGateway - autorización', () => {
+  it('Devuelve la identidad establecida por el servidor', () => {
+    const gateway = new NotificacionesGateway({} as AutenticacionWsService, {} as NotificacionesService);
+    const socket = { data: { usuario: { id: 'usuario', rol: 'ASISTENTE', exp: 9999999999 } } };
+    expect(gateway.handleIdentificar(socket as never)).toEqual({ status: 'suscrito', usuario: { id: 'usuario', rol: 'ASISTENTE' } });
+  });
+  it('Rechaza un handshake cuyo token no fue autorizado', async () => {
+    const auth = { autenticar: jest.fn().mockRejectedValue(new Error('Token inválido')) };
+    const gateway = new NotificacionesGateway(auth as unknown as AutenticacionWsService, {} as NotificacionesService);
+    let middleware: (socket: unknown, next: (error?: Error) => void) => void;
+    gateway.afterInit({ use: (fn: typeof middleware) => { middleware = fn; } } as never);
+    const error = await new Promise<Error | undefined>(resolve => middleware({}, resolve));
+    expect(error?.message).toContain('No autorizado');
   });
 
-  describe('Conexión y Mapeo de Salas (Rooms)', () => {
-    it('Debe registrar la conexión y desconexión de clientes sin lanzar excepciones', () => {
-      //Assert
-      expect(() => gateway.handleConnection(mockSocket)).not.toThrow();
-      expect(() => gateway.handleDisconnect(mockSocket)).not.toThrow();
-    });
-
-    it('Debe suscribir al cliente a las salas "sala-{rol}" y "user-{id}" durante la identificación', () => {
-      const payload = { id: 'usr-uuid-001', rol: 'ADMIN' };
-
-      const response = gateway.handleIdentificar(mockSocket, payload);
-
-      expect(mockSocket.join).toHaveBeenCalledWith('sala-ADMIN');
-      expect(mockSocket.join).toHaveBeenCalledWith('user-usr-uuid-001');
-      expect(response).toEqual({
-        status: 'suscrito',
-        salas: ['sala-ADMIN', 'user-usr-uuid-001']
-      });
-    });
+  it('Desconecta al usuario revocado antes de transmitir la alerta', async () => {
+    const auth = { sigueVigente: jest.fn().mockResolvedValue(false) };
+    const gateway = new NotificacionesGateway(auth as unknown as AutenticacionWsService, {} as NotificacionesService);
+    const cliente = { data: { usuario: { id: 'usuario', rol: 'RRHH', exp: 9999999999 } }, disconnect: jest.fn(), emit: jest.fn() };
+    gateway.server = { in: jest.fn().mockReturnValue({ fetchSockets: jest.fn().mockResolvedValue([cliente]) }) } as never;
+    await gateway.transmitir({ rol: 'RRHH', notificacion: { id: 'alerta', timestamp: new Date().toISOString(), titulo: 'Aviso', mensaje: 'Texto', tipo: 'INFO', modulo_origen: 'PRUEBA', roles_destino: ['RRHH'] } });
+    expect(cliente.disconnect).toHaveBeenCalledWith(true);
+    expect(cliente.emit).not.toHaveBeenCalled();
   });
 
-  describe('manejarAlertaGlobal() - Transmisión de Eventos', () => {
-    it('Debe transmitir la alerta en tiempo real a las salas correspondientes según los roles destino', () => {
-      const alerta: AlertaGlobal = {
-        titulo: 'Contratos por Vencer',
-        mensaje: 'Existen 3 contratos que vencerán en los próximos 30 días.',
-        tipo: 'WARNING',
-        modulo_origen: 'CONTRATOS',
-        roles_destino: ['ADMIN', 'RRHH']
-      };
-
-      gateway.manejarAlertaGlobal(alerta);
-
-      expect(mockServer.to).toHaveBeenCalledWith('sala-ADMIN');
-      expect(mockServer.to).toHaveBeenCalledWith('sala-RRHH');
-      expect(mockServer.emit).toHaveBeenCalledWith('nuevaNotificacion',
-        expect.objectContaining({
-          titulo: 'Contratos por Vencer',
-          tipo: 'WARNING',
-          timestamp: expect.any(String)
-        })
-      );
-    });
-  });
 });

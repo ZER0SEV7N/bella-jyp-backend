@@ -1,9 +1,5 @@
 //src/modules/core/usuarios/use-cases/obtenerMiPerfil.useCase.ts
-import {
-  Injectable,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { MiPerfilResponseDto } from '@jyp/shared-contracts';
 

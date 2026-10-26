@@ -1,6 +1,8 @@
+import { LoginSchema, ProvisionarUsuarioSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
+import { ApiContratoBody } from '@/common/decorators/api-contrato.decorator';
 // src/modules/core/auth/decorators/auth.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 
 export function ApiSwaggerController() {
   return applyDecorators(ApiTags('Core - Autenticación'));
@@ -15,17 +17,7 @@ export function ApiSwaggerLogin() {
 2. Inyecta un **Refresh Token** (7 días) en una cookie \`HttpOnly\`, protegida contra ataques XSS.
 3. Registra el token hash en Redis para permitir revocación centralizada.`,
     }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['tipo_documento', 'nro_documento', 'password'],
-        properties: {
-          tipo_documento: { type: 'string', example: 'DNI' },
-          nro_documento: { type: 'string', example: '72345678' },
-          password: { type: 'string', format: 'password', example: 'Admin2026*' },
-        },
-      },
-    }),
+    ApiContratoBody(LoginSchema),
     ApiResponse({
       status: 200,
       description: 'Login exitoso. Devuelve Access Token en JSON y configura cookie HttpOnly con Refresh Token.',
@@ -50,7 +42,7 @@ export function ApiSwaggerLogin() {
     ApiResponse({
       status: 401,
       description: 'Credenciales inválidas o cuenta de usuario inactiva.',
-    }),
+    })
   );
 }
 
@@ -77,7 +69,7 @@ export function ApiSwaggerRefresh() {
     ApiResponse({
       status: 401,
       description: 'Cookie ausente, token revocado en Redis o expirado.',
-    }),
+    })
   );
 }
 
@@ -105,7 +97,7 @@ export function ApiSwaggerLogout() {
     ApiResponse({
       status: 401,
       description: 'Token de acceso no válido o sesión ya expirada.',
-    }),
+    })
   );
 }
 
@@ -116,19 +108,7 @@ export function ApiSwaggerProvisionar() {
       summary: 'Provisionar Usuario Interno',
       description: 'Crea credenciales iniciales para un nuevo trabajador. Exclusivo para ADMIN o RRHH.',
     }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['tipo_documento', 'nro_documento', 'password', 'rol'],
-        properties: {
-          tipo_documento: { type: 'string', example: 'DNI' },
-          nro_documento: { type: 'string', example: '72345678' },
-          password: { type: 'string', example: 'UsuarioInicial2026*' },
-          email: { type: 'string', format: 'email', example: 'operador@empresa.com' },
-          rol: { type: 'string', enum: ['ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE'], example: 'ASISTENTE' },
-        },
-      },
-    }),
+    ApiContratoBody(ProvisionarUsuarioSchema),
     ApiResponse({
       status: 201,
       description: 'Usuario provisionado con éxito en PostgreSQL con hash Argon2id.',
@@ -140,7 +120,7 @@ export function ApiSwaggerProvisionar() {
     ApiResponse({
       status: 403,
       description: 'Acceso denegado: Se requiere rol ADMIN o RRHH.',
-    }),
+    })
   );
 }
 
@@ -150,15 +130,7 @@ export function ApiSwaggerRecuperarPassword() {
       summary: 'Solicitar Recuperación de Contraseña',
       description: 'Genera un token efímero firmado y remite un enlace de recuperación al correo registrado.',
     }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['nro_documento'],
-        properties: {
-          nro_documento: { type: 'string', example: '72345678' },
-        },
-      },
-    }),
+    ApiContratoBody(SolicitudRecuperacionSchema),
     ApiResponse({
       status: 200,
       description: 'Solicitud procesada (retorna 200 genérico para prevenir enumeración de usuarios).',
@@ -166,6 +138,6 @@ export function ApiSwaggerRecuperarPassword() {
     ApiResponse({
       status: 400,
       description: 'Documento con formato inválido.',
-    }),
+    })
   );
 }

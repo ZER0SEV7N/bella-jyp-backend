@@ -1,5 +1,5 @@
 //src/modules/asistencia/controller/incidencias.controller.ts
-import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch, Get, Query, Req } from "@nestjs/common";
+import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch, Get, Query, Req, Param, ParseUUIDPipe } from "@nestjs/common";
 import { JwtAccessGuard } from "@/common/guards/jwt-access.guard";
 import { RolesGuard } from "@/common/guards/roles.guard";
 import { Roles } from "@/common/decorators/roles.decorator";
@@ -9,7 +9,7 @@ import type { GenerarIncidenciasPeriodoDto, AprobarIncidenciasDto, ListarInciden
 import { GenerarIncidenciasMesUseCase } from "../use-cases/Incidencias/generarIncidenciasMes.useCase";
 import { AprobarIncidenciaMesUseCase } from "../use-cases/Incidencias/aprobarIncidenciaMes.useCase";
 import { ListarIncidenciasMesUseCase } from "../use-cases/Incidencias/listarIncidenciasMes.useCase";
-import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre, ApiSwaggerAprobarIncidencias } from "../decorator/incidencias-swagger.decorator";
+import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre, ApiSwaggerAprobarIncidencias, ApiSwaggerListarIncidencias, ApiSwaggerListarIncidenciaPorId } from "../decorator/incidencias-swagger.decorator";
 import { actorSolicitud } from "@/common/utils/actor-operacion.util";
 import type { SolicitudAutenticada } from  "@/common/utils/actor-operacion.util";
 
@@ -20,7 +20,7 @@ import type { SolicitudAutenticada } from  "@/common/utils/actor-operacion.util"
  * para un período específico, procesando los registros de los empleados activos.
  * Se asegura de que solo usuarios autenticados y con los roles adecuados puedan acceder a estos endpoints.
  */
-@Controller('api/asistencia/incidencias')
+@Controller('api/v1/asistencia/incidencias')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @ApiSwaggerIncidenciasController()
 export class IncidenciasController {
@@ -31,7 +31,7 @@ export class IncidenciasController {
  
     /**
      * Endpoint para generar el cierre de incidencias de asistencia para un período específico.
-     * @Post /api/asistencia/incidencias/generar-cierre
+     * @Post /api/v1/asistencia/incidencias/generar-cierre
      * @HttpCode 200 - OK
      * @Roles ADMIN, RRHH, CONTADOR - Solo usuarios con estos roles pueden acceder a este endpoint.
      * @param dto {
@@ -55,7 +55,7 @@ export class IncidenciasController {
 
     /**
      * Endpoint para aprobar incidencias de asistencia para un período específico.
-     * @Patch /api/asistencia/incidencias/aprobar
+     * @Patch /api/v1/asistencia/incidencias/aprobar
      * @HttpCode 200 - OK
      * @Roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
      * @UsePipes ZodValidationPipe(AprobarIncidenciasSchema) - Valida el DTO de entrada contra el esquema definido.
@@ -79,7 +79,7 @@ export class IncidenciasController {
 
     /**
      * Endpoint para listar las incidencias de asistencia de un período específico.
-     * @Get /api/asistencia/incidencias
+     * @Get /api/v1/asistencia/incidencias
      * @HttpCode 200 - OK
      * @Roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
      * @UsePipes ZodValidationPipe(ListarIncidenciasQuerySchema) - Valida los parámetros de consulta contra el esquema definido.
@@ -94,10 +94,27 @@ export class IncidenciasController {
      * @throws InternalServerErrorException - Si ocurre un error inesperado durante la consulta de las incidencias.
      */
     @Get()
+    @ApiSwaggerListarIncidencias()
     @UseGuards(JwtAccessGuard, RolesGuard)
     @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
     @UsePipes(new ZodValidationPipe(ListarIncidenciasQuerySchema))
     async listarIncidencias(@Query() query: ListarIncidenciasQueryDto) {
         return await this.listarIncidenciasMesUseCase.execute(query);
+    }
+
+    /**
+     * Endpoint para obtener una incidencia de asistencia por su ID.
+     * @Get /api/v1/asistencia/incidencias/:id
+     * @Roles ADMIN, RRHH, CONTADOR - Solo usuarios con estos roles pueden acceder a este endpoint.
+     * @param id - El ID de la incidencia a obtener.
+     * @returns un objeto con el detalle de la incidencia solicitada.
+     * @throws NotFoundException - Si no se encuentra la incidencia con el ID proporcionado.
+     * @throws BadRequestException - Si el ID no es válido.
+     */
+    @Get(':id')
+    @ApiSwaggerListarIncidenciaPorId()
+    @Roles('ADMIN', 'RRHH', 'CONTADOR')
+    obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+        return this.listarIncidenciasMesUseCase.obtenerPorId(id);
     }
 }

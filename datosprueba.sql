@@ -114,6 +114,8 @@ BEGIN
     VALUES (jornada_id, 'DEMO - Lunes a sábado, 48 horas', 48, horario);
 
     -- --------------------------------------------------------------------------------------------
+    INSERT INTO jornada_area (jornada_id, area_id) VALUES (jornada_id, area_id);
+
     -- 6. LEGAJO: TRES EMPLEADOS FICTICIOS
     -- --------------------------------------------------------------------------------------------
     -- Ingresan el 01/09/2026: la demostración no necesita fabricar planillas de meses anteriores.
@@ -123,10 +125,12 @@ BEGIN
 
         INSERT INTO empleados (
             id, cargo_id, area_id, documento_id, jornada_id,
-            nombre, apellido, nro_documento, fecha_inicio
+            nombre, apellido, nro_documento, fecha_inicio, email, telefono, sexo, fecha_nacimiento,
+            direccion, referencia_direccion, ubigeo, distrito, provincia, departamento
         ) VALUES (
             empleado_id, cargo_id, area_id, documento_id, jornada_id,
-            'DEMO', rol, (90000001 + indice)::text, '2026-09-01'
+            'DEMO', rol, (90000001 + indice)::text, '2026-09-01', lower(rol) || '@demo.invalid', '99900000' || indice::text, 'MASCULINO', '1990-10-25',
+            'Calle ficticia 123', 'Dirección exclusiva de prueba', '150101', 'LIMA', 'LIMA', 'LIMA'
         );
 
         indice := indice + 1;

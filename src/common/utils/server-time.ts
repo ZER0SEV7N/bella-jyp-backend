@@ -46,7 +46,11 @@ export class ServerTime {
      */
     static desdeHoraPeru(fecha: string, hora: string): Date {
         this.desdeFechaSimple(fecha);
-        if (!/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(hora)) throw new RangeError('La hora debe usar HH:mm o HH:mm:ss.');
+        
+        //Validar que la hora tenga el formato correcto (HH:mm o HH:mm:ss)
+        if (!/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(hora)) 
+            throw new RangeError('La hora debe usar HH:mm o HH:mm:ss.');
+        
         return dayjs.tz(`${fecha} ${hora}`, TIMEZONE_PERU).toDate();
     }
 
@@ -70,17 +74,21 @@ export class ServerTime {
      * devuelve un objeto Date representando la medianoche UTC del 15 de junio de 2024.
      */
     static desdeFechaSimple(fecha: string): Date {
+        //Validar que la fecha tenga el formato correcto (YYYY-MM-DD)
         if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha))
             throw new RangeError('La fecha debe tener el formato YYYY-MM-DD.');
 
+        //Separar la fecha en año, mes y día, y convertirlos a números
         const [year, month, day] = fecha.split('-').map(Number);
         const resultado = new Date(0);
         resultado.setUTCFullYear(year, month - 1, day);
         resultado.setUTCHours(0, 0, 0, 0);
 
+        //Validar que la fecha sea válida en el calendario (por ejemplo, no permitir 2024-02-30)
         if (year < 1000 || resultado.getUTCFullYear() !== year || resultado.getUTCMonth() !== month - 1 || resultado.getUTCDate() !== day)
             throw new RangeError('La fecha no existe en el calendario.');
 
+        //Retornar el objeto Date representando la medianoche UTC de la fecha proporcionada
         return resultado;
     }
 
@@ -90,12 +98,16 @@ export class ServerTime {
      * @returns - Un objeto con las propiedades year y month.
      */
     static validarPeriodo(periodo: string): { year: number; month: number } {
+        //Validar que el período tenga el formato correcto (YYYY-MM)
         if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodo))
             throw new RangeError('El período debe tener el formato YYYY-MM.');
 
+        //Separar el período en año y mes, y convertirlos a números
         const [year, month] = periodo.split('-').map(Number);
-        if (year < 1000) throw new RangeError('El año debe encontrarse entre 1000 y 9999.');
+        if (year < 1000) 
+            throw new RangeError('El año debe encontrarse entre 1000 y 9999.');
 
+        //Retornar un objeto con el año y mes validados
         return { year, month };
     }
 

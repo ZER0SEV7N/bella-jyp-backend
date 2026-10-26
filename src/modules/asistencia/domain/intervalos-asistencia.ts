@@ -27,13 +27,17 @@ export function restar(base: Intervalo[], coberturas: Intervalo[]): Intervalo[] 
         (restantes, [desde, hasta]) =>
             //Para cada intervalo de cobertura, se calcula la diferencia con los intervalos restantes actuales, generando nuevos intervalos que representan los periodos no cubiertos.
             restantes.flatMap(([inicio, fin]) => {
+                //Si el intervalo de cobertura no se superpone con el intervalo restante, se devuelve el intervalo restante tal cual.
                 if (hasta <= inicio || desde >= fin) 
                     return [[inicio, fin] as Intervalo];
+
+                //Si hay superposición, se calcula los intervalos restantes antes y después del intervalo de cobertura, si existen.
                 const partes: Intervalo[] = [];
                 if (desde > inicio) 
                     partes.push([inicio, desde]);
                 if (hasta < fin) 
                     partes.push([hasta, fin]);
+                //Se devuelven los intervalos restantes después de restar el intervalo de cobertura.
                 return partes;
             }),
         base

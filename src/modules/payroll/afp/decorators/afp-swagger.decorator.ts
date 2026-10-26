@@ -1,6 +1,8 @@
 //src/modules/afp/decorators/afp-swagger.decorator.ts
+import { CrearComisionSchema, CrearTipoAfpSchema, ListarComisionesQuerySchema, ListarTiposAfpQuerySchema } from '@jyp/shared-contracts';
+import { ApiContratoBody, ApiContratoQuery } from '@/common/decorators/api-contrato.decorator';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiExtension } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiExtension } from '@nestjs/swagger';
 
 /**
  * Decoradores de Swagger para el módulo de AFP.
@@ -12,7 +14,7 @@ export function ApiSwaggerAfpController() {
   return applyDecorators(
     ApiTags('Módulo AFP y Pensiones'),
     ApiBearerAuth('JWT-auth'),
-    ApiExtension('x-role', { roles: ['ADMIN', 'CONTADOR'] }),
+    ApiExtension('x-role', { roles: ['ADMIN', 'CONTADOR'] })
   );
 }
 
@@ -25,46 +27,7 @@ export function ApiSwaggerComisionCrear() {
       summary: 'Registrar nueva Comisión',
       description: 'Abre un nuevo periodo de tasas y cierra el anterior (SCD Tipo 2). Requiere permisos de administrador o contador.',
     }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['tipo_afp_id', 'nueva_comision'],
-        properties: {
-          tipo_afp_id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID de la AFP a la que aplica',
-          },
-          anterior_comision: {
-            type: 'object',
-            description:
-              'Opcional. Datos de la comisión vigente para cerrarla.',
-            properties: {
-              id: { type: 'string', format: 'uuid' },
-              periodo_final: {
-                type: 'string',
-                format: 'date',
-                example: '2026-07-31',
-              },
-            },
-          },
-          nueva_comision: {
-            type: 'object',
-            properties: {
-              periodo_inicio: {
-                type: 'string',
-                format: 'date',
-                example: '2026-08-01',
-              },
-              aporte_obligatorio: { type: 'number', example: 10.0 },
-              comision_sobre_ra: { type: 'number', example: 1.55 },
-              prima_seguro: { type: 'number', example: 1.84 },
-              comision_mixta: { type: 'number', example: 0.78 },
-            },
-          },
-        },
-      },
-    }),
+    ApiContratoBody(CrearComisionSchema),
     ApiResponse({
       status: 201,
       description: 'Comisión registrada exitosamente.',
@@ -88,7 +51,7 @@ export function ApiSwaggerComisionCrear() {
     ApiResponse({
       status: 500,
       description: 'Error interno del servidor al intentar registrar la comisión.',
-    }),
+    })
   );
 }
 
@@ -96,23 +59,11 @@ export function ApiSwaggerComisionListar() {
   return applyDecorators(
     ApiOperation({
       summary: 'Listar Comisiones',
-      description: 'Obtiene el historial de tasas. Filtre por vigentes para el cálculo de planillas. Requiere permisos de administrador, contador, asistente o RRHH.',
+      description:
+        'Obtiene el historial de tasas. Filtre por vigentes para el cálculo de planillas. Requiere permisos de administrador, contador, asistente o RRHH.',
     }),
-    ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
-    ApiQuery({ name: 'limit', required: false, type: Number, example: 50 }),
-    ApiQuery({
-      name: 'afp_id',
-      required: false,
-      type: 'string',
-      format: 'uuid',
-    }),
-    ApiQuery({
-      name: 'solo_vigentes',
-      required: false,
-      type: Boolean,
-      example: true,
-      description: 'Trae solo las tasas actuales (sin fecha de fin)',
-    }),
+    ApiContratoQuery(ListarComisionesQuerySchema),
+
     ApiResponse({
       status: 200,
       description: 'Listado de comisiones obtenido exitosamente.',
@@ -128,7 +79,7 @@ export function ApiSwaggerComisionListar() {
     ApiResponse({
       status: 500,
       description: 'Error interno del servidor al intentar obtener el listado de comisiones.',
-    }),
+    })
   );
 }
 
@@ -141,20 +92,7 @@ export function ApiSwaggerTipoAfpCrear() {
       summary: 'Crear Tipo de AFP',
       description: 'Registra una nueva Administradora (Ej. Integra, Prima). Requiere permisos de administrador o contador.',
     }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['nombre', 'id_regimen'],
-        properties: {
-          nombre: { type: 'string', example: 'AFP Integra' },
-          id_regimen: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID del Régimen Privado',
-          },
-        },
-      },
-    }),
+    ApiContratoBody(CrearTipoAfpSchema),
     ApiResponse({
       status: 201,
       description: 'Tipo de AFP registrado exitosamente.',
@@ -174,15 +112,15 @@ export function ApiSwaggerTipoAfpCrear() {
     ApiResponse({
       status: 500,
       description: 'Error interno del servidor al intentar registrar el tipo de AFP.',
-    }),
+    })
   );
 }
 
 export function ApiSwaggerTipoAfpListar() {
   return applyDecorators(
     ApiOperation({ summary: 'Listar Tipos de AFP' }),
-    ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
-    ApiQuery({ name: 'limit', required: false, type: Number, example: 50 }),
+    ApiContratoQuery(ListarTiposAfpQuerySchema),
+
     ApiResponse({
       status: 200,
       description: 'Listado de tipos de AFP obtenido exitosamente.',
@@ -198,6 +136,6 @@ export function ApiSwaggerTipoAfpListar() {
     ApiResponse({
       status: 500,
       description: 'Error interno del servidor al intentar obtener el listado de tipos de AFP.',
-    }),
+    })
   );
 }

@@ -1,5 +1,5 @@
 //src/modules/asistencia/decorator/incidencias.decorator.ts
-import { ApiContratoBody, ApiContratoQuery, ApiErroresOperacion, ApiOperacionDocumentada } from '@/common/decorators/api-contrato.decorator';
+import { ApiContratoBody, ApiContratoQuery, ApiErroresOperacion, ApiIdentificador, ApiOperacionDocumentada } from '@/common/decorators/api-contrato.decorator';
 import { AprobarIncidenciasSchema, GenerarIncidenciasPeriodoSchema, ListarIncidenciasQuerySchema } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -59,6 +59,18 @@ export function ApiSwaggerListarIncidencias() {
             roles: ['ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE'],
             respuesta: { type: 'array', items: respuestaIncidencia },
             paginada: true
+        })
+    );
+}
+
+export function ApiSwaggerListarIncidenciaPorId() {
+    return applyDecorators(
+        ApiIdentificador('uuid de la incidencia', true),
+        ApiOperacionDocumentada({
+            summary: 'Obtener incidencia por ID',
+            description: 'Recupera los detalles de una incidencia específica utilizando su identificador único (UUID).',
+            roles: ['ADMIN', 'RRHH', 'CONTADOR'],
+            respuesta: { type: 'object', properties: { id: { type: 'string' }, empleado_id: { type: 'string' }, periodo: { type: 'string' }, estado: { type: 'string' }, detalles: { type: 'array', items: { type: 'object' } } } }
         })
     );
 }

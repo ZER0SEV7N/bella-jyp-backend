@@ -17,11 +17,11 @@ function calcularTardanzaRetorno(programado: Intervalo[], trabajado: Intervalo[]
     //Itera sobre los intervalos programados a partir del segundo intervalo (ya que el primero es la entrada inicial) para calcular la tardanza en el retorno del refrigerio.
     for (const [inicio, fin] of programado.slice(1)) {
         const retorno = trabajado.find(([desde, hasta]) => hasta > inicio && desde < fin);
+    
+        // Si se encuentra un retorno tardío, se calcula la tardanza en minutos.
         if (retorno && retorno[0] > inicio)
-            tardanzaRetorno += duracion(
-                faltantes.flatMap(( [desde, hasta] ) => 
-                    hasta <= inicio || desde >= retorno[0] ? [] : [[Math.max(inicio, desde), Math.min(retorno[0], hasta)] as Intervalo] )
-            );
+            tardanzaRetorno += duracion( faltantes.flatMap(( [desde, hasta] ) => 
+                hasta <= inicio || desde >= retorno[0] ? [] : [[Math.max(inicio, desde), Math.min(retorno[0], hasta)] as Intervalo] ) );
     }
 
     return tardanzaRetorno;
@@ -69,6 +69,8 @@ function aplicarSobretiempo(r: ResultadoDia, decisiones: DecisionAsistencia[]): 
 export function evaluarMarcaciones(r: ResultadoDia, horario: HorarioDia, jornada: JornadaHistorica, decisiones: DecisionAsistencia[], programado: Intervalo[], conGoce: Intervalo[], sinGoce: Intervalo[], aprobadas: SolicitudAsistencia[]): ResultadoDia {
     //Calcula los intervalos trabajados a partir de las marcas registradas y el horario laboral.
     const trabajado = intervalosTrabajados(r.marcas, horario);
+
+    //Si no hay intervalos trabajados, se marca el día como 'MARCACION_INCOMPLETA' y se agrega una alerta indicando que la secuencia de marcaciones es incompleta o inválida.
     if (!trabajado) {
         r.estado = 'MARCACION_INCOMPLETA';
         r.alertas.push('SECUENCIA_DE_MARCACIONES_INCOMPLETA_O_INVALIDA');

@@ -1,6 +1,6 @@
+//src/modules/asistencia/use-cases/generarIncidenciasMes.useCase.ts
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { GeneracionMasivaAsistenciaService } from '../../services/generacion-masiva-asistencia.service';
-//src/modules/asistencia/use-cases/generarIncidenciasMes.useCase.ts
 import type { GenerarIncidenciasPeriodoDto } from '@jyp/shared-contracts';
 import { Injectable } from '@nestjs/common';
 

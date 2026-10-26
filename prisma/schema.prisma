@@ -204,8 +204,8 @@ model empleados {
 
   // Vínculo laboral
   fecha_inicio          DateTime                   @db.Date
-  fecha_cese            DateTime                   @db.Date
-  afp_fecha_filiacion   DateTime                   @db.Date
+  fecha_cese            DateTime?                  @db.Date
+  afp_fecha_filiacion   DateTime?                  @db.Date
   asig_familiar         Boolean                    @default(false)
   activo                Boolean                    @default(true)
   deleted_at            DateTime?                  @db.Timestamptz(6)
@@ -244,7 +244,6 @@ model contratos {
   id                 String               @id @default(uuid()) @db.Uuid
   empleado_id        String               @db.Uuid
   estado             estado_contrato_enum @default(VIGENTE)
-  id_estado          String?              @db.Uuid // Opcional si decides deprecar la tabla estado_contrato
   contrato_origen_id String?              @db.Uuid
   tipo_modalidad     String?              @db.VarChar(100)
   fecha_inicio       DateTime             @db.Date
@@ -256,7 +255,6 @@ model contratos {
   url                String?              @db.VarChar(225)
 
   empleados          empleados            @relation(fields: [empleado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_empleado")
-  estado_contrato    estado_contrato?     @relation(fields: [id_estado], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contratos_estado")
   
   // Auto-relación para trazabilidad de prórrogas / renovaciones
   contrato_origen    contratos?           @relation("RenovacionContrato", fields: [contrato_origen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -266,14 +264,6 @@ model contratos {
   @@index([empleado_id], map: "idx_contratos_empleado")
   @@index([estado], map: "idx_contratos_estado")
   @@map("contratos")
-}
-
-//Compatibilidad con la tabla existente mientras se completa la migración de contratos al enum.
-model estado_contrato {
-  id        String @id @db.Uuid
-  nombre    String @db.VarChar(100)
-  contratos contratos[]
-  @@map("estado_contrato")
 }
 
 model dato_financiero {

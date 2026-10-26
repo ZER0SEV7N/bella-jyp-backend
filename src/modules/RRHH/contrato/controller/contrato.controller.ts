@@ -19,7 +19,7 @@ import { AnularContratoUseCase } from '../use-cases/anularContrato.useCase';
 import { ListarContratoUseCase } from '../use-cases/listarContrato.useCase';
 import { SubirContratoPdfUseCase } from '../use-cases/subirContratoPdf.useCase';
 //Decoradores Swagger Limpios
-import { ApiSwaggerContratoController, ApiSwaggerCrearContrato, ApiSwaggerEditarContrato, ApiSwaggerRenovarContrato, ApiSwaggerAnularContrato, ApiSwaggerListarContratosEmpleado, ApiSwaggerSubirPdf, ApiSwaggerDescargarPdf, ApiSwaggerListarContratos } from '../decorators/contrato-swagger.decorator';
+import { ApiSwaggerContratoController, ApiSwaggerCrearContrato, ApiSwaggerEditarContrato, ApiSwaggerRenovarContrato, ApiSwaggerAnularContrato, ApiSwaggerListarContratosEmpleado, ApiSwaggerSubirPdf, ApiSwaggerDescargarPdf, ApiSwaggerListarContratos, ApiSwaggerListarContratosPorId } from '../decorators/contrato-swagger.decorator';
 
 /**
  * Controlador para manejar las operaciones relacionadas con los contratos en el módulo de RRHH.
@@ -103,7 +103,7 @@ export class ContratoController {
    * Endpoint para renovar un contrato existente en el módulo de RRHH.
    * Este endpoint permite renovar un contrato, creando un nuevo contrato con las fechas y datos proporcionados.
    * Recibe el ID del contrato a renovar como parámetro de ruta y los datos del nuevo contrato en el cuerpo de la solicitud.
-   * @POST -  http://localhost:3000/api/contrato/:id/renovar
+   * @POST -  http://localhost:3000/api/v1/rrhh/contrato/:id/renovar
    * @param id : string (UUID del contrato a renovar)
    * @param payload {
    *    * id_estado: string (UUID del estado del nuevo contrato)
@@ -126,7 +126,7 @@ export class ContratoController {
    * Endpoint para anular (eliminar) un contrato existente en el módulo de RRHH.
    * Este endpoint permite anular un contrato, marcándolo como eliminado en la base de datos.
    * Recibe el ID del contrato a anular como parámetro de ruta.
-   * @DELETE -  http://localhost:3000/api/contrato/:id/anular
+   * @DELETE -  http://localhost:3000/api/v1/rrhh/contrato/:id/anular
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param id : string (UUID del contrato a anular)
    * @Returns Un objeto con un mensaje de éxito indicando que el contrato ha sido anulado.
@@ -143,7 +143,7 @@ export class ContratoController {
    * Endpoint para listar los contratos existentes en el módulo de RRHH.
    * Este endpoint permite listar todos los contratos registrados en el sistema, con la posibilidad de filtrar por empleado, estado del contrato y fechas.
    * Recibe los parámetros de consulta en la URL.
-   * @GET -  http://localhost:3000/api/contrato
+   * @GET -  http://localhost:3000/api/v1/rrhh/contrato
    * @roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param query : ListarContratosQueryDto (opcional, parámetros de consulta para filtrar los contratos)
    * @param ListarContratosQueryDto {
@@ -169,7 +169,7 @@ export class ContratoController {
    * Este endpoint permite listar todos los contratos asociados a un empleado específico, incluyendo información sobre el estado de cada contrato y si tiene un PDF adjunto.
    * Recibe el ID del empleado como parámetro de ruta.
    * @roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
-   * @GET -  http://localhost:3000/api/contrato/empleado/:empleadoId
+   * @GET -  http://localhost:3000/api/v1/rrhh/contrato/empleado/:empleadoId
    * @param empleadoId : string (UUID del empleado del cual se desea obtener el historial de contratos)
    * @Returns Un objeto con un arreglo de contratos asociados al empleado y un mensaje de éxito.
    */
@@ -217,7 +217,7 @@ export class ContratoController {
    * Este endpoint permite descargar el archivo PDF que representa el contrato firmado por el empleado.
    * Recibe el nombre del archivo como parámetro de ruta y devuelve el archivo PDF como respuesta.
    * @roles ADMIN, RRHH, CONTADOR, EMPLEADO - Solo usuarios con estos roles pueden acceder a este endpoint.
-   * @GET -  http://localhost:3000/api/contrato/descargar/:filename
+   * @GET -  http://localhost:3000/api/v1/rrhh/contrato/descargar/:filename
    * @param filename : string (nombre del archivo PDF a descargar, generado por el sistema al subir el contrato)
    * @Returns El archivo PDF como respuesta, con el tipo de contenido 'application/pdf'.
    * @Throws BadRequestException si el archivo solicitado no existe en el servidor.
@@ -245,5 +245,23 @@ export class ContratoController {
     //Enviar el archivo PDF como respuesta. Fastify maneja la respuesta de archivos de manera diferente a Express.
     const stream = fs.createReadStream(filePath);
     res.type('application/pdf').send(stream);
+  }
+
+  /**
+   * Endpoint para obtener un contrato específico por su ID en el módulo de RRHH.
+   * Este endpoint permite obtener los detalles de un contrato específico, incluyendo información sobre el empleado asociado, el estado del contrato y si tiene un PDF adjunto.
+   * Recibe el ID del contrato como parámetro de ruta.
+   * @GET -  http://localhost:3000/api/v1/rrhh/contrato/:id
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @param id - string (UUID del contrato que se desea obtener)
+   * @returns - Un objeto con los detalles del contrato solicitado y un mensaje de éxito.
+   * @throws NotFoundException si el contrato con el ID proporcionado no existe.
+   * @throws ForbiddenException si el usuario no tiene los permisos necesarios para acceder al contrato.
+   */
+  @Get(':id')
+  @Roles('ADMIN', 'RRHH')
+  @ApiSwaggerListarContratosPorId()
+  obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarContratoUseCase.obtenerPorId(id);
   }
 }

@@ -1,6 +1,6 @@
 //src/modules/core/audit/controller/audit.controller.ts
 //Controlador para manejar las solicitudes relacionadas con la auditoría, como obtener logs de auditoría y registrar auditorías manuales.
-import { Controller, Get, Query, Post, Body, UseGuards, Req, UsePipes } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, UseGuards, Req, UsePipes, Param, ParseUUIDPipe } from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -10,7 +10,7 @@ import type { ObtenerAuditQueryDto, AuditLogDto } from '@jyp/shared-contracts';
 import { ObtenerLogsUseCase } from '../use-cases/obtenerLogs.useCase';
 import { RegistroAuditoriaUseCase } from '../use-cases/registroAuditoria.useCase';
 import type { FastifyRequest } from 'fastify';
-import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria } from '../decorators/audit-swagger.decorator';
+import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria, ApiSwaggerObtenerAuditoriaPorId } from '../decorators/audit-swagger.decorator';
 
 /**
  * Controlador para manejar las solicitudes relacionadas con la auditoría.
@@ -45,7 +45,7 @@ export class AuditController {
    */
   @ApiSwaggerListarAuditoria()
   @Get('logs')
-  //@Roles('ADMIN', 'CONTADOR')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async obtenerLogs(
     @Query() queryParams: ObtenerAuditQueryDto,
@@ -79,5 +79,19 @@ export class AuditController {
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async registrarAuditoria(@Body() payload: AuditLogDto) {
     return await this.registroAuditoriaUseCase.execute(payload);
+  }
+
+  /**
+   * Obtiene un log de auditoría por su ID.
+   * Requiere que el usuario tenga el rol de 'ADMIN' o 'CONTADOR'.
+   * @param id - El ID del log de auditoría a obtener.
+   * @param req - La solicitud HTTP.
+   * @returns El log de auditoría correspondiente al ID proporcionado.
+   */
+  @Get('logs/:id')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  @ApiSwaggerObtenerAuditoriaPorId()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string, @Req() req: FastifyRequest & { user: { id: string; rol: string } }) {
+    return this.obtenerLogsUseCase.obtenerPorId(id, req.user);
   }
 }

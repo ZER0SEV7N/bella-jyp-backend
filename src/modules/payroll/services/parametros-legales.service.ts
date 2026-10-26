@@ -12,10 +12,10 @@ import { ServerTime } from '@/common/utils/server-time';
  * Implementa cache-side para optimizar el rendimiento y reducir la carga en la base de datos.
  */
 @Injectable()
-export class ParametrosLegalesService{
+export class ParametrosLegalesService {
     private readonly REDIS_PREFIX = 'payroll:config:';
     private readonly logger = new Logger(ParametrosLegalesService.name);
-    
+
     constructor(
         private readonly prisma: PrismaService,
         @Inject(REDIS_CLIENT) private readonly redis: Redis
@@ -68,11 +68,11 @@ export class ParametrosLegalesService{
             where: {
                 codigo: normalizado,
                 vigente_desde: { lte: fecha },
-                OR: [{ vigente_hasta: { gte: fecha } }, { vigente_hasta: null }]
+                OR: [{ vigente_hasta: { gte: fecha } }, { vigente_hasta: null }],
             },
             orderBy: { vigente_desde: 'desc' },
             take: 2,
-            select: { valor: true }
+            select: { valor: true },
         });
 
         //Si no se encuentra un valor vigente o hay vigencias superpuestas, lanzar excepciones apropiadas
@@ -82,7 +82,7 @@ export class ParametrosLegalesService{
         //Guardar el valor en cache para futuras consultas y retornar el valor obtenido de la base de datos
         const valor = new Decimal(parametros[0].valor.toString());
         try {
-            await this.redis.set(cacheKey, valor.toString(), 'EX', 86400);
+         await this.redis.set(cacheKey, valor.toString(), 'EX', 86400);
         } catch {
             this.logger.warn('No se pudo guardar el parámetro en caché. Se conserva el valor de PostgreSQL.');
         }
@@ -102,9 +102,15 @@ export class ParametrosLegalesService{
         // Fallar permite al caso de uso registrar/reintentar la invalidación tras el commit.
         let cursor = '0';
         do {
-            const [siguienteCursor, keys] = await this.redis.scan(cursor, 'MATCH', `${this.REDIS_PREFIX}${codigo.trim().toUpperCase()}:*`, 'COUNT', 500);
+            const [siguienteCursor, keys] = await this.redis.scan(
+                cursor,
+                'MATCH',
+                `${this.REDIS_PREFIX}${codigo.trim().toUpperCase()}:*`,
+                'COUNT',
+                500
+            );
             cursor = siguienteCursor;
-            for (let inicio = 0; inicio < keys.length; inicio += 500)
+            for (let inicio = 0; inicio < keys.length; inicio += 500) 
                 await this.redis.del(...keys.slice(inicio, inicio + 500));
         } while (cursor !== '0');
     }

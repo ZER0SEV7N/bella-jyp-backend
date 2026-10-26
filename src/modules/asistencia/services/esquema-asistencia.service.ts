@@ -22,9 +22,9 @@ export class EsquemaAsistenciaService implements OnModuleInit {
      */
     async onModuleInit(): Promise<void> {
         const [control] = await this.prisma.$queryRaw<{ instalada: boolean }[]>`SELECT to_regprocedure('asistencia_version_migracion()') IS NOT NULL AS instalada`;
-        if (!control?.instalada) {
+        if (!control?.instalada) 
             throw new Error('Faltan las protecciones SQL. Base nueva: npm run db:crear. Base existente compatible: npm run db:instalar-objetos. Consulte docs/revision-20261021/INSTALACION.md.');
-        }
+        
         
         //Una función con el nombre correcto no basta: también deben estar activos los triggers críticos.
         const [protecciones] = await this.prisma.$queryRaw<{ cantidad: number }[]>`
@@ -39,14 +39,14 @@ export class EsquemaAsistenciaService implements OnModuleInit {
                 ('parametro_legal', 'trg_parametro_vigencia'), ('comisiones_afp', 'trg_comision_vigencia'))`;
 
         //Valida que la cantidad de triggers críticos activos sea la esperada (10). Si no es así, lanza un error indicando que faltan triggers críticos o están deshabilitados.
-        if (protecciones?.cantidad !== 10) {
+        if (protecciones?.cantidad !== 10) 
             throw new Error('Faltan triggers críticos o están deshabilitados. Ejecute npm run db:instalar-objetos y revise el esquema.');
-        }
+        
 
         //Valida que la versión de la migración de esquema de asistencia sea la esperada ('2026-10-21.1'). Si no es así, lanza un error indicando que las protecciones SQL no corresponden a esta revisión y que se debe ejecutar 'npm run db:instalar-objetos' sobre un esquema compatible.
         const [version] = await this.prisma.$queryRaw<{ version: string }[]>`SELECT asistencia_version_migracion() AS version`;
-        if (version?.version !== '2026-10-21.1') {
+        if (version?.version !== '2026-10-21.1') 
             throw new Error('Las protecciones SQL no corresponden a esta revisión. Ejecute npm run db:instalar-objetos sobre un esquema compatible.');
-        }
+        
     }
 }

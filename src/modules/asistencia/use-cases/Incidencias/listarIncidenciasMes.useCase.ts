@@ -1,5 +1,5 @@
 //src/modules/asistencia/use-cases/Incidencias/listarIncidenciasMes.useCase.ts
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import type { ListarIncidenciasQueryDto } from "@jyp/shared-contracts";
 import { Prisma } from "@prisma/client";
@@ -47,14 +47,27 @@ export class ListarIncidenciasMesUseCase {
             }
 
             //Ejecución de la consulta a la base de datos para obtener el total y los registros de incidencias
-            const [total, registros] = await Promise.all([
+           const [total, registros] = await Promise.all([
                 this.prisma.incidencias_mes.count({ where: whereClause }),
                 this.prisma.incidencias_mes.findMany({
                     where: whereClause,
                     skip,
                     take: limit,
                     orderBy: { empleado_id: 'asc' },
-                    include: {
+                    select: {
+                        id: true,
+                        empleado_id: true,
+                        periodo: true,
+                        dias_trabajados: true,
+                        faltas: true,
+                        minutos_tardanza: true,
+                        horas_extras_25: true,
+                        horas_extras_35: true,
+                        estado: true,
+                        vigente: true,
+                        completo: true,
+                        pendientes: true,
+                        version: true,
                         empleados: {
                             select: {
                                 id: true,
@@ -62,11 +75,11 @@ export class ListarIncidenciasMesUseCase {
                                 apellido: true,
                                 nro_documento: true,
                                 area: { select: { id: true, nombre: true } },
-                                cargo: { select: { id: true, nombre: true } } 
-                            }
-                        }
-                    }
-                })
+                                cargo: { select: { id: true, nombre: true } },
+                            },
+                        },
+                    },
+                }),
             ]);
             
             //Mapeo de los registros obtenidos para estructurarlos según el DTO de salida esperado
@@ -83,7 +96,11 @@ export class ListarIncidenciasMesUseCase {
                 minutos_tardanza: r.minutos_tardanza,
                 horas_extras_25: r.horas_extras_25.toString(),
                 horas_extras_35: r.horas_extras_35.toString(),
-                estado: r.estado, vigente: r.vigente, completo: r.completo, pendientes: r.pendientes, version: r.version,
+                estado: r.estado,
+                vigente: r.vigente,
+                completo: r.completo,
+                pendientes: r.pendientes,
+                version: r.version,
             }));
 
             //Devolución de los datos junto con la información de paginación
@@ -91,5 +108,26 @@ export class ListarIncidenciasMesUseCase {
         } catch (error) {
             throw new InternalServerErrorException('Error al obtener el listado de incidencias mensuales.', error instanceof Error ? error.message : String(error) );
         }
+    }
+
+    /**
+     * Metodo para obtener una incidencia de asistencia por su ID.
+     * @param id - ID de la incidencia de asistencia a obtener.
+     * @returns - El registro de incidencia de asistencia correspondiente al ID proporcionado.
+     * @throws - Lanza una excepción NotFoundException si no se encuentra el registro con el ID proporcionado.
+     * @throws - Lanza una excepción InternalServerErrorException si ocurre un error inesperado durante la consulta a la base de datos.
+     */
+    async obtenerPorId(id: string) {
+        const elemento = await this.prisma.incidencias_mes.findUnique({
+            where: { id },
+            include: { empleados: { select: { id: true, nombre: true, apellido: true } } },
+        });
+
+        //Si no se encuentra el registro, se lanza una excepción NotFoundException con un mensaje adecuado
+        if (!elemento) 
+            throw new NotFoundException('Registro no encontrado.');
+
+        //Devolución del registro encontrado
+        return elemento;
     }
 }

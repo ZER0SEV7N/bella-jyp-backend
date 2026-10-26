@@ -1,10 +1,9 @@
 //src/modules/payroll/planillas/use-case/novedades/resolverNovedadPlanilla.useCase.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { bloquearEmpleado, transaccionAsistencia } from '@/modules/asistencia/helpers/asistencia-transaccion.helper';
+import { bloquearEmpleado, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
 import type { ResolverNovedadPlanillaDto } from '@jyp/shared-contracts';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
-
 
 /**
  * Caso de uso para resolver una novedad de planilla.
@@ -27,15 +26,26 @@ export class ResolverNovedadPlanillaUseCase {
      * @throws ConflictException si la novedad ya se resolvió, cambió de versión o no está pendiente.
      */
     async execute(id: string, dto: ResolverNovedadPlanillaDto, actor: ActorOperacion) {
-        return transaccionAsistencia(this.prisma, actor, async (tx) => {
+        return transaccionAuditada(this.prisma, actor, async (tx) => {
+            //Se obtiene la novedad de planilla por su ID y se valida que exista.
             const n = await tx.novedad_planilla.findUnique({ where: { id } });
-            if (!n) throw new NotFoundException('La novedad no existe.');
+
+            //Si la novedad no existe, lanza una excepción de not found indicando que la novedad no existe.
+            if (!n) 
+                throw new NotFoundException('La novedad no existe.');
+            
+            //Se bloquea el empleado asociado a la novedad para evitar modificaciones concurrentes 
+            //y se valida que la novedad esté pendiente y que la versión coincida con la proporcionada.
             await bloquearEmpleado(tx, n.empleado_id);
+            
+            //Si la novedad no está pendiente, o si la versión no coincide con la proporcionada, lanza una excepción de conflicto indicando que la novedad ya se resolvió o cambió de versión.
             if ((n.estado !== 'PENDIENTE' && !(n.estado === 'APROBADO' && dto.estado === 'ANULADO')) || n.version !== dto.version)
                 throw new ConflictException('La novedad ya se resolvió o cambió de versión.');
+
+            //Actualiza el estado de la novedad de planilla con el nuevo estado, motivo de resolución, ID del actor que resolvió y aumenta la versión en 1.
             return tx.novedad_planilla.update({
                 where: { id, estado: n.estado, version: dto.version },
-                data: { estado: dto.estado, motivo_resolucion: dto.motivo, resuelto_por: actor.id, version: { increment: 1 } }
+                data: { estado: dto.estado, motivo_resolucion: dto.motivo, resuelto_por: actor.id, version: { increment: 1 } },
             });
         });
     }

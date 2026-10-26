@@ -12,7 +12,9 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
+
 DROP TRIGGER IF EXISTS trg_parametro_vigencia ON parametro_legal;
+
 CREATE TRIGGER trg_parametro_vigencia BEFORE INSERT OR UPDATE ON parametro_legal FOR EACH ROW EXECUTE FUNCTION payroll_validar_parametro();
 
 CREATE OR REPLACE FUNCTION payroll_validar_comision() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -31,7 +33,9 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
+
 DROP TRIGGER IF EXISTS trg_comision_vigencia ON comisiones_afp;
+
 CREATE TRIGGER trg_comision_vigencia BEFORE INSERT OR UPDATE ON comisiones_afp FOR EACH ROW EXECUTE FUNCTION payroll_validar_comision();
 
 DO $$ BEGIN
@@ -71,5 +75,7 @@ BEGIN
 END $restricciones$;
 
 -- Un solo ajuste de descanso semanal obligatorio aprobado por colaborador y período.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_novedad_dso_aprobada ON novedad_planilla(empleado_id, periodo)
-    WHERE tipo = 'DESCUENTO_DSO' AND estado = 'APROBADO';
+CREATE UNIQUE INDEX IF NOT EXISTS uq_novedad_dso_aprobada ON novedad_planilla (empleado_id, periodo)
+WHERE
+    tipo = 'DESCUENTO_DSO'
+    AND estado = 'APROBADO';

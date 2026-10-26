@@ -34,7 +34,7 @@ export class ListarContratoUseCase {
     try {
       //Validar la existencia del empleado si se proporciona un ID
       if (empleado_id) {
-        const empleado = await this.prisma.empleados.findUnique({ where: { id: empleado_id, deleted_at: null }, select: { id: true }});
+        const empleado = await this.prisma.empleados.findUnique({ where: { id: empleado_id, deleted_at: null }, select: { id: true } });
         if (!empleado) throw new NotFoundException('Empleado no encontrado o inactivo.');
       }
 
@@ -51,7 +51,7 @@ export class ListarContratoUseCase {
         where.estado = estado_contrato_enum.VIGENTE;
         where.fecha_fin = {
           gte: hoy,
-          lte: fechaTope
+          lte: fechaTope,
         };
       }
 
@@ -65,9 +65,9 @@ export class ListarContratoUseCase {
             OR: [
               { nombre: { contains: search.trim(), mode: 'insensitive' } },
               { apellido: { contains: search.trim(), mode: 'insensitive' } },
-              { nro_documento: { contains: search.trim() } }
-            ]
-          })
+              { nro_documento: { contains: search.trim() } },
+            ],
+          }),
         };
       }
 
@@ -88,18 +88,17 @@ export class ListarContratoUseCase {
                 nro_documento: true,
                 area: { select: { id: true, nombre: true } },
                 cargo: { select: { id: true, nombre: true } },
-              }
-            }
-          }
-        })
+              },
+            },
+          },
+        }),
       ]);
 
       //Calcular los días restantes y el estado de alerta para cada contrato, y preparar la respuesta final
       const hoy = dayjs();
       const data = contratos.map((c) => {
         const diasRestantes = c.fecha_fin ? dayjs(c.fecha_fin).diff(hoy, 'day') : null;
-        const alertaVencimiento =
-          diasRestantes !== null ? this.calcularAlertaVencimiento(diasRestantes) : null;
+        const alertaVencimiento = diasRestantes !== null ? this.calcularAlertaVencimiento(diasRestantes) : null;
 
         //Construir el objeto de contrato con los campos requeridos para la respuesta
         return {
@@ -117,9 +116,7 @@ export class ListarContratoUseCase {
           alerta_vencimiento: alertaVencimiento,
           contrato_origen_id: c.contrato_origen_id,
           es_prorroga: Boolean(c.contrato_origen_id),
-          url_documento: c.url,
           tiene_archivo: Boolean(c.url),
-          observacion: c.observacion,
         };
       });
 
@@ -133,7 +130,7 @@ export class ListarContratoUseCase {
 
       throw new InternalServerErrorException(
         'Error al consultar el listado de contratos.',
-        error instanceof Error ? error.message : String(error),
+        error instanceof Error ? error.message : String(error)
       );
     }
   }
@@ -152,5 +149,21 @@ export class ListarContratoUseCase {
     if (dias <= 15) return 'CRITICO';
     if (dias <= 30) return 'PREVENTIVO';
     return 'REGULAR';
+  }
+
+  /**
+   * Obtiene un contrato específico por su ID, incluyendo información del empleado y las prórrogas asociadas.
+   * @param id - El ID del contrato a obtener.
+   * @returns - Un objeto que contiene los detalles del contrato, el empleado asociado y las prórrogas.
+   * @throws NotFoundException si el contrato no existe o ha sido eliminado.
+   * @throws InternalServerErrorException si ocurre un error al consultar la base de datos.
+   */
+  async obtenerPorId(id: string) {
+    const contrato = await this.prisma.contratos.findUnique({
+      where: { id, deleted_at: null },
+      include: { empleados: { select: { id: true, nombre: true, apellido: true } }, prorrogas: { where: { deleted_at: null } } },
+    });
+    if (!contrato) throw new NotFoundException('Contrato no encontrado.');
+    return contrato;
   }
 }

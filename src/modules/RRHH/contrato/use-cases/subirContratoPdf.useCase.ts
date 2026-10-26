@@ -11,52 +11,52 @@ import { FileStorageUtil } from '@/common/utils/fileStorage.util';
 
 @Injectable()
 export class SubirContratoPdfUseCase {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    /**
-     * Ejecuta el caso de uso para subir un archivo PDF de contrato
-     * @param idContrato El ID del contrato al que se asociará el archivo PDF
-     * @param fileData Los datos del archivo PDF a subir
-     * @returns Una promesa que resuelve con la información del contrato actualizado
-     * @throws NotFoundException si el contrato no existe o ya ha sido eliminado
-     * @throws BadRequestException si el archivo no es un PDF válido
-     * @throws InternalServerErrorException si ocurre un error al subir el archivo o actualizar la base de datos
-     */
-    async execute(idContrato: string, fileData: any) {
-        //Verificar que el contrato existe y no ha sido eliminado
-        const contrato = await this.prisma.contratos.findUnique({ where: { id: idContrato } });
+  /**
+   * Ejecuta el caso de uso para subir un archivo PDF de contrato
+   * @param idContrato El ID del contrato al que se asociará el archivo PDF
+   * @param fileData Los datos del archivo PDF a subir
+   * @returns Una promesa que resuelve con la información del contrato actualizado
+   * @throws NotFoundException si el contrato no existe o ya ha sido eliminado
+   * @throws BadRequestException si el archivo no es un PDF válido
+   * @throws InternalServerErrorException si ocurre un error al subir el archivo o actualizar la base de datos
+   */
+  async execute(idContrato: string, fileData: any) {
+    //Verificar que el contrato existe y no ha sido eliminado
+    const contrato = await this.prisma.contratos.findUnique({ where: { id: idContrato } });
 
-        if(contrato?.deleted_at !== null) throw new NotFoundException('Contrato no encontrado o ha sido anulado.');
+    if (contrato?.deleted_at !== null) throw new NotFoundException('Contrato no encontrado o ha sido anulado.');
 
-        //Si el contrato ya tiene un PDF asociado, lanzar un error
-        if(contrato.url !== null) throw new BadRequestException('El contrato ya tiene un PDF asociado. No se puede subir otro.');
+    //Si el contrato ya tiene un PDF asociado, lanzar un error
+    if (contrato.url !== null) throw new BadRequestException('El contrato ya tiene un PDF asociado. No se puede subir otro.');
 
-        try {
-            //Guardar el archivo fisicamente usando Fastify Streams
-            const fileUrl = await FileStorageUtil.guardarArchivoMultipart(fileData, 'contratos');
+    try {
+      //Guardar el archivo fisicamente usando Fastify Streams
+      const fileUrl = await FileStorageUtil.guardarArchivoMultipart(fileData, 'contratos');
 
-            //Enlazar la ruta del archivo en la base de datos
-            await this.prisma.contratos.update({
-                where: { id: idContrato },
-                data: {
-                    url: fileUrl,
-                    observacion: contrato.observacion 
-                        ? `${contrato.observacion} | PDF adjunto el ${new Date().toISOString()}`
-                        : `PDF adjunto el ${new Date().toISOString()}`
-                }
-            });
+      //Enlazar la ruta del archivo en la base de datos
+      await this.prisma.contratos.update({
+        where: { id: idContrato },
+        data: {
+          url: fileUrl,
+          observacion: contrato.observacion
+            ? `${contrato.observacion} | PDF adjunto el ${new Date().toISOString()}`
+            : `PDF adjunto el ${new Date().toISOString()}`,
+        },
+      });
 
-            return {
-                message: 'Documento subido y vinculado correctamente. El contrato ya no puede ser editado.',
-                url: fileUrl
-            };
-        } catch (error) {
-            if (error instanceof BadRequestException) throw error; // Respetar errores de la utilidad (ej. Formato inválido)
-        
-        throw new InternalServerErrorException(
-            'Ocurrió un error en el servidor al intentar guardar el archivo físico.',
-            error instanceof Error ? error.message : String(error)
-        );
-        }    
+      return {
+        message: 'Documento subido y vinculado correctamente. El contrato ya no puede ser editado.',
+        url: fileUrl,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error; // Respetar errores de la utilidad (ej. Formato inválido)
+
+      throw new InternalServerErrorException(
+        'Ocurrió un error en el servidor al intentar guardar el archivo físico.',
+        error instanceof Error ? error.message : String(error)
+      );
     }
+  }
 }

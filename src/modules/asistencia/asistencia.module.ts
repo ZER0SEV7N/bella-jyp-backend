@@ -1,3 +1,13 @@
+//src/modules/asistencia/asistencia.module.ts
+
+import { Module } from '@nestjs/common';
+import { AsistenciaController } from './controller/asistencias.controller';
+import { IncidenciasController } from './controller/incidencias.controller';
+import { AprobarIncidenciaMesUseCase } from './use-cases/Incidencias/aprobarIncidenciaMes.useCase';
+import { GenerarIncidenciasMesUseCase } from './use-cases/Incidencias/generarIncidenciasMes.useCase';
+import { ListarIncidenciasMesUseCase } from './use-cases/Incidencias/listarIncidenciasMes.useCase';
+import { CrearMarcacionManualUseCase } from './use-cases/asistencias/crearMarcacionManual.useCase';
+import { ListarMarcacionesUseCase } from './use-cases/asistencias/listarMarcaciones.useCase';
 import { AprobacionMasivaAsistenciaService } from './services/aprobacion-masiva-asistencia.service';
 import { EsquemaAsistenciaService } from './services/esquema-asistencia.service';
 import { GeneracionMasivaAsistenciaService } from './services/generacion-masiva-asistencia.service';
@@ -9,16 +19,6 @@ import { ImportarMarcacionesUseCase } from './use-cases/asistencias/importarMarc
 import { ObtenerDetalleAsistenciaUseCase } from './use-cases/asistencias/obtenerDetalleAsistencia.useCase';
 import { ResolverDiaAsistenciaUseCase } from './use-cases/asistencias/resolverDiaAsistencia.useCase';
 import { ValidarImportacionMarcacionesUseCase } from './use-cases/asistencias/validarImportacionMarcaciones.useCase';
-//src/modules/asistencia/asistencia.module.ts
-import { Module } from '@nestjs/common';
-import { AsistenciaController } from './controller/asistencias.controller';
-import { IncidenciasController } from './controller/incidencias.controller';
-import { AprobarIncidenciaMesUseCase } from './use-cases/Incidencias/aprobarIncidenciaMes.useCase';
-import { GenerarIncidenciasMesUseCase } from './use-cases/Incidencias/generarIncidenciasMes.useCase';
-import { ListarIncidenciasMesUseCase } from './use-cases/Incidencias/listarIncidenciasMes.useCase';
-import { CrearMarcacionManualUseCase } from './use-cases/asistencias/crearMarcacionManual.useCase';
-import { ListarMarcacionesUseCase } from './use-cases/asistencias/listarMarcaciones.useCase';
-
 import { GestionAsistenciaController } from './controller/gestion-asistencia.controller';
 import { ImportacionAsistenciaController } from './controller/importacion-asistencia.controller';
 import { ImportarMarcacionesService } from './services/importar-marcaciones.service';

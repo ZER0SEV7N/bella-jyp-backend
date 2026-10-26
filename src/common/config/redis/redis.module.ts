@@ -25,31 +25,33 @@ import { CacheCatalogoService } from './cache-catalogo.service';
         attempts: 3, //Número de reintentos por defecto para los jobs
         backoff: { type: 'exponential', delay: 2000 }, //Estrategia de reintento exponencial con un retraso inicial de 2 segundos
         removeOnComplete: true, //Eliminar automáticamente los jobs completados
-        removeOnFail: false //No eliminar automáticamente los jobs fallidos para permitir la depuración
+        removeOnFail: false, //No eliminar automáticamente los jobs fallidos para permitir la depuración
       },
     }),
   ],
-  providers: [{
-    provide: REDIS_CLIENT,
+  providers: [
+    {
+      provide: REDIS_CLIENT,
 
-    //Crear un cliente de Redis utilizando la configuración de entorno y manejar eventos de conexión y error
-    useFactory: () => {
-      //Crear un logger para registrar eventos relacionados con Redis
-      const logger = new Logger('RedisClient');
-      //Crear un cliente de Redis con la configuración de host, puerto y contraseña
-      const client = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
+      //Crear un cliente de Redis utilizando la configuración de entorno y manejar eventos de conexión y error
+      useFactory: () => {
+        //Crear un logger para registrar eventos relacionados con Redis
+        const logger = new Logger('RedisClient');
+        //Crear un cliente de Redis con la configuración de host, puerto y contraseña
+        const client = new Redis({
+          host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379', 10),
           password: process.env.REDIS_PASSWORD || undefined,
-          lazyConnect: false
-      });
-      client.on('connect', () => logger.log('Conexión Cache-Aside establecida con Redis.'));
-      client.on('error', (err) => logger.error(`Error en socket Redis: ${err.message}`));
-      return client;
+          lazyConnect: false,
+        });
+        client.on('connect', () => logger.log('Conexión Cache-Aside establecida con Redis.'));
+        client.on('error', (err) => logger.error(`Error en socket Redis: ${err.message}`));
+        return client;
+      },
     },
-  }, CacheCatalogoService
+    CacheCatalogoService,
   ],
-  exports: [BullModule, REDIS_CLIENT, CacheCatalogoService] //Exportar el módulo de Bull, el cliente de Redis y el servicio de caché de catálogos para que puedan ser utilizados en otros módulos de la aplicación
+  exports: [BullModule, REDIS_CLIENT, CacheCatalogoService], //Exportar el módulo de Bull, el cliente de Redis y el servicio de caché de catálogos para que puedan ser utilizados en otros módulos de la aplicación
 })
 
 /**

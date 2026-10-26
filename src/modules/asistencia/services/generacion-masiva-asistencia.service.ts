@@ -8,8 +8,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 /**
  * Servicio para la generación masiva de incidencias de asistencia.
- * Este servicio procesa los empleados activos y genera las incidencias de asistencia para un período específico.
- * La operación se realiza dentro de una transacción para asegurar la atomicidad y consistencia de los cambios.
+ * Este servicio selecciona colaboradores cuyo vínculo se cruza con el período y genera sus incidencias.
+ * Cada colaborador se procesa en su propia transacción; un error en un lote general se devuelve en el detalle.
  * @requires - PrismaService para acceder a la base de datos y realizar operaciones de lectura y escritura.
  * @requires - GenerarIncidenciaEmpleadoUseCase para generar las incidencias de asistencia de cada empleado.
  */

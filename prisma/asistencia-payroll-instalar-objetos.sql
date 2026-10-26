@@ -1,5 +1,13 @@
--- Generado con scripts/construir-sql.py. Requiere las tablas y columnas del schema.prisma actual.
-BEGIN;
+-- ================================================================================================
+-- SISTEMA DE PLANILLAS JYP — INSTALACIÓN DE PROTECCIONES SQL
+-- ================================================================================================
+-- Requiere tablas y columnas del schema.prisma actual. Reinstala funciones/triggers sin recrear
+-- tablas ni cargar personas. Comparte las secciones 13–16 de basededatos.sql; la verificación
+-- inicial comprueba compatibilidad.
+
+-- ================================================================================================
+-- 0. COMPROBACIÓN DEL ESQUEMA EXISTENTE
+-- ================================================================================================
 -- Solo lectura. Distingue el SQL antiguo (empleado, enums minúsculos) del esquema actual.
 DO $$
 DECLARE faltante record;
@@ -30,6 +38,16 @@ BEGIN
     END IF;
 END $$;
 
+-- ================================================================================================
+-- 13. FUNCIONES: VALIDACIÓN, CIERRE Y AUDITORÍA
+-- ================================================================================================
+
+-- ------------------------------------------------------------------------------------------------
+-- 13.1. asistencia_uuid_v7 — Generación de identificadores de auditoría
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: Sin argumentos.
+-- Efecto: Devuelve un UUIDv7 generado con el reloj del servidor SQL y aleatoriedad.
 CREATE OR REPLACE FUNCTION asistencia_uuid_v7() RETURNS uuid LANGUAGE plpgsql VOLATILE AS $$
 DECLARE azar text := replace(gen_random_uuid()::text, '-', ''); tiempo text;
 BEGIN
@@ -37,6 +55,13 @@ BEGIN
     RETURN (tiempo || '7' || substr(azar, 14, 3) || substr(azar, 17, 16))::uuid;
 END $$;
 
+-- ------------------------------------------------------------------------------------------------
+-- 13.2. asistencia_exigir_periodo_editable — Verificación de período editable
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: emp: ID del empleado; mes: período YYYY-MM.
+-- Efecto: Bloquea por empleado y rechaza fuentes de una asistencia aprobada o planilla que no
+-- esté abierta.
 CREATE OR REPLACE FUNCTION asistencia_exigir_periodo_editable(emp uuid, mes text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     PERFORM pg_advisory_xact_lock(hashtextextended('asistencia:' || emp::text, 0));
@@ -48,12 +73,26 @@ BEGIN
     END IF;
 END $$;
 
+-- ------------------------------------------------------------------------------------------------
+-- 13.3. asistencia_invalidar — Invalidación de un resumen abierto
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: emp: ID del empleado; mes: período YYYY-MM.
+-- Efecto: Exige período editable, marca vigente=false e incrementa la versión del resumen
+-- existente.
 CREATE OR REPLACE FUNCTION asistencia_invalidar(emp uuid, mes text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     PERFORM asistencia_exigir_periodo_editable(emp, mes);
     UPDATE incidencias_mes SET vigente = false, version = version + 1, actualizado_en = now() WHERE empleado_id = emp AND periodo = mes;
 END $$;
 
+-- ------------------------------------------------------------------------------------------------
+-- 13.4. asistencia_proteger_fuentes — Protección de las fuentes de asistencia
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: NEW/OLD y operación que recibe el trigger.
+-- Efecto: Controla marcas, decisiones, jornadas, calendario y solicitudes; rechaza cambios
+-- prohibidos e invalida los resúmenes abiertos afectados.
 CREATE OR REPLACE FUNCTION asistencia_proteger_fuentes() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE datos jsonb; anterior jsonb; emp uuid; mes text; desde text; fila record;
 BEGIN
@@ -108,6 +147,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
+-- ------------------------------------------------------------------------------------------------
+-- 13.5. asistencia_proteger_resumen — Protección del resumen mensual
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: Fila de incidencias_mes recibida por el trigger.
+-- Efecto: Impide borrado físico y cambios indebidos sobre aprobados; admite la reapertura
+-- explícita y motivada prevista.
 CREATE OR REPLACE FUNCTION asistencia_proteger_resumen() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'El resumen de asistencia no se elimina físicamente.' USING ERRCODE = '23514'; END IF;
@@ -126,6 +172,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
+-- ------------------------------------------------------------------------------------------------
+-- 13.6. proteger_planilla_congelada — Inmutabilidad y requisitos de cierre
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: Fila de historial_planillas recibida por el trigger.
+-- Efecto: Impide borrar el historial o alterar un cierre. Exige contador activo, instantánea y
+-- asistencia aprobada coherente antes de congelar.
 CREATE OR REPLACE FUNCTION proteger_planilla_congelada() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE incidencia incidencias_mes; rol_actor text;
 BEGIN
@@ -147,10 +200,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
-DROP TRIGGER IF EXISTS trg_proteger_planilla ON historial_planillas;
+-- ------------------------------------------------------------------------------------------------
+-- 13.7. asistencia_auditar — Auditoría en la misma transacción
+-- ------------------------------------------------------------------------------------------------
 
-CREATE TRIGGER trg_proteger_planilla BEFORE INSERT OR UPDATE OR DELETE ON historial_planillas FOR EACH ROW EXECUTE FUNCTION proteger_planilla_congelada();
-
+-- Entrada: Fila afectada y contexto local app.usuario_id/app.ip.
+-- Efecto: Inserta valores antes/después en audit_log. En planillas evita duplicar la instantánea
+-- completa.
 CREATE OR REPLACE FUNCTION asistencia_auditar() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE antes jsonb; despues jsonb; actor uuid; ip inet;
 BEGIN
@@ -165,21 +221,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
-DO $$ DECLARE tabla text; BEGIN
-    FOREACH tabla IN ARRAY ARRAY['asistencia_marcacion','asistencia_decision','asistencia_jornada','asistencia_calendario','solicitud'] LOOP
-        EXECUTE format('DROP TRIGGER IF EXISTS trg_asistencia_fuentes ON %I', tabla);
-        EXECUTE format('CREATE TRIGGER trg_asistencia_fuentes BEFORE INSERT OR UPDATE OR DELETE ON %I FOR EACH ROW EXECUTE FUNCTION asistencia_proteger_fuentes()', tabla);
-    END LOOP;
-    FOREACH tabla IN ARRAY ARRAY['asistencia_marcacion','asistencia_decision','asistencia_jornada','asistencia_calendario','incidencias_mes','historial_planillas'] LOOP
-        EXECUTE format('DROP TRIGGER IF EXISTS trg_asistencia_auditoria ON %I', tabla);
-        EXECUTE format('CREATE TRIGGER trg_asistencia_auditoria AFTER INSERT OR UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION asistencia_auditar()', tabla);
-    END LOOP;
-END $$;
+-- ------------------------------------------------------------------------------------------------
+-- 13.8. payroll_proteger_desembolso — Integridad de la entrega de un adelanto
+-- ------------------------------------------------------------------------------------------------
 
-DROP TRIGGER IF EXISTS trg_asistencia_resumen ON incidencias_mes;
-
-CREATE TRIGGER trg_asistencia_resumen BEFORE INSERT OR UPDATE OR DELETE ON incidencias_mes FOR EACH ROW EXECUTE FUNCTION asistencia_proteger_resumen();
-
+-- Entrada: Fila de adelanto_desembolso recibida por el trigger.
+-- Efecto: Admite el alta una sola vez y exige solicitud aprobada, mismo beneficiario y mismo
+-- importe; protege períodos cerrados.
 CREATE OR REPLACE FUNCTION payroll_proteger_desembolso() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE pedido solicitud;
 BEGIN
@@ -195,14 +243,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
-DROP TRIGGER IF EXISTS trg_payroll_desembolso ON adelanto_desembolso;
+-- ------------------------------------------------------------------------------------------------
+-- 13.9. asistencia_proteger_vinculo — Control de cambios del vínculo
+-- ------------------------------------------------------------------------------------------------
 
-CREATE TRIGGER trg_payroll_desembolso BEFORE INSERT OR UPDATE OR DELETE ON adelanto_desembolso FOR EACH ROW EXECUTE FUNCTION payroll_proteger_desembolso();
-
-DROP TRIGGER IF EXISTS trg_asistencia_auditoria ON adelanto_desembolso;
-
-CREATE TRIGGER trg_asistencia_auditoria AFTER INSERT ON adelanto_desembolso FOR EACH ROW EXECUTE FUNCTION asistencia_auditar();
-
+-- Entrada: Fila anterior y nueva de empleados.
+-- Efecto: Comprueba cambios de fechas de ingreso/cese contra los resúmenes y planillas que
+-- resultarían afectados.
 CREATE OR REPLACE FUNCTION asistencia_proteger_vinculo() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE inicio date; fila record;
 BEGIN
@@ -217,10 +264,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
-DROP TRIGGER IF EXISTS trg_asistencia_vinculo ON empleados;
+-- ------------------------------------------------------------------------------------------------
+-- 13.10. asistencia_invalidar_acumulado_medico — Invalidación por cambio médico anual
+-- ------------------------------------------------------------------------------------------------
 
-CREATE TRIGGER trg_asistencia_vinculo BEFORE UPDATE ON empleados FOR EACH ROW EXECUTE FUNCTION asistencia_proteger_vinculo();
-
+-- Entrada: Solicitud médica y su intervalo de fechas.
+-- Efecto: Revisa períodos posteriores del ejercicio porque el acumulado médico de meses previos
+-- puede afectar su evaluación.
 CREATE OR REPLACE FUNCTION asistencia_invalidar_acumulado_medico() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE fila record; primero text; ultimo text;
 BEGIN
@@ -239,10 +289,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
-DROP TRIGGER IF EXISTS trg_asistencia_medico_anual ON solicitud;
+-- ------------------------------------------------------------------------------------------------
+-- 13.11. payroll_proteger_novedad — Protección del concepto variable y su visado
+-- ------------------------------------------------------------------------------------------------
 
-CREATE TRIGGER trg_asistencia_medico_anual BEFORE INSERT OR UPDATE ON solicitud FOR EACH ROW EXECUTE FUNCTION asistencia_invalidar_acumulado_medico();
-
+-- Entrada: Fila de novedad_planilla recibida por el trigger.
+-- Efecto: Conserva el concepto original, exige contador activo para resolver y bloquea cambios
+-- incompatibles con el cierre.
 CREATE OR REPLACE FUNCTION payroll_proteger_novedad() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'PLANILLA_BLOQUEADA: las novedades se conservan para auditoría.' USING ERRCODE = '23514'; END IF;
@@ -262,18 +315,13 @@ BEGIN
     RETURN NEW;
 END $$;
 
-DROP TRIGGER IF EXISTS trg_payroll_novedad ON novedad_planilla;
+-- ------------------------------------------------------------------------------------------------
+-- 13.12. payroll_validar_parametro — Control de vigencias de parámetros
+-- ------------------------------------------------------------------------------------------------
 
-CREATE TRIGGER trg_payroll_novedad BEFORE INSERT OR UPDATE OR DELETE ON novedad_planilla FOR EACH ROW EXECUTE FUNCTION payroll_proteger_novedad();
-
-DROP TRIGGER IF EXISTS trg_asistencia_auditoria ON novedad_planilla;
-
-CREATE TRIGGER trg_asistencia_auditoria AFTER INSERT OR UPDATE ON novedad_planilla FOR EACH ROW EXECUTE FUNCTION asistencia_auditar();
-
-DROP TRIGGER IF EXISTS trg_solicitud_auditoria_atomica ON solicitud;
-
-CREATE TRIGGER trg_solicitud_auditoria_atomica AFTER INSERT OR UPDATE ON solicitud FOR EACH ROW EXECUTE FUNCTION asistencia_auditar();
--- Las vigencias se controlan también para escrituras fuera de la API.
+-- Entrada: Código, valor e intervalo del parámetro.
+-- Efecto: Serializa por código y rechaza valores negativos, intervalos invertidos y
+-- superposición con otra vigencia.
 CREATE OR REPLACE FUNCTION payroll_validar_parametro() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     PERFORM pg_advisory_xact_lock(hashtextextended('parametro:' || NEW.codigo, 0));
@@ -287,9 +335,13 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-DROP TRIGGER IF EXISTS trg_parametro_vigencia ON parametro_legal;
-CREATE TRIGGER trg_parametro_vigencia BEFORE INSERT OR UPDATE ON parametro_legal FOR EACH ROW EXECUTE FUNCTION payroll_validar_parametro();
 
+-- ------------------------------------------------------------------------------------------------
+-- 13.13. payroll_validar_comision — Control de tasas y vigencias AFP
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: AFP, porcentajes, tope e intervalo de comisión.
+-- Efecto: Serializa por AFP y rechaza tasas/rangos inválidos o intervalos que se superponen.
 CREATE OR REPLACE FUNCTION payroll_validar_comision() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     PERFORM pg_advisory_xact_lock(hashtextextended('afp:' || NEW.afp_id::text, 0));
@@ -306,37 +358,206 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
+
+-- ================================================================================================
+-- 14. TRIGGERS: TABLAS Y MOMENTOS DE EJECUCIÓN
+-- ================================================================================================
+
+-- Las funciones anteriores definen las reglas. Estos triggers indican qué escritura las activa.
+-- DROP TRIGGER IF EXISTS permite reinstalar la vinculación sin duplicarla.
+
+DROP TRIGGER IF EXISTS trg_proteger_planilla ON historial_planillas;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_proteger_planilla en historial_planillas
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before insert or update or delete por fila y llama a proteger_planilla_congelada.
+
+CREATE TRIGGER trg_proteger_planilla BEFORE INSERT OR UPDATE OR DELETE ON historial_planillas FOR EACH ROW EXECUTE FUNCTION proteger_planilla_congelada();
+
+-- ------------------------------------------------------------------------------------------------
+-- Triggers compartidos de fuentes y auditoría
+-- ------------------------------------------------------------------------------------------------
+
+-- El primer bucle protege marcas, decisiones, jornadas, calendario y solicitudes antes de
+-- escribir. El segundo audita marcas, decisiones, jornadas, calendario, resúmenes y planillas
+-- después de insertar/actualizar. Cada trigger pertenece a su tabla aunque comparta nombre.
+
+DO $$ DECLARE tabla text; BEGIN
+    FOREACH tabla IN ARRAY ARRAY['asistencia_marcacion','asistencia_decision','asistencia_jornada','asistencia_calendario','solicitud'] LOOP
+        EXECUTE format('DROP TRIGGER IF EXISTS trg_asistencia_fuentes ON %I', tabla);
+        EXECUTE format('CREATE TRIGGER trg_asistencia_fuentes BEFORE INSERT OR UPDATE OR DELETE ON %I FOR EACH ROW EXECUTE FUNCTION asistencia_proteger_fuentes()', tabla);
+    END LOOP;
+    FOREACH tabla IN ARRAY ARRAY['asistencia_marcacion','asistencia_decision','asistencia_jornada','asistencia_calendario','incidencias_mes','historial_planillas'] LOOP
+        EXECUTE format('DROP TRIGGER IF EXISTS trg_asistencia_auditoria ON %I', tabla);
+        EXECUTE format('CREATE TRIGGER trg_asistencia_auditoria AFTER INSERT OR UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION asistencia_auditar()', tabla);
+    END LOOP;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_asistencia_resumen ON incidencias_mes;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_asistencia_resumen en incidencias_mes
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before insert or update or delete por fila y llama a asistencia_proteger_resumen.
+
+CREATE TRIGGER trg_asistencia_resumen BEFORE INSERT OR UPDATE OR DELETE ON incidencias_mes FOR EACH ROW EXECUTE FUNCTION asistencia_proteger_resumen();
+
+DROP TRIGGER IF EXISTS trg_payroll_desembolso ON adelanto_desembolso;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_payroll_desembolso en adelanto_desembolso
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before insert or update or delete por fila y llama a payroll_proteger_desembolso.
+
+CREATE TRIGGER trg_payroll_desembolso BEFORE INSERT OR UPDATE OR DELETE ON adelanto_desembolso FOR EACH ROW EXECUTE FUNCTION payroll_proteger_desembolso();
+
+DROP TRIGGER IF EXISTS trg_asistencia_auditoria ON adelanto_desembolso;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_asistencia_auditoria en adelanto_desembolso
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta after insert por fila y llama a asistencia_auditar.
+
+CREATE TRIGGER trg_asistencia_auditoria AFTER INSERT ON adelanto_desembolso FOR EACH ROW EXECUTE FUNCTION asistencia_auditar();
+
+DROP TRIGGER IF EXISTS trg_asistencia_vinculo ON empleados;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_asistencia_vinculo en empleados
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before update por fila y llama a asistencia_proteger_vinculo.
+
+CREATE TRIGGER trg_asistencia_vinculo BEFORE UPDATE ON empleados FOR EACH ROW EXECUTE FUNCTION asistencia_proteger_vinculo();
+
+DROP TRIGGER IF EXISTS trg_asistencia_medico_anual ON solicitud;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_asistencia_medico_anual en solicitud
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before insert or update por fila y llama a asistencia_invalidar_acumulado_medico.
+
+CREATE TRIGGER trg_asistencia_medico_anual BEFORE INSERT OR UPDATE ON solicitud FOR EACH ROW EXECUTE FUNCTION asistencia_invalidar_acumulado_medico();
+
+DROP TRIGGER IF EXISTS trg_payroll_novedad ON novedad_planilla;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_payroll_novedad en novedad_planilla
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before insert or update or delete por fila y llama a payroll_proteger_novedad.
+
+CREATE TRIGGER trg_payroll_novedad BEFORE INSERT OR UPDATE OR DELETE ON novedad_planilla FOR EACH ROW EXECUTE FUNCTION payroll_proteger_novedad();
+
+DROP TRIGGER IF EXISTS trg_asistencia_auditoria ON novedad_planilla;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_asistencia_auditoria en novedad_planilla
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta after insert or update por fila y llama a asistencia_auditar.
+
+CREATE TRIGGER trg_asistencia_auditoria AFTER INSERT OR UPDATE ON novedad_planilla FOR EACH ROW EXECUTE FUNCTION asistencia_auditar();
+
+DROP TRIGGER IF EXISTS trg_solicitud_auditoria_atomica ON solicitud;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_solicitud_auditoria_atomica en solicitud
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta after insert or update por fila y llama a asistencia_auditar.
+
+CREATE TRIGGER trg_solicitud_auditoria_atomica AFTER INSERT OR UPDATE ON solicitud FOR EACH ROW EXECUTE FUNCTION asistencia_auditar();
+
+DROP TRIGGER IF EXISTS trg_parametro_vigencia ON parametro_legal;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_parametro_vigencia en parametro_legal
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before insert or update por fila y llama a payroll_validar_parametro.
+
+CREATE TRIGGER trg_parametro_vigencia BEFORE INSERT OR UPDATE ON parametro_legal FOR EACH ROW EXECUTE FUNCTION payroll_validar_parametro();
+
 DROP TRIGGER IF EXISTS trg_comision_vigencia ON comisiones_afp;
+
+-- ------------------------------------------------------------------------------------------------
+-- trg_comision_vigencia en comisiones_afp
+-- ------------------------------------------------------------------------------------------------
+
+-- Se ejecuta before insert or update por fila y llama a payroll_validar_comision.
+
 CREATE TRIGGER trg_comision_vigencia BEFORE INSERT OR UPDATE ON comisiones_afp FOR EACH ROW EXECUTE FUNCTION payroll_validar_comision();
 
+-- ================================================================================================
+-- 15. RESTRICCIONES ADICIONALES Y UNICIDAD CONDICIONAL
+-- ================================================================================================
+
+-- Estos CHECK expresan reglas que Prisma no representa en el schema. NOT VALID conserva la
+-- instalación sobre históricos pendientes de revisar, pero sí exige cumplimiento a nuevas
+-- escrituras. El índice parcial permite un solo descuento DSO aprobado por empleado/período.
+
+-- ------------------------------------------------------------------------------------------------
+-- 15.1. Reglas del resumen mensual, horario y solicitudes
+-- ------------------------------------------------------------------------------------------------
 DO $$ BEGIN
+    -- ck_jornada_minutos_regulares: Cota del dato almacenado: de 1 a 2880 minutos semanales. El
+    -- motor comprueba además la distribución y duración diaria del horario regular.
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_jornada_minutos_regulares' AND conrelid = 'asistencia_jornada'::regclass) THEN
         ALTER TABLE asistencia_jornada ADD CONSTRAINT ck_jornada_minutos_regulares CHECK (minutos_semana BETWEEN 1 AND 2880) NOT VALID;
     END IF;
+    -- ck_incidencia_aprobada_verificada: APROBADO exige resumen vigente y completo, cero pendientes,
+    -- huella de fuentes y usuario aprobador.
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_incidencia_aprobada_verificada' AND conrelid = 'incidencias_mes'::regclass) THEN
         ALTER TABLE incidencias_mes ADD CONSTRAINT ck_incidencia_aprobada_verificada CHECK (estado::text <> 'APROBADO' OR (vigente AND completo AND pendientes = 0 AND fuente_hash IS NOT NULL AND aprobado_por IS NOT NULL)) NOT VALID;
     END IF;
+    -- ck_solicitud_horas: Permiso parcial: las horas se informan juntas, usan HH:mm, mantienen orden
+    -- y corresponden a la misma fecha.
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_solicitud_horas' AND conrelid = 'solicitud'::regclass) THEN
         ALTER TABLE solicitud ADD CONSTRAINT ck_solicitud_horas CHECK ((hora_inicio IS NULL AND hora_fin IS NULL) OR (hora_inicio IS NOT NULL AND hora_fin IS NOT NULL AND hora_inicio ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND hora_fin ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND fecha_inicio = fecha_fin AND hora_inicio < hora_fin)) NOT VALID;
     END IF;
+    -- ck_solicitud_efecto: Limita los efectos a PENDIENTE_DEFINIR, CON_GOCE, SIN_GOCE y SUBSIDIO; el
+    -- caso de uso resuelve su compatibilidad con el trámite.
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_solicitud_efecto' AND conrelid = 'solicitud'::regclass) THEN
         ALTER TABLE solicitud ADD CONSTRAINT ck_solicitud_efecto CHECK (efecto_asistencia IN ('PENDIENTE_DEFINIR','CON_GOCE','SIN_GOCE','SUBSIDIO')) NOT VALID;
     END IF;
 END $$;
 
 -- Prisma no representa estos CHECK; el generador los añade a la instalación completa.
+-- ------------------------------------------------------------------------------------------------
+-- 15.2. Reglas de decisiones, jornada, novedades y desembolsos
+-- ------------------------------------------------------------------------------------------------
 DO $restricciones$
 DECLARE regla record;
 BEGIN
     FOR regla IN SELECT * FROM (VALUES
+        -- ck_decision_tipo: La decisión diaria corresponde a AUSENCIA, MARCACIONES o SOBRETIEMPO.
         ('asistencia_decision','ck_decision_tipo', $$tipo IN ('AUSENCIA','MARCACIONES','SOBRETIEMPO')$$),
+        -- ck_decision_motivo: El motivo de una decisión conserva al menos cinco caracteres después de
+        -- quitar espacios extremos.
         ('asistencia_decision','ck_decision_motivo', 'length(trim(motivo)) >= 5'),
+        -- ck_jornada_tolerancia: La tolerancia configurada se mantiene entre cero y sesenta minutos.
         ('asistencia_jornada','ck_jornada_tolerancia', 'tolerancia_minutos BETWEEN 0 AND 60'),
+        -- ck_jornada_politica: La política de descuento de tardanza debe ser COMPLETA o EXCESO.
         ('asistencia_jornada','ck_jornada_politica', $$politica_tolerancia IN ('COMPLETA','EXCESO')$$),
+        -- ck_jornada_motivo: La asignación histórica requiere un motivo de al menos cinco caracteres
+        -- útiles.
         ('asistencia_jornada','ck_jornada_motivo', 'length(trim(motivo)) >= 5'),
+        -- ck_novedad_monto: Un concepto variable no puede registrar un importe negativo.
         ('novedad_planilla','ck_novedad_monto', 'monto >= 0'),
+        -- ck_novedad_tipo: Se admiten los tres conceptos implementados: bono extraordinario
+        -- remunerativo, descuento autorizado y descuento DSO.
         ('novedad_planilla','ck_novedad_tipo', $$tipo IN ('BONO_EXTRAORDINARIO_REMUNERATIVO','DESCUENTO_AUTORIZADO','DESCUENTO_DSO')$$),
+        -- ck_novedad_estado: Los estados de visado son PENDIENTE, APROBADO, RECHAZADO y ANULADO.
         ('novedad_planilla','ck_novedad_estado', $$estado IN ('PENDIENTE','APROBADO','RECHAZADO','ANULADO')$$),
+        -- ck_desembolso_positivo: La entrega efectiva de un adelanto debe tener un importe mayor que
+        -- cero.
         ('adelanto_desembolso','ck_desembolso_positivo', 'monto > 0')
     ) AS reglas(tabla,nombre,expresion) LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname=regla.nombre AND conrelid=to_regclass(regla.tabla)) THEN
@@ -346,8 +567,25 @@ BEGIN
 END $restricciones$;
 
 -- Un solo ajuste de descanso semanal obligatorio aprobado por colaborador y período.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_novedad_dso_aprobada ON novedad_planilla(empleado_id, periodo)
-    WHERE tipo = 'DESCUENTO_DSO' AND estado = 'APROBADO';
+-- ------------------------------------------------------------------------------------------------
+-- 15.3. Una novedad DSO aprobada por empleado y período
+-- ------------------------------------------------------------------------------------------------
+CREATE UNIQUE INDEX IF NOT EXISTS uq_novedad_dso_aprobada ON novedad_planilla (empleado_id, periodo)
+WHERE
+    tipo = 'DESCUENTO_DSO'
+    AND estado = 'APROBADO';
 
+-- ================================================================================================
+-- 16. VERSIÓN INSTALADA Y CONFIRMACIÓN
+-- ================================================================================================
+
+-- ------------------------------------------------------------------------------------------------
+-- 16.1. asistencia_version_migracion — Marca de la instalación SQL
+-- ------------------------------------------------------------------------------------------------
+
+-- Entrada: Sin argumentos.
+-- Efecto: Devuelve la revisión instalada. Se define al final; el arranque comprueba también que
+-- los triggers críticos estén activos.
 CREATE OR REPLACE FUNCTION asistencia_version_migracion() RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT '2026-10-21.1'::text $$;
+
 COMMIT;

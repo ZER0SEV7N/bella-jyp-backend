@@ -86,7 +86,7 @@ export class SolicitudController {
         try {
             // Multipart se valida después de consumir todas sus partes. JSON usa el mismo contrato.
             const dto = new ZodValidationPipe(CrearSolicitudSchema).transform(entrada.campos, { type: 'body' }) as CrearSolicitudDto;
-            return await this.crearSolicitudUseCase.execute(dto, req.user.empleado_id, entrada.archivo, req.user.rol);
+            return await this.crearSolicitudUseCase.execute(dto, req.user.empleado_id, entrada.archivo, req.user.rol, { id: req.user.id, ip: req.ip });
         } catch (error) {
             await limpiarSustentoSolicitud(entrada.archivo?.url);
             throw error;
@@ -139,7 +139,7 @@ export class SolicitudController {
     @Roles('ADMIN', 'RRHH')
     @ApiSwaggerAsignarRevision()
     async asignarRevision(@Param('id', ParseUUIDPipe) id: string, @Req() req: SolicitudRequest) {
-        return this.asignarRevisionUseCase.execute(id, req.user.id);
+        return this.asignarRevisionUseCase.execute(id, req.user.id, req.ip);
     }
 
     /**
@@ -162,7 +162,7 @@ export class SolicitudController {
     @UsePipes(new ZodValidationPipe(EvaluarSolicitudSchema))
     @ApiSwaggerEvaluarSolicitud()
     async evaluar(@Param('id', ParseUUIDPipe) id: string, @Body() dto: EvaluarSolicitudDto, @Req() req: SolicitudRequest) {
-        return this.evaluarSolicitudUseCase.execute(id, dto, req.user.id);
+        return this.evaluarSolicitudUseCase.execute(id, dto, req.user.id, req.ip);
     }
 
     /**
@@ -177,7 +177,7 @@ export class SolicitudController {
     @HttpCode(HttpStatus.OK)
     @Roles('ADMIN', 'RRHH')
     @ApiSwaggerAnularSolicitud()
-    async anular(@Param('id', ParseUUIDPipe) id: string, @Body('motivo') motivo: string) {
-        return this.anularSolicitudUseCase.execute(id, motivo);
+    async anular(@Param('id', ParseUUIDPipe) id: string, @Body('motivo') motivo: string, @Req() req: SolicitudRequest) {
+        return this.anularSolicitudUseCase.execute(id, motivo, { id: req.user.id, ip: req.ip });
     }
 }

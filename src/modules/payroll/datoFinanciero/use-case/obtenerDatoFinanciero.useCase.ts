@@ -74,8 +74,12 @@ export class ObtenerDatoFinancieroUseCase {
     };
   }
 
-/**
+  /**
    * Desencripta un valor cifrado en base de datos y le aplica máscara conservando los últimos dígitos.
+   * @param valorCifrado - El valor cifrado a desencriptar y enmascarar.
+   * @param digitosVisibles - La cantidad de dígitos finales que se deben mostrar sin enmascarar.
+   * @returns El valor desencriptado y enmascarado, o null si el valor original es null o undefined.
+   * @throws Error si ocurre un error durante la desencriptación.
    */
   private desencriptarYEnmascarar(valorCifrado?: string | null, digitosVisibles = 4): string | null {
     if (!valorCifrado) return null;

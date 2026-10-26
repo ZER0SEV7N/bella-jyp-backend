@@ -6,7 +6,9 @@ type RegistroAuditoria = Record<string, unknown>;
 
 //Función que convierte un valor JSON de Prisma a un objeto de tipo RegistroAuditoria.
 export function convertirJsonAObjeto(valor: Prisma.JsonValue | null): RegistroAuditoria {
-    if (valor && typeof valor === 'object' && !Array.isArray(valor)) return valor as RegistroAuditoria;
+    if (valor && typeof valor === 'object' && !Array.isArray(valor)) 
+        return valor as RegistroAuditoria;
+    
     return {};
 }
 

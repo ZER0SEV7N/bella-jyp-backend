@@ -1,10 +1,10 @@
 //src/modules/payroll/bancos/controller/bancos.controller.ts
-import { Controller, Get, UseGuards } from "@nestjs/common";
-import { JwtAccessGuard } from "@/common/guards/jwt-access.guard";
-import { RolesGuard } from "@/common/guards/roles.guard";
-import { Roles } from "@/common/decorators/roles.decorator";
-import { ListarBancosUseCase } from "../use-cases/listarBancos.useCase";
-import { ApiSwaggerBancosController, ApiSwaggerListarBancos } from "../decorators/bancos-swagger.decorator";
+import { Controller, Get, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common';
+import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { ListarBancosUseCase } from '../use-cases/listarBancos.useCase';
+import { ApiSwaggerBancosController, ApiSwaggerListarBancos, ApiSwaggerObtenerBancoPorId } from '../decorators/bancos-swagger.decorator';
 
 /**
  * Controlador de Bancos.
@@ -18,19 +18,26 @@ import { ApiSwaggerBancosController, ApiSwaggerListarBancos } from "../decorator
 @Controller('api/v1/payroll/bancos')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class BancosController {
-    constructor(private readonly listarBancosUseCase: ListarBancosUseCase) {}
+  constructor(private readonly listarBancosUseCase: ListarBancosUseCase) {}
 
-    /**
-     * Obtiene la lista de bancos activos.
-     * @GET /api/payroll/bancos
-     * Este endpoint devuelve un arreglo de objetos que representan los bancos activos, incluyendo su id, nombre, código y estado de actividad.
-     * @returns - Una promesa que resuelve con un arreglo de objetos que representan los bancos activos.
-     * @Roles('ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE') - Requiere que el usuario tenga uno de estos roles para poder acceder a esta operación.
-     */
-    @Get()
-    @Roles('ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE')
-    @ApiSwaggerListarBancos()
-    async listarBancos() {
-        return await this.listarBancosUseCase.execute();
-    }
+  /**
+   * Obtiene la lista de bancos activos.
+   * @GET /api/payroll/bancos
+   * Este endpoint devuelve un arreglo de objetos que representan los bancos activos, incluyendo su id, nombre, código y estado de actividad.
+   * @returns - Una promesa que resuelve con un arreglo de objetos que representan los bancos activos.
+   * @Roles('ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE') - Requiere que el usuario tenga uno de estos roles para poder acceder a esta operación.
+   */
+  @Get()
+  @Roles('ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE')
+  @ApiSwaggerListarBancos()
+  async listarBancos() {
+    return await this.listarBancosUseCase.execute();
+  }
+
+  @Get(':id')
+  @Roles('ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE')
+  @ApiSwaggerObtenerBancoPorId()
+  obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarBancosUseCase.obtenerPorId(id);
+  }
 }

@@ -6,10 +6,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
  * Decorador para agrupar operaciones del módulo de usuarios.
  */
 export function ApiSwaggerUsuariosController() {
-  return applyDecorators(
-    ApiTags('Core - Usuarios'),
-    ApiBearerAuth('JWT-auth'),
-  );
+  return applyDecorators(ApiTags('Core - Usuarios'), ApiBearerAuth('JWT-auth'));
 }
 
 /**
@@ -52,6 +49,6 @@ export function ApiSwaggerObtenerMiPerfil() {
     ApiResponse({
       status: 404,
       description: 'El usuario autenticado ya no existe o fue dado de baja.',
-    }),
+    })
   );
 }

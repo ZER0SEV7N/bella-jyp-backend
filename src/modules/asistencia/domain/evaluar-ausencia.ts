@@ -16,17 +16,30 @@ import { duracion, restar } from './intervalos-asistencia';
  * @throws RangeError si los intervalos de tiempo no son válidos o si los datos de entrada no cumplen con los requisitos de formato o consistencia.
  */
 export function evaluarAusencia(r: ResultadoDia, programado: Intervalo[], conGoce: Intervalo[], sinGoce: Intervalo[], ausencia: DecisionAsistencia | undefined, aprobadas: SolicitudAsistencia[]): ResultadoDia {
+    //Si la duración de los intervalos programados menos las ausencias con goce y sin goce es cero, se determina si el día es una ausencia sin goce o justificada.
     if (duracion(restar(programado, [...conGoce, ...sinGoce])) === 0) {
+        //Si el día es una ausencia sin goce, se marca como tal y se ajustan los minutos.
         r.sin_goce = r.minutos_sin_goce === r.minutos_programados ? 1 : 0;
-        if (r.sin_goce) r.minutos_sin_goce = 0;
+        
+        //Si el día es una ausencia justificada, se ajustan los minutos y se marca como justificada.
+        if (r.sin_goce) 
+            r.minutos_sin_goce = 0;
+        
+        //Si hay una ausencia con goce, se marca como justificada y se ajustan los minutos.
         r.estado = r.sin_goce ? 'AUSENCIA_SIN_GOCE' : 'JUSTIFICADA';
+    
+    //Si hay una ausencia con resultado de falta injustificada y no hay solicitudes aprobadas, se marca como falta injustificada y se ajustan los minutos.
     } else if (ausencia?.datos.resultado === 'FALTA_INJUSTIFICADA' && !aprobadas.length) {
+        //Si el día es una falta injustificada, se marca como tal y se ajustan los minutos.
         r.falta = 1;
         r.minutos_sin_goce = 0;
         r.estado = 'FALTA_INJUSTIFICADA';
+    //Si hay una ausencia con resultado de falta injustificada pero hay solicitudes aprobadas, se marca como ausencia pendiente y se agrega una alerta para requerir verificación.
     } else {
         r.estado = 'AUSENCIA_PENDIENTE';
         r.alertas.push('AUSENCIA_REQUIERE_VERIFICACION');
     }
+
+    //Si el día es una ausencia sin goce, se ajustan los minutos de tardanza y salida anticipada a cero.
     return r;
 }

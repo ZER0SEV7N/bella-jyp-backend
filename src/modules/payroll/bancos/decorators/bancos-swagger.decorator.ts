@@ -1,4 +1,6 @@
 // src/modules/payroll/bancos/decorators/bancos-swagger.decorator.ts
+import { ApiOperacionDocumentada, esquemaContrato } from '@/common/decorators/api-contrato.decorator';
+import { BancoDetalleSchema } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -29,4 +31,13 @@ export function ApiSwaggerListarBancos() {
     }),
     ApiResponse({ status: 401, description: 'No autenticado.' })
   );
+}
+
+export function ApiSwaggerObtenerBancoPorId() {
+  return ApiOperacionDocumentada({
+    summary: 'Obtener detalle de bancos',
+    description: 'Información completa del registro seleccionado.',
+    roles: ['ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE'],
+    respuesta: esquemaContrato(BancoDetalleSchema),
+  })
 }

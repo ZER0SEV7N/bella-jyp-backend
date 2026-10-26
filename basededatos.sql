@@ -189,7 +189,7 @@ CREATE TYPE "naturaleza_concepto_enum" AS ENUM ('INGRESO', 'DESCUENTO', 'APORTE_
 
 -- ------------------------------------------------------------------------------------------------
 -- 1.24. estado_contrato_enum
--- Estado principal del contrato; convive con el catálogo heredado por compatibilidad.
+-- Estado nativo del contrato; sustituye al catálogo estado_contrato.
 -- ------------------------------------------------------------------------------------------------
 
 CREATE TYPE "estado_contrato_enum" AS ENUM ('VIGENTE', 'RENOVADO', 'VENCIDO', 'ANULADO', 'FINALIZADO');
@@ -243,20 +243,6 @@ CREATE TABLE "regimen_pension" (
 );
 
 COMMENT ON TABLE "regimen_pension" IS 'Catálogo que identifica ONP o SPP para seleccionar la regla previsional del cálculo.';
-
--- ------------------------------------------------------------------------------------------------
--- 2.4. estado_contrato — Estados de contrato heredados
--- Catálogo de compatibilidad conservado para referencias anteriores. El estado principal de
--- contratos utiliza el enum estado_contrato_enum.
--- ------------------------------------------------------------------------------------------------
-
-CREATE TABLE "estado_contrato" (
-    "id" UUID NOT NULL,
-    "nombre" VARCHAR(100) NOT NULL,
-    CONSTRAINT "estado_contrato_pkey" PRIMARY KEY ("id")
-);
-
-COMMENT ON TABLE "estado_contrato" IS 'Catálogo de compatibilidad conservado para referencias anteriores. El estado principal de contratos utiliza el enum estado_contrato_enum.';
 
 -- ================================================================================================
 -- 3. ORGANIZACIÓN Y HORARIOS
@@ -541,23 +527,23 @@ CREATE TABLE "empleados" (
     -- Referencia del legajo; la asistencia por fecha consulta asistencia_jornada.
     "jornada_id" UUID,
     "estado_laboral" "estado_empleado_enum" NOT NULL DEFAULT 'ACTIVO',
-    "nombre" VARCHAR(100),
-    "apellido" VARCHAR(100),
+    "nombre" VARCHAR(100) NOT NULL,
+    "apellido" VARCHAR(100) NOT NULL,
     "nro_documento" VARCHAR(20) NOT NULL,
-    "email" VARCHAR(150),
-    "telefono" VARCHAR(20),
-    "sexo" "sexo_enum",
+    "email" VARCHAR(150) NOT NULL,
+    "telefono" VARCHAR(20) NOT NULL,
+    "sexo" "sexo_enum" NOT NULL,
     "estado_civil" "estado_civil_enum" NOT NULL DEFAULT 'SOLTERO',
     "nacionalidad" VARCHAR(50) NOT NULL DEFAULT 'PERUANA',
-    "fecha_nacimiento" DATE,
-    "direccion" VARCHAR(255),
-    "referencia_direccion" VARCHAR(255),
-    "ubigeo" VARCHAR(6),
-    "distrito" VARCHAR(100),
-    "provincia" VARCHAR(100),
-    "departamento" VARCHAR(100),
+    "fecha_nacimiento" DATE NOT NULL,
+    "direccion" VARCHAR(255) NOT NULL,
+    "referencia_direccion" VARCHAR(255) NOT NULL,
+    "ubigeo" VARCHAR(6) NOT NULL,
+    "distrito" VARCHAR(100) NOT NULL,
+    "provincia" VARCHAR(100) NOT NULL,
+    "departamento" VARCHAR(100) NOT NULL,
     -- Ingreso que delimita los días incluidos en asistencia y planilla.
-    "fecha_inicio" DATE,
+    "fecha_inicio" DATE NOT NULL,
     -- Cese que delimita el vínculo; el mes de cese requiere liquidación específica.
     "fecha_cese" DATE,
     "afp_fecha_filiacion" DATE,
@@ -616,7 +602,6 @@ CREATE TABLE "contratos" (
     "id" UUID NOT NULL,
     "empleado_id" UUID NOT NULL,
     "estado" "estado_contrato_enum" NOT NULL DEFAULT 'VIGENTE',
-    "id_estado" UUID,
     "contrato_origen_id" UUID,
     "tipo_modalidad" VARCHAR(100),
     "fecha_inicio" DATE NOT NULL,
@@ -1773,11 +1758,6 @@ ADD CONSTRAINT "fk_empleado_tipo_documento" FOREIGN KEY ("documento_id") REFEREN
 
 ALTER TABLE "contratos"
 ADD CONSTRAINT "fk_contratos_empleado" FOREIGN KEY ("empleado_id") REFERENCES "empleados" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-
--- contratos(id_estado) referencia estado_contrato(id).
-
-ALTER TABLE "contratos"
-ADD CONSTRAINT "fk_contratos_estado" FOREIGN KEY ("id_estado") REFERENCES "estado_contrato" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- contratos(contrato_origen_id) referencia contratos(id).
 

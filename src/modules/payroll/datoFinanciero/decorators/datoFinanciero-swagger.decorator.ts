@@ -1,15 +1,14 @@
 //src/modules/payroll/datofinanciero/decorators/datofinanciero-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, } from '@nestjs/swagger';
+import { ActualizarDatoFinancieroSchema, CrearDatoFinancieroSchema } from '@jyp/shared-contracts';
+import { ApiContratoBody} from '@/common/decorators/api-contrato.decorator';
 
 /**
  * Decorador de nivel controlador para agrupar operaciones del módulo financiero y bancario.
  */
 export function ApiSwaggerDatoFinancieroController() {
-  return applyDecorators(
-    ApiTags('Payroll - Datos Financieros'),
-    ApiBearerAuth('JWT-auth'),
-  );
+  return applyDecorators(ApiTags('Payroll - Datos Financieros'), ApiBearerAuth('JWT-auth'));
 }
 
 /**
@@ -81,7 +80,7 @@ export function ApiSwaggerObtenerDatoFinanciero() {
     ApiResponse({
       status: 404,
       description: 'No se encontró ningún registro financiero para el empleado indicado.',
-    }),
+    })
   );
 }
 
@@ -100,139 +99,7 @@ export function ApiSwaggerCrearDatoFinanciero() {
   - \`sueldo_basico\`: número decimal positivo estrictamente mayor a 0 y menor a 1,000,000.
   - \`regimen_salud\`: controla aportes según D.L. 26790 (\`ESSALUD_REGULAR\`, \`EPS\`, \`ESSALUD_Y_EPS\`, \`SCTR\`).`,
     }),
-    ApiBody({
-      description: 'Payload validado contra CrearDatoFinancieroSchema',
-      schema: {
-        type: 'object',
-        required: ['empleado_id', 'id_regimen', 'sueldo_basico'],
-        properties: {
-          empleado_id: {
-            type: 'string',
-            format: 'uuid',
-            example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            description: 'UUID del empleado registrado en la organización',
-          },
-          id_regimen: {
-            type: 'string',
-            format: 'uuid',
-            example: 'c3ffbc88-9c0b-4ef8-bb6d-8cc9bd380c33',
-            description: 'UUID del régimen previsional (Catálogo ONP/AFP)',
-          },
-          id_tipo_afp: {
-            type: 'string',
-            format: 'uuid',
-            nullable: true,
-            example: 'd4ffbc88-9c0b-4ef8-bb6d-9cc9bd380d44',
-            description: 'UUID de la administradora (Integra, Prima, Profuturo, Habitat). Requerido si el régimen es SPP.',
-          },
-          cuspp: {
-            type: 'string',
-            pattern: '^[0-9A-Z]{12}$',
-            example: '112233ABCDE4',
-            nullable: true,
-            description: 'Código Único de Afiliado al Sistema Privado de Pensiones (12 caracteres alfanuméricos)',
-          },
-          tipo_comision: {
-            type: 'string',
-            enum: ['FLUJO', 'MIXTA'],
-            nullable: true,
-            example: 'FLUJO',
-            description: 'Tipo de comisión aplicada por la AFP para el cobro por administración',
-          },
-          sueldo_basico: {
-            type: 'number',
-            example: 3200.0,
-            minimum: 0.01,
-            maximum: 999999.9999,
-            description: 'Remuneración ordinaria computable mensual fijada en el contrato',
-          },
-          id_banco_sueldo: {
-            type: 'string',
-            format: 'uuid',
-            nullable: true,
-            example: 'e5ffbc88-9c0b-4ef8-bb6d-0cc9bd380e55',
-            description: 'UUID de la entidad financiera para depósito de haberes',
-          },
-          tipo_cuenta_sueldo: {
-            type: 'string',
-            enum: ['SUELDO', 'AHORROS', 'CORRIENTE'],
-            default: 'SUELDO',
-            example: 'SUELDO',
-            description: 'Modalidad de la cuenta de abono de sueldo',
-          },
-          nro_cuenta_sueldo: {
-            type: 'string',
-            maxLength: 30,
-            nullable: true,
-            example: '19198765432012',
-            description: 'Número de cuenta bancaria local para abono de sueldo',
-          },
-          cci_sueldo: {
-            type: 'string',
-            maxLength: 30,
-            nullable: true,
-            example: '00219100987654320124',
-            description: 'Código de Cuenta Interbancario (CCI) de 20 dígitos o con formato guiones',
-          },
-          id_banco_cts: {
-            type: 'string',
-            format: 'uuid',
-            nullable: true,
-            example: 'f6ffbc88-9c0b-4ef8-bb6d-1cc9bd380f66',
-            description: 'UUID de la entidad financiera elegida por el trabajador para custodia de CTS',
-          },
-          tipo_cuenta_cts: {
-            type: 'string',
-            enum: ['SUELDO', 'AHORROS', 'CORRIENTE'],
-            default: 'AHORROS',
-            example: 'AHORROS',
-            description: 'Tipo de cuenta para abono de compensación por tiempo de servicios',
-          },
-          nro_cuenta_cts: {
-            type: 'string',
-            maxLength: 30,
-            nullable: true,
-            example: '19199887766055',
-            description: 'Número de cuenta intangible de CTS',
-          },
-          cci_cts: {
-            type: 'string',
-            maxLength: 30,
-            nullable: true,
-            example: '00219100998877660551',
-            description: 'CCI correspondiente a la cuenta de depósito de CTS',
-          },
-          regimen_salud: {
-            type: 'string',
-            enum: ['ESSALUD_REGULAR', 'EPS', 'ESSALUD_Y_EPS', 'SCTR'],
-            default: 'ESSALUD_REGULAR',
-            example: 'ESSALUD_REGULAR',
-            description: 'Régimen de aseguramiento de salud aplicable a la relación laboral',
-          },
-          eps_nombre: {
-            type: 'string',
-            maxLength: 100,
-            nullable: true,
-            example: 'Pacífico EPS',
-            description: 'Razón social de la Entidad Prestadora de Salud contratada',
-          },
-          eps_plan: {
-            type: 'string',
-            maxLength: 100,
-            nullable: true,
-            example: 'Plan Integral Plus',
-            description: 'Denominación del plan de cobertura médica seleccionado',
-          },
-          eps_costo_adicional: {
-            type: 'number',
-            default: 0,
-            minimum: 0,
-            example: 85.0,
-            description: 'Monto mensual descontado al trabajador por dependientes o upgrade de plan EPS',
-          },
-        },
-      },
-    }),
+    ApiContratoBody(CrearDatoFinancieroSchema),
     ApiResponse({
       status: 201,
       description: 'Expediente financiero registrado con éxito.',
@@ -248,7 +115,7 @@ export function ApiSwaggerCrearDatoFinanciero() {
     ApiResponse({
       status: 409,
       description: 'Conflicto: Ya existe un registro financiero vinculado a este empleado.',
-    }),
+    })
   );
 }
 
@@ -272,38 +139,7 @@ export function ApiSwaggerActualizarDatoFinanciero() {
       description: 'UUID del trabajador cuyo expediente financiero se actualizará',
       example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     }),
-    ApiBody({
-      description: 'Payload parcial validado contra ActualizarDatoFinancieroSchema con contraseña requerida',
-      schema: {
-        type: 'object',
-        required: ['password_confirmacion'],
-        properties: {
-          id_regimen: { type: 'string', format: 'uuid', example: 'c3ffbc88-9c0b-4ef8-bb6d-8cc9bd380c33' },
-          id_tipo_afp: { type: 'string', format: 'uuid', nullable: true },
-          cuspp: { type: 'string', pattern: '^[0-9A-Z]{12}$', nullable: true },
-          tipo_comision: { type: 'string', enum: ['FLUJO', 'MIXTA'], nullable: true },
-          sueldo_basico: { type: 'number', minimum: 0.01, maximum: 999999.9999, example: 3800.0 },
-          id_banco_sueldo: { type: 'string', format: 'uuid', nullable: true },
-          tipo_cuenta_sueldo: { type: 'string', enum: ['SUELDO', 'AHORROS', 'CORRIENTE'] },
-          nro_cuenta_sueldo: { type: 'string', maxLength: 30, example: '19155554444099' },
-          cci_sueldo: { type: 'string', maxLength: 30, example: '00219100555544440998' },
-          id_banco_cts: { type: 'string', format: 'uuid', nullable: true },
-          tipo_cuenta_cts: { type: 'string', enum: ['SUELDO', 'AHORROS', 'CORRIENTE'] },
-          nro_cuenta_cts: { type: 'string', maxLength: 30, example: '19144443333011' },
-          cci_cts: { type: 'string', maxLength: 30, example: '00219100444433330112' },
-          regimen_salud: { type: 'string', enum: ['ESSALUD_REGULAR', 'EPS', 'ESSALUD_Y_EPS', 'SCTR'] },
-          eps_nombre: { type: 'string', maxLength: 100, nullable: true },
-          eps_plan: { type: 'string', maxLength: 100, nullable: true },
-          eps_costo_adicional: { type: 'number', minimum: 0 },
-          password_confirmacion: {
-            type: 'string',
-            format: 'password',
-            example: 'PasswordActual2026*',
-            description: 'Contraseña en texto plano del usuario en sesión requerida para autorizar la operación.',
-          },
-        },
-      },
-    }),
+    ApiContratoBody(ActualizarDatoFinancieroSchema),
     ApiResponse({
       status: 200,
       description: 'Datos financieros actualizados correctamente.',
@@ -323,6 +159,6 @@ export function ApiSwaggerActualizarDatoFinanciero() {
     ApiResponse({
       status: 404,
       description: 'No se localizó el expediente financiero asociado al empleado.',
-    }),
+    })
   );
 }

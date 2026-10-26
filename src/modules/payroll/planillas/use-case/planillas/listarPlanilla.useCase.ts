@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ListarPlanillasUseCase {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
     /**
      * Ejecuta el caso de uso para listar planillas de un período específico.
@@ -27,8 +27,18 @@ export class ListarPlanillasUseCase {
                 orderBy: { empleado_id: 'asc' },
                 skip: (query.page - 1) * query.limit,
                 take: query.limit,
-                omit: { snapshot_calculo: true }
-            })
+                select: {
+                    id: true,
+                    empleado_id: true,
+                    periodo: true,
+                    estado: true,
+                    sueldo_base: true,
+                    total_ingresos: true,
+                    total_descuentos: true,
+                    neto_a_pagar: true,
+                    empleados: { select: { nombre: true, apellido: true } },
+                },
+            }),
         ]);
         return { data, meta: { total, page: query.page, limit: query.limit } };
     }

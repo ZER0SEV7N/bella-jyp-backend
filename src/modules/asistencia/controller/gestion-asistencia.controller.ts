@@ -20,11 +20,11 @@ import { actorSolicitud } from '@/common/utils/actor-operacion.util';
  * Este controlador permite obtener detalles de asistencia, resolver decisiones de asistencia, asignar jornadas, guardar días de descanso y resolver incidencias relacionadas con la asistencia.
  * Las URIS de este controlador están protegidas por JWT y roles específicos, asegurando que solo usuarios autorizados puedan acceder a estas funcionalidades.
  * Las URIS implementadas son: 
- * - GET /api/asistencia/detalle-diario: Obtiene el detalle de asistencia diario de un empleado para un periodo específico.
- * - POST /api/asistencia/decisiones: Permite resolver decisiones de asistencia, como aprobar o rechazar solicitudes de asistencia.
- * - POST /api/asistencia/jornadas/asignar: Permite asignar una jornada específica a un empleado.
- * - POST /api/asistencia/calendario: Permite guardar días adicionales de descanso en el calendario de asistencia.
- * - POST /api/asistencia/incidencias/resolver: Permite resolver incidencias relacionadas con la asistencia de los empleados.
+ * - GET /api/v1/asistencia/detalle-diario: Obtiene el detalle de asistencia diario de un empleado para un periodo específico.
+ * - POST /api/v1/asistencia/decisiones: Permite resolver decisiones de asistencia, como aprobar o rechazar solicitudes de asistencia.
+ * - POST /api/v1/asistencia/jornadas/asignar: Permite asignar una jornada específica a un empleado.
+ * - POST /api/v1/asistencia/calendario: Permite guardar días adicionales de descanso en el calendario de asistencia.
+ * - POST /api/v1/asistencia/incidencias/resolver: Permite resolver incidencias relacionadas con la asistencia de los empleados.
  */
 @ApiSwaggerGestionAsistenciaController()
 @Controller('api/v1/asistencia')
@@ -93,11 +93,19 @@ export class GestionAsistenciaController {
      * Permite asignar una jornada específica a un empleado.
      * Este endpoint permite a los usuarios con roles ADMIN o RRHH asignar una jornada laboral específica a un empleado, estableciendo la vigencia histórica de la jornada.
      * La jornada asignada puede incluir información sobre el horario de trabajo, los días laborables y cualquier otra configuración relevante para la jornada del empleado.
-     * @url /api/v1/asistencia/jornadas/asignar
+     * @Post /api/v1/asistencia/jornadas/asignar
      * @roles ADMIN, RRHH
      * @param dto - AsignarJornadaAsistenciaDto que contiene la información necesaria para asignar la jornada al empleado.
-     * @param req 
-     * @returns 
+     * @Dto : {
+     *  - empleado_id: number;
+     *  - jornada_id: number;
+     *  - desde: string; // Fecha de inicio de la vigencia de la jornada
+     *  - hasta?: string; // Fecha de fin de la vigencia de la jornada (opcional)
+     *  - motivo?: string; // Motivo de la asignación de la jornada
+     *  - politica_tolerancia: 'COMPLETA' | 'EXCESO'; // Política de tolerancia para la jornada (COMPLETA POR DEFECTO)
+     * }
+     * @param req - La solicitud autenticada que contiene la información del usuario.
+     * @returns - Un objeto que confirma la asignación de la jornada al empleado, incluyendo detalles sobre la jornada asignada y su vigencia.
      */
     @Post('jornadas/asignar')
     @ApiSwaggerAsignarJornadaAsistencia()
@@ -106,6 +114,25 @@ export class GestionAsistenciaController {
         return this.asignarJornadaAsistencia.execute(dto, actorSolicitud(req));
     }
 
+    /**
+     * Permite guardar días adicionales de descanso en el calendario de asistencia.
+     * Este endpoint permite a los usuarios con roles ADMIN o RRHH registrar días adicionales de descanso para un empleado, actualizando el calendario de asistencia del empleado.
+     * Los días de descanso pueden incluir información sobre la fecha del descanso y cualquier comentario adicional relacionado con el día registrado.
+     * @Post /api/v1/asistencia/calendario
+     * @Roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+     * @param dto - DiaAdicionalCalendarioDto que contiene la información necesaria para registrar el día de descanso.
+     * @Dto : {
+     *   - fecha: string; // Fecha del día de descanso (formato YYYY-MM-DD)
+     *   - nombre: string; // Nombre del día de descanso
+     *   - motivo: string; // Motivo del día de descanso
+     *   - activo: boolean; // Indica si el día de descanso está activo o no (por defecto true)
+     *   - empleado_id: string; // ID del empleado para quien se registra el día de descanso
+     *   - referencia_evidencia: string; // Referencia a la evidencia del día de descanso (opcional)
+     *   - politica_tolerancia: 'COMPLETA' | 'EXCESO'; // Política de tolerancia para el día de descanso (opcional)
+     * }
+     * @param req - La solicitud autenticada que contiene la información del usuario.
+     * @returns - Un objeto que confirma el registro del día de descanso en el calendario de asistencia del empleado.
+     */
     @Post('calendario')
     @ApiSwaggerGuardarDescansoAsistencia()
     @Roles('ADMIN', 'RRHH')
@@ -113,6 +140,26 @@ export class GestionAsistenciaController {
         return this.guardarDescansoAsistencia.execute(dto, actorSolicitud(req));
     }
 
+    /**
+     * Permite resolver incidencias relacionadas con la asistencia de los empleados.
+     * Este endpoint permite a los usuarios con roles ADMIN o RRHH tomar decisiones sobre incidencias de asistencia presentadas por los empleados.
+     * Las decisiones pueden incluir la aprobación o el rechazo de incidencias, así como la asignación de comentarios o notas adicionales relacionadas con la decisión tomada.
+     * @Post /api/v1/asistencia/incidencias/resolver
+     * @Roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+     * @param dto - ResolverIncidenciaDto que contiene la información necesaria para resolver la incidencia de asistencia.
+     * @Dto : {
+     *   - empleado_id: string;
+     *   - periodo: string; // Periodo de la incidencia (formato YYYY-MM)
+     *   - accion: 'RECHAZAR' | 'REABRIR'; // Acción a tomar sobre la incidencia
+     *   - motivo: string; // Motivo de la acción tomada sobre la incidencia
+     *   - referencia_evidencia: string; // Referencia a la evidencia de la acción tomada sobre la incidencia (opcional)
+     *   - politica_tolerancia: 'COMPLETA' | 'EXCESO'; // Política de tolera
+     * }
+     * @param req - La solicitud autenticada que contiene la información del usuario.
+     * @returns - Un objeto que confirma la resolución de la incidencia de asistencia, incluyendo detalles sobre la acción tomada y su justificación.
+     * @throws - Error si el empleado no existe, si el periodo es inválido o si la incidencia no puede ser resuelta.
+     * @throws - Error si el usuario autenticado no tiene los permisos necesarios para acceder a esta información.
+     */
     @Post('incidencias/resolver')
     @ApiSwaggerResolverIncidencia()
     @Roles('ADMIN', 'RRHH')

@@ -17,7 +17,15 @@ export function convertirFechaSolicitud(valor?: string | null): Date | null {
         throw new BadRequestException('Las fechas deben usar el formato YYYY-MM-DD.');
 
     //Convierte la fecha simple a un objeto Date utilizando la utilidad ServerTime.
-    const fecha = ServerTime.desdeFechaSimple(valor);
+    let fecha: Date;
+    try {
+        fecha = ServerTime.desdeFechaSimple(valor);
+    } catch (error) {
+        if (error instanceof RangeError) 
+            throw new BadRequestException(`La fecha '${valor}' no existe en el calendario.`);
+        
+        throw error;
+    }
 
     //Verifica que la fecha sea válida y que coincida con el valor proporcionado, lanzando una excepción si no es así.
     if (Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== valor)
@@ -55,7 +63,8 @@ export function calcularAntiguedad(fechaInicio: Date | null, hoy: Date = ServerT
     let meses = hoy.getUTCMonth() - fechaInicio.getUTCMonth();
 
     //Ajusta los meses si el día del mes actual es menor que el día del mes de la fecha de inicio.
-    if (hoy.getUTCDate() < fechaInicio.getUTCDate()) meses--;
+    if (hoy.getUTCDate() < fechaInicio.getUTCDate()) 
+        meses--;
 
     //Si los meses son negativos, ajusta los años y meses para reflejar la antigüedad correctamente.
     if (meses < 0) {
@@ -65,7 +74,8 @@ export function calcularAntiguedad(fechaInicio: Date | null, hoy: Date = ServerT
 
     //Devuelve la antigüedad en un formato legible, manejando casos especiales como menos de un mes o solo meses.
     if (años === 0 && meses === 0) return 'Menos de 1 mes';
-    if (años === 0) return `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+    if (años === 0) 
+        return `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
 
     return `${años} ${años === 1 ? 'año' : 'años'} ${meses} ${meses === 1 ? 'mes' : 'meses'}`;
 }

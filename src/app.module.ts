@@ -9,7 +9,7 @@ import { AuditModule } from './modules/core/audit/audit.module';
 import { TareasModule } from './modules/RRHH/tareas/tareas.module';
 import { ContratoModule } from './modules/RRHH/contrato/contrato.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { NotificacionesModule } from './common/alertas/notificaciones.module';
+import { NotificacionesModule } from './common/notificaciones/notificaciones.module';
 import { AfpModule } from './modules/payroll/afp/afp.module';
 import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
 import { DatosFinancieroModule } from './modules/payroll/datoFinanciero/datosFinanciero.module';

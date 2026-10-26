@@ -8,8 +8,31 @@ import type { ContextoAsistencia, DecisionAsistencia, MarcaDia, ResultadoDia } f
  * Además, se generan alertas para situaciones especiales, como fechas fuera del vínculo laboral o ausencia de configuración de jornada.
  */
 
-const DIAS = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO']; //Los días de la semana en español, 
+const DIAS = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']; //Los días de la semana en español, 
 //utilizados para mapear los días de la semana a sus nombres correspondientes.
+
+
+/**
+ * Funcion que valida si un valor es una marca de asistencia válida, verificando que tenga el tipo y la hora correctos, y opcionalmente un identificador y el origen.
+ * @param value - Valor a validar como marca de asistencia.
+ * @returns - true si el valor es una marca de asistencia válida, false en caso contrario.
+ * @throws RangeError si el valor no cumple con los requisitos de formato o consistencia.
+ */
+function esMarcaDia(value: unknown): value is MarcaDia {
+    //Valida que el valor sea un objeto y tenga las propiedades requeridas para ser considerado una marca de asistencia válida.
+    if (!value || typeof value !== 'object') return false;
+
+    //Convierte el valor a un objeto de tipo MarcaDia para realizar las validaciones de sus propiedades.
+    const marca = value as Record<string, unknown>;
+    //Define los tipos de marcación válidos y verifica que el tipo de la marca sea uno de ellos, que la hora sea una cadena 
+    //y que el identificador y el origen sean opcionales y de tipo cadena si están presentes.
+    const tiposValidos = ['ENTRADA', 'SALIDA_ALMUERZO', 'ENTRADA_ALMUERZO', 'SALIDA'];
+
+    //Valida que el tipo de la marca sea uno de los tipos válidos, que la hora sea una cadena y que el identificador 
+    //y el origen sean opcionales y de tipo cadena si están presentes.
+    return typeof marca.tipo === 'string' && tiposValidos.includes(marca.tipo) && typeof marca.hora === 'string' &&
+        (marca.id === undefined || typeof marca.id === 'string') && (marca.origen === undefined || typeof marca.origen === 'string');
+}
 
 
 /**
@@ -63,8 +86,13 @@ export function prepararDia(contexto: ContextoAsistencia, fecha: string, r: Resu
     //Si hay una corrección de marcaciones para la fecha actual, se actualizan las marcas en el objeto ResultadoDia con las marcas corregidas.
     const decisiones = contexto.decisiones.filter((d) => d.fecha === r.fecha);
     const correccion = decisiones.find((d) => d.tipo === 'MARCACIONES');
-    if (correccion) 
-        r.marcas = correccion.datos.marcaciones as unknown as MarcaDia[];
+    if (correccion) {
+        const marcaciones = correccion.datos.marcaciones;
+        if (!Array.isArray(marcaciones) || !marcaciones.every(esMarcaDia)) {
+            throw new RangeError('Las marcaciones de la decisión no tienen un formato válido.');
+        }
+        r.marcas = marcaciones;
+    }
 
     return { horario, jornada, decisiones };
 }

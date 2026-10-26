@@ -33,11 +33,12 @@ export class ListarMarcacionesUseCase {
             //Filtros opcionales
             if (empleado_id) whereClause.empleado_id = empleado_id;
             if (tipo_marcacion) whereClause.tipo_marcacion = tipo_marcacion;
+            
             //Filtro por rango de fechas
             if (fecha_inicio || fecha_fin) {
                 whereClause.fecha_hora = {};
+                //Clausula para filtrar por fecha de inicio y fin, ajustando a la zona horaria de Perú
                 if (fecha_inicio) whereClause.fecha_hora.gte = ServerTime.rangoDiaPeru(fecha_inicio).inicio;
-                
                 if (fecha_fin) whereClause.fecha_hora.lt = ServerTime.rangoDiaPeru(fecha_fin).siguiente;
             }
 
