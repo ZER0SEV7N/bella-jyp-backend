@@ -43,7 +43,7 @@ export function mapearFilaRaw(filaRaw: Record<string, any>): Record<string, any>
     apellido: (filaRaw.apellido || filaRaw.apellidos || '').toString().trim() || undefined,
     sexo: (filaRaw.sexo || filaRaw.genero || '').toString().trim() || undefined,
     estado_civil: (filaRaw.estado_civil || filaRaw.civil || '').toString().trim() || undefined,
-    fecha_nacimiento: (filaRaw.fecha_nacimiento || filaRaw.fec_nac || '').toString().trim() || undefined,
+    fecha_nacimiento: (filaRaw.fecha_nacimiento || filaRaw.fec_nac || filaRaw.fecha_nac || filaRaw.cumpleanios || '').toString().trim() || undefined,
 
     email: (filaRaw.email || filaRaw.correo || '').toString().trim() || undefined,
     telefono: (filaRaw.telefono || filaRaw.celular || filaRaw.movil || '').toString().trim() || undefined,

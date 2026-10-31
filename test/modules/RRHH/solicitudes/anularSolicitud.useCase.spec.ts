@@ -1,8 +1,18 @@
 //test/modules/RRHH/solicitudes/anularSolicitud.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { AnularSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/anularSolicitud.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
+
+/** Actualización de esta prueba: Arrange prepara datos y mocks; 
+ * Act ejecuta la operación; Assert comprueba el resultado y sus efectos. 
+ * Se conservan los comentarios originales. */
+
+jest.mock('@/common/utils/transaccion-auditada.util', () => ({
+  // Arrange: el caso de uso recibe el cliente mockeado; los reintentos se prueban por separado.
+  transaccionAuditada: jest.fn((prisma, _actor, trabajo) => trabajo(prisma)),
+  bloquearEmpleado: jest.fn().mockResolvedValue(undefined),
+}));
 
 /**
  * Pruebas unitarias para el caso de uso AnularSolicitudUseCase.
@@ -49,21 +59,21 @@ describe('AnularSolicitudUseCase - Pruebas Unitarias', () => {
         });
 
         //Act: Se ejecuta el caso de uso con el ID de la solicitud y un motivo de anulación
-        const resultado = await useCase.execute(idSolicitud, 'Colaborador desiste de la solicitud');
+        const resultado = await useCase.execute(idSolicitud, 'Colaborador desiste de la solicitud', { id: 'usuario-demo', ip: '127.0.0.1' });
 
         //Assert: Se verifica que el resultado tenga el estado actualizado a ANULADA y que se haya llamado a Prisma con los datos correctos
         expect(resultado.estado).toBe('ANULADA');
         expect(mockPrisma.solicitud.update).toHaveBeenCalledWith({
-            where: { id: idSolicitud },
+            where: { id: idSolicitud, estado: 'PENDIENTE', responsable_id: undefined, deleted_at: null },
             data: {
                 estado: 'ANULADA',
-                observacion: '[ANULADA]: Colaborador desiste de la solicitud',
-                deleted_at: expect.any(Date)
-            }
+                observacion: 'Colaborador desiste de la solicitud'
+            },
+            include: expect.any(Object)
         });
     });
 
-    it('Debe bloquear con BadRequestException si la solicitud ya se encuentra formalmente aprobada', async () => {
+    it('Debe bloquear con ConflictException si la solicitud ya se encuentra formalmente aprobada', async () => {
         //Arrange: Se simula que la solicitud existe pero ya está en estado APROBADA, y se espera que se lance una BadRequestException al intentar anularla.
         mockPrisma.solicitud.findUnique.mockResolvedValue({
             id: idSolicitud,
@@ -71,7 +81,7 @@ describe('AnularSolicitudUseCase - Pruebas Unitarias', () => {
         });
 
         //Act & Assert: Se espera que se lance una BadRequestException y que no se haya llamado a Prisma para actualizar la solicitud
-        await expect(useCase.execute(idSolicitud, 'Motivo cualquiera')).rejects.toThrow(BadRequestException);
+        await expect(useCase.execute(idSolicitud, 'Motivo cualquiera', { id: 'usuario-demo', ip: '127.0.0.1' })).rejects.toThrow(ConflictException);
         expect(mockPrisma.solicitud.update).not.toHaveBeenCalled();
     });
 
@@ -80,6 +90,6 @@ describe('AnularSolicitudUseCase - Pruebas Unitarias', () => {
         mockPrisma.solicitud.findUnique.mockResolvedValue(null);
 
         //Act & Assert: Se espera que se lance una NotFoundException y que no se haya llamado a Prisma para actualizar la solicitud
-        await expect(useCase.execute('sol-404', 'Motivo')).rejects.toThrow(NotFoundException);
+        await expect(useCase.execute('sol-404', 'Motivo', { id: 'usuario-demo', ip: '127.0.0.1' })).rejects.toThrow(NotFoundException);
     });
 });

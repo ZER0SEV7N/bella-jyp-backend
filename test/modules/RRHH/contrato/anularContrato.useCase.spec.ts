@@ -63,7 +63,7 @@ describe('AnularContratoUseCase', () => {
             expect(prismaService.contratos.findUnique).toHaveBeenCalledWith({ where: { id: mockContratoId } });
             expect(prismaService.contratos.update).toHaveBeenCalledWith({
                 where: { id: mockContratoId },
-                data: { deleted_at: expect.any(Date) },
+                data: { deleted_at: expect.any(Date), estado: 'ANULADO' },
             });
             expect(result.deleted_at).toEqual(fechaBaja);
         });
@@ -73,7 +73,7 @@ describe('AnularContratoUseCase', () => {
             mockPrisma.contratos.findUnique.mockResolvedValue(null);
 
             //Act & Assert
-            await expect(useCase.execute(mockContratoId)).rejects.toThrow(new NotFoundException('Contrato no encontrado o ya eliminado.'));
+            await expect(useCase.execute(mockContratoId)).rejects.toThrow(new NotFoundException('Contrato no encontrado o ya anulado.'));
         });
 
         it('Debe rechazar con NotFoundException si el contrato ya se encontraba deshabilitado (deleted_at !== null)', async () => {
@@ -84,7 +84,7 @@ describe('AnularContratoUseCase', () => {
             });
 
             //Act & Assert
-            await expect(useCase.execute(mockContratoId)).rejects.toThrow(new NotFoundException('Contrato no encontrado o ya eliminado.'));
+            await expect(useCase.execute(mockContratoId)).rejects.toThrow(new NotFoundException('Contrato no encontrado o ya anulado.'));
             expect(prismaService.contratos.update).not.toHaveBeenCalled();
             });
 
@@ -99,7 +99,7 @@ describe('AnularContratoUseCase', () => {
             mockPrisma.contratos.update.mockRejectedValue(new Error('PostgreSQL Lock Timeout'));
 
             //Act & Assert
-            await expect(useCase.execute(mockContratoId)).rejects.toThrow(new InternalServerErrorException('Error al intentar eliminar el contrato.'));
+            await expect(useCase.execute(mockContratoId)).rejects.toThrow(new InternalServerErrorException('Error al intentar anular el contrato.'));
         });
     });
 });

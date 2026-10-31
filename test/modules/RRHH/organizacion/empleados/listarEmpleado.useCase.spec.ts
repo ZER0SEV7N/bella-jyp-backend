@@ -1,3 +1,5 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+// Actualización AAA: Arrange prepara mocks del contrato actual; Act ejecuta el caso; Assert verifica su resultado.
 //test/modules/RRHH/organizacion/empleados/listarEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { ListarEmpleadosUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/listarEmpleados.useCase';
@@ -35,8 +37,8 @@ describe('ListarEmpleadosUseCase', () => {
   it('Debería listar empleados con paginación correctamente', async () => {
     //Arrange: Simulamos la respuesta de Prisma para contar y listar empleados
     const mockEmpleados = [
-      { id: '1', nombre: 'Juan' },
-      { id: '2', nombre: 'Ana' },
+      { id: '1', nombre: 'Juan', apellido: 'Pérez', jornada: null, jornadas_asistencia: [] },
+      { id: '2', nombre: 'Ana', apellido: 'Díaz', jornada: null, jornadas_asistencia: [] },
     ];
     mockPrisma.empleados.count.mockResolvedValue(15);
     mockPrisma.empleados.findMany.mockResolvedValue(mockEmpleados);
@@ -45,7 +47,7 @@ describe('ListarEmpleadosUseCase', () => {
     const result = await useCase.execute({ page: 2, limit: 10 });
 
     //Assert: Verificamos que la respuesta sea la esperada y que Prisma haya sido llamado correctamente
-    expect(result.data).toEqual(mockEmpleados);
+    expect(result.data).toEqual([{ id: '1', nombre_completo: 'Juan Pérez', jornada: null }, { id: '2', nombre_completo: 'Ana Díaz', jornada: null }]);
     expect(result.meta.total).toBe(15);
     expect(result.meta.totalPages).toBe(2);
     expect(mockPrisma.empleados.findMany).toHaveBeenCalledWith(
@@ -74,7 +76,7 @@ describe('ListarEmpleadosUseCase', () => {
     //Assert: Verificamos que Prisma haya sido llamado con los filtros correctos
     expect(mockPrisma.empleados.count).toHaveBeenCalledWith({
       where: {
-        deleted_at: null,
+        OR: [{ deleted_at: null }, { estado_laboral: { in: ['CESADO', 'DESPEDIDO'] } }],
         area_id: 'area-1',
         cargo_id: 'cargo-1',
         activo: true,

@@ -84,7 +84,7 @@ describe('EditarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             });
 
             //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
-            await expect(useCase.execute(mockContratoId, dtoEditar)).rejects.toThrow(new BadRequestException('El contrato ha sido sellado. No se puede editar porque ya cuenta con un documento físico adjunto.'));
+            await expect(useCase.execute(mockContratoId, dtoEditar)).rejects.toThrow(new BadRequestException('El contrato ya cuenta con un documento PDF firmado y sellado. No es editable.'));
             expect(prismaService.contratos.update).not.toHaveBeenCalled();
         });
 

@@ -1,3 +1,5 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+// Actualización AAA: los mocks y las expectativas usan estado_contrato_enum; se conservan las anotaciones originales.
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -58,7 +60,7 @@ describe('ListarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
           fecha_inicio: new Date('2026-01-01'),
           fecha_fin: new Date('2026-12-31'),
           url: null,
-          renovado: false,
+          estado: 'VIGENTE',
           observacion: 'Contrato regular',
           empleados: {
             id: mockEmpleadoId,
@@ -80,7 +82,7 @@ describe('ListarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
       expect(prismaService.empleados.findUnique).toHaveBeenCalledWith({
         where: { id: mockEmpleadoId, deleted_at: null },
-        select: { id: true, nombre: true, apellido: true, nro_documento: true },
+        select: { id: true },
       });
       expect(prismaService.contratos.findMany).toHaveBeenCalled();
       expect(prismaService.contratos.count).toHaveBeenCalled();

@@ -1,3 +1,4 @@
+import { ApiContratoBody, ApiContratoQuery } from '@/common/decorators/api-contrato.decorator';
 //src/modules/RRHH/contrato/controller/contrato.controller.ts
 import { Controller, Post, Get, Param, Body, Patch, Delete, Req, Res, UseGuards, UsePipes, HttpCode, HttpStatus, BadRequestException, NotFoundException, ForbiddenException, Put, ParseUUIDPipe, Query } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -62,10 +63,12 @@ export class ContratoController {
    * @Returns Un objeto con los datos del contrato creado y un mensaje de éxito.
    * 
    */
+  
   @ApiSwaggerCrearContrato()
   @Post()
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(CrearContratoSchema))
+  @ApiContratoBody(CrearContratoSchema)
   async crearContrato(@Body() payload: CrearContratoDto) {
     return await this.crearContratoUseCase.execute(payload);
   }
@@ -90,11 +93,13 @@ export class ContratoController {
    * @Throws NotFoundException si el contrato con el ID proporcionado no existe.
    * @Throws ForbiddenException si el usuario no tiene los permisos necesarios para editar el contrato.
    */
+  
   @ApiSwaggerEditarContrato()
   @Put(':id')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(EditarContratoSchema, true))
+  @ApiContratoBody(EditarContratoSchema)
   async actualizarContrato(@Param('id', ParseUUIDPipe) id: string, @Body() payload: EditarContratoDto) {
     return await this.editarContratoUseCase.execute(id, payload);
   }
@@ -114,10 +119,12 @@ export class ContratoController {
    * }
    * @Returns Un objeto con los datos del nuevo contrato creado y un mensaje de éxito.
    */
+  
   @ApiSwaggerRenovarContrato()
   @Post(':id/renovar')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(RenovarContratoSchema))
+  @ApiContratoBody(RenovarContratoSchema)
   async renovarContrato( @Param('id', ParseUUIDPipe) idViejoContrato: string, @Body() payload: RenovarContratoDto) {
     return await this.renovaContratoUseCase.execute(idViejoContrato, payload);
   }
@@ -156,10 +163,12 @@ export class ContratoController {
    * @Throws BadRequestException si los parámetros de consulta son inválidos.
    * 
    */
+  
   @Get()
   @ApiSwaggerListarContratos()
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
   @UsePipes(new ZodValidationPipe(ListarContratosQuerySchema))
+  @ApiContratoQuery(ListarContratosQuerySchema)
   async listarContratos(@Query() query: ListarContratosQueryDto) {
     return await this.listarContratoUseCase.execute(query);
   }
@@ -173,10 +182,12 @@ export class ContratoController {
    * @param empleadoId : string (UUID del empleado del cual se desea obtener el historial de contratos)
    * @Returns Un objeto con un arreglo de contratos asociados al empleado y un mensaje de éxito.
    */
+  
   @Get('empleado/:empleadoId')
   @ApiSwaggerListarContratosEmpleado()
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
   @UsePipes(new ZodValidationPipe(ListarContratosQuerySchema))
+  @ApiContratoQuery(ListarContratosQuerySchema)
   async obtenerHistorialEmpleado(@Param('empleadoId', ParseUUIDPipe) empleadoId: string, @Query() query: ListarContratosQueryDto) {
     return await this.listarContratoUseCase.execute({...query, empleado_id: empleadoId});
   }

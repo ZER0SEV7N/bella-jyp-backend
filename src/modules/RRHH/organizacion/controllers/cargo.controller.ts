@@ -19,6 +19,16 @@ import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarC
 
 /**
  * Controlador para gestionar los cargos en el módulo de RRHH.
+ * Los endpoints expuestos permiten crear, actualizar, desactivar/reactivar y listar cargos, así como obtener detalles de un cargo específico.
+ * Se aplican validaciones de seguridad y autorización mediante JWT y roles, asegurando que solo usuarios con los permisos adecuados puedan realizar estas operaciones.
+ * Además, se utilizan esquemas de validación para garantizar la integridad de los datos recibidos en las solicitudes.
+ * Los endpoints dispuestos son:
+ * - POST /api/v1/rrhh/cargo/crear: Crear un nuevo cargo.
+ * - PUT /api/v1/rrhh/cargo/:id: Actualizar un cargo existente.
+ * - PATCH /api/v1/rrhh/cargo/:id/reactivar: Reactivar un cargo desactivado.
+ * - DELETE /api/v1/rrhh/cargo/:id/desactivar: Desactivar un cargo (soft delete).
+ * - GET /api/v1/rrhh/cargo: Listar cargos con soporte para paginación y filtros.
+ * - GET /api/v1/rrhh/cargo/:id: Obtener detalles de un cargo por su ID.
  * @requires - JWT Bearer token para autenticación.
  * @requires - Roles: ADMIN, RRHH para autorización.
  */

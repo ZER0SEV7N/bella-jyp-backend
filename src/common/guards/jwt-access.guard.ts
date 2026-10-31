@@ -29,6 +29,8 @@ export class JwtAccessGuard extends AuthGuard('jwt') {
     //Verificar si el Access Token actual está en la lista negra de Redis
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
+
+      //Consulta en Redis si el token está en la lista negra (blacklist)
       const isBlacklisted = await this.redis.get(`blacklist:jwt:${token}`);
 
       if (isBlacklisted) throw new UnauthorizedException({

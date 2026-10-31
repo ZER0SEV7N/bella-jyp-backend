@@ -1,3 +1,5 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+// Actualización AAA: Arrange prepara mocks del contrato actual; Act ejecuta el caso; Assert verifica su resultado.
 //test/modules/RRHH/organizacion/jornadas/listarJornada.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { InternalServerErrorException } from '@nestjs/common';
@@ -102,7 +104,8 @@ describe('ListarJornadaUseCase - Pruebas Unitarias', () => {
         skip: 0,
         take: 10,
         orderBy: { created_at: 'desc' },
-        include: {
+        select: {
+          id: true, nombre: true, descripcion: true, duracion: true, turno: true, modalidad: true, total_horas_semana: true, tolerancia_minutos: true, activo: true,
           _count: {
             select: {
               empleados: { where: { activo: true, deleted_at: null } },

@@ -1,3 +1,4 @@
+
 //test/modules/auth/provisionarUsuario.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
@@ -12,6 +13,7 @@ jest.mock('argon2', () => ({
 
 //Mock de Crypto para simular la generación de UUID
 jest.mock('crypto', () => ({
+  ...jest.requireActual('crypto'),
   randomUUID: jest.fn(() => 'uuid-1234-5678')
 }));
 
@@ -49,7 +51,7 @@ describe('ProvisionarUsuarioUseCase', () => {
       rol: 'ASISTENTE'
     };
 
-    mockPrisma.empleados.findUnique.mockResolvedValue({ id: 'empleado-1' });
+    mockPrisma.empleados.findUnique.mockResolvedValue({ activo: true, deleted_at: null, id: 'empleado-1' });
     mockPrisma.usuarios.findUnique.mockResolvedValue(null); //Simular que no existe un usuario con el mismo email
     mockPrisma.usuarios.create.mockResolvedValue({
       id: 'user-123',
@@ -94,7 +96,7 @@ describe('ProvisionarUsuarioUseCase', () => {
     };
 
     //Simular que el empleado existe y que ya hay un usuario con el mismo email
-    mockPrisma.empleados.findUnique.mockResolvedValue({ id: 'empleado-1' });
+    mockPrisma.empleados.findUnique.mockResolvedValue({ activo: true, deleted_at: null, id: 'empleado-1' });
     mockPrisma.usuarios.findUnique.mockResolvedValue({
       id: 'user-123',
       rol: 'ASISTENTE',

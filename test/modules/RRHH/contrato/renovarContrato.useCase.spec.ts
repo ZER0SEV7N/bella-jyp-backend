@@ -1,3 +1,6 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+// Actualización AAA: se conserva la condición de negocio y se ajusta el texto vigente de su excepción.
+// Actualización AAA: los mocks y las expectativas usan estado_contrato_enum; se conservan las anotaciones originales.
 //test/modules/RRHH/contrato/renovarContrato.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
@@ -20,13 +23,12 @@ describe('RenovarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
     //Mocks de prueba para los IDs de contrato, empleado y estado
     const mockContratoId = '018f4a3c-7b2a-7123-8901-0123456789ad';
     const mockEmpleadoId = '018f4a3c-7b2a-7123-8901-0123456789ab';
-    const mockEstadoId = '018f4a3c-7b2a-7123-8901-0123456789ac';
 
     //DTO de prueba para renovar un contrato
     const dtoRenovar: RenovarContratoDto = {
-        id_estado: mockEstadoId,
-        fecha_inicio: new Date('2026-07-01'),
-        fecha_fin: new Date('2026-12-31'),
+        estado: "VIGENTE",
+        fecha_inicio: '2026-07-01',
+        fecha_fin: '2026-12-31',
         tipo_modalidad: 'NECESIDAD_MERCADO',
         observacion: 'Renovación por desempeño'
     };
@@ -38,7 +40,7 @@ describe('RenovarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             update: jest.fn(),
             create: jest.fn(),
         },
-        $transaction: jest.fn((array) => Promise.all(array)),
+        $transaction: jest.fn((trabajo) => typeof trabajo === 'function' ? trabajo(mockPrismaService) : Promise.all(trabajo)),
     };
 
     //Configuración del módulo de pruebas antes de cada test
@@ -73,12 +75,12 @@ describe('RenovarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             mockPrismaService.contratos.findUnique.mockResolvedValue(mockContratoAnterior);
             mockPrismaService.contratos.update.mockReturnValue({
                 id: mockContratoId,
-                renovado: true
+                estado: 'RENOVADO'
             });
             mockPrismaService.contratos.create.mockReturnValue({
                 id: nuevoContratoUuid,
                 empleado_id: mockEmpleadoId,
-                renovado: false
+                estado: 'VIGENTE'
             });
 
             //Act: Ejecución del caso de uso
@@ -98,7 +100,7 @@ describe('RenovarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             });
 
             //Act & Assert: Verificación de que se lanza la excepción BadRequestException al intentar renovar el contrato
-            await expect(useCase.execute(mockContratoId, dtoRenovar)).rejects.toThrow(new BadRequestException('No se puede crear un contrato de renovación para un empleado cesado.'));
+            await expect(useCase.execute(mockContratoId, dtoRenovar)).rejects.toThrow(new BadRequestException('No se puede prorrogar un contrato para un colaborador inactivo o cesado.'));
         });
 
         it('Excepción: Debe lanzar NotFoundException si el contrato a renovar no existe o está eliminado', async () => {
@@ -106,7 +108,7 @@ describe('RenovarContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             mockPrismaService.contratos.findUnique.mockResolvedValue(null);
 
             //Act & Assert: Verificación de que se lanza la excepción NotFoundException al intentar renovar un contrato inexistente
-            await expect(useCase.execute(mockContratoId, dtoRenovar)).rejects.toThrow(new NotFoundException('El contrato a renovar no fue encontrado.'));
+            await expect(useCase.execute(mockContratoId, dtoRenovar)).rejects.toThrow(new NotFoundException('El contrato previo a renovar no existe o ha sido eliminado.'));
         });
 
         it('Resiliencia: Debe abortar la transacción y retornar InternalServerErrorException en caso de fallo transaccional', async () => {

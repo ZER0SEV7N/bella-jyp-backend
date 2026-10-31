@@ -1,3 +1,6 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+// Actualización AAA: los datos de Arrange y las verificaciones corresponden al contrato actual.
+// Actualización AAA: Arrange prepara mocks del contrato actual; Act ejecuta el caso; Assert verifica su resultado.
 //test/modules/RRHH/organizacion/empleados/estadoEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
@@ -47,11 +50,13 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         mockPrisma.empleados.findUnique.mockResolvedValue({
           id: idEmpleado,
           activo: true,
+          estado_laboral: 'ACTIVO',
           deleted_at: null,
         });
         mockPrisma.empleados.update.mockResolvedValue({
           id: idEmpleado,
           activo: false,
+          estado_laboral: 'CESADO',
           fecha_cese: new Date(),
           deleted_at: new Date(),
         });
@@ -65,6 +70,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
           where: { id: idEmpleado },
           data: {
             activo: false,
+          estado_laboral: 'CESADO',
             fecha_cese: expect.any(Date),
             deleted_at: expect.any(Date),
           },
@@ -104,6 +110,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         mockPrisma.empleados.findUnique.mockResolvedValue({
           id: idEmpleado,
           activo: false,
+          estado_laboral: 'CESADO',
           deleted_at: new Date('2026-01-01'),
           fecha_cese: new Date('2026-01-01'),
         });
@@ -111,6 +118,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         mockPrisma.empleados.update.mockResolvedValue({
           id: idEmpleado,
           activo: true,
+          estado_laboral: 'ACTIVO',
           deleted_at: null,
           fecha_cese: null,
         });
@@ -125,6 +133,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
           where: { id: idEmpleado },
           data: {
             activo: true,
+            estado_laboral: 'ACTIVO',
             fecha_cese: null,
             deleted_at: null,
           },
@@ -149,6 +158,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
           id: idEmpleado,
           nro_documento: '70112233',
           activo: true,
+          estado_laboral: 'ACTIVO',
           deleted_at: null,
         });
 
@@ -162,6 +172,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         mockPrisma.empleados.findUnique.mockResolvedValue({
           id: idEmpleado,
           activo: false,
+          estado_laboral: 'CESADO',
           deleted_at: new Date(),
         });
         mockPrisma.empleados.update.mockRejectedValue(new Error('Fallo crítico en transacción'));

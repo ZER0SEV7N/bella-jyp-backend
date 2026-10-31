@@ -1,3 +1,5 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+// Actualización AAA: los datos de Arrange y las verificaciones corresponden al contrato actual.
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -127,7 +129,7 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
             limit: 10,
             tabla_afectada: 'historial_planillas',
         };
-        const userJyp = { id: 'jyp-uuid-1', rol: 'JYP' };
+        const userJyp = { id: 'rrhh-uuid-1', rol: 'RRHH' };
 
         mockPrismaService.audit_log.count.mockResolvedValue(5);
         mockPrismaService.audit_log.findMany.mockResolvedValue([]);
@@ -216,9 +218,9 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
         );
         });
 
-        it('Excepción / Seguridad: Debe lanzar ForbiddenException si un usuario con rol RRHH intenta consultar los logs', async () => {
+        it('Excepción / Seguridad: Debe lanzar ForbiddenException si un usuario con rol JYP intenta consultar los logs', async () => {
         const query: ObtenerAuditQueryDto = { page: 1, limit: 10 };
-        const userRRHH = { id: 'rrhh-uuid-1', rol: 'RRHH' };
+        const userRRHH = { id: 'jyp-uuid-1', rol: 'JYP' };
 
         await expect(useCase.execute(query, userRRHH)).rejects.toThrow(
             new ForbiddenException('No tiene los privilegios para auditar el sistema.'),

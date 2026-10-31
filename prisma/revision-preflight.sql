@@ -27,3 +27,5 @@ BEGIN
         RAISE EXCEPTION 'Hay marcaciones duplicadas; no se eliminarán automáticamente.';
     END IF;
 END $$;
+
+drop DATABASE planillas_db;

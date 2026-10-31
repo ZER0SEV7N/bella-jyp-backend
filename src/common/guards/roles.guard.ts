@@ -23,8 +23,10 @@ export class RolesGuard implements CanActivate {
     //Si la ruta no tiene el decorador @Roles, entonces no se requiere ningún rol específico y se permite el acceso
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
+    //Se obtiene el usuario autenticado del contexto de ejecución
     const { user } = context.switchToHttp().getRequest();
 
+    //Si el usuario no está autenticado o no tiene un rol definido, se lanza una excepción ForbiddenException
     if (!user || !requiredRoles.includes(user.rol))
       throw new ForbiddenException({
         type: 'https://api.jyp.com/errors/forbidden',

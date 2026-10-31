@@ -9,6 +9,10 @@ import { EvaluarSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/ev
 import { AnularSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/anularSolicitud.useCase';
 import { FileStorageUtil } from '@/common/utils/fileStorage.util';
 import type { CrearSolicitudDto, EvaluarSolicitudDto } from '@jyp/shared-contracts';
+import { ObtenerHistorialSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/obtenerHistorialSolicitud.useCase';
+import { ObtenerSolicitudesUseCase } from '@/modules/RRHH/solicitudes/use-cases/obtenerSolicitudes.useCase';
+import { leerMultipartSolicitud, limpiarSustentoSolicitud } from '@/modules/RRHH/solicitudes/helpers/multipartSolicitud.helper';
+jest.mock('@/modules/RRHH/solicitudes/helpers/multipartSolicitud.helper', () => ({ leerMultipartSolicitud: jest.fn(), limpiarSustentoSolicitud: jest.fn().mockResolvedValue(undefined) }));
 
 /**
  * Pruebas unitarias exhaustivas para SolicitudController.
@@ -30,6 +34,8 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
     const mockEmpleadoId = '018f4a7c-2222-7000-0000-000000000002';
     const mockUsuarioId = '018f4a7c-3333-7000-0000-000000000003';
 
+    const peticionBase = { user: { id: mockUsuarioId, empleado_id: mockEmpleadoId, rol: 'RRHH' }, ip: '127.0.0.1' } as unknown as Parameters<SolicitudController['crear']>[0];
+
     //DTO base válido para creación
     const payloadValido: CrearSolicitudDto = {
         tipo: 'VACACIONES',
@@ -45,6 +51,8 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
         const module: TestingModule = await Test.createTestingModule({
             controllers: [SolicitudController],
             providers: [
+                { provide: ObtenerHistorialSolicitudUseCase, useValue: { execute: jest.fn() } },
+                { provide: ObtenerSolicitudesUseCase, useValue: { execute: jest.fn() } },
                 { provide: CrearSolicitudUseCase, useValue: mockCrearSolicitudUC },
                 { provide: ObtenerDetalleSolicitudUseCase, useValue: mockObtenerDetalleUC },
                 { provide: AsignarRevisionDeSolicitudUseCase, useValue: mockAsignarRevisionUC },
@@ -68,9 +76,9 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
         describe('Casos de Éxito (Happy Path)', () => {
             it('Happy Path (JSON): Debe procesar la solicitud infiriendo el empleado_id desde el token JWT', async () => {
                 //Arrange: Se simula que el request es JSON y que el usuario autenticado tiene un empleado_id asociado en el token JWT.
-                const reqMock: any = {
+                const reqMock: any = { ip: '127.0.0.1',
                     isMultipart: () => false,
-                    user: { id: mockUsuarioId, empleado_id: mockEmpleadoId }
+                    user: { rol: 'RRHH', id: mockUsuarioId, empleado_id: mockEmpleadoId }
                 };
 
                 //Se simula la respuesta esperada del caso de uso al crear la solicitud
@@ -85,15 +93,15 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                     payloadValido,
                     mockEmpleadoId,
                     undefined
-                );
+                , 'RRHH', { id: mockUsuarioId, ip: '127.0.0.1' });
                 expect(resultado).toEqual(respuestaEsperada);
             });
 
             it('Happy Path (JSON Fallback): Debe resolver el ID del token si user.empleado_id no está definido', async () => {
                 //Arrange: Se simula que el request es JSON pero el usuario autenticado no tiene un empleado_id explícito en el token JWT, por lo que se debe usar el ID del usuario como fallback.
-                const reqMock: any = {
+                const reqMock: any = { ip: '127.0.0.1',
                     isMultipart: () => false,
-                    user: { id: mockUsuarioId } // Sin empleado_id explícito
+                    user: { rol: 'RRHH', id: mockUsuarioId } // Sin empleado_id explícito
                 };
 
                 //Se simula la respuesta esperada del caso de uso al crear la solicitud
@@ -105,12 +113,15 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 //Assert: Se verifica que el caso de uso se haya llamado con el ID del usuario como empleado_id y que la respuesta sea la esperada
                 expect(mockCrearSolicitudUC.execute).toHaveBeenCalledWith(
                     payloadValido,
-                    mockUsuarioId,
+                    undefined,
                     undefined
-                );
+                , 'RRHH', { id: mockUsuarioId, ip: '127.0.0.1' });
             });
 
             it('Happy Path (Multipart): Debe procesar streaming de archivo con FileStorageUtil y extraer campos', async () => {
+                // Arrange: el lector multipart tiene su propia unidad; aquí se simula su resultado validable.
+                (leerMultipartSolicitud as jest.Mock).mockResolvedValueOnce({ campos: { ...payloadValido, tipo: 'LICENCIA_MEDICA', motivo: 'Descanso médico por intervención' }, archivo: { url: '/archivos/sustentos/12345-sustento.pdf', nombreOriginal: 'sustento_medico.pdf' } });
+
                 //Arrange: Se simula que el request es multipart y contiene un archivo de sustento, junto con los campos del formulario. 
                 //Se espera que FileStorageUtil guarde el archivo y que el caso de uso reciba la URL y el nombre original del archivo.
                 const filePartMock = {
@@ -126,10 +137,10 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 };
 
                 //Se simula que el request es multipart y contiene un archivo de sustento, junto con los campos del formulario.
-                const reqMock: any = {
+                const reqMock: any = { ip: '127.0.0.1',
                     isMultipart: () => true,
                     file: jest.fn().mockResolvedValue(filePartMock),
-                    user: { id: mockUsuarioId, empleado_id: mockEmpleadoId }
+                    user: { rol: 'RRHH', id: mockUsuarioId, empleado_id: mockEmpleadoId }
                 };
 
                 //Se simula que FileStorageUtil guarda el archivo y devuelve una URL simulada
@@ -143,7 +154,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 const resultado = await controller.crear(reqMock, {});
 
                 //Assert: Se verifica que FileStorageUtil.guardarArchivoMultipart haya sido llamado con el archivo y que el caso de uso se haya llamado con los datos correctos, incluyendo la URL y nombre original del archivo
-                expect(FileStorageUtil.guardarArchivoMultipart).toHaveBeenCalledWith(filePartMock, 'sustentos');
+                expect(leerMultipartSolicitud).toHaveBeenCalledWith(reqMock);
                 
                 //Se verifica que el caso de uso se haya llamado con los datos correctos, incluyendo la URL y nombre original del archivo
                 expect(mockCrearSolicitudUC.execute).toHaveBeenCalledWith(expect.objectContaining({
@@ -154,7 +165,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 {
                     url: '/archivos/sustentos/12345-sustento.pdf',
                     nombreOriginal: 'sustento_medico.pdf'
-                });
+                }, 'RRHH', { id: mockUsuarioId, ip: '127.0.0.1' });
 
                 expect(resultado).toEqual(respuestaEsperada);
             });
@@ -163,9 +174,9 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
         describe('Manejo de Excepciones', () => {
             it('Debe propagar BadRequestException si el caso de uso detecta rango de fechas erróneo', async () => {
                 //Arrange: Se simula que el request es JSON y que el usuario autenticado tiene un empleado_id asociado en el token JWT.
-                const reqMock: any = {
+                const reqMock: any = { ip: '127.0.0.1',
                     isMultipart: () => false,
-                    user: { id: mockUsuarioId }
+                    user: { rol: 'RRHH', id: mockUsuarioId }
                 };
 
                 //Act & Assert: Se espera que se lance una BadRequestException si el caso de uso detecta un rango de fechas inválido, y que no se haya llamado a Prisma para crear la solicitud
@@ -175,9 +186,9 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
 
             it('Debe propagar NotFoundException si el empleado asociado a la solicitud no existe', async () => {
                 //Arrange: Se simula que el request es JSON y que el usuario autenticado tiene un empleado_id asociado en el token JWT.
-                const reqMock: any = {
+                const reqMock: any = { ip: '127.0.0.1',
                     isMultipart: () => false,
-                    user: { id: mockUsuarioId }
+                    user: { rol: 'RRHH', id: mockUsuarioId }
                 };
 
                 //Act & Assert: Se espera que se lance una NotFoundException si el caso de uso detecta que el empleado no existe, y que no se haya llamado a Prisma para crear la solicitud
@@ -187,9 +198,9 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
 
             it('Debe propagar InternalServerErrorException ante fallos inesperados de persistencia', async () => {
                 //Arrange: Se simula que el request es JSON y que el usuario autenticado tiene un empleado_id asociado en el token JWT.
-                const reqMock: any = {
+                const reqMock: any = { ip: '127.0.0.1',
                     isMultipart: () => false,
-                    user: { id: mockUsuarioId }
+                    user: { rol: 'RRHH', id: mockUsuarioId }
                 };
 
                 //Act & Assert: Se espera que se lance una InternalServerErrorException si el caso de uso falla inesperadamente, y que no se haya llamado a Prisma para crear la solicitud
@@ -216,10 +227,10 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 mockObtenerDetalleUC.execute.mockResolvedValue(detalleEsperado);
 
                 //Act: Se llama al método obtenerDetalle del controlador con el UUID de la solicitud
-                const resultado = await controller.obtenerDetalle(mockSolicitudId);
+                const resultado = await controller.obtenerDetalle(mockSolicitudId, peticionBase);
 
                 //Assert: Se verifica que el caso de uso se haya llamado con el UUID correcto y que la respuesta sea la esperada
-                expect(mockObtenerDetalleUC.execute).toHaveBeenCalledWith(mockSolicitudId);
+                expect(mockObtenerDetalleUC.execute).toHaveBeenCalledWith(mockSolicitudId, mockEmpleadoId, 'RRHH');
                 expect(resultado).toEqual(detalleEsperado);
             });
 
@@ -230,10 +241,10 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 mockObtenerDetalleUC.execute.mockResolvedValue(detalleEsperado);
 
                 //Act: Se llama al método obtenerDetalle del controlador con el código correlativo de la solicitud
-                const resultado = await controller.obtenerDetalle(codigo);
+                const resultado = await controller.obtenerDetalle(codigo, peticionBase);
 
                 //Assert: Se verifica que el caso de uso se haya llamado con el código correcto y que la respuesta sea la esperada
-                expect(mockObtenerDetalleUC.execute).toHaveBeenCalledWith(codigo);
+                expect(mockObtenerDetalleUC.execute).toHaveBeenCalledWith(codigo, mockEmpleadoId, 'RRHH');
                 expect(resultado.codigo).toBe(codigo);
             });
         });
@@ -244,7 +255,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 mockObtenerDetalleUC.execute.mockRejectedValue(new NotFoundException({ title: 'Solicitud no encontrada', detail: 'No existe el ID provisto' }));
 
                 //Act & Assert: Se espera que se lance una NotFoundException al intentar obtener el detalle de una solicitud inexistente
-                await expect(controller.obtenerDetalle('SOL-9999-999')).rejects.toThrow(NotFoundException);
+                await expect(controller.obtenerDetalle('SOL-9999-999', peticionBase)).rejects.toThrow(NotFoundException);
             });
 
             it('Debe propagar InternalServerErrorException en caso de fallo crítico', async () => {
@@ -252,7 +263,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 mockObtenerDetalleUC.execute.mockRejectedValue(new InternalServerErrorException('Error en base de datos'));
 
                 //Act & Assert: Se espera que se lance una InternalServerErrorException al intentar obtener el detalle de la solicitud
-                await expect(controller.obtenerDetalle(mockSolicitudId)).rejects.toThrow(InternalServerErrorException);
+                await expect(controller.obtenerDetalle(mockSolicitudId, peticionBase)).rejects.toThrow(InternalServerErrorException);
             });
         });
     });
@@ -265,7 +276,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
             it('Debe asignar la solicitud al revisor autenticado obteniendo el ID de req.user.id', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido, 
                 //y que el caso de uso retorna la solicitud actualizada con estado EN_REVISION y el responsable_id asignado al revisor.
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
                 const respuestaEsperada = { id: mockSolicitudId, estado: 'EN_REVISION', responsable_id: mockUsuarioId };
                 mockAsignarRevisionUC.execute.mockResolvedValue(respuestaEsperada);
 
@@ -273,28 +284,28 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 const resultado = await controller.asignarRevision(mockSolicitudId, reqMock);
 
                 //Assert: Se verifica que el caso de uso se haya llamado con los parámetros correctos y que la respuesta sea la esperada
-                expect(mockAsignarRevisionUC.execute).toHaveBeenCalledWith(mockSolicitudId, mockUsuarioId);
+                expect(mockAsignarRevisionUC.execute).toHaveBeenCalledWith(mockSolicitudId, mockUsuarioId, '127.0.0.1');
                 expect(resultado.estado).toBe('EN_REVISION');
             });
 
             it('Debe utilizar req.user.sub como fallback si user.id no se encuentra presente', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un sub (UUID) válido, pero no tiene un ID explícito.
                 const subId = 'sub-jwt-uuid-999';
-                const reqMock: any = { user: { sub: subId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: subId } };
                 mockAsignarRevisionUC.execute.mockResolvedValue({ id: mockSolicitudId, responsable_id: subId });
 
                 //Act: Se llama al método asignarRevision del controlador con el UUID de la solicitud y el request simulado
                 await controller.asignarRevision(mockSolicitudId, reqMock);
 
                 //Assert: Se verifica que el caso de uso se haya llamado con el sub del JWT como responsable_id y que la respuesta sea la esperada
-                expect(mockAsignarRevisionUC.execute).toHaveBeenCalledWith(mockSolicitudId, subId);
+                expect(mockAsignarRevisionUC.execute).toHaveBeenCalledWith(mockSolicitudId, subId, '127.0.0.1');
             });
         });
 
         describe('Manejo de Excepciones', () => {
             it('Debe propagar BadRequestException si la solicitud ya fue dictaminada con anterioridad', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido,
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
 
                 //Act & Assert: Se espera que se lance una BadRequestException si el caso de uso detecta que la solicitud ya fue dictaminada previamente, y que no se haya llamado a Prisma para asignar la revisión
                 mockAsignarRevisionUC.execute.mockRejectedValue(new BadRequestException("La solicitud ya se encuentra dictaminada con estado 'APROBADA'."),);
@@ -303,7 +314,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
 
             it('Debe propagar BadRequestException si otro usuario ya tomó la solicitud en revisión', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido,
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
 
                 //Act & Assert: Se espera que se lance una BadRequestException si el caso de uso detecta que otro revisor ya tomó la solicitud en revisión, y que no se haya llamado a Prisma para asignar la revisión
                 mockAsignarRevisionUC.execute.mockRejectedValue(new BadRequestException('La solicitud ya se encuentra tomada en revisión por otro revisor.'),);
@@ -312,7 +323,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
 
             it('Debe propagar NotFoundException si la solicitud no existe', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido,
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
 
                 //Act & Assert: Se espera que se lance una NotFoundException si el caso de uso detecta que la solicitud no existe, y que no se haya llamado a Prisma para asignar la revisión
                 mockAsignarRevisionUC.execute.mockRejectedValue(new NotFoundException('Solicitud no encontrada.'));
@@ -335,7 +346,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
             it('Debe evaluar y dictaminar exitosamente la solicitud como APROBADA', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido, 
                 //y que el caso de uso retorna la solicitud actualizada con estado APROBADA y el responsable_id asignado al revisor.
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
                 const respuestaEsperada = { id: mockSolicitudId, estado: 'APROBADA', responsable_id: mockUsuarioId };
                 mockEvaluarSolicitudUC.execute.mockResolvedValue(respuestaEsperada);
 
@@ -343,14 +354,14 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 const resultado = await controller.evaluar(mockSolicitudId, dtoAprobar, reqMock);
 
                 //Assert: Se verifica que el caso de uso se haya llamado con los parámetros correctos y que la respuesta sea la esperada
-                expect(mockEvaluarSolicitudUC.execute).toHaveBeenCalledWith(mockSolicitudId, dtoAprobar, mockUsuarioId);
+                expect(mockEvaluarSolicitudUC.execute).toHaveBeenCalledWith(mockSolicitudId, dtoAprobar, mockUsuarioId, '127.0.0.1');
                 expect(resultado.estado).toBe('APROBADA');
             });
 
             it('Debe dictaminar la solicitud como RECHAZADA con observación descriptiva', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un sub (UUID) válido, 
                 //y que el caso de uso retorna la solicitud actualizada con estado RECHAZADA y el responsable_id asignado al revisor.
-                const reqMock: any = { user: { sub: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
                 const dtoRechazar: EvaluarSolicitudDto = {
                     estado: 'RECHAZADA',
                     observacion: 'Cruce de fechas con cierre contable prioritario'
@@ -363,7 +374,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 const resultado = await controller.evaluar(mockSolicitudId, dtoRechazar, reqMock);
 
                 //Assert: Se verifica que el caso de uso se haya llamado con los parámetros correctos y que la respuesta sea la esperada
-                expect(mockEvaluarSolicitudUC.execute).toHaveBeenCalledWith(mockSolicitudId, dtoRechazar, mockUsuarioId);
+                expect(mockEvaluarSolicitudUC.execute).toHaveBeenCalledWith(mockSolicitudId, dtoRechazar, mockUsuarioId, '127.0.0.1');
                 expect(resultado.estado).toBe('RECHAZADA');
             });
         });
@@ -371,7 +382,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
         describe('Manejo de Excepciones', () => {
             it('Debe propagar BadRequestException si se intenta rechazar sin una observación descriptiva', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido,
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
 
                 //Act & Assert: Se espera que se lance una BadRequestException si el caso de uso detecta que se intenta rechazar la solicitud sin una observación descriptiva, 
                 //y que no se haya llamado a Prisma para evaluar la solicitud
@@ -381,7 +392,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
 
             it('Debe propagar BadRequestException si la solicitud ya fue dictaminada previamente', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido,
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
 
                 //Act & Assert: Se espera que se lance una BadRequestException si el caso de uso detecta que la solicitud ya fue dictaminada previamente, 
                 //y que no se haya llamado a Prisma para evaluar la solicitud
@@ -391,7 +402,7 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
 
             it('Debe propagar NotFoundException si la solicitud a evaluar no existe', async () => {
                 //Arrange: Se simula que el request contiene un usuario autenticado con un ID válido.
-                const reqMock: any = { user: { id: mockUsuarioId } };
+                const reqMock: any = { ip: '127.0.0.1', user: { rol: 'RRHH', id: mockUsuarioId } };
 
                 //Act & Assert: Se espera que se lance una NotFoundException si el caso de uso detecta que la solicitud a evaluar no existe,
                 mockEvaluarSolicitudUC.execute.mockRejectedValue(new NotFoundException('Solicitud no encontrada.'));
@@ -405,22 +416,31 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
     // =========================================================================
     describe('PATCH /api/rrhh/solicitudes/:id/anular - anular()', () => {
         describe('Validaciones Locales del Parámetro "motivo"', () => {
-            it('Debe lanzar BadRequestException local si el motivo no se envía o es undefined', async () => {
+            it('Debe lanzar BadRequestException del caso de uso si el motivo no se envía o es undefined', async () => {
+                // Arrange: el caso de uso comunica el error de negocio; el controlador lo propaga.
+                mockAnularSolicitudUC.execute.mockRejectedValueOnce(new BadRequestException('Motivo inválido.'));
+
                 //Act & Assert: Se espera que se lance una BadRequestException si el motivo no se envía o es undefined, y que no se haya llamado al caso de uso para anular la solicitud
-                await expect(controller.anular(mockSolicitudId, undefined as any)).rejects.toThrow(BadRequestException);
-                expect(mockAnularSolicitudUC.execute).not.toHaveBeenCalled();
+                await expect(controller.anular(mockSolicitudId, undefined as any, peticionBase)).rejects.toThrow(BadRequestException);
+                expect(mockAnularSolicitudUC.execute).toHaveBeenCalled();
             });
 
-            it('Debe lanzar BadRequestException local si el motivo tiene menos de 5 caracteres', async () => {
+            it('Debe lanzar BadRequestException del caso de uso si el motivo tiene menos de 5 caracteres', async () => {
+                // Arrange: el caso de uso comunica el error de negocio; el controlador lo propaga.
+                mockAnularSolicitudUC.execute.mockRejectedValueOnce(new BadRequestException('Motivo inválido.'));
+
                 //Act & Assert: Se espera que se lance una BadRequestException si el motivo tiene menos de 5 caracteres, y que no se haya llamado al caso de uso para anular la solicitud
-                await expect(controller.anular(mockSolicitudId, 'hola')).rejects.toThrow(BadRequestException);
-                expect(mockAnularSolicitudUC.execute).not.toHaveBeenCalled();
+                await expect(controller.anular(mockSolicitudId, 'hola', peticionBase)).rejects.toThrow(BadRequestException);
+                expect(mockAnularSolicitudUC.execute).toHaveBeenCalled();
             });
 
-            it('Debe lanzar BadRequestException local si el motivo solo contiene espacios en blanco', async () => {
+            it('Debe lanzar BadRequestException del caso de uso si el motivo solo contiene espacios en blanco', async () => {
+                // Arrange: el caso de uso comunica el error de negocio; el controlador lo propaga.
+                mockAnularSolicitudUC.execute.mockRejectedValueOnce(new BadRequestException('Motivo inválido.'));
+
                 //Act & Assert: Se espera que se lance una BadRequestException si el motivo solo contiene espacios en blanco, y que no se haya llamado al caso de uso para anular la solicitud
-                await expect(controller.anular(mockSolicitudId, '     ')).rejects.toThrow(BadRequestException);
-                expect(mockAnularSolicitudUC.execute).not.toHaveBeenCalled();
+                await expect(controller.anular(mockSolicitudId, '     ', peticionBase)).rejects.toThrow(BadRequestException);
+                expect(mockAnularSolicitudUC.execute).toHaveBeenCalled();
             });
         });
 
@@ -434,10 +454,10 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
                 mockAnularSolicitudUC.execute.mockResolvedValue(respuestaEsperada);
 
                 //Act: Se llama al método anular del controlador con el UUID de la solicitud y un motivo válido
-                const resultado = await controller.anular(mockSolicitudId, motivoValido);
+                const resultado = await controller.anular(mockSolicitudId, motivoValido, peticionBase);
 
                 //Assert: Se verifica que el caso de uso se haya llamado con los parámetros correctos y que la respuesta sea la esperada
-                expect(mockAnularSolicitudUC.execute).toHaveBeenCalledWith(mockSolicitudId, motivoValido);
+                expect(mockAnularSolicitudUC.execute).toHaveBeenCalledWith(mockSolicitudId, motivoValido, { id: mockUsuarioId, ip: '127.0.0.1' });
                 expect(resultado.estado).toBe('ANULADA');
             });
         });
@@ -446,19 +466,19 @@ describe('SolicitudController - Pruebas Unitarias Exhaustivas', () => {
             it('Debe propagar BadRequestException si el use case detecta que la solicitud ya fue formalmente APROBADA', async () => {
                 //Act & Assert: Se espera que se lance una BadRequestException si el caso de uso detecta que la solicitud ya fue formalmente aprobada, y que no se haya llamado a Prisma para anular la solicitud
                 mockAnularSolicitudUC.execute.mockRejectedValue(new BadRequestException('No se puede anular una solicitud que ya fue formalmente aprobada.'));
-                await expect(controller.anular(mockSolicitudId, 'Colaborador solicita cancelación')).rejects.toThrow(BadRequestException);
+                await expect(controller.anular(mockSolicitudId, 'Colaborador solicita cancelación', peticionBase)).rejects.toThrow(BadRequestException);
             });
 
             it('Debe propagar NotFoundException si la solicitud no existe o ya fue eliminada', async () => {
                 //Act & Assert: Se espera que se lance una NotFoundException si el caso de uso detecta que la solicitud no existe o ya fue eliminada, y que no se haya llamado a Prisma para anular la solicitud
                 mockAnularSolicitudUC.execute.mockRejectedValue(new NotFoundException('La solicitud especificada no existe o ha sido eliminada.'));
-                await expect(controller.anular(mockSolicitudId, 'Cancelación administrativa')).rejects.toThrow(NotFoundException);
+                await expect(controller.anular(mockSolicitudId, 'Cancelación administrativa', peticionBase)).rejects.toThrow(NotFoundException);
             });
 
             it('Debe propagar InternalServerErrorException en caso de fallo crítico de base de datos', async () => {
                 //Act & Assert: Se espera que se lance una InternalServerErrorException si el caso de uso falla inesperadamente, y que no se haya llamado a Prisma para anular la solicitud
                 mockAnularSolicitudUC.execute.mockRejectedValue(new InternalServerErrorException('Error al intentar anular la solicitud.'));
-                await expect(controller.anular(mockSolicitudId, 'Cancelación administrativa')).rejects.toThrow(InternalServerErrorException);
+                await expect(controller.anular(mockSolicitudId, 'Cancelación administrativa', peticionBase)).rejects.toThrow(InternalServerErrorException);
             });
         });
     });

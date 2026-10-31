@@ -1,0 +1,24 @@
+{
+  "archivos": [
+    {
+      "nombre": "boleta-2026-09-019a0000-0001-7000-8000-000000000001.pdf",
+      "tipo": "application/pdf",
+      "bytes": 28093,
+      "sha256": "2b11e5b693f271605c28a17095e1e6e995eec4be430cb20651aaf3faaba37ca9",
+      "planilla_id": "019a0000-0001-7000-8000-000000000001"
+    },
+    {
+      "nombre": "correo-019a0000-0001-7000-8000-000000000001.eml",
+      "tipo": "message/rfc822",
+      "bytes": 39312,
+      "sha256": "6b16a44c5a85e4f404077e838f6b1c34ad4bfb9d9a933eb7800fb49c069cbf7f",
+      "planilla_id": "019a0000-0001-7000-8000-000000000001"
+    }
+  ],
+  "correos": [
+    {
+      "planilla_id": "019a0000-0001-7000-8000-000000000001",
+      "estado": "GUARDADO_LOCAL"
+    }
+  ]
+}

@@ -21,7 +21,7 @@ describe('LogoutUseCase - Pruebas Unitarias de Cierre de Sesión', () => {
   //Configuración del módulo de pruebas antes de cada test
   beforeEach(async () => {
     mockPrisma = { tokens_seguridad: { updateMany: jest.fn() } };
-    mockJwt = { decode: jest.fn() };
+    mockJwt = { verify: jest.fn() };
     mockRedis = { set: jest.fn() };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -44,7 +44,7 @@ describe('LogoutUseCase - Pruebas Unitarias de Cierre de Sesión', () => {
       const accessToken = 'sample-access-token';
 
       //Simular la decodificación de los tokens para obtener el ID del usuario y el tiempo de expiración
-      mockJwt.decode.mockImplementation((token: string) => {
+      mockJwt.verify.mockImplementation((token: string) => {
         if (token === refreshToken) 
           return { sub: 'user-uuid-1' };
         
@@ -85,7 +85,7 @@ describe('LogoutUseCase - Pruebas Unitarias de Cierre de Sesión', () => {
     it('Debe procesar la invalidación únicamente en PostgreSQL si no se proporciona Access Token', async () => {
       //Arrange: Mockear la decodificación del Refresh Token y la respuesta de Prisma
       const refreshToken = 'sample-refresh-token';
-      mockJwt.decode.mockReturnValue({ sub: 'user-uuid-1' });
+      mockJwt.verify.mockReturnValue({ sub: 'user-uuid-1' });
       mockPrisma.tokens_seguridad.updateMany.mockResolvedValue({ count: 1 });
 
       //Act: Ejecutar el caso de uso de cierre de sesión solo con Refresh Token
@@ -108,7 +108,7 @@ describe('LogoutUseCase - Pruebas Unitarias de Cierre de Sesión', () => {
       const accessToken = 'sample-access-token';
       const ahoraSegundos = Math.floor(Date.now() / 1000);
 
-      mockJwt.decode.mockReturnValue({ sub: 'user-uuid-1', exp: ahoraSegundos + 300 });
+      mockJwt.verify.mockReturnValue({ sub: 'user-uuid-1', exp: ahoraSegundos + 300 });
       mockRedis.set.mockResolvedValue('OK');
 
       //Act: Ejecutar el caso de uso de cierre de sesión solo con Access Token
@@ -129,7 +129,7 @@ describe('LogoutUseCase - Pruebas Unitarias de Cierre de Sesión', () => {
       const accessToken = 'expired-access-token';
       const ahoraSegundos = Math.floor(Date.now() / 1000);
 
-      mockJwt.decode.mockReturnValue({ exp: ahoraSegundos - 100 });
+      mockJwt.verify.mockReturnValue({ exp: ahoraSegundos - 100 });
 
       //Act: Ejecutar el caso de uso de cierre de sesión con un Access Token expirado
       await useCase.execute(undefined, accessToken);
@@ -142,7 +142,7 @@ describe('LogoutUseCase - Pruebas Unitarias de Cierre de Sesión', () => {
   describe('Validaciones de Negocio y Tolerancia a Fallos', () => {
     it('Debe ejecutarse sin lanzar excepciones si los tokens son strings malformados', async () => {
       //Arrange: Mockear la decodificación de tokens para que devuelva null (malformados)
-      mockJwt.decode.mockReturnValue(null);
+      mockJwt.verify.mockReturnValue(null);
 
       //Act & Assert: Ejecutar el caso de uso con tokens malformados y verificar que no lance excepciones
       await expect(useCase.execute('token-invalido', 'token-invalido')).resolves.toBeUndefined();
