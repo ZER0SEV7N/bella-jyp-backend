@@ -24,13 +24,14 @@ export class EstadoEmpleadoUseCase {
   async desactivar(id: string, dto?: DesactivarEmpleadoDto) {
     try {
       //Buscar el empleado por ID, asegurándose de que no esté ya dado de baja
-      const empleado = await this.prisma.empleados.findUnique({where: { id, deleted_at: null }});
+      const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
 
-      if (!empleado) throw new NotFoundException({
-        title: 'Colaborador no encontrado',
-        detail: 'El legajo no existe o ya se encuentra dado de baja.'
-      });
-      
+      if (!empleado)
+        throw new NotFoundException({
+          title: 'Colaborador no encontrado',
+          detail: 'El legajo no existe o ya se encuentra dado de baja.',
+        });
+
       //Actualizar el estado del empleado a inactivo, estableciendo la fecha de cese y marcando el registro como eliminado (soft delete)
       let fechaCese: Date;
       try {
@@ -59,7 +60,7 @@ export class EstadoEmpleadoUseCase {
 
       throw new InternalServerErrorException({
         title: 'Error al dar de baja al colaborador',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al procesar el cese del empleado.'
+        detail: error instanceof Error ? error.message : 'Fallo inesperado al procesar el cese del empleado.',
       });
     }
   }
@@ -75,17 +76,19 @@ export class EstadoEmpleadoUseCase {
   async reactivar(id: string) {
     try {
       //Buscar el empleado por ID, asegurándose de que exista
-      const empleado = await this.prisma.empleados.findUnique({where: { id }});
+      const empleado = await this.prisma.empleados.findUnique({ where: { id } });
 
-      if (!empleado) throw new NotFoundException({
-        title: 'Colaborador no encontrado',
-        detail: 'El legajo especificado no existe en el sistema.'
-      });
-      
-      if (empleado.activo && empleado.deleted_at === null) throw new BadRequestException({
-        title: 'Colaborador ya activo',
-        detail: `El colaborador con documento ${empleado.nro_documento} ya se encuentra activo.`,
-      });
+      if (!empleado)
+        throw new NotFoundException({
+          title: 'Colaborador no encontrado',
+          detail: 'El legajo especificado no existe en el sistema.',
+        });
+
+      if (empleado.activo && empleado.deleted_at === null)
+        throw new BadRequestException({
+          title: 'Colaborador ya activo',
+          detail: `El colaborador con documento ${empleado.nro_documento} ya se encuentra activo.`,
+        });
 
       const empleadoReactivado = await this.prisma.empleados.update({
         where: { id },
@@ -93,25 +96,25 @@ export class EstadoEmpleadoUseCase {
           activo: true,
           estado_laboral: estado_empleado_enum.ACTIVO,
           fecha_cese: null,
-          deleted_at: null
+          deleted_at: null,
         },
         include: {
           area: { select: { id: true, nombre: true } },
-          cargo: { select: { id: true, nombre: true } }
-        }
+          cargo: { select: { id: true, nombre: true } },
+        },
       });
 
       return {
         state: true,
         message: 'Colaborador reactivado correctamente. Verifique la asignación de contratos, jornada y régimen previsional.',
-        data: empleadoReactivado
+        data: empleadoReactivado,
       };
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
 
       throw new InternalServerErrorException({
         title: 'Error al reactivar legajo',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al restaurar el estado del colaborador.'
+        detail: error instanceof Error ? error.message : 'Fallo inesperado al restaurar el estado del colaborador.',
       });
     }
   }
@@ -122,22 +125,23 @@ export class EstadoEmpleadoUseCase {
    * Si el estado laboral es el mismo que el actual, se lanza una excepción.
    * @param id - ID del empleado cuyo estado laboral se desea cambiar.
    * @param dto - Objeto que contiene el nuevo estado laboral y un motivo opcional para el cambio.
-   * @returns 
+   * @returns
    */
   async cambiarEstadoLaboral(id: string, dto: CambiarEstadoLaboralDto) {
     try {
-      const empleado = await this.prisma.empleados.findUnique({where: { id, deleted_at: null } });
+      const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
 
-      if (!empleado || !empleado.activo) throw new NotFoundException({
-        title: 'Colaborador no disponible',
-        detail: 'No se puede modificar la situación operativa de un colaborador inactivo o cesado. Debe reactivarlo primero.',
-      });
-      
+      if (!empleado || !empleado.activo)
+        throw new NotFoundException({
+          title: 'Colaborador no disponible',
+          detail: 'No se puede modificar la situación operativa de un colaborador inactivo o cesado. Debe reactivarlo primero.',
+        });
 
-      if (empleado.estado_laboral === dto.estado_laboral) throw new BadRequestException({
-        title: 'Estado sin cambios',
-        detail: `El colaborador ya se encuentra en estado '${dto.estado_laboral}'.`,
-      });
+      if (empleado.estado_laboral === dto.estado_laboral)
+        throw new BadRequestException({
+          title: 'Estado sin cambios',
+          detail: `El colaborador ya se encuentra en estado '${dto.estado_laboral}'.`,
+        });
 
       const empleadoActualizado = await this.prisma.empleados.update({
         where: { id },
@@ -151,7 +155,7 @@ export class EstadoEmpleadoUseCase {
       return {
         state: true,
         message: `Estado laboral actualizado a ${dto.estado_laboral} exitosamente.`,
-        data: empleadoActualizado
+        data: empleadoActualizado,
       };
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;

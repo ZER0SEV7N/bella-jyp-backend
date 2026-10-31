@@ -26,21 +26,35 @@ export class EditarEmpleadoUseCase {
    */
   async execute(id: string, payload: EditarEmpleadoDto) {
     try {
-      const empleado = await this.prisma.empleados.findUnique({where: { id, deleted_at: null }});
+      const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
 
-      if (!empleado) throw new NotFoundException({
-        title: 'Colaborador no encontrado',
-        detail: 'El legajo no existe o ha sido dado de baja (cesado).',
-      });
-      
+      if (!empleado)
+        throw new NotFoundException({
+          title: 'Colaborador no encontrado',
+          detail: 'El legajo no existe o ha sido dado de baja (cesado).',
+        });
+
+      //Una vez que hay historia de asistencia, la jornada cambia con fecha de vigencia y actor.
+      if (payload.jornada_id !== undefined && payload.jornada_id !== empleado.jornada_id) {
+        const historial = await this.prisma.asistencia_jornada.count({ where: { empleado_id: id } });
+        if (historial > 0)
+          throw new BadRequestException('Asigne la nueva jornada desde gestión de asistencia indicando su fecha de vigencia.');
+      }
+
+      if (payload.afp_fecha_filiacion === null) {
+        const financiero = await this.prisma.dato_financiero.findUnique({ where: { empleado_id: id }, select: { id_tipo_afp: true } });
+        if (financiero?.id_tipo_afp) throw new BadRequestException('No puede retirar la fecha de afiliación mientras el legajo tenga AFP.');
+      }
+
       //Validar unicidad del número de documento si se ha modificado
-      if (payload.nro_documento && payload.nro_documento.trim() !== empleado.nro_documento) await verificarDocumentoUnico(this.prisma, payload.nro_documento, id);
-      
+      if (payload.nro_documento && payload.nro_documento.trim() !== empleado.nro_documento)
+        await verificarDocumentoUnico(this.prisma, payload.nro_documento, id);
+
       //Validar que las entidades relacionadas (área, cargo, jornada) existan y estén activas
       await validarEntidadesEmpleado(this.prisma, payload, {
         area_id: empleado.area_id,
         cargo_id: empleado.cargo_id,
-        jornada_id: empleado.jornada_id
+        jornada_id: empleado.jornada_id,
       });
 
       //Devolver el empleado actualizado con los datos sanitizados
@@ -68,12 +82,12 @@ export class EditarEmpleadoUseCase {
           fecha_nacimiento: sanitizarFecha(payload.fecha_nacimiento),
           fecha_inicio: sanitizarFecha(payload.fecha_inicio),
           afp_fecha_filiacion: sanitizarFecha(payload.afp_fecha_filiacion),
-          asig_familiar: payload.asig_familiar
+          asig_familiar: payload.asig_familiar,
         },
         include: {
           area: { select: { id: true, nombre: true } },
           cargo: { select: { id: true, nombre: true } },
-          jornada: { select: { id: true, nombre: true } }
+          jornada: { select: { id: true, nombre: true } },
         },
       });
     } catch (error) {
@@ -81,7 +95,7 @@ export class EditarEmpleadoUseCase {
 
       throw new InternalServerErrorException({
         title: 'Error de Actualización',
-        detail: error instanceof Error ? error.message : 'Fallo interno al actualizar el legajo del colaborador.'
+        detail: error instanceof Error ? error.message : 'Fallo interno al actualizar el legajo del colaborador.',
       });
     }
   }

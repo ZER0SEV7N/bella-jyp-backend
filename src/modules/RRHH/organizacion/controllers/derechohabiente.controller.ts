@@ -23,11 +23,11 @@ import { ApiSwaggerDerechohabienteController, ApiSwaggerRegistrarDerechohabiente
  * Este controlador expone endpoints para registrar, listar, subir sustentos y cambiar el estado de los derechohabientes asociados a empleados titulares.
  * Se aplican guardias de autenticación y autorización para proteger los endpoints según los roles definidos.
  * Endpoints disponibles:
- * - POST /api/rrhh/derechohabientes: Registrar un nuevo derechohabiente.
- * - GET /api/rrhh/derechohabientes/empleado/:empleadoId: Listar derechohabientes de un empleado titular.
- * - DELETE /api/rrhh/derechohabientes/:id/desactivar: Desactivar un derechohabiente.
- * - PATCH /api/rrhh/derechohabientes/:id/reactivar: Reactivar un derechohabiente previamente desactivado.
- * - POST /api/rrhh/derechohabientes/sustento/abrir: Subir un sustento documental para un derechohabiente.
+ * - POST /api/v1/rrhh/derechohabientes: Registrar un nuevo derechohabiente.
+ * - GET /api/v1/rrhh/derechohabientes/empleado/:empleadoId: Listar derechohabientes de un empleado titular.
+ * - DELETE /api/v1/rrhh/derechohabientes/:id/desactivar: Desactivar un derechohabiente.
+ * - PATCH /api/v1/rrhh/derechohabientes/:id/reactivar: Reactivar un derechohabiente previamente desactivado.
+ * - POST /api/v1/rrhh/derechohabientes/sustento/abrir: Subir un sustento documental para un derechohabiente.
  */
 @Controller('api/v1/rrhh/derechohabientes')
 @UseGuards(JwtAccessGuard, RolesGuard)
@@ -152,4 +152,10 @@ export class DerechohabienteController {
         return await this.estadoUseCase.reactivar(id);
     }
 
+
+    @Get(':id')
+    @Roles('ADMIN', 'RRHH')
+    obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+        return this.listarUseCase.obtenerPorId(id);
+    }
 }

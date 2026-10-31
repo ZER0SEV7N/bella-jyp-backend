@@ -12,7 +12,7 @@ import { ListarJornadaUseCase } from '../use-cases/jornadas/listarJornada.useCas
 //DTOs y esquemas de validación
 import type {CrearJornadaDto, ActualizarJornadaDto,ListarJornadasQueryDto } from '@jyp/shared-contracts';
 import { CrearJornadaSchema, ActualizarJornadaSchema, ListarJornadasQuerySchema } from '@jyp/shared-contracts';
-import { ApiSwaggerJordanaController, ApiSwaggerCrearJordana, ApiSwaggerListarJordana, ApiSwaggerActualizarJordana, ApiSwaggerDesactivarJordana, ApiSwaggerReactivarJordana } from '../decorators/jornada-swagger.decorator';
+import { ApiSwaggerJordanaController, ApiSwaggerCrearJordana, ApiSwaggerListarJordana, ApiSwaggerActualizarJordana, ApiSwaggerDesactivarJordana, ApiSwaggerReactivarJordana, ApiDetalleJornada } from '../decorators/jornada-swagger.decorator';
 /**
  * Controlador para gestionar las jornadas laborales en el módulo de RRHH.
  * @requires - JWT Bearer token para autenticación.
@@ -184,5 +184,21 @@ export class JornadaController {
   @HttpCode(HttpStatus.OK)
   async reactivarJornada(@Param('id', ParseUUIDPipe) id: string) {
     return await this.estadoJornadaUseCase.reactivar(id);
+  }
+
+  /**
+   * Obtener jornada laboral por ID
+   * Permite obtener los detalles de una jornada laboral específica mediante su ID. Se requiere que el usuario tenga el rol de "ADMIN" o "RRHH" para realizar esta acción.
+   * @GET /api/v1/rrhh/jornadas/:id
+   * @roles ADMIN, RRHH
+   * @param id - ID de la jornada laboral a obtener (UUID).
+   * @returns - La jornada laboral encontrada con sus detalles y áreas vinculadas.
+   * @throws {NotFoundException} - Si no se encuentra una jornada laboral con el ID proporcionado.
+   */
+  @Get(':id')
+  @Roles('ADMIN', 'RRHH')
+  @ApiDetalleJornada()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarJornadaUseCase.obtenerPorId(id);
   }
 }

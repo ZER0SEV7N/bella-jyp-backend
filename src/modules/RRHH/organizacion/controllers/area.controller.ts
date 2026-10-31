@@ -13,7 +13,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 //Importar esquemas y DTOs para validación y tipado
 import { CrearAreaSchema, ActualizarAreaSchema, ListarAreasQuerySchema } from '@jyp/shared-contracts';
 import type { CrearAreaDto, ActualizarAreaDto, ListarAreasQueryDto } from '@jyp/shared-contracts';
-import { ApiSwaggerAreasController, ApiSwaggerCrearArea, ApiSwaggerActualizarArea, ApiSwaggerDesactivarArea, ApiSwaggerReactivarArea, ApiSwaggerListarAreas } from '../decorators/area-swagger.decorator';
+import { ApiSwaggerAreasController, ApiSwaggerCrearArea, ApiSwaggerActualizarArea, ApiSwaggerDesactivarArea, ApiSwaggerReactivarArea, ApiSwaggerListarAreas, ApiDetalleArea } from '../decorators/area-swagger.decorator';
 
 
 /**
@@ -35,7 +35,7 @@ export class AreaController {
 
   /**
    * Crear un nuevo area
-   * @POST - /api/rrhh/area/crear
+   * @POST - /api/v1/rrhh/area/crear
    * @param payload : dtoCrearAreaInput{
    *    "nombre" : "Area-prueba-Nro1",
    *    "descripcion" : "Descripcion-Nro1"
@@ -52,7 +52,7 @@ export class AreaController {
 
   /**
    * Actualizar un area existente
-   * @Put - /api/rrhh/area/:id
+   * @Put - /api/v1/rrhh/area/:id
    * @param id_area string - UUID
    * @param payload : dtoActualizarAreaInput{
    *    "nombre" : "Area-Nro1",
@@ -66,16 +66,13 @@ export class AreaController {
   @Put(':id')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ActualizarAreaSchema, true))
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() payload: ActualizarAreaDto,
-  ) {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ActualizarAreaDto ) {
     return await this.editarAreaUseCase.execute(id, payload);
   }
 
   /**
    * Reactivar un area que se encuentra desactivada
-   * @PATCH - /api/rrhh/area/:id/reactive
+   * @PATCH - /api/v1/rrhh/area/:id/reactivar
    * @param id_area - string - uuid
    * @returns: 200 OK - El area ha sido reactivada exitosamente.
    *          404 Not Found - El area con el ID proporcionado no existe.
@@ -91,7 +88,7 @@ export class AreaController {
 
   /**
    * Eliminar un area (SOFT DELETE)
-   * @DELETE - /api/rrhh/area/:id/desactive
+   * @DELETE - /api/v1/rrhh/area/:id/desactive
    * @param id_area string - UUID
    * @returns - 200 OK - El area ha sido desactivada exitosamente.
    *        404 Not Found - El area con el ID proporcionado no existe.
@@ -107,7 +104,7 @@ export class AreaController {
 
   /**
    * Listar areas con paginación y filtros
-   * @GET - /api/rrhh/area
+   * @GET - /api/v1/rrhh/area
    * @Query queryParams : ListarAreasQueryDto {
    *     "page": 1,
    *     "limit": 10,
@@ -122,5 +119,19 @@ export class AreaController {
   @UsePipes(new ZodValidationPipe(ListarAreasQuerySchema))
   async listarAreas(@Query() queryParams: ListarAreasQueryDto) {
     return await this.listarAreasUseCase.listar(queryParams);
+  }
+
+  /**
+   * Obtener detalles de un area por su ID
+   * @GET - /api/v1/rrhh/area/:id
+   * @param id_area string - UUID
+   * @returns Detalles del area solicitado.
+   *          404 Not Found - El area con el ID proporcionado no existe.
+   */
+  @Get(':id')
+  @Roles('ADMIN', 'RRHH')
+  @ApiDetalleArea()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarAreasUseCase.obtenerPorId(id);
   }
 }

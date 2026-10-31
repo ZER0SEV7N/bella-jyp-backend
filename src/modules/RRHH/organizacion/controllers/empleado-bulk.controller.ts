@@ -20,10 +20,10 @@ import { generarPlantillaExcel } from '../use-cases/carga-masiva/helpers/generar
 /**
  * Controlador para manejar la carga masiva de empleados desde un archivo CSV.
  * Este controlador expone dos endpoints:
- * 1. GET /api/rrhh/empleados-bulk/:jobId: Para consultar el estado del procesamiento del archivo CSV.
- * 2. GET /api/rrhh/empleados-bulk/plantilla: Para descargar un archivo CSV de plantilla para la carga masiva.
- * 3. POST /api/rrhh/empleados-bulk/validar: Para validar un archivo CSV antes de su procesamiento.
- * 4. POST /api/rrhh/empleados-bulk/confirmar: Para confirmar el procesamiento de las filas pre-validadas.
+ * 1. GET /api/v1/rrhh/empleados-bulk/:jobId: Para consultar el estado del procesamiento del archivo CSV.
+ * 2. GET /api/v1/rrhh/empleados-bulk/plantilla: Para descargar un archivo CSV de plantilla para la carga masiva.
+ * 3. POST /api/v1/rrhh/empleados-bulk/validar: Para validar un archivo CSV antes de su procesamiento.
+ * 4. POST /api/v1/rrhh/empleados-bulk/confirmar: Para confirmar el procesamiento de las filas pre-validadas.
  * 
  * El controlador utiliza JWT y roles para proteger los endpoints, permitiendo el acceso solo a usuarios con roles 'ADMIN' o 'RRHH'.
  * La carga masiva se procesa de manera asíncrona, retornando un ID de job que puede ser usado para consultar el estado del procesamiento.

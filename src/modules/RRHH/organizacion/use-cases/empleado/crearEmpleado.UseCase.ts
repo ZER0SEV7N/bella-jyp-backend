@@ -11,17 +11,17 @@ import { validarEntidadesEmpleado, encontrarIdentidad } from './helper/validacio
 
 /**
  * Caso de uso para crear un nuevo empleado en el sistema.
- * Este caso de uso valida los datos proporcionados, 
+ * Este caso de uso valida los datos proporcionados,
  * verifica la existencia de referencias relacionadas y, si es necesario, consulta a RENIEC para completar la información del empleado.
  */
 @Injectable()
 export class CrearEmpleadoUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly reniecAdapter: ReniecAdapter,
+    private readonly reniecAdapter: ReniecAdapter
   ) {}
 
-  /** 
+  /**
    * Crea un nuevo empleado en el sistema.
    * @param dto - Objeto que contiene los datos del empleado a crear.
    * @returns El empleado creado con sus datos completos.
@@ -32,12 +32,7 @@ export class CrearEmpleadoUseCase {
       await verificarDocumentoUnico(this.prisma, dto.nro_documento);
       await validarEntidadesEmpleado(this.prisma, dto);
 
-      const { nombre, apellido } = await encontrarIdentidad(
-        this.reniecAdapter,
-        dto.nro_documento,
-        dto.nombre,
-        dto.apellido
-      );
+      const { nombre, apellido } = await encontrarIdentidad(this.reniecAdapter, dto.nro_documento, dto.nombre, dto.apellido);
 
       //Crear el empleado en la base de datos
       return await this.prisma.empleados.create({
@@ -51,39 +46,37 @@ export class CrearEmpleadoUseCase {
           nro_documento: dto.nro_documento.trim(),
           nombre,
           apellido,
-          email: sanitizarTexto(dto.email),
-          telefono: sanitizarTexto(dto.telefono),
-          sexo: dto.sexo ?? null,
+          email: dto.email.trim(),
+          telefono: dto.telefono.trim(),
+          sexo: dto.sexo,
           estado_civil: dto.estado_civil ?? 'SOLTERO',
           nacionalidad: sanitizarTexto(dto.nacionalidad) ?? 'PERUANA',
-          direccion: sanitizarTexto(dto.direccion),
-          referencia_direccion: sanitizarTexto(dto.referencia_direccion),
-          ubigeo: sanitizarTexto(dto.ubigeo),
-          distrito: sanitizarTexto(dto.distrito),
-          provincia: sanitizarTexto(dto.provincia),
-          departamento: sanitizarTexto(dto.departamento),
-          fecha_nacimiento: sanitizarFecha(dto.fecha_nacimiento),
-          fecha_inicio: sanitizarFecha(dto.fecha_inicio),
+          direccion: dto.direccion.trim(),
+          referencia_direccion: dto.referencia_direccion.trim(),
+          ubigeo: dto.ubigeo.trim(),
+          distrito: dto.distrito.trim(),
+          provincia: dto.provincia.trim(),
+          departamento: dto.departamento.trim(),
+          fecha_nacimiento: new Date(dto.fecha_nacimiento),
+          fecha_inicio: new Date(dto.fecha_inicio),
           afp_fecha_filiacion: sanitizarFecha(dto.afp_fecha_filiacion),
           asig_familiar: dto.asig_familiar ?? false,
           activo: true,
-          estado_sincronizacion: 'COMPLETO'
+          estado_sincronizacion: 'COMPLETO',
         },
         include: {
           area: { select: { id: true, nombre: true } },
           cargo: { select: { id: true, nombre: true } },
-          jornada: { select: { id: true, nombre: true } }
-        }
+          jornada: { select: { id: true, nombre: true } },
+        },
       });
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
 
       throw new InternalServerErrorException({
         title: 'Error al Registrar Colaborador',
-        detail: error instanceof Error ? error.message : 'Fallo interno al intentar crear el legajo del colaborador.'
+        detail: error instanceof Error ? error.message : 'Fallo interno al intentar crear el legajo del colaborador.',
       });
     }
   }
-
-
 }

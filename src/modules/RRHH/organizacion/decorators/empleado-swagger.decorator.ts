@@ -128,3 +128,17 @@ export function ApiSwaggerListarEmpleados() {
     ApiResponse({ status: 200, description: 'Listado obtenido exitosamente.' })
   );
 }
+
+export function ApiDetalleEmpleado() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Detalle de Colaborador',
+      description: 'Obtiene los detalles completos de un colaborador por su ID.'
+    }),
+    ApiParam({ name: 'id', description: 'UUID del colaborador.', required: true, schema: { type: 'string', format: 'uuid' } }),
+    ApiResponse({ status: 200, description: 'Detalles del colaborador obtenidos exitosamente.' }),
+    ApiResponse({ status: 400, description: 'ID inválido.' }),
+    ApiResponse({ status: 403, description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.' }),
+    ApiResponse({ status: 404, description: 'Colaborador no encontrado.' })
+  );
+}

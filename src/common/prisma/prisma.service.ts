@@ -68,7 +68,7 @@ export class PrismaService
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
             if (operation === 'update' || operation === 'delete') {
               try {
-                valoresAntes = await getModelClient(model).findUnique({ where: (args as any).where });
+                valoresAntes = await getModelClient(model).findUnique({ where: args.where });
               } catch (error) {
                 localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`, error);
               }
@@ -95,7 +95,7 @@ export class PrismaService
                   usuario_id: userId,
                   accion: operation.toUpperCase(),
                   tabla_afectada: model,
-                  registro_id: (resultado as any)?.id || (args as any).where?.id || IdentityGenerator.generateId(),
+                  registro_id: getId(resultado) || getWhereId(args) || IdentityGenerator.generateId(),
                   valores_antes: valoresAntes
                     ? structuredClone(valoresAntes)
                     : null,
@@ -141,4 +141,33 @@ export class PrismaService
     await this.$disconnect();
     this.logger.log('Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).');
   }
+}
+
+/**
+ * Función para obtener el ID de un registro a partir de un objeto que puede contener un campo 'id'.
+ * Si el objeto no tiene un campo 'id' o si el valor de 'id' no es una cadena, retorna undefined.
+ * @param value - El objeto del cual se desea obtener el ID.
+ * @returns - El ID del registro si está presente y es una cadena, o undefined si no se puede determinar.
+ */
+function getId(value: unknown): string | undefined {
+  if (typeof value !== 'object' || value === null || !('id' in value)) {
+    return undefined;
+  }
+
+  const id = value.id;
+  return typeof id === 'string' ? id : undefined;
+}
+
+/**
+ * Función para obtener el ID de un registro a partir de los argumentos de una operación de Prisma.
+ * Si los argumentos no contienen un objeto 'where' o si el 'where' no tiene un campo 'id', retorna undefined.
+ * @param args - Los argumentos de la operación de Prisma, que pueden incluir un objeto 'where' con el ID del registro.
+ * @returns - El ID del registro si está presente, o undefined si no se puede determinar.
+ */
+function getWhereId(args: unknown): string | undefined {
+  if (typeof args !== 'object' || args === null || !('where' in args)) {
+    return undefined;
+  }
+
+  return getId(args.where);
 }

@@ -5,11 +5,20 @@
 # Este archivo no crea tablas, ejecuta migraciones ni carga datos de prueba.
 # En Azure, una base externa se configura con su URL y dependencias de despliegue propias.
 
-
 services:
   # --------------------------------------------------------------------------
   # 1. POSTGRESQL DE LA APLICACIÓN: empleados, asistencia, planillas y auditoría.
   # --------------------------------------------------------------------------
+  # Prepara únicamente el directorio compartido. No inicia otra base ni modifica archivos existentes.
+  archivos-permisos:
+    image: postgres:17-alpine # Reutiliza las herramientas de la imagen ya descargada.
+    user: "0:0"
+    entrypoint: ["sh", "-c"]
+    command: ["chown 1000:1000 /compartido && chmod 700 /compartido"]
+    volumes:
+      - ./archivos/integraciones:/compartido
+    restart: "no"
+
   postgres:
     image: postgres:17-alpine # Se mantiene la versión usada por los volúmenes actuales.
     container_name: planillas_db # Nombre local reconocible del contenedor.
@@ -63,6 +72,8 @@ services:
     container_name: planillas_backend
     restart: unless-stopped
     depends_on:
+      archivos-permisos:
+        condition: service_completed_successfully
       # Orden de arranque: primero deben estar disponibles PostgreSQL y Redis.
       # Esta condición no instala el esquema ni sustituye la gestión de reconexiones.
       postgres:
@@ -77,8 +88,13 @@ services:
       N8N_BASE_URL: http://n8n:5678 # Dirección interna reservada para la integración con n8n.
       RENIEC_API_KEY: ${RENIEC_API_KEY:-} # Credencial opcional del proveedor de consultas.
       RENIEC_API_URL: ${RENIEC_API_URL:-} # URL del proveedor configurado.
+      # Canal de trabajos: una misma llave HMAC en API y ejecutor, sin claves por defecto.
+      N8N_WEBHOOK_URL_TRABAJOS: http://n8n:5678/webhook/jyp/trabajos
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:?Defina la llave HMAC de integración}
+      FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL:-http://localhost:5173/restablecer-password}
+      ARCHIVOS_INTEGRACION_DIR: /app/archivos/integraciones
       PORT: 3000
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development} # Compose local usa HTTP; production requiere HTTPS.
       # Conexión LOCAL de Compose. Dentro del contenedor, localhost sería el propio backend.
       # Para una BD de Azure, se sustituye por su URL externa y se revisa depends_on de postgres.
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-bella}@postgres:5432/${DB_NAME:-planillas_db}?schema=public
@@ -96,10 +112,12 @@ services:
     ports:
       - "3000:3000" # API y Swagger accesibles desde el host.
     volumes:
+      # n8n escribe; el backend solo descarga los archivos registrados en este directorio local.
+      - ./archivos/integraciones:/app/archivos/integraciones:ro
       - uploads_data:/app/archivos # Documentos del MVP conservados fuera del contenedor efímero.
     networks:
       - planillas_net
-  
+
   # --------------------------------------------------------------------------
   # 4. POSTGRESQL PROPIO DE N8N: workflows, ejecuciones y credenciales de n8n.
   # No contiene tablas de empleados o planillas de la aplicación.
@@ -126,12 +144,34 @@ services:
   # Mantiene su misma versión; esta revisión no actualiza ni ejecuta contenedores.
   # --------------------------------------------------------------------------
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.44.6
+    build:
+      context: .
+      dockerfile: n8n/Dockerfile
+    image: jyp-n8n-local:2.44.6
     restart: unless-stopped
     depends_on:
+      archivos-permisos:
+        condition: service_completed_successfully
       n8n-postgres:
         condition: service_healthy # Espera su propia base, no la base de la aplicación.
     environment:
+      # El workflow ejecuta únicamente el script propio mediante Execute Command.
+      # En n8n 2 este nodo está deshabilitado por defecto; el editor es solo para administradores JYP.
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: 2 # Acota renderizado y correo simultáneo en el MVP.
+      NODES_EXCLUDE: '["n8n-nodes-base.localFileTrigger"]'
+      JYP_BACKEND_URL: http://backend:3000
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:?Defina la llave HMAC de integración}
+      ARCHIVOS_INTEGRACION_DIR: /files
+      # LOCAL conserva .eml sin enviar; SMTP utiliza el servidor configurado (Mailpit para pruebas).
+      N8N_CORREOS_MODO: ${N8N_CORREOS_MODO:-LOCAL}
+      N8N_PDF_PASSWORD_MODE: DOCUMENTO
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_FROM: ${SMTP_FROM:-planillas@example.test}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       DB_TYPE: postgresdb # Guarda sus datos en PostgreSQL en lugar de la base local por defecto.
       DB_POSTGRESDB_HOST: n8n-postgres # Nombre DNS del servicio dentro de la red Docker.
       DB_POSTGRESDB_PORT: 5432 # Puerto interno de PostgreSQL; no requiere publicarlo al host.
@@ -150,11 +190,20 @@ services:
     ports:
       - "127.0.0.1:5678:5678" # Editor disponible solo desde este host, no expuesto directamente a Internet.
     volumes:
+      - ./archivos/integraciones:/files
       - n8n_data:/home/node/.n8n # Conserva configuración y archivos internos de n8n.
     networks: [planillas_net] # Puede comunicarse con los servicios de esta misma red.
 
-# Volúmenes administrados por Docker. Se conservan los nombres de la entrega anterior.
-# No eliminarlos al actualizar si se desea conservar la información instalada.
+  # Captura de correos SMTP de prueba. La interfaz solo se publica en este equipo.
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks: [planillas_net]
+
+
+# Volúmenes persistentes. No borrarlos al actualizar una instalación con información.
 volumes:
   n8n_data: # Archivos internos/configuración de n8n.
   n8n_postgres_data: # Workflows, ejecuciones y credenciales de n8n en PostgreSQL.

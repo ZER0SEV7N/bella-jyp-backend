@@ -10,8 +10,8 @@ import { IdentityGenerator } from '@/common/utils/uuid.util';
  * DTO de entrada para confirmar el procesamiento de las filas pre-validadas.
  */
 export interface ConfirmarCargaMasivaDTO {
-    filas?: CargaMasivaFilaDTO[];
-    filas_validas_data?: CargaMasivaFilaDTO[];
+  filas?: CargaMasivaFilaDTO[];
+  filas_validas_data?: CargaMasivaFilaDTO[];
 }
 
 /**
@@ -22,74 +22,71 @@ export interface ConfirmarCargaMasivaDTO {
  */
 @Injectable()
 export class ConfirmarCargaMasivaUseCase {
-    private readonly logger = new Logger(ConfirmarCargaMasivaUseCase.name);
+  private readonly logger = new Logger(ConfirmarCargaMasivaUseCase.name);
 
-    //Inyectar la cola de BullMQ y el servicio Prisma para interactuar con la base de datos.
-    constructor(
-        @InjectQueue('rrhh-bulk-queue')
-        private readonly rrhhBulkQueue: Queue,
-        private readonly prisma: PrismaService,
-    ) {}
+  //Inyectar la cola de BullMQ y el servicio Prisma para interactuar con la base de datos.
+  constructor(
+    @InjectQueue('rrhh-bulk-queue')
+    private readonly rrhhBulkQueue: Queue,
+    private readonly prisma: PrismaService
+  ) {}
 
-    async execute(usuarioId: string, payload: any): Promise<{ jobId: string }> {
-        let filasAProcesar: CargaMasivaFilaDTO[] = [];
+  async execute(usuarioId: string, payload: any): Promise<{ jobId: string }> {
+    let filasAProcesar: CargaMasivaFilaDTO[] = [];
 
-        //Si el payload es un array, se asume que son las filas válidas directamente; si es un objeto, se busca la propiedad 'filas_validas_data' o 'filas'.
-        if (Array.isArray(payload)) filasAProcesar = payload;
-        else if (payload && typeof payload === 'object') filasAProcesar = payload.filas_validas_data || payload.filas || [];
-        
+    //Si el payload es un array, se asume que son las filas válidas directamente; si es un objeto, se busca la propiedad 'filas_validas_data' o 'filas'.
+    if (Array.isArray(payload)) filasAProcesar = payload;
+    else if (payload && typeof payload === 'object') filasAProcesar = payload.filas_validas_data || payload.filas || [];
 
-        if (!Array.isArray(filasAProcesar) || filasAProcesar.length === 0) 
-            throw new BadRequestException('No hay filas válidas proporcionadas para procesar.');
-        
-        
-        if (!usuarioId) throw new BadRequestException('No se pudo identificar al usuario de la carga.');
-        filasAProcesar = filasAProcesar.map((fila, index) => {
-            const parsed = CargaMasivaFilaSchema.safeParse(fila);
-            if (!parsed.success) throw new BadRequestException({ title: 'Fila de carga inválida', detail: `La fila ${index + 1} no cumple el contrato.`, errores: parsed.error.flatten().fieldErrors });
-            return parsed.data;
+    if (!Array.isArray(filasAProcesar) || filasAProcesar.length === 0)
+      throw new BadRequestException('No hay filas válidas proporcionadas para procesar.');
+
+    if (!usuarioId) throw new BadRequestException('No se pudo identificar al usuario de la carga.');
+    filasAProcesar = filasAProcesar.map((fila, index) => {
+      const parsed = CargaMasivaFilaSchema.safeParse(fila);
+      if (!parsed.success)
+        throw new BadRequestException({
+          title: 'Fila de carga inválida',
+          detail: `La fila ${index + 1} no cumple el contrato.`,
+          errores: parsed.error.flatten().fieldErrors,
         });
+      return parsed.data;
+    });
 
-        const jobId = IdentityGenerator.generateId();
-        const totalRegistros = filasAProcesar.length;
+    const jobId = IdentityGenerator.generateId();
+    const totalRegistros = filasAProcesar.length;
 
-        this.logger.log(`[ConfirmarCargaMasiva] Inicializando Job ${jobId} con ${totalRegistros} registros validados...`);
+    this.logger.log(`[ConfirmarCargaMasiva] Inicializando Job ${jobId} con ${totalRegistros} registros validados...`);
 
-        //Crear el Job en PostgreSQL en estado EN_COLA
-        await this.prisma.cargaMasivaJob.create({
-            data: {
-                id: jobId,
-                usuario_id: usuarioId,
-                estado: 'EN_COLA',
-                total_registros: totalRegistros,
-                procesados: 0,
-                fallidos: 0
-            }
-        });
+    //Crear el Job en PostgreSQL en estado EN_COLA
+    await this.prisma.cargaMasivaJob.create({
+      data: {
+        id: jobId,
+        usuario_id: usuarioId,
+        estado: 'EN_COLA',
+        total_registros: totalRegistros,
+        procesados: 0,
+        fallidos: 0,
+      },
+    });
 
-        //Dividir las filas en lotes de 50 registros
-        const tamañoLote = 50;
-        const lotes: CargaMasivaFilaDTO[][] = [];
+    //Dividir las filas en lotes de 50 registros
+    const tamañoLote = 50;
+    const lotes: CargaMasivaFilaDTO[][] = [];
 
-        //Dividir las filas en lotes de tamaño fijo para procesamiento asincrónico
-        for (let i = 0; i < filasAProcesar.length; i += tamañoLote) 
-            lotes.push(filasAProcesar.slice(i, i + tamañoLote));
-        
+    //Dividir las filas en lotes de tamaño fijo para procesamiento asincrónico
+    for (let i = 0; i < filasAProcesar.length; i += tamañoLote) lotes.push(filasAProcesar.slice(i, i + tamañoLote));
 
-        //Encolar los lotes en BullMQ
-        for (let index = 0; index < lotes.length; index++) {
-            const esUltimo = index === lotes.length - 1;
-            const nombreLote = esUltimo ? 'lote-final' : `lote-${index}`;
+    //Encolar los lotes en BullMQ
+    for (let index = 0; index < lotes.length; index++) {
+      const esUltimo = index === lotes.length - 1;
+      const nombreLote = esUltimo ? 'lote-final' : `lote-${index}`;
 
-            await this.rrhhBulkQueue.add(
-                nombreLote,
-                { jobId, registros: lotes[index] },
-                { removeOnComplete: true }
-            );
-        }
-
-        //Actualizar el estado del job a EN_PROCESO
-        this.logger.log(`[ConfirmarCargaMasiva] Job ${jobId} encolado exitosamente con ${lotes.length} lotes.`);
-        return { jobId };
+      await this.rrhhBulkQueue.add(nombreLote, { jobId, registros: lotes[index] }, { removeOnComplete: true });
     }
+
+    //Actualizar el estado del job a EN_PROCESO
+    this.logger.log(`[ConfirmarCargaMasiva] Job ${jobId} encolado exitosamente con ${lotes.length} lotes.`);
+    return { jobId };
+  }
 }

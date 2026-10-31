@@ -15,7 +15,7 @@ import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { CrearCargoSchema, ActualizarCargoSchema, ListarCargosQuerySchema } from '@jyp/shared-contracts';
 import type {CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto} from '@jyp/shared-contracts';
 //Importar decoradores de Swagger para documentación de la API
-import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarCargo, ApiSwaggerDesactivarCargo, ApiSwaggerReactivarCargo, ApiSwaggerListarCargos } from '../decorators/cargo-swagger.decorator';
+import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarCargo, ApiSwaggerDesactivarCargo, ApiSwaggerReactivarCargo, ApiSwaggerListarCargos, ApiDetalleCargo } from '../decorators/cargo-swagger.decorator';
 
 /**
  * Controlador para gestionar los cargos en el módulo de RRHH.
@@ -36,7 +36,7 @@ export class CargoController {
   /**
    * Crear un nuevo cargo
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden crear un nuevo cargo.
-   * @POST /api/rrhh/cargo/crear
+   * @POST /api/v1/rrhh/cargo/crear
    * @DTO : {
    *    "id_area": string (UUID válido),
    *    "nombre": string (2-100 carácteres),
@@ -59,7 +59,7 @@ export class CargoController {
   /**
    * Editar un cargo existente
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden editar un cargo existente.
-   * @PUT /api/rrhh/cargo/:id
+   * @PUT /api/v1/rrhh/cargo/:id
    * @param id - string (UUID)
    * @DTO : {
    *    "id_area"?: string (UUID válido),
@@ -83,7 +83,7 @@ export class CargoController {
   /**
    * Eliminar un cargo (SOFT DELETE)
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden eliminar un cargo.
-   * @DELETE /api/rrhh/cargo/@param /desactivar
+   * @DELETE /api/v1/rrhh/cargo/@param /desactivar
    * @param id string - uuid
    */
   @ApiSwaggerDesactivarCargo()
@@ -98,7 +98,7 @@ export class CargoController {
    * Reactivar un cargo que se encuentra desactivado
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden reactivar un cargo desactivado.
    * Valida que el área a la que pertenece se encuentre activa.
-   * @PATCH /api/rrhh/cargo/:id/reactivar
+   * @PATCH /api/v1/rrhh/cargo/:id/reactivar
    * @param id - string (UUID)
    */
   @ApiSwaggerReactivarCargo()
@@ -112,7 +112,7 @@ export class CargoController {
   /**
    * Listar cargos con paginación y filtros
    * Permite listar cargos con soporte de búsqueda global y filtros por área o estado.
-   * @GET /api/rrhh/cargo
+   * @GET /api/v1/rrhh/cargo
    * @Query queryParams : ListarCargosQueryDto {
    *    "page"?: number (default 1),
    *    "limit"?: number (default 10, max 100),
@@ -128,5 +128,21 @@ export class CargoController {
   @UsePipes(new ZodValidationPipe(ListarCargosQuerySchema))
   async listarCargos(@Query() queryParams: ListarCargosQueryDto) {
     return await this.listarCargosUseCase.listar(queryParams);
+  }
+
+  /**
+   * Obtener detalles de un cargo por su ID
+   * Permite obtener información detallada de un cargo específico, incluyendo su área y cantidad de empleados activos asociados.
+   * @GET /api/v1/rrhh/cargo/:id
+   * @param id - string (UUID)
+   * @returns Un objeto con los detalles del cargo, su área y metadatos asociados.
+   *          404 Not Found - El cargo con el ID proporcionado no existe o fue eliminado.
+   * 
+   */
+  @Get(':id')
+  @Roles('ADMIN', 'RRHH')
+  @ApiDetalleCargo()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarCargosUseCase.obtenerPorId(id);
   }
 }

@@ -47,31 +47,35 @@ export function procesarYValidarHorarioSemanal(horarioSemanal: DiaHorarioDto[], 
   let totalSemanal = 0;
   const horarioCalculado = horarioSemanal.map((dia) => {
     const horas = calcularHorasDia(dia);
+    if (horas > 8) throw new BadRequestException('El horario ordinario no puede superar ocho horas efectivas por día.');
     totalSemanal += horas;
     return { ...dia, total_horas: horas };
   });
 
   totalSemanal = Number(totalSemanal.toFixed(2));
 
-  if (duracion === 'TIEMPO_PARCIAL' && totalSemanal >= 30) throw new BadRequestException({
-    title: 'Límite de Tiempo Parcial Excedido',
-    detail: `Una jornada a tiempo parcial debe sumar menos de 30 horas semanales (configurado: ${totalSemanal}h).`
-  });
-  
-  if (totalSemanal > 48) throw new BadRequestException({
-    title: 'Jornada Excede Límite Legal',
-    detail: `El total semanal (${totalSemanal}h) excede el máximo permitido por ley de 48 horas ordinarias.`
-  });
-  
-  if (turno === 'ROTATIVO' && !patronRotacion) throw new BadRequestException({
-    title: 'Patrón de Rotación Requerido',
-    detail: 'Las jornadas con turno rotativo requieren especificar la configuración del patrón de rotación.'
-  });
+  if (duracion === 'TIEMPO_PARCIAL' && totalSemanal >= 30)
+    throw new BadRequestException({
+      title: 'Límite de Tiempo Parcial Excedido',
+      detail: `Una jornada a tiempo parcial debe sumar menos de 30 horas semanales (configurado: ${totalSemanal}h).`,
+    });
+
+  if (totalSemanal > 48)
+    throw new BadRequestException({
+      title: 'Jornada Excede Límite Legal',
+      detail: `El total semanal (${totalSemanal}h) excede el máximo permitido por ley de 48 horas ordinarias.`,
+    });
+
+  if (turno === 'ROTATIVO' && !patronRotacion)
+    throw new BadRequestException({
+      title: 'Patrón de Rotación Requerido',
+      detail: 'Las jornadas con turno rotativo requieren especificar la configuración del patrón de rotación.',
+    });
 
   return { totalSemanal, horarioCalculado };
 }
 
-/** 
+/**
  * Verifica que el nombre de la jornada sea único en la base de datos, ignorando un ID específico si se proporciona.
  * @param prisma - Instancia del servicio Prisma para interactuar con la base de datos.
  * @param nombre - Nombre de la jornada a verificar.
@@ -87,16 +91,16 @@ export async function verificarNombreJornadaUnico(prisma: PrismaService, nombre?
     where: {
       nombre: { equals: nombreLimpio, mode: 'insensitive' },
       ...(jornadaIdExcluir ? { id: { not: jornadaIdExcluir } } : {}),
-      deleted_at: null
+      deleted_at: null,
     },
-    select: { id: true }
+    select: { id: true },
   });
 
-  if (colision) throw new BadRequestException({
-    title: 'Jornada Duplicada',
-    detail: `Ya existe una jornada/turno registrada con el nombre '${nombreLimpio}'.`
-  });
-  
+  if (colision)
+    throw new BadRequestException({
+      title: 'Jornada Duplicada',
+      detail: `Ya existe una jornada/turno registrada con el nombre '${nombreLimpio}'.`,
+    });
 }
 
 /**
@@ -113,12 +117,13 @@ export async function verificarAreasJornada(prisma: PrismaService, areasIds?: st
     where: {
       id: { in: areasIds },
       activo: true,
-      deleted_at: null
-    }
+      deleted_at: null,
+    },
   });
 
-  if (totalActivas !== areasIds.length) throw new NotFoundException({
-    title: 'Áreas Inválidas',
-    detail: 'Una o más áreas seleccionadas no existen o se encuentran inactivas.'
-  });
+  if (totalActivas !== areasIds.length)
+    throw new NotFoundException({
+      title: 'Áreas Inválidas',
+      detail: 'Una o más áreas seleccionadas no existen o se encuentran inactivas.',
+    });
 }

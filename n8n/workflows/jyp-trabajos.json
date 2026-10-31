@@ -1,0 +1,107 @@
+{
+  "name": "JYP - Archivos y correos locales",
+  "active": false,
+  "nodes": [
+    {
+      "id": "jyp-webhook",
+      "name": "Recibir trabajo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "jyp-trabajos",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jyp/trabajos",
+        "responseMode": "onReceived",
+        "options": {
+          "responseCode": 202
+        }
+      }
+    },
+    {
+      "id": "jyp-validar",
+      "name": "Verificar HMAC en backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:3000/api/v1/integraciones/n8n/validar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Jyp-Timestamp",
+              "value": "={{ $json.headers['x-jyp-timestamp'] }}"
+            },
+            {
+              "name": "X-Jyp-Nonce",
+              "value": "={{ $json.headers['x-jyp-nonce'] }}"
+            },
+            {
+              "name": "X-Jyp-Signature",
+              "value": "={{ $json.headers['x-jyp-signature'] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "jyp-ejecutar",
+      "name": "Generar archivos y despachar correo",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        540,
+        0
+      ],
+      "parameters": {
+        "command": "={{ 'node /opt/jyp/n8n/tareas/ejecutar.cjs ' + $json.data.trabajo_id }}"
+      }
+    }
+  ],
+  "connections": {
+    "Recibir trabajo": {
+      "main": [
+        [
+          {
+            "node": "Verificar HMAC en backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar HMAC en backend": {
+      "main": [
+        [
+          {
+            "node": "Generar archivos y despachar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 3600
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -1,8 +1,9 @@
-import { LoginSchema, ProvisionarUsuarioSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
-import { ApiContratoBody } from '@/common/decorators/api-contrato.decorator';
+
 // src/modules/core/auth/decorators/auth.decorator.ts
 import { applyDecorators } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { LoginSchema, ProvisionarUsuarioSchema, RestablecerPasswordSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
+import { ApiContratoBody } from '@/common/decorators/api-contrato.decorator';
 
 export function ApiSwaggerController() {
   return applyDecorators(ApiTags('Core - Autenticación'));
@@ -138,6 +139,24 @@ export function ApiSwaggerRecuperarPassword() {
     ApiResponse({
       status: 400,
       description: 'Documento con formato inválido.',
+    })
+  );
+}
+
+export function ApiSwaggerRestablecerPassword() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Restablecer Contraseña',
+      description: 'Valida el token de recuperación y actualiza la contraseña del usuario en la base de datos.',
+    }),
+    ApiContratoBody(RestablecerPasswordSchema),
+    ApiResponse({
+      status: 200,
+      description: 'Contraseña restablecida exitosamente.',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Token inválido, expirado o contraseña no cumple con la política de seguridad.',
     })
   );
 }

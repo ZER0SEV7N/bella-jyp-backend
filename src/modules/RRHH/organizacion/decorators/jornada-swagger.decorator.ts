@@ -352,6 +352,37 @@ export function ApiSwaggerReactivarJornada() {
   );
 }
 
+export function ApiDetalleJornada() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Detalle de Jornada',
+      description: 'Obtiene los detalles completos de una jornada laboral específica, incluyendo su configuración horaria y áreas asociadas.'
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'UUID de la jornada a consultar.',
+      required: true,
+      schema: { type: 'string', format: 'uuid' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Detalle de la jornada obtenido exitosamente.'
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado.'
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido.'
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Jornada no encontrada.'
+    })
+  );
+}
+
 //Aliases de retrocompatibilidad para imports existentes
 export const ApiSwaggerJordanaController = ApiSwaggerJornadaController;
 export const ApiSwaggerCrearJordana = ApiSwaggerCrearJornada;

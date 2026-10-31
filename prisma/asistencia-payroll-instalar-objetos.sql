@@ -5,6 +5,8 @@
 -- tablas ni cargar personas. Comparte las secciones 13–16 de basededatos.sql; la verificación
 -- inicial comprueba compatibilidad.
 
+BEGIN;
+
 -- ================================================================================================
 -- 0. COMPROBACIÓN DEL ESQUEMA EXISTENTE
 -- ================================================================================================

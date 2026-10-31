@@ -13,7 +13,7 @@ import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { ListarEmpleadosUseCase } from '../use-cases/empleado/listarEmpleados.useCase';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { ApiSwaggerEmpleadosController, ApiSwaggerCrearEmpleado, ApiSwaggerActualizarEmpleado, ApiSwaggerDesactivarEmpleado, ApiSwaggerReactivarEmpleado, ApiSwaggerListarEmpleados } from '../decorators/empleado-swagger.decorator';
+import { ApiSwaggerEmpleadosController, ApiSwaggerCrearEmpleado, ApiSwaggerActualizarEmpleado, ApiSwaggerDesactivarEmpleado, ApiSwaggerReactivarEmpleado, ApiSwaggerListarEmpleados, ApiDetalleEmpleado } from '../decorators/empleado-swagger.decorator';
 
 /**
  * Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH.
@@ -213,5 +213,24 @@ export class EmpleadoController {
   @UsePipes(new ZodValidationPipe(CambiarEstadoLaboralSchema))
   async cambiarEstadoLaboral(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CambiarEstadoLaboralDto) {
     return await this.estadoEmpleadoUseCase.cambiarEstadoLaboral(id, dto);
+  }
+ 
+  /**
+   * Endpoint para obtener los detalles de un empleado por su ID.
+   * Requiere que el usuario tenga los roles de ADMIN o RRHH para acceder a este endpoint.
+   * @GET - /api/v1/rrhh/empleado/:id
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @param id : string - UUID del empleado a consultar.
+   * @returns 200 OK - Detalles del empleado.
+   *         400 Bad Request - El ID proporcionado no es un UUID válido.
+   *        401 Unauthorized - El usuario no tiene un token válido.
+   *       403 Forbidden - El usuario no tiene los permisos necesarios.
+   *       404 Not Found - El empleado no fue encontrado.
+   */
+  @Get(':id')
+  @Roles('ADMIN', 'RRHH')
+  @ApiDetalleEmpleado()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarEmpleadosUseCase.obtenerPorId(id);
   }
 }

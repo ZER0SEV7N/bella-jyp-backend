@@ -11,9 +11,9 @@ import { LogoutUseCase } from '../use-cases/logout.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { LoginSchema, ProvisionarUsuarioSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
-import type {LoginDTO, ProvisionarUsuarioDTO, SolicitudRecuperacionDTO } from '@jyp/shared-contracts';
-import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProvisionar, ApiSwaggerRecuperarPassword, ApiSwaggerLogout} from '../decorators/auth-swagger.decorator';
+import { LoginSchema, ProvisionarUsuarioSchema, RestablecerPasswordSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
+import type {LoginDTO, ProvisionarUsuarioDTO, RestablecerPasswordDTO, SolicitudRecuperacionDTO } from '@jyp/shared-contracts';
+import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProvisionar, ApiSwaggerRecuperarPassword, ApiSwaggerLogout, ApiSwaggerRestablecerPassword} from '../decorators/auth-swagger.decorator';
 
 /**
  * Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación.
@@ -112,7 +112,7 @@ export class AuthController {
   @ApiSwaggerProvisionar()
   @Post('provisionar')
   @HttpCode(HttpStatus.CREATED)
-  // @UseGuards(JwtAccessGuard, RolesGuard)
+  //@UseGuards(JwtAccessGuard, RolesGuard)
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ProvisionarUsuarioSchema))
   async provisionar(@Body() payload: ProvisionarUsuarioDTO) {
@@ -166,5 +166,26 @@ export class AuthController {
       title: 'Sesión Finalizada',
       detail: 'Tokens invalidados exitosamente.'
     };
+  }
+
+  /**
+   * Ruta para restablecer la contraseña de un usuario.
+   * @POST /api/auth/restablecer-password
+   * @roles - No requiere roles específicos, accesible para cualquier usuario que tenga un token de restablecimiento válido.
+   * @param payload - RestablecerPasswordDTO - Objeto que contiene la información necesaria para restablecer la contraseña, validado mediante ZodValidationPipe.
+   * RestablecerPasswordDTO : {
+   *    - token: string - Token de restablecimiento de contraseña enviado al correo del usuario.
+   *    - newPassword: string - Nueva contraseña que el usuario desea establecer.
+   * }
+   * @HttpCode(HttpStatus.OK) - Indica que la respuesta HTTP tendrá un código de estado 200 OK si la operación es exitosa.
+   * @UsePipes(new ZodValidationPipe(RestablecerPasswordSchema)) - Aplica la validación de esquema Zod al cuerpo de la solicitud.
+   * @returns - Un objeto con un mensaje de éxito indicando que la contraseña ha sido restablecida correctamente.
+   */
+  @Post('restablecer-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiSwaggerRestablecerPassword()
+  
+  restablecerPassword(@Body(new ZodValidationPipe(RestablecerPasswordSchema)) payload: RestablecerPasswordDTO) {
+    return this.recuperacionPasswordUseCase.restablecer(payload);
   }
 }

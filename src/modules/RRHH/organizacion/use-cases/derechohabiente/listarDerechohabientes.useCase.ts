@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 //src/modules/RRHH/organizacion/use-cases/derechohabiente/listarDerechohabientes.useCase.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -9,39 +10,45 @@ import { PrismaService } from '@/common/prisma/prisma.service';
  */
 @Injectable()
 export class ListarDerechohabientesUseCase {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    /**
-     * Metodo principal para ejecutar el caso de uso de listado de derechohabientes.
-     * @param empleadoId - ID del empleado titular cuyos derechohabientes se desean listar.
-     * @returns - Una lista de derechohabientes asociados al empleado titular, incluyendo información de tipo de documento y sustentos documentales.
-     * @throws InternalServerErrorException si ocurre un error al consultar la base de datos.
-     */
-    async listarPorEmpleado(empleadoId: string) {
-        try{
-            return await this.prisma.derechohabientes.findMany({
-                where: { empleado_id: empleadoId, deleted_at: null },
-                include: {
-                    tipo_documento: { select: { id: true, tipo_documento: true } },
-                    documentos: {
-                        where: { deleted_at: null },
-                        select: {
-                            id: true,
-                            tipo_documento: true,
-                            archivo_url: true,
-                            fecha_emision: true,
-                            fecha_vencimiento: true,
-                            created_at: true
-                        }
-                    }
-                },
-                orderBy: { created_at: 'desc' }
-            });
-        } catch (error) {
-            throw new InternalServerErrorException({
-                title: 'Error al Listar Derechohabientes',
-                detail: error instanceof Error ? error.message : 'Fallo interno al consultar derechohabientes.'
-            });
-        }
+  /**
+   * Metodo principal para ejecutar el caso de uso de listado de derechohabientes.
+   * @param empleadoId - ID del empleado titular cuyos derechohabientes se desean listar.
+   * @returns - Una lista de derechohabientes asociados al empleado titular, incluyendo información de tipo de documento y sustentos documentales.
+   * @throws InternalServerErrorException si ocurre un error al consultar la base de datos.
+   */
+  async listarPorEmpleado(empleadoId: string) {
+    try {
+      return await this.prisma.derechohabientes.findMany({
+        where: { empleado_id: empleadoId, deleted_at: null },
+        select: {
+          id: true,
+          empleado_id: true,
+          nombres: true,
+          apellidos: true,
+          nro_documento: true,
+          vinculo: true,
+          fecha_nacimiento: true,
+          tipo_documento: { select: { id: true, tipo_documento: true } },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException({
+        title: 'Error al Listar Derechohabientes',
+        detail: error instanceof Error ? error.message : 'Fallo interno al consultar derechohabientes.',
+      });
     }
+  }
+
+  /** Recupera la ficha completa al abrir un elemento de la tabla. */
+  async obtenerPorId(id: string) {
+    const elemento = await this.prisma.derechohabientes.findUnique({
+      where: { id, deleted_at: null },
+      include: { tipo_documento: true, documentos: { where: { deleted_at: null } } },
+    });
+    if (!elemento) throw new NotFoundException('Registro no encontrado.');
+    return elemento;
+  }
 }

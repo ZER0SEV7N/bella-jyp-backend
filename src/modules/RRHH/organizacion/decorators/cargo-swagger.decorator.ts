@@ -287,3 +287,34 @@ export function ApiSwaggerReactivarCargo() {
     })
   );
 }
+
+export function ApiDetalleCargo() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Detalle de Cargo',
+      description: 'Obtiene todos los datos de un cargo específico, incluyendo su área asociada y bandas salariales.'
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'UUID del cargo a consultar.',
+      required: true,
+      schema: { type: 'string', format: 'uuid' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Detalle del cargo obtenido exitosamente.'
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado.'
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido.'
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Cargo no encontrado.'
+    })
+  );
+}
