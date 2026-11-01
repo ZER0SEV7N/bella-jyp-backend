@@ -19,10 +19,7 @@ import { IdentityGenerator } from '../utils/uuid.util';
  * - Utilizar ClsService para obtener información del contexto de la solicitud (usuario e IP) para auditoría.
  */
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   //Logger para registrar eventos y errores relacionados con la base de datos
   private readonly logger = new Logger(PrismaService.name);
 

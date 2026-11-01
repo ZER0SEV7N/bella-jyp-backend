@@ -41,7 +41,27 @@ describe('ConfirmarCargaMasivaUseCase - Pruebas Unitarias', () => {
                     tipo_documento: 'DNI',
                     nro_documento: '70998877',
                     nombre: 'Roberto',
-                    apellido: 'Flores Gomez'
+                    apellido: 'Flores Gomez',
+                    sexo: 'MASCULINO',
+                    estado_civil: 'SOLTERO',
+                    fecha_nacimiento: '1992-04-10',
+                    nacionalidad: 'PERUANA',
+                    referencia_direccion: 'Cerca al parque',
+                    email: 'roberto@empresa.com',
+                    telefono: '987654321',
+                    direccion: 'Av. Central 123',
+                    departamento: 'LIMA',
+                    provincia: 'LIMA',
+                    distrito: 'SAN ISIDRO',
+                    ubigeo: '150131',
+                    fecha_inicio: '2026-01-15',
+                    asig_familiar: true,
+                    area: 'Oficina Central',
+                    cargo: 'Contador Principal',
+                    sueldo_basico: 3500,
+                    regimen_pension: 'ONP',
+                    regimen_salud: 'ESSALUD_REGULAR',
+                    eps_costo_adicional: 0,
                 }]
             };
 

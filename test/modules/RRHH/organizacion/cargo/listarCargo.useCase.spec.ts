@@ -67,13 +67,11 @@ describe('ListarCargosUseCase - Pruebas Unitarias de Paginación y Filtros Avanz
           id_area: 'area-1',
           nombre: 'Analista de Nóminas',
           descripcion: 'Cálculo de planillas',
-          sueldo_minimo: 2000.0,
-          sueldo_maximo: 4000.0,
+          sueldo_minimo: '2000',
+          sueldo_maximo: '4000',
           activo: true,
           area: { id: 'area-1', nombre: 'Recursos Humanos' },
-          total_empleados: 3,
-          created_at: expect.any(Date),
-          updated_at: expect.any(Date)
+          total_empleados: 3
         }],
         meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
       });
@@ -84,7 +82,14 @@ describe('ListarCargosUseCase - Pruebas Unitarias de Paginación y Filtros Avanz
         skip: 0,
         take: 10,
         orderBy: { nombre: 'asc' },
-        include: {
+        select: {
+          id: true,
+          id_area: true,
+          nombre: true,
+          descripcion: true,
+          sueldo_minimo: true,
+          sueldo_maximo: true,
+          activo: true,
           area: { select: { id: true, nombre: true } },
           _count: { select: { empleados: { where: { activo: true, deleted_at: null } } } }
         }

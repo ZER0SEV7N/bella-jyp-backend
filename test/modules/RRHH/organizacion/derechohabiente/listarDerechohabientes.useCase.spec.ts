@@ -61,22 +61,17 @@ describe('ListarDerechohabientesUseCase - Pruebas Unitarias Exhaustivas', () => 
       // Assert
       expect(result).toHaveLength(1);
       expect(result[0].nombres).toBe('Mateo');
-      expect(result[0].documentos).toHaveLength(1);
       expect(mockPrisma.derechohabientes.findMany).toHaveBeenCalledWith({
         where: { empleado_id: empleadoId, deleted_at: null },
-        include: {
+        select: {
+          id: true,
+          empleado_id: true,
+          nombres: true,
+          apellidos: true,
+          nro_documento: true,
+          vinculo: true,
+          fecha_nacimiento: true,
           tipo_documento: { select: { id: true, tipo_documento: true } },
-          documentos: {
-            where: { deleted_at: null },
-            select: {
-              id: true,
-              tipo_documento: true,
-              archivo_url: true,
-              fecha_emision: true,
-              fecha_vencimiento: true,
-              created_at: true
-            },
-          },
         },
         orderBy: { created_at: 'desc' },
       });

@@ -1,93 +1,164 @@
 //test/common/utils/fileStorage.util.spec.ts
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, PayloadTooLargeException } from '@nestjs/common';
 import { FileStorageUtil } from '@/common/utils/fileStorage.util';
-import * as fs from 'fs';
-import { Readable, Writable } from 'stream';
+import fs from 'node:fs/promises';
+import { Readable, Writable } from 'node:stream';
 
-//Mockear el módulo 'fs' para evitar interacciones reales con el sistema de archivos durante las pruebas
-jest.mock('fs', () => {
-    const actualFs = jest.requireActual('fs');
-    return {
-        ...actualFs,
-        existsSync: jest.fn(),
-        mkdirSync: jest.fn(),
-        createWriteStream: jest.fn(() => {
-            // Mocking Writable stream so pipeline() completes instantly without timing out
-            return new Writable({
-                write(chunk, encoding, callback) {
-                callback();
-                }
-            });
-        }),
-    };
-});
+jest.mock('node:fs/promises', () => ({
+  __esModule: true,
+  default: {
+    mkdir: jest.fn().mockResolvedValue(undefined),
+    open: jest.fn(),
+    rm: jest.fn().mockResolvedValue(undefined),
+  },
+  mkdir: jest.fn().mockResolvedValue(undefined),
+  open: jest.fn(),
+  rm: jest.fn().mockResolvedValue(undefined),
+}));
 
 /**
- * Pruebas unitarias para el utilitario de almacenamiento de archivos.
- * Estas pruebas validan el comportamiento de la función guardarArchivoMultipart en diferentes escenarios,
- * incluyendo la validación de entrada, la persistencia exitosa y el manejo de errores.
- * Se utilizan mocks para simular la interacción con el sistema de archivos y evitar efectos secundarios durante las pruebas.
+ * Pruebas unitarias para FileStorageUtil siguiendo el patrón AAA (Arrange, Act, Assert).
  */
 describe('FileStorageUtil - Pruebas Unitarias de Almacenamiento de Archivos', () => {
-    //Limpiar los mocks antes de cada prueba para asegurar un estado limpio
-    beforeEach(() => jest.clearAllMocks());
+  const crearMockHandle = () => ({
+    createWriteStream: jest.fn(() =>
+      new Writable({
+        write(_chunk, _enc, cb) {
+          cb();
+        },
+      }),
+    ),
+    close: jest.fn().mockResolvedValue(undefined),
+  });
 
-    describe('guardarArchivoMultipart() - Validaciones de Entrada', () => {
-        it('Debe lanzar BadRequestException si el objeto de archivo es null o undefined', async () => {
-            //Assert
-            await expect(FileStorageUtil.guardarArchivoMultipart(null, 'contratos')).rejects.toThrow(new BadRequestException('No se adjuntó ningún archivo.'));
-            await expect(FileStorageUtil.guardarArchivoMultipart(undefined, 'contratos')).rejects.toThrow(new BadRequestException('No se adjuntó ningún archivo.'));
-        });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (fs.open as jest.Mock).mockResolvedValue(crearMockHandle());
+  });
 
-        it('Debe rechazar archivos con mimetypes no permitidos (ejemplo: .exe, .png, .jpg)', async () => {
-            //Arrange: Simular un archivo con mimetype no permitido
-            const mockExecutableFile = {
-                filename: 'script_malicioso.exe',
-                mimetype: 'application/x-msdownload',
-                file: new Readable({ read() {} })
-            };
-
-            //Act & Assert: Se espera que la función lance una excepción de tipo BadRequestException
-            await expect(FileStorageUtil.guardarArchivoMultipart(mockExecutableFile, 'contratos')).rejects.toThrow(
-                new BadRequestException('Tipo de archivo no permitido. Solo se permiten archivos PDF y Word.')
-            );
-        });
+  describe('guardarArchivoMultipart() - Validaciones de Entrada', () => {
+    it('Debe lanzar BadRequestException si el objeto de archivo es null o undefined', async () => {
+      // Arrange & Act & Assert
+      await expect(FileStorageUtil.guardarArchivoMultipart(null as any, 'contratos')).rejects.toThrow(
+        new BadRequestException('No se adjuntó ningún archivo.'),
+      );
+      await expect(FileStorageUtil.guardarArchivoMultipart(undefined as any, 'contratos')).rejects.toThrow(
+        new BadRequestException('No se adjuntó ningún archivo.'),
+      );
     });
 
-    describe('guardarArchivoMultipart() - Persistencia Exitosa', () => {
-        it('Debe guardar un archivo PDF válido y retornar la ruta relativa del archivo', async () => {
-            //Arrange: Simular un archivo PDF válido
-            const mockPdfFile = {
-                filename: 'contrato_firmado.pdf',
-                mimetype: 'application/pdf',
-                file: Readable.from(['contenido-pdf-stream'])
-            };
+    it('Debe rechazar carpetas con caracteres de navegación de directorios (Path Traversal)', async () => {
+      // Arrange
+      const mockPdfFile: any = {
+        filename: 'contrato.pdf',
+        mimetype: 'application/pdf',
+        file: Readable.from(['pdf']),
+      };
 
-            //Act: Simular que la carpeta de destino no existe para probar la creación de directorios
-            (fs.existsSync as jest.Mock).mockReturnValue(false);
-            const rutaResultado = await FileStorageUtil.guardarArchivoMultipart(mockPdfFile, 'contratos');
-
-            //Assert: Verificar que se haya intentado crear la carpeta y que la ruta devuelta sea correcta
-            expect(fs.existsSync).toHaveBeenCalled();
-            expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringContaining('contratos'), { recursive: true });
-            expect(rutaResultado).toMatch(/^\/archivos\/contratos\/\d+-[0-9a-f-]+\.pdf$/i);
-        });
-
-        it('Debe guardar un archivo DOCX de Word válido y retornar la ruta relativa', async () => {
-            //Arrange: Simular un archivo DOCX válido
-            const mockWordFile = {
-                filename: 'adenda_laboral.docx',
-                mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                file: Readable.from(['contenido-word-stream'])
-            };
-
-            //Act: Simular que la carpeta de destino ya existe para probar el flujo sin creación de directorios
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            const rutaResultado = await FileStorageUtil.guardarArchivoMultipart(mockWordFile, 'legajos');
-
-            //Assert: Verificar que no se haya intentado crear la carpeta y que la ruta devuelta sea correcta
-            expect(fs.mkdirSync).not.toHaveBeenCalled();
-            expect(rutaResultado).toMatch(/^\/archivos\/legajos\/\d+-[0-9a-f-]+\.docx$/i);
-        });
+      // Act & Assert
+      await expect(FileStorageUtil.guardarArchivoMultipart(mockPdfFile, '../etc')).rejects.toThrow(
+        new BadRequestException('Carpeta de archivos inválida.'),
+      );
     });
+
+    it('Debe rechazar archivos con mimetypes no permitidos (ejemplo: .exe, .png, .jpg)', async () => {
+      // Arrange
+      const resumeSpy = jest.fn();
+      const mockExecutableFile: any = {
+        filename: 'script_malicioso.exe',
+        mimetype: 'application/x-msdownload',
+        file: { resume: resumeSpy },
+      };
+
+      // Act & Assert
+      await expect(FileStorageUtil.guardarArchivoMultipart(mockExecutableFile, 'contratos')).rejects.toThrow(
+        new BadRequestException('Solo se permiten archivos PDF o Word con extensión y MIME compatibles.'),
+      );
+      expect(resumeSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('guardarArchivoMultipart() - Persistencia y Límites de Tamaño', () => {
+    it('Debe guardar un archivo PDF válido y retornar la ruta relativa del archivo', async () => {
+      // Arrange
+      const mockPdfFile: any = {
+        filename: 'contrato_firmado.pdf',
+        mimetype: 'application/pdf',
+        file: Readable.from([Buffer.from('contenido-pdf-stream')]),
+      };
+
+      // Act
+      const rutaResultado = await FileStorageUtil.guardarArchivoMultipart(mockPdfFile, 'contratos');
+
+      // Assert
+      expect(fs.mkdir).toHaveBeenCalledWith(expect.stringContaining('contratos'), { recursive: true });
+      expect(fs.open).toHaveBeenCalledWith(expect.stringMatching(/\.pdf$/), 'wx');
+      expect(rutaResultado).toMatch(/^\/archivos\/contratos\/\d+-[0-9a-f-]+\.pdf$/i);
+    });
+
+    it('Debe guardar un archivo DOCX de Word válido y retornar la ruta relativa', async () => {
+      // Arrange
+      const mockWordFile: any = {
+        filename: 'adenda_laboral.docx',
+        mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        file: Readable.from([Buffer.from('contenido-word-stream')]),
+      };
+
+      // Act
+      const rutaResultado = await FileStorageUtil.guardarArchivoMultipart(mockWordFile, 'legajos');
+
+      // Assert
+      expect(fs.mkdir).toHaveBeenCalledWith(expect.stringContaining('legajos'), { recursive: true });
+      expect(rutaResultado).toMatch(/^\/archivos\/legajos\/\d+-[0-9a-f-]+\.docx$/i);
+    });
+
+    it('Debe lanzar PayloadTooLargeException y limpiar el archivo si el stream viene truncado', async () => {
+      // Arrange
+      const streamTruncado: any = Readable.from([Buffer.from('parcial')]);
+      streamTruncado.truncated = true;
+      const mockFile: any = {
+        filename: 'pesado.pdf',
+        mimetype: 'application/pdf',
+        file: streamTruncado,
+      };
+
+      // Act & Assert
+      await expect(FileStorageUtil.guardarArchivoMultipart(mockFile, 'contratos')).rejects.toThrow(
+        PayloadTooLargeException,
+      );
+      expect(fs.rm).toHaveBeenCalled();
+    });
+
+    it('Debe lanzar PayloadTooLargeException si el contenido supera los 5 MB permitidos', async () => {
+      // Arrange
+      const chunkGrande = Buffer.alloc(5 * 1024 * 1024 + 1024, 'a');
+      const mockFile: any = {
+        filename: 'exceso.pdf',
+        mimetype: 'application/pdf',
+        file: Readable.from([chunkGrande]),
+      };
+
+      // Act & Assert
+      await expect(FileStorageUtil.guardarArchivoMultipart(mockFile, 'contratos')).rejects.toThrow(
+        PayloadTooLargeException,
+      );
+      expect(fs.rm).toHaveBeenCalled();
+    });
+  });
+
+  describe('eliminarArchivo() - Eliminación Segura', () => {
+    it('Debe eliminar un archivo válido ubicado dentro de /archivos/', async () => {
+      // Arrange & Act
+      await FileStorageUtil.eliminarArchivo('/archivos/contratos/123-archivo.pdf');
+
+      // Assert
+      expect(fs.rm).toHaveBeenCalledWith(expect.stringContaining('123-archivo.pdf'), { force: true });
+    });
+
+    it('Debe rechazar rutas fuera del directorio /archivos/ por seguridad', async () => {
+      // Arrange & Act & Assert
+      await expect(FileStorageUtil.eliminarArchivo('/etc/passwd')).rejects.toThrow(BadRequestException);
+      await expect(FileStorageUtil.eliminarArchivo('/archivos/../../secret.txt')).rejects.toThrow(BadRequestException);
+    });
+  });
 });

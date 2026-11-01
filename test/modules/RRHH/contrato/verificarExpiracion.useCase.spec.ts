@@ -45,7 +45,7 @@ describe('VerificarExpiracionContratosUseCase - Pruebas Unitarias Exhaustivas', 
             //Assert: Verificación de que la cantidad retornada es la esperada y que el método count del servicio Prisma fue llamado con los parámetros correctos
             expect(prismaService.contratos.count).toHaveBeenCalledWith({
                 where: {
-                    renovado: false,
+                    estado: 'VIGENTE',
                     fecha_fin: {
                         gte: expect.any(Date),
                         lte: expect.any(Date)

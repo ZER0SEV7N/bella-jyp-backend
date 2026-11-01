@@ -78,10 +78,10 @@ describe('AgregarDatoFinancieroUseCase - Pruebas Unitarias de Cifrado y Registro
   describe('Casos de Éxito (Happy Path)', () => {
     it('Debe registrar exitosamente los datos financieros guardando los campos sensibles cifrados con AES-256-GCM', async () => {
       // Arrange
-      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null });
+      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null, afp_fecha_filiacion: new Date('2020-01-01') });
       mockPrismaService.dato_financiero.findFirst.mockResolvedValue(null);
-      mockPrismaService.regimen_pension.findUnique.mockResolvedValue({ id: mockRegimenId });
-      mockPrismaService.tipo_afp.findUnique.mockResolvedValue({ id: mockAfpId });
+      mockPrismaService.regimen_pension.findUnique.mockResolvedValue({ id: mockRegimenId, nombre: 'AFP' });
+      mockPrismaService.tipo_afp.findUnique.mockResolvedValue({ id: mockAfpId, id_regimen: mockRegimenId });
       mockPrismaService.bancos.findUnique.mockResolvedValue({ id: 'banco-valido' });
 
       const mockCreatedRecord = {
@@ -146,7 +146,7 @@ describe('AgregarDatoFinancieroUseCase - Pruebas Unitarias de Cifrado y Registro
 
     it('Debe lanzar ConflictException si el empleado ya posee un registro financiero activo', async () => {
       // Arrange
-      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null });
+      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null, afp_fecha_filiacion: new Date('2020-01-01') });
       mockPrismaService.dato_financiero.findFirst.mockResolvedValue({ id: 'existing-df-uuid' });
 
       // Act & Assert
@@ -159,10 +159,10 @@ describe('AgregarDatoFinancieroUseCase - Pruebas Unitarias de Cifrado y Registro
 
     it('Debe lanzar NotFoundException si el banco especificado no existe', async () => {
       // Arrange
-      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null });
+      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null, afp_fecha_filiacion: new Date('2020-01-01') });
       mockPrismaService.dato_financiero.findFirst.mockResolvedValue(null);
-      mockPrismaService.regimen_pension.findUnique.mockResolvedValue({ id: mockRegimenId });
-      mockPrismaService.tipo_afp.findUnique.mockResolvedValue({ id: mockAfpId });
+      mockPrismaService.regimen_pension.findUnique.mockResolvedValue({ id: mockRegimenId, nombre: 'AFP' });
+      mockPrismaService.tipo_afp.findUnique.mockResolvedValue({ id: mockAfpId, id_regimen: mockRegimenId });
       mockPrismaService.bancos.findUnique.mockResolvedValue(null); // Banco no encontrado
 
       // Act & Assert
@@ -171,10 +171,10 @@ describe('AgregarDatoFinancieroUseCase - Pruebas Unitarias de Cifrado y Registro
 
     it('Debe transformar errores no previstos de base de datos a InternalServerErrorException', async () => {
       // Arrange
-      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null });
+      mockPrismaService.empleados.findUnique.mockResolvedValue({ id: mockEmpleadoId, deleted_at: null, afp_fecha_filiacion: new Date('2020-01-01') });
       mockPrismaService.dato_financiero.findFirst.mockResolvedValue(null);
-      mockPrismaService.regimen_pension.findUnique.mockResolvedValue({ id: mockRegimenId });
-      mockPrismaService.tipo_afp.findUnique.mockResolvedValue({ id: mockAfpId });
+      mockPrismaService.regimen_pension.findUnique.mockResolvedValue({ id: mockRegimenId, nombre: 'AFP' });
+      mockPrismaService.tipo_afp.findUnique.mockResolvedValue({ id: mockAfpId, id_regimen: mockRegimenId });
       mockPrismaService.bancos.findUnique.mockResolvedValue({ id: mockBancoSueldoId });
       mockPrismaService.dato_financiero.create.mockRejectedValue(new Error('PostgreSQL Connection Error'));
 

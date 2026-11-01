@@ -21,4 +21,4 @@ export interface ActorOperacion {
 export type SolicitudAutenticada = FastifyRequest & { user: { id: string; rol: string } };
 
 //Convierte una solicitud autenticada en un objeto ActorOperacion, extrayendo el identificador del usuario y la dirección IP de la solicitud.
-export const actorSolicitud = (req: SolicitudAutenticada): ActorOperacion => ({ id: req.user.id, ip: req.ip });
+export const actorSolicitud = (req: Pick<SolicitudAutenticada, 'user' | 'ip'>): ActorOperacion => ({ id: req.user.id, ip: req.ip });

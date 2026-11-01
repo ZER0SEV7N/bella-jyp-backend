@@ -15,8 +15,7 @@ export function ApiSwaggerGenerarPlanillas() {
     ApiContratoBody(GenerarPlanillasSchema),
     ApiOperacionDocumentada({
       summary: 'Solicitar generación de planillas',
-      description:
-        'Encola el cálculo por colaborador o área. solicitud_id es la clave de idempotencia del actor. El resultado se consulta mediante trabajo_id.',
+      description: 'Encola el cálculo por colaborador o área. solicitud_id es la clave de idempotencia del actor. El resultado se consulta mediante trabajo_id.',
       roles: operadores,
       status: 202,
       respuesta: respuestaTrabajo,
@@ -28,8 +27,7 @@ export function ApiSwaggerConsultarTrabajoPlanillas() {
     ApiIdentificador('id', false),
     ApiOperacionDocumentada({
       summary: 'Consultar progreso del cálculo',
-      description:
-        'Devuelve progreso y errores por colaborador. El asistente consulta sus propios trabajos; ADMIN y CONTADOR pueden consultar otros.',
+      description: 'Devuelve progreso y errores por colaborador. El asistente consulta sus propios trabajos; ADMIN y CONTADOR pueden consultar otros.',
       roles: operadores,
       respuesta: respuestaConsultaTrabajo,
     })
@@ -141,6 +139,31 @@ export function ApiSwaggerListarNovedadesPlanilla() {
       description: 'Devuelve hasta cien novedades del período, ordenadas por creación.',
       roles: operadores,
       respuesta: { type: 'array', items: respuestaNovedad },
+    })
+  );
+}
+
+export function ApiSwaggerMisBoletas() {
+  return applyDecorators(
+    ApiOperacionDocumentada({
+      summary: 'Listar boletas propias',
+      description: 'Devuelve hasta 120 boletas del colaborador, ordenadas por período.',
+      roles: ['EMPLEADO'],
+      respuesta: { type: 'array', items: { type: 'object', properties: { id: { type: 'string', format: 'uuid' }, periodo: { type: 'string' }, neto_a_pagar: { type: 'string' }, estado: { type: 'string' } } } },
+    })
+  );
+}
+
+export function ApiSwaggerDescargarBoletaPropia() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiOperation({ summary: 'Descargar boleta propia', description: 'Genera el PDF desde la instantánea de la planilla. Solo para boletas del colaborador.' }),
+    ApiExtension('x-roles', ['EMPLEADO']),
+    ApiProduces('application/pdf'),
+    ApiResponse({
+      status: 200,
+      description: 'Boleta de una planilla CONGELADO o DECLARADO, generada desde su instantánea.',
+      content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } },
     })
   );
 }

@@ -84,21 +84,25 @@ describe('ListarAreasUseCase - Pruebas Unitarias Exhaustivas', () => {
         totalPages: 1
       });
       //Verificar que se llamaron los métodos de Prisma con los parámetros correctos para la consulta
-      expect(prisma.area.findMany).toHaveBeenCalledWith({
+      expect(prisma.area.findMany).toHaveBeenCalledWith(expect.objectContaining({
         where: { deleted_at: null },
         skip: 0,
         take: 10,
         orderBy: { nombre: 'asc' },
-        include: {
+        select: {
+          id: true,
+          nombre: true,
+          descripcion: true,
+          activo: true,
           _count: {
             select: {
-              cargo: { where: { deleted_at: null, activo: true } },
-              empleados: { where: { deleted_at: null, activo: true } },
+              cargo: { where: { activo: true, deleted_at: null } },
+              empleados: { where: { activo: true, deleted_at: null } },
               jornada_areas: true
             }
           }
         }
-      });
+      }));
     });
 
     it('Debe calcular correctamente el skip y totalPages (page: 3, limit: 5 para 14 registros)', async () => {

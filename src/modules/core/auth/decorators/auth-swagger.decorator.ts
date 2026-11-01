@@ -14,9 +14,9 @@ export function ApiSwaggerLogin() {
     ApiOperation({
       summary: 'Iniciar Sesión (Estrategia Dual Token)',
       description: `Valida credenciales contra hash Argon2id y establece la sesión:
-1. Emite un **Access Token** (JWT de 15 min) en el cuerpo JSON para uso en memoria.
-2. Inyecta un **Refresh Token** (7 días) en una cookie \`HttpOnly\`, protegida contra ataques XSS.
-3. Registra el token hash en Redis para permitir revocación centralizada.`,
+        1. Emite un **Access Token** (JWT de 15 min) en el cuerpo JSON para uso en memoria.
+        2. Inyecta un **Refresh Token** (7 días) en una cookie \`HttpOnly\`, protegida contra ataques XSS.
+        3. Registra el token hash en Redis para permitir revocación centralizada.`,
     }),
     ApiContratoBody(LoginSchema),
     ApiResponse({
@@ -53,9 +53,9 @@ export function ApiSwaggerRefresh() {
     ApiOperation({
       summary: 'Refrescar Access Token',
       description: `Genera un nuevo Access Token sin requerir que el usuario vuelva a ingresar su contraseña:
-- Lee automáticamente la cookie segura \`refreshToken\`.
-- Valida la firma del token y comprueba en Redis que la sesión no haya sido revocada.
-- Retorna un nuevo JWT para reactivar las llamadas a la API.`,
+        - Lee automáticamente la cookie segura \`refreshToken\`.
+        - Valida la firma del token y comprueba en Redis que la sesión no haya sido revocada.
+        - Retorna un nuevo JWT para reactivar las llamadas a la API.`,
     }),
     ApiResponse({
       status: 200,
@@ -81,9 +81,9 @@ export function ApiSwaggerLogout() {
     ApiOperation({
       summary: 'Cerrar Sesión e Invalidar Tokens',
       description: `Finaliza de forma determinista la sesión del usuario:
-1. Elimina la clave de sesión en Redis vinculada al usuario autenticado.
-2. Limpia la cookie del navegador seteando \`Max-Age=0\`.
-3. Cualquier intento posterior de usar el Refresh Token expirará con 401 Unauthorized.`,
+        1. Elimina la clave de sesión en Redis vinculada al usuario autenticado.
+        2. Limpia la cookie del navegador seteando \`Max-Age=0\`.
+        3. Cualquier intento posterior de usar el Refresh Token expirará con 401 Unauthorized.`,
     }),
     ApiResponse({
       status: 200,

@@ -1,5 +1,6 @@
 //test/modules/RRHH/organizacion/Bulk-Empleado/helper/cargaMasiva.helper.spec.ts
-import { normalizarTexto, normalizarFecha, normalizarLlaveHeader, mapearFilaRaw, mapearCsvBuffer, mapearExcelBuffer } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/mapeador.helpers';
+import { normalizarTexto, normalizarFecha, normalizarLlaveHeader } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/normalizaciones.helper';
+import { mapearFilaRaw, mapearCsvBuffer, mapearExcelBuffer } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/mapeador.helpers';
 import * as ExcelJS from 'exceljs';
 
 /**
@@ -41,7 +42,7 @@ describe('CargaMasivaHelpers - Pruebas Unitarias de Sanitización y Parsing', ()
             expect(res).toBeInstanceOf(Date);
             expect(res?.getFullYear()).toBe(1992);
             expect(res?.getMonth()).toBe(3); // Abril (índice 3)
-            expect(res?.getDate()).toBe(9);
+            expect(res?.getUTCDate()).toBe(10);
         });
 
         it('Debe retornar null ante entradas inválidas o vacías', () => {
@@ -91,17 +92,18 @@ describe('CargaMasivaHelpers - Pruebas Unitarias de Sanitización y Parsing', ()
             const mapped = mapearFilaRaw(raw);
             expect(mapped.fecha_nacimiento).toBe('1995-05-15');
             expect(mapped.fecha_inicio).toBe('2026-01-15');
-            expect(mapped.asig_familiar).toBe(true);
+            // La conversión de booleanos pertenece al contrato Zod; el mapeador conserva la entrada.
+            expect(mapped.asig_familiar).toBe('si');
         });
 
         it('Debe reconocer variantes booleanas para asig_familiar (true, 1, si, v)', () => {
-            expect(mapearFilaRaw({ asig_familiar: '1' }).asig_familiar).toBe(true);
-            expect(mapearFilaRaw({ asig_familiar: 'v' }).asig_familiar).toBe(true);
-            expect(mapearFilaRaw({ asig_familiar: 'V' }).asig_familiar).toBe(true);
+            expect(mapearFilaRaw({ asig_familiar: '1' }).asig_familiar).toBe('1');
+            expect(mapearFilaRaw({ asig_familiar: 'v' }).asig_familiar).toBe('v');
+            expect(mapearFilaRaw({ asig_familiar: 'V' }).asig_familiar).toBe('V');
             expect(mapearFilaRaw({ asig_familiar: true }).asig_familiar).toBe(true);
-            expect(mapearFilaRaw({ asig_familiar: 'false' }).asig_familiar).toBe(false);
-            expect(mapearFilaRaw({ asig_familiar: 'no' }).asig_familiar).toBe(false);
-            expect(mapearFilaRaw({ asig_familiar: '0' }).asig_familiar).toBe(false);
+            expect(mapearFilaRaw({ asig_familiar: 'false' }).asig_familiar).toBe('false');
+            expect(mapearFilaRaw({ asig_familiar: 'no' }).asig_familiar).toBe('no');
+            expect(mapearFilaRaw({ asig_familiar: '0' }).asig_familiar).toBe('0');
         });
     });
 

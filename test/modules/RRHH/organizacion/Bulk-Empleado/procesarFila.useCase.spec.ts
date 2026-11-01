@@ -1,15 +1,14 @@
-// test/modules/RRHH/organizacion/Bulk-Empleado/procesarFila.useCase.spec.ts
+//test/modules/RRHH/organizacion/Bulk-Empleado/procesarFila.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProcesarFilaEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/procesarFilaEmpleado.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { ReniecAdapter } from '@/modules/RRHH/organizacion/services/reniec.adapter';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 
-// Mock de utilidades criptográficas y generador de identificadores
 jest.mock('@/common/utils/crypto.util', () => ({
   CryptoUtil: {
     encrypt: jest.fn((val) => `encrypted_${val}`),
-    decrypt: jest.fn((val) => val.replace('encrypted_', '')),
+    encryptOptional: jest.fn((val) => (val ? `encrypted_${val}` : null)),
+    decrypt: jest.fn((val) => val?.replace('encrypted_', '') ?? null),
   },
 }));
 
@@ -19,19 +18,19 @@ jest.mock('@/common/utils/uuid.util', () => ({
   },
 }));
 
+/**
+ * Pruebas unitarias para ProcesarFilaEmpleadoUseCase siguiendo el patrón AAA (Arrange, Act, Assert).
+ */
 describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: ProcesarFilaEmpleadoUseCase;
   let prismaService: PrismaService;
-  let reniecAdapter: ReniecAdapter;
 
-  // Mock completo con soporte a transacciones y entidades financieras
   const mockPrismaService = {
     $transaction: jest.fn((cb) => cb(mockPrismaService)),
     tipo_documento: { findFirst: jest.fn() },
-    area: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn() },
-    cargo: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn() },
-    jornada: { findFirst: jest.fn(), findMany: jest.fn() },
-    estado_empleado: { findFirst: jest.fn() },
+    area: { findFirst: jest.fn(), create: jest.fn() },
+    cargo: { findFirst: jest.fn(), create: jest.fn() },
+    jornada: { findFirst: jest.fn() },
     empleados: { upsert: jest.fn() },
     regimen_pension: { findFirst: jest.fn() },
     tipo_afp: { findFirst: jest.fn() },
@@ -39,9 +38,6 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     dato_financiero: { upsert: jest.fn() },
   };
 
-  const mockReniecAdapter = { consultarDni: jest.fn() };
-
-  // Fila base con la estructura completa del nuevo CargaMasivaFilaDTO
   const mockFilaBase: CargaMasivaFilaDTO = {
     tipo_documento: 'DNI',
     nro_documento: '72345678',
@@ -50,6 +46,9 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     sexo: 'MASCULINO',
     estado_civil: 'SOLTERO',
     fecha_nacimiento: '1995-05-15',
+    nacionalidad: 'PERUANA',
+    referencia_direccion: 'Frente al parque central',
+    afp_fecha_filiacion: null,
     email: 'cmendoza@empresa.com',
     telefono: '987654321',
     direccion: 'Av. Las Begonias 450',
@@ -84,15 +83,12 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
       providers: [
         ProcesarFilaEmpleadoUseCase,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: ReniecAdapter, useValue: mockReniecAdapter },
       ],
     }).compile();
 
     useCase = module.get<ProcesarFilaEmpleadoUseCase>(ProcesarFilaEmpleadoUseCase);
     prismaService = module.get<PrismaService>(PrismaService);
-    reniecAdapter = module.get<ReniecAdapter>(ReniecAdapter);
 
-    // Mock por defecto para transacciones y persistencia
     mockPrismaService.$transaction.mockImplementation((cb) => cb(mockPrismaService));
     mockPrismaService.regimen_pension.findFirst.mockResolvedValue({ id: 'regimen-uuid-1', nombre: 'ONP' });
     mockPrismaService.bancos.findFirst.mockResolvedValue({ id: 'banco-uuid-1', nombre: 'BCP' });
@@ -103,17 +99,18 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
   describe('execute() - Happy Paths', () => {
     it('Debe procesar e insertar/actualizar (upsert) exitosamente un empleado con datos completos', async () => {
+      // Arrange
       const mockFila = { ...mockFilaBase };
-
       mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1', tipo_documento: 'DNI' });
       mockPrismaService.area.findFirst.mockResolvedValue({ id: 'area-uuid-1', nombre: 'Sistemas' });
       mockPrismaService.cargo.findFirst.mockResolvedValue({ id: 'cargo-uuid-1', nombre: 'Desarrollador' });
       mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'jornada-uuid-1', nombre: 'Turno Mañana' });
-      mockPrismaService.estado_empleado.findFirst.mockResolvedValue({ id: 'estado-uuid-1', descripcion: 'ACTIVO' });
       mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-uuid-1', nro_documento: '72345678' });
 
+      // Act
       await useCase.execute(mockFila, 'job-uuid-1');
 
+      // Assert
       expect(prismaService.tipo_documento.findFirst).toHaveBeenCalledWith({
         where: { tipo_documento: { equals: 'DNI', mode: 'insensitive' } },
       });
@@ -140,48 +137,10 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
           }),
         }),
       );
-      expect(reniecAdapter.consultarDni).not.toHaveBeenCalled();
-    });
-
-    it('Debe consultar la API de RENIEC cuando los nombres no vienen en la fila del CSV', async () => {
-      const mockFila: CargaMasivaFilaDTO = {
-        ...mockFilaBase,
-        nro_documento: '70654321',
-        nombre: null,
-        apellido: null,
-        area: 'Recursos Humanos',
-        cargo: 'Analista',
-        asig_familiar: false,
-      };
-
-      mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1' });
-      mockPrismaService.area.findFirst.mockResolvedValue({ id: 'area-uuid-2', nombre: 'Recursos Humanos' });
-      mockPrismaService.cargo.findFirst.mockResolvedValue({ id: 'cargo-uuid-2', nombre: 'Analista' });
-      mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'jornada-uuid-1' });
-      mockPrismaService.estado_empleado.findFirst.mockResolvedValue({ id: 'estado-uuid-1' });
-      mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-uuid-2', nro_documento: '70654321' });
-
-      mockReniecAdapter.consultarDni.mockResolvedValue({
-        nombre: 'María',
-        apellido_paterno: 'Gómez',
-        apellido_materno: 'Ríos',
-      });
-
-      await useCase.execute(mockFila, 'job-uuid-2');
-
-      expect(reniecAdapter.consultarDni).toHaveBeenCalledWith('70654321');
-      expect(prismaService.empleados.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          create: expect.objectContaining({
-            nombre: 'María',
-            apellido: 'Gómez Ríos',
-            estado_sincronizacion: 'COMPLETO',
-          }),
-        }),
-      );
     });
 
     it('Debe auto-crear el Área y el Cargo si no existen previamente en la base de datos', async () => {
+      // Arrange
       const mockFila: CargaMasivaFilaDTO = {
         ...mockFilaBase,
         nro_documento: '78990011',
@@ -195,16 +154,15 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
       mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1' });
       mockPrismaService.area.findFirst.mockResolvedValue(null);
       mockPrismaService.area.create.mockResolvedValue({ id: 'new-area-id', nombre: 'Nueva Area Logistica' });
-
       mockPrismaService.cargo.findFirst.mockResolvedValue(null);
       mockPrismaService.cargo.create.mockResolvedValue({ id: 'new-cargo-id', nombre: 'Jefe de Almacen' });
-
       mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'jornada-uuid-1' });
-      mockPrismaService.estado_empleado.findFirst.mockResolvedValue({ id: 'estado-uuid-1' });
       mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-uuid-3', nro_documento: '78990011' });
 
+      // Act
       await useCase.execute(mockFila, 'job-uuid-3');
 
+      // Assert
       expect(prismaService.area.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ nombre: 'Nueva Area Logistica' }),
@@ -220,62 +178,54 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
   describe('execute() - Validaciones y Excepciones', () => {
     it('Debe lanzar un error si el tipo de documento especificado no existe en la base de datos', async () => {
+      // Arrange
       const mockFila: CargaMasivaFilaDTO = {
         ...mockFilaBase,
         tipo_documento: 'PTP',
         nro_documento: '99999999',
       };
-
       mockPrismaService.tipo_documento.findFirst.mockResolvedValue(null);
 
+      // Act & Assert
       await expect(useCase.execute(mockFila, 'job-1')).rejects.toThrow(
         "El tipo de documento 'PTP' no existe en la base de datos.",
       );
     });
 
-    it('Debe lanzar un error si el catálogo del estado de empleado ACTIVO no está configurado', async () => {
-      const mockFila: CargaMasivaFilaDTO = { ...mockFilaBase };
+    it('Debe rechazar la fila si faltan nombre o apellido requeridos por el contrato', async () => {
+      // Arrange
+      const mockFila: CargaMasivaFilaDTO = {
+        ...mockFilaBase,
+        nombre: '' as any,
+        apellido: '' as any,
+      };
 
-      mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-1' });
-      mockPrismaService.area.findFirst.mockResolvedValue({ id: 'area-1', nombre: 'Sistemas' });
-      mockPrismaService.cargo.findFirst.mockResolvedValue({ id: 'cargo-1', nombre: 'Analista' });
-      mockPrismaService.estado_empleado.findFirst.mockResolvedValue(null);
-
+      // Act & Assert
       await expect(useCase.execute(mockFila, 'job-1')).rejects.toThrow(
-        'Catálogo de estado ACTIVO no configurado en BD.',
+        'La fila del trabajo job-1 requiere nombre y apellido completos.',
       );
     });
 
-    it('Debe degradar el legajo a BORRADOR si RENIEC falla y los nombres están ausentes', async () => {
-      const mockFila: CargaMasivaFilaDTO = {
+    it('Debe lanzar error si el régimen pensionario o la AFP indicada no existe en el catálogo', async () => {
+      // Arrange
+      const mockFilaAfp: CargaMasivaFilaDTO = {
         ...mockFilaBase,
-        nro_documento: '72345678',
-        nombre: null,
-        apellido: null,
-        area: 'Sistemas',
-        cargo: 'Analista',
+        regimen_pension: 'AFP',
+        tipo_afp: 'INTEGRA',
+        cuspp: '123456INTEG1',
+        tipo_comision: 'FLUJO',
+        afp_fecha_filiacion: '2020-01-01',
       };
-
       mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-1' });
-      mockPrismaService.area.findFirst.mockResolvedValue({ id: 'area-1', nombre: 'Sistemas' });
-      mockPrismaService.cargo.findFirst.mockResolvedValue({ id: 'cargo-1', nombre: 'Analista' });
+      mockPrismaService.area.findFirst.mockResolvedValue({ id: 'area-1' });
+      mockPrismaService.cargo.findFirst.mockResolvedValue({ id: 'cargo-1' });
       mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'jornada-1' });
-      mockPrismaService.estado_empleado.findFirst.mockResolvedValue({ id: 'estado-1' });
-      mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-uuid-4', nro_documento: '72345678' });
+      mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-1' });
+      mockPrismaService.regimen_pension.findFirst.mockResolvedValue({ id: 'reg-spp', nombre: 'SPP' });
+      mockPrismaService.tipo_afp.findFirst.mockResolvedValue(null);
 
-      mockReniecAdapter.consultarDni.mockRejectedValue(new Error('RENIEC Timeout 504'));
-
-      await useCase.execute(mockFila, 'job-1');
-
-      expect(prismaService.empleados.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          create: expect.objectContaining({
-            nombre: 'NO_REGISTRADO',
-            apellido: 'NO_REGISTRADO',
-            estado_sincronizacion: 'BORRADOR',
-          }),
-        }),
-      );
+      // Act & Assert
+      await expect(useCase.execute(mockFilaAfp, 'job-afp')).rejects.toThrow('La AFP indicada no existe.');
     });
   });
 });

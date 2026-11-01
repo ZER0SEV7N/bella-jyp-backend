@@ -21,6 +21,34 @@
 --  11. Parámetro Vida Ley exclusivamente DEMO, si todavía no existe el código.
 --  12. Confirmación, credenciales de demostración y recorrido manual.
 
+SET client_encoding = 'UTF8';
+
+SET app.entorno_pruebas = 'SI';
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Garantiza que el generador UUID v7 (RFC 9562) exista incluso si solo se corrió `prisma db push`
+CREATE OR REPLACE FUNCTION asistencia_uuid_v7()
+RETURNS uuid
+LANGUAGE plpgsql
+VOLATILE
+AS $func$
+DECLARE
+    milisegundos bigint;
+    aleatorio bytea;
+    tiempoHex text;
+    bytesUuid bytea;
+BEGIN
+    milisegundos := floor(extract(epoch FROM clock_timestamp()) * 1000);
+    aleatorio := gen_random_bytes(10);
+    tiempoHex := lpad(to_hex(milisegundos), 12, '0');
+    bytesUuid := decode(tiempoHex, 'hex') || aleatorio;
+    bytesUuid := set_byte(bytesUuid, 6, (get_byte(bytesUuid, 6) & 15) | 112);
+    bytesUuid := set_byte(bytesUuid, 8, (get_byte(bytesUuid, 8) & 63) | 128);
+    RETURN encode(bytesUuid, 'hex')::uuid;
+END;
+$func$;
+
 BEGIN;
 
 DO $$

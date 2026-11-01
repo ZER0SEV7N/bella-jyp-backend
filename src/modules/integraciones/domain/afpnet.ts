@@ -3,52 +3,46 @@ import type { ConfiguracionExportacionDto, FilaExportacionDto } from '@jyp/share
 import Decimal from 'decimal.js';
 import { importeDos, numeroFijo, textoFijo, tipoDocumento } from './campos-formato';
 
-/**
- * Funcion de dominio que formatea los campos de un archivo de texto plano para cumplir con los requisitos de longitud y formato.
- * 
- */
-
-const montoAFPNET = (valor: string) => numeroFijo(importeDos(valor).replace('.', ''), 9); //Formatea el monto a 9 dígitos, eliminando el punto decimal y 
-//rellenando con ceros a la izquierda si es necesario
+// Funciones de dominio que formatean las estructuras de texto plano de AFPnet garantizando longitudes fijas (141 caracteres) y validaciones de datos.
+const montoAFPNET = (valor: string) => numeroFijo(importeDos(valor).replace('.', ''), 9);
 
 /**
- * Función que genera una línea de texto plano para el archivo de exportación a AFPNET, formateando los campos según las especificaciones requeridas.
+ * Función que genera una línea de texto plano para el archivo de exportación a AFPnet, formateando los campos según las especificaciones requeridas.
  * @param fila - Un objeto que contiene los datos de la fila a exportar, incluyendo información del trabajador y sus remuneraciones.
- * @param secuencia - Un número que representa la secuencia de la línea en el archivo de exportación.
- * @param config - Un objeto que contiene la configuración de exportación, incluyendo el código de la empresa y el periodo de exportación.
- * @returns Una cadena que representa la línea formateada para el archivo de exportación a AFPNET.
+ * @param secuencia - Número de secuencia de la línea dentro del archivo de exportación.
+ * @param config - Objeto que contiene la configuración de exportación, incluyendo los apellidos del trabajador y los aportes voluntarios.
+ * @returns Una cadena que representa la línea formateada para el archivo de exportación a AFPnet.
+ * @throws RangeError si el trabajador no está afiliado al SPP, si faltan datos requeridos en la configuración, si los importes son cero o si el CUSPP no cumple con el formato esperado.
  */
 export function lineaAFPNET(fila: FilaExportacionDto, secuencia: number, config: ConfiguracionExportacionDto): string {
-    //Validación de que el trabajador está afiliado al SPP (Sistema Privado de Pensiones)
-    if (fila.regimen !== 'AFP') 
-        throw new RangeError( 'AFPnet solo recibe trabajadores afiliados al SPP.');
+    // Valida que el trabajador esté afiliado al SPP (Sistema Privado de Pensiones) antes de generar la línea de exportación.
+    if (fila.regimen !== 'AFP')
+        throw new RangeError('AFPnet solo recibe trabajadores afiliados al SPP.');
 
-    //Validación de que el trabajador tiene un código de empresa asignado en la configuración
+    // Obtiene los apellidos del trabajador desde la configuración, asegurando que estén presentes y correctamente separados.
     const apellidos = config.apellidos_afpnet?.[fila.empleado_id];
     if (!apellidos)
         throw new RangeError('AFPnet requiere apellido paterno y materno separados y confirmados; no se divide el apellido por espacios.');
-    //Validación de que el trabajador tiene aportes voluntarios confirmados en la configuración
+
+    // Obtiene los aportes voluntarios del trabajador desde la configuración, asegurando que estén presentes y correctamente definidos.
     const voluntarios = config.aportes_voluntarios?.[fila.empleado_id];
     if (!voluntarios)
         throw new RangeError('Confirme expresamente los tres aportes voluntarios, aunque sus importes sean cero.');
-    
-    //Validación de que la remuneración base no es cero, ya que esto requiere declarar una excepción de aportar
+
+    // Valida que la remuneración base no sea cero, ya que AFPnet requiere declarar la excepción de aportar en caso de remuneración cero.
     const base = importeDos(fila.resultado.base_previsional);
     if (new Decimal(base).isZero())
         throw new RangeError('La remuneración cero requiere declarar la excepción de aportar; este alcance no infiere su motivo.');
-    
-    //Validación de que el CUSPP (Código Único de Seguridad Social) tiene doce posiciones o está vacío
+
+    // Valida que el CUSPP del trabajador tenga exactamente 12 posiciones o esté vacío, lanzando un error si no es así.
     if (fila.cuspp && !/^[a-zA-Z0-9]{12}$/.test(fila.cuspp))
         throw new RangeError('El CUSPP debe tener doce posiciones o quedar vacío.');
 
-    //Validación de que la fecha de inicio y cese del trabajador coincide con el periodo de exportación, 
-    //para determinar si se debe marcar como inicio o cese en la línea de exportación
+    // Determina si el trabajador inició o cesó en el mes del periodo evaluado, marcando 'S' para sí y 'N' para no.
     const inicio = fila.fecha_inicio.slice(0, 7) === fila.periodo ? 'S' : 'N';
-    
-    //Validación de que la fecha de cese del trabajador coincide con el periodo de exportación,
     const cese = fila.fecha_cese?.slice(0, 7) === fila.periodo ? 'S' : 'N';
 
-    //Construcción de la línea de texto plano para el archivo de exportación a AFPNET, concatenando los campos formateados según las especificaciones requeridas
+    // Construye la línea de exportación concatenando los campos formateados y asegurando que la longitud total sea de 141 caracteres.
     const linea =
         numeroFijo(String(secuencia), 5) +
         textoFijo(fila.cuspp ?? '', 12) +
@@ -68,8 +62,11 @@ export function lineaAFPNET(fila: FilaExportacionDto, secuencia: number, config:
         'N' +
         '  ';
 
-    //Validación de que la línea generada tiene exactamente 141 posiciones, ya que este es un requisito del formato de archivo de AFPNET
+    // Valida que la línea generada tenga exactamente 141 posiciones, lanzando un error si no es así.
     if (linea.length !== 141)
         throw new RangeError('La línea AFPnet no tiene 141 posiciones.');
     return linea;
 }
+
+// Alias de compatibilidad con el ejecutor de tareas n8n (`n8n/tareas/exportar.cjs`).
+export const lineaAfpnet = lineaAFPNET;

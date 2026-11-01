@@ -1,4 +1,4 @@
-//src/common/utils/FileStorageUtil.ts
+//src/common/utils/fileStorage.util.ts
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Transform } from 'node:stream';
@@ -7,109 +7,115 @@ import type { MultipartFile } from '@fastify/multipart';
 import { BadRequestException, Logger, PayloadTooLargeException } from '@nestjs/common';
 import { IdentityGenerator } from './uuid.util';
 
-//Constantes para la validación de archivos
+// Definición de tamaño máximo de archivo permitido (5 MB)
 const MAX_ARCHIVO_BYTES = 5 * 1024 * 1024;
 
-//Definición de tipos MIME permitidos y sus extensiones correspondientes
-//Extensiones permitidas: PDF y Word (doc, docx) y excel (xls, xlsx, csv)
+// Definición de extensiones permitidas para cada tipo MIME
 const EXTENSIONES_PERMITIDAS: Record<string, string[]> = {
     'application/pdf': ['.pdf'],
     'application/msword': ['.doc'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     'application/vnd.ms-excel': ['.xls'],
     'text/csv': ['.csv'],
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
 };
 
 /**
- * Clase utilitaria para el manejo de almacenamiento de archivos en el servidor.
- * Proporciona métodos para guardar y eliminar archivos, asegurando que cumplan con las restricciones de tamaño y tipo.
- * Los archivos se almacenan en la carpeta 'archivos' dentro del directorio de trabajo actual.
+ * Clase utilitaria para el almacenamiento de archivos en el sistema de archivos del servidor. 
+ * Permite guardar archivos subidos mediante multipart/form-data y eliminarlos de manera segura.
+ * 
+ * Funcionalidades principales:
+ * - Guardar archivos subidos mediante multipart/form-data en una carpeta específica del servidor.
+ * - Validar el tipo MIME y la extensión del archivo para garantizar que solo se acepten archivos PDF o Word.
+ * - Limitar el tamaño máximo de los archivos a 5 MB, lanzando una excepción si se excede este límite.
+ * - Eliminar archivos del sistema de archivos de manera segura, asegurando que la ruta proporcionada corresponda a un archivo administrado por el sistema.
+ * 
+ * Esta clase es esencial para manejar la carga y eliminación de archivos en la aplicación, asegurando que se cumplan las restricciones de seguridad y tamaño.
  */
 export class FileStorageUtil {
     private static readonly logger = new Logger(FileStorageUtil.name);
 
     /**
-     * Clase estática para manejar el almacenamiento de archivos en el servidor.
-     * Proporciona métodos para guardar y eliminar archivos, asegurando que cumplan con las restricciones de tamaño y tipo.
-     * Los archivos se almacenan en la carpeta 'archivos' dentro del directorio de trabajo actual.
-     * @param data - Archivo multipart recibido desde la solicitud HTTP.
-     * @param subFolder - Carpeta dentro de 'archivos' donde se guardará el archivo.
-     * @returns - Ruta relativa del archivo guardado en el servidor.
-     * @throws BadRequestException si no se adjunta un archivo, si la carpeta es inválida o si el tipo de archivo no es permitido.
-     * @throws PayloadTooLargeException si el archivo supera el tamaño máximo permitido (5 MB).
+     * Guarda un archivo subido mediante multipart/form-data en una carpeta específica del servidor.
+     * @param data - El archivo subido mediante multipart/form-data, representado como un objeto MultipartFile.
+     * @param subFolder - La subcarpeta dentro de la carpeta 'archivos' donde se almacenará el archivo. 
+     * Debe ser un nombre válido que cumpla con el patrón /^[a-z0-9_-]+$/i.
+     * @returns - Una promesa que resuelve la ruta relativa del archivo guardado en el servidor, comenzando con '/archivos/'.
+     * @throws - Lanza una excepción BadRequestException si no se adjunta ningún archivo, 
+     * si la subcarpeta es inválida, si el tipo MIME o la extensión del archivo no son permitidos, o si el tamaño del archivo excede los 5 MB.
      */
     static async guardarArchivoMultipart(data: MultipartFile, subFolder: string): Promise<string> {
-        if (!data) throw new BadRequestException('No se adjuntó ningún archivo.');
-        //Verificar que la carpeta de destino sea válida y no contenga rutas relativas peligrosas
-        if (!/^[a-z0-9_-]+$/i.test(subFolder)) 
+        // Validación de entrada y restricciones de seguridad
+        if (!data) 
+            throw new BadRequestException('No se adjuntó ningún archivo.');
+        
+        // Validación de la subcarpeta para evitar rutas no válidas o ataques de path traversal
+        if (!/^[a-z0-9_-]+$/i.test(subFolder))
             throw new BadRequestException('Carpeta de archivos inválida.');
 
-        //Verificar que el tipo de archivo y la extensión sean válidos
+        // Validación del tipo MIME y la extensión del archivo para garantizar que solo se acepten archivos PDF o Word
         const extension = path.extname(data.filename).toLowerCase();
 
-        //Verificar que el tipo MIME y la extensión del archivo sean compatibles con las extensiones permitidas
+        // Verificación de que el tipo MIME y la extensión del archivo sean compatibles con las extensiones permitidas
         if (!EXTENSIONES_PERMITIDAS[data.mimetype]?.includes(extension)) {
             data.file.resume();
             throw new BadRequestException('Solo se permiten archivos PDF o Word con extensión y MIME compatibles.');
         }
 
-        //Verificar que la carpeta de destino sea válida y no contenga rutas relativas peligrosas
-        if (!/^[a-z0-9_-]+$/i.test(subFolder)) throw new BadRequestException('Carpeta de archivos inválida.');
-
-        //Generar un nombre de archivo único para evitar colisiones y mantener la integridad de los archivos
+        // Generación de un nombre de archivo único utilizando la fecha actual y un identificador generado
         const nombreArchivo = `${Date.now()}-${IdentityGenerator.generateId()}${extension}`;
         const uploadDir = path.join(process.cwd(), 'archivos', subFolder);
         const filePath = path.join(uploadDir, nombreArchivo);
         await fs.mkdir(uploadDir, { recursive: true });
 
-        //Crear un flujo de transformación para limitar el tamaño del archivo y manejar la escritura en disco
+        // Transform stream para limitar el tamaño del archivo a 5 MB y lanzar una excepción si se excede este límite
         let bytes = 0;
         const limite = new Transform({
             transform(chunk, encoding, callback) {
                 bytes += chunk.length;
                 callback(bytes > MAX_ARCHIVO_BYTES ? new PayloadTooLargeException('El archivo no puede superar los 5 MB.') : null, chunk);
-            }
+            },
         });
 
-        //Si el nombre ya existe, no se borra un archivo ajeno durante la limpieza.
+        // Apertura del archivo de destino en modo 'wx' para evitar sobrescribir archivos existentes
         const salida = await fs.open(filePath, 'wx');
 
+        // Uso de pipeline para manejar la transmisión de datos del archivo subido al archivo de destino, con manejo de errores y limpieza en caso de fallo
         try {
-            //Usar pipeline para manejar el flujo de datos del archivo, 
-            //aplicando la transformación de límite de tamaño y escribiendo en el archivo de destino
             await pipeline(data.file, limite, salida.createWriteStream());
 
-            //Verificar si el archivo fue truncado debido a que excedió el tamaño máximo permitido
             if (data.file.truncated) throw new PayloadTooLargeException('El archivo no puede superar los 5 MB.');
 
-            //Retornar la ruta relativa del archivo guardado para su posterior uso o referencia
+            // Retorna la ruta relativa del archivo guardado en el servidor, comenzando con '/archivos/'
             return `/archivos/${subFolder}/${nombreArchivo}`;
         } catch (error) {
-            //Si ocurre un error durante la escritura, se intenta eliminar el archivo incompleto y se registra una advertencia
-            await fs.rm(filePath, { force: true }).catch((cleanupError: unknown) => this.logger.warn('No se pudo eliminar un archivo incompleto.', cleanupError));
+
+            // En caso de error, se intenta eliminar el archivo incompleto y se lanza la excepción correspondiente
+            await fs.rm(filePath, { force: true }).catch((cleanupError: unknown) =>
+                this.logger.warn('No se pudo eliminar un archivo incompleto.', cleanupError));
             throw error;
         } finally {
-            //Cerrar el descriptor de archivo para liberar recursos del sistema
             await salida.close();
         }
     }
 
     /**
-     * Elimina un archivo del servidor dado su URL relativa.
-     * @param url - URL relativa del archivo a eliminar (debe comenzar con '/archivos/').
-     * @throws BadRequestException si la ruta no corresponde a un archivo administrado por el sistema.
+     * Elimina un archivo del sistema de archivos del servidor de manera segura.
+     * @param url - La ruta relativa del archivo a eliminar, comenzando con '/archivos/'.
+     * @returns - Una promesa que se resuelve cuando el archivo ha sido eliminado correctamente.
+     * @throws - Lanza una excepción BadRequestException si la ruta proporcionada no corresponde a un archivo administrado por el sistema.
      */
     static async eliminarArchivo(url: string): Promise<void> {
-        //Verificar que la ruta del archivo sea válida y esté dentro de la carpeta 'archivos'
+        // Validación de la ruta del archivo para asegurar que corresponda a un archivo administrado por el sistema y evitar ataques de path traversal
         const raiz = path.resolve(process.cwd(), 'archivos');
         const destino = path.resolve(process.cwd(), `.${url}`);
         const relativa = path.relative(raiz, destino);
 
-        //Verificar que la ruta del archivo sea válida y esté dentro de la carpeta 'archivos'
+        // Validación de la ruta del archivo para asegurar que corresponda a un archivo administrado por el sistema y evitar ataques de path traversal
         if (!url.startsWith('/archivos/') || !relativa || relativa.startsWith('..') || path.isAbsolute(relativa))
             throw new BadRequestException('La ruta no corresponde a un archivo administrado por el sistema.');
 
+        // Eliminación del archivo de manera segura, utilizando la opción 'force' para evitar errores si el archivo no existe
         await fs.rm(destino, { force: true });
     }
 }

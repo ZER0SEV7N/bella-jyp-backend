@@ -12,7 +12,6 @@ DO $$ BEGIN
  RAISE EXCEPTION 'Active app.entorno_pruebas=SI solo en una BD de demostración'; END IF;
  IF EXISTS (SELECT 1 FROM empleados) THEN RAISE EXCEPTION 'La demostración requiere una BD sin empleados'; END IF;
 
- SET app.entorno_pruebas = 'SI';
 END $$;
 
 -- 1. ORGANIZACIÓN DE PRUEBA. Los seeders operativos no crean áreas ni personas.
