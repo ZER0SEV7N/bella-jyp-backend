@@ -86,24 +86,20 @@ export function prepararDia(contexto: ContextoAsistencia, fecha: string, r: Resu
 }
 
 /**
- * Función que evalúa si un día específico es un día de descanso o feriado, y ajusta el estado del resultado del día en consecuencia.
- * También verifica si existen solicitudes de ausencia sin goce de asistencia que afecten el estado del día.
- * @param contexto - Contexto de asistencia que incluye las solicitudes de ausencia y decisiones de asistencia.
- * @param fecha - Fecha del día a evaluar en formato 'YYYY-MM-DD'.
- * @param r - Objeto ResultadoDia que representa el resultado del día, incluyendo minutos programados, minutos sin goce y estado de asistencia.
- * @param descanso - Indica si el día es un descanso o feriado (opcional).
- * @param decisiones - Lista de decisiones de asistencia relevantes para el día.
- * @returns - Objeto ResultadoDia actualizado con el estado del día y alertas correspondientes.
- * @throws RangeError si la fecha no cumple con el formato 'YYYY-MM-DD'.
- * @throws RangeError si las marcas no son válidas.
+ * Función que evalúa un día no laborable (descanso semanal o feriado nacional/acordado),
+ * verificando si existieron marcaciones en descanso o licencias sin goce que absorban el día.
  */
-export function evaluarDescanso(contexto: ContextoAsistencia, fecha: string, r: ResultadoDia, descanso: string | undefined, decisiones: DecisionAsistencia[] ): ResultadoDia {
-    // Si el día es un descanso o feriado, se ajusta el estado del resultado del día y se agregan alertas si hay marcas registradas.
+export function evaluarDescanso(
+    contexto: ContextoAsistencia,
+    fecha: string,
+    r: ResultadoDia,
+    descanso: string | undefined,
+    decisiones: DecisionAsistencia[],
+): ResultadoDia {
     r.estado = descanso ? 'FERIADO_O_DESCANSO_ACORDADO' : 'DESCANSO_SEMANAL';
     if (r.marcas.length)
         r.alertas.push('TRABAJO_EN_DESCANSO_REQUIERE_LIQUIDACION_ESPECIFICA');
 
-    // Se verifica si existe alguna solicitud de ausencia sin goce de asistencia que afecte el estado del día.
     const sinGoceCompleto = contexto.solicitudes.some(
         (s) =>
             s.estado === 'APROBADA' &&
@@ -115,7 +111,6 @@ export function evaluarDescanso(contexto: ContextoAsistencia, fecha: string, r: 
             s.fecha_fin >= fecha,
     );
 
-    // Si no hay marcas registradas y existe una solicitud de ausencia sin goce completa o una decisión de ausencia sin goce, se ajusta el estado del día a 'AUSENCIA_SIN_GOCE'.
     if (!r.marcas.length && (sinGoceCompleto || decisiones.some((d) => d.tipo === 'AUSENCIA' && d.datos.resultado === 'SIN_GOCE'))) {
         r.estado = 'AUSENCIA_SIN_GOCE';
         r.sin_goce = 1;

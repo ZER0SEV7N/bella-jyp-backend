@@ -36,12 +36,15 @@ export class GeneracionMasivaAsistenciaService {
         const fin = new Date(Date.UTC(year, month, 0));
         const inicio = ServerTime.desdeFechaSimple(`${dto.periodo}-01`);
         //La fecha del vínculo determina la selección, no el indicador activo actual.
+        //Nota: `fecha_inicio` es NOT NULL en `prisma/schema.prisma`, por lo que se filtra directamente con `{ lte: fin }`
+        //(en Prisma 7 pasar `{ fecha_inicio: null }` sobre una columna no anulable lanza PrismaClientValidationError).
         const empleados = await this.prisma.empleados.findMany({
             where: {
                 deleted_at: null,
+                fecha_inicio: { lte: fin },
+                OR: [{ fecha_cese: null }, { fecha_cese: { gte: inicio } }],
                 ...(dto.empleado_id ? { id: dto.empleado_id } : {}),
                 ...(dto.area_id ? { area_id: dto.area_id } : {}),
-                AND: [{ OR: [{ fecha_inicio: null }, { fecha_inicio: { lte: fin } }] }, { OR: [{ fecha_cese: null }, { fecha_cese: { gte: inicio } }] }]
             },
             select: { id: true },
             orderBy: { id: 'asc' },

@@ -7,7 +7,7 @@ import type { HorarioDia } from './asistencia.types';
  */
 
 //Constante que representa los días de la semana en español, utilizada para mapear los días de la semana a sus nombres correspondientes.
-const DIAS = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'];
+const DIAS = [ 'DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
 
 /**
  * Convierte una hora en formato 'HH:mm' a minutos desde la medianoche, validando que la hora sea válida y esté dentro del rango permitido.
