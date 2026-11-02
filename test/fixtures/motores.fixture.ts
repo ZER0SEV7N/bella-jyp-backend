@@ -1,11 +1,14 @@
 import { calcularAsistencia } from '@/modules/asistencia/domain/calcular-asistencia';
-import type {
-    ContextoAsistencia,
-    HorarioDia,
-    SolicitudAsistencia,
-} from '@/modules/asistencia/domain/asistencia.types';
+import type {ContextoAsistencia, HorarioDia, SolicitudAsistencia} from '@/modules/asistencia/domain/asistencia.types';
 import type { EntradaPlanilla } from '@/modules/payroll/planillas/domain/planilla.types';
-/** Datos ficticios de pruebas. Las tasas fijadas aquí no son valores para producción. */
+
+/**
+ * Fixtures para pruebas unitarias de los motores de cálculo de asistencia y planillas.
+ * Se incluyen funciones para generar contextos de asistencia, horarios, solicitudes y entradas de planilla.
+ * Se proporciona un conjunto de días de la semana y un horario base para pruebas.
+ * Las funciones permiten modificar marcaciones y crear solicitudes de asistencia con efectos específicos.
+ * Se asegura que los datos de prueba sean consistentes y representativos para validar la lógica de negocio.
+ */
 export const dias = [
     'DOMINGO',
     'LUNES',
@@ -15,6 +18,8 @@ export const dias = [
     'VIERNES',
     'SABADO',
 ];
+
+// Horario base de 9:00 a 18:00 con descanso de 13:00 a 14:00, lunes a viernes, martes remoto.
 export const horario: HorarioDia[] = dias.map((dia, indice) => ({
     dia,
     laborable: indice > 0 && indice < 6,
@@ -24,6 +29,8 @@ export const horario: HorarioDia[] = dias.map((dia, indice) => ({
     fin_descanso: '14:00',
     salida: '18:00',
 }));
+
+// Horario base de 9:00 a 18:00 con descanso de 13:00 a 14:00, lunes a sábado, martes remoto.
 export function contexto(): ContextoAsistencia {
     const marcaciones = [];
     for (let dia = 1; dia <= 30; dia++) {

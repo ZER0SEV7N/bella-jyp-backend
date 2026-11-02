@@ -1,33 +1,29 @@
 -- ================================================================================================
--- SISTEMA DE PLANILLAS JYP — DATOS DE PRUEBA DOCUMENTADOS
+-- SISTEMA DE PLANILLAS J&P PERIFÉRICOS SAC — DATOS DE PRUEBA DOCUMENTADOS (UTF-8)
 -- ================================================================================================
--- Propósito: crear una demostración ficticia del flujo de asistencia y planilla de septiembre 2026.
--- Requisitos: ejecutar basededatos.sql y después prisma db seed para obtener los catálogos base.
--- Habilitación en la MISMA sesión SQL: SET app.entorno_pruebas = 'SI';
--- Esta carga se separa de los seeders: contiene personas/usuarios/horarios de DEMOSTRACIÓN.
--- No borra ni trunca tablas. Todos los bloques se confirman juntos al llegar a COMMIT.
+-- Propósito:
+--   Crear una demostración ficticia e idempotente del flujo de asistencia y planilla de
+--   septiembre 2026 sin duplicar ni pisar los catálogos que ya siembra `npx prisma db seed`.
 --
--- CONTENIDO Y ORDEN DE DEPENDENCIAS
---   1. Configuración de la demostración y variables compartidas.
---   2. Verificación del entorno y detección de una carga anterior.
---   3. Consulta de catálogos ya creados por los seeders: DNI y ONP.
---   4. Área y cargo de demostración.
---   5. Jornada de lunes a sábado: 08:00–17:00, refrigerio 12:00–13:00, 48 horas efectivas.
---   6. Empleados ficticios.
---   7. Usuarios ficticios con roles RRHH, CONTADOR y ASISTENTE.
---   8. Datos financieros ONP de cada empleado.
---   9. Vigencias individuales de jornada y contexto de auditoría.
---  10. Marcaciones de entrada/salida de septiembre en America/Lima.
---  11. Parámetro Vida Ley exclusivamente DEMO, si todavía no existe el código.
---  12. Confirmación, credenciales de demostración y recorrido manual.
+-- Orden de ejecución tras un DROP DATABASE:
+--   1. Crear esquema y protecciones SQL: `pnpm db:crear` (o `npx prisma db push` + `pnpm db:instalar-objetos`)
+--   2. Sembrar catálogos oficiales (bancos, documentos, regímenes, AFP, comisiones oct-2026 y parámetros):
+--      `npx prisma db seed` (o `pnpm db:seed`)
+--   3. Ejecutar este archivo desde VS Code SQLTools (botón "▷ Run"), pgAdmin, DBeaver o `pnpm db:demo`.
+--
+-- Notas técnicas:
+--   - Configura automáticamente `client_encoding = 'UTF8'` y `app.entorno_pruebas = 'SI'` tanto a
+--     nivel de sesión como de transacción (`set_config`), evitando el fallo en clientes visuales.
+--   - NO vuelve a sembrar bancos, tipos de documento, regímenes, AFP, RMV, UIT, EsSalud, ONP ni
+--     las comisiones de octubre 2026 (responsabilidad exclusiva de `prisma/seed.ts`).
+-- ================================================================================================
 
 SET client_encoding = 'UTF8';
-
 SET app.entorno_pruebas = 'SI';
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Garantiza que el generador UUID v7 (RFC 9562) exista incluso si solo se corrió `prisma db push`
+-- Garantiza que la función asistencia_uuid_v7() exista si se recreó el esquema con `prisma db push`
 CREATE OR REPLACE FUNCTION asistencia_uuid_v7()
 RETURNS uuid
 LANGUAGE plpgsql
@@ -49,6 +45,8 @@ BEGIN
 END;
 $func$;
 
+
+
 BEGIN;
 
 DO $$
@@ -56,11 +54,9 @@ DECLARE
     -- --------------------------------------------------------------------------------------------
     -- 1. CONFIGURACIÓN E IDENTIFICADORES DE LA DEMOSTRACIÓN
     -- --------------------------------------------------------------------------------------------
-    -- IDs estables: permiten reconocer este conjunto sin depender de IDs aleatorios de catálogos.
     area_id uuid := '019a0100-0000-7000-8000-000000000001';
     cargo_id uuid := '019a0100-0000-7000-8000-000000000002';
     jornada_id uuid := '019a0100-0000-7000-8000-000000000003';
-    -- Este orden vincula RRHH/CONTADOR/ASISTENTE con documentos 90000001/2/3 y sufijos 10/11/12.
     roles_demo text[] := ARRAY['RRHH', 'CONTADOR', 'ASISTENTE'];
     empleado_id uuid;
     usuario_id uuid;
@@ -74,13 +70,13 @@ BEGIN
     -- --------------------------------------------------------------------------------------------
     -- 2. VERIFICACIÓN DEL ENTORNO Y REPETICIÓN DE LA CARGA
     -- --------------------------------------------------------------------------------------------
-    -- current_setting lee la habilitación de la sesión; no cambia permisos de producción.
+    PERFORM set_config('app.entorno_pruebas', 'SI', true);
+
     IF current_setting('app.entorno_pruebas', true) IS DISTINCT FROM 'SI' THEN
         RAISE EXCEPTION 'Fixture de prueba: habilite app.entorno_pruebas=SI en una base exclusiva de pruebas.';
     END IF;
 
     -- El primer empleado identifica una demostración ya instalada. Se omite el bloque completo.
-    -- Este control conserva la carga anterior; no reconstruye una demostración editada parcialmente.
     IF EXISTS (
         SELECT 1 FROM empleados
         WHERE id = '019a0100-0000-7000-8000-000000000010'
@@ -90,13 +86,13 @@ BEGIN
     END IF;
 
     -- --------------------------------------------------------------------------------------------
-    -- 3. CATÁLOGOS REQUERIDOS: TIPO DE DOCUMENTO Y RÉGIMEN PENSIONARIO
+    -- 3. CATÁLOGOS REQUERIDOS (CREADOS PREVIAMENTE POR `prisma db seed`)
     -- --------------------------------------------------------------------------------------------
-    -- Se consultan por su significado, porque los seeders pueden asignar IDs distintos en cada base.
-    -- Este archivo no vuelve a sembrar bancos, AFP, RMV ni UIT.
+    -- Se consultan por su nombre/significado, sin volver a sembrar bancos, AFP, RMV ni UIT.
     SELECT id INTO documento_id
     FROM tipo_documento
-    WHERE tipo_documento = 'DNI';
+    WHERE tipo_documento = 'DNI'
+    LIMIT 1;
 
     SELECT id INTO onp_id
     FROM regimen_pension
@@ -104,24 +100,23 @@ BEGIN
     LIMIT 1;
 
     IF documento_id IS NULL OR onp_id IS NULL THEN
-        RAISE EXCEPTION 'Ejecute primero prisma db seed para crear los catálogos.';
+        RAISE EXCEPTION 'Ejecute primero `npx prisma db seed` (o `pnpm db:seed`) para crear los catálogos base (bancos, AFP, parámetros legales y tipos de documento).';
     END IF;
 
     -- --------------------------------------------------------------------------------------------
     -- 4. ORGANIZACIÓN DE PRUEBA: ÁREA Y CARGO
     -- --------------------------------------------------------------------------------------------
-    -- El cargo pertenece al área creada aquí. Se comparten por los tres empleados ficticios.
     INSERT INTO area (id, nombre)
-    VALUES (area_id, 'DEMO - Oficina');
+    VALUES (area_id, 'DEMO - Oficina')
+    ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO cargo (id, id_area, nombre)
-    VALUES (cargo_id, area_id, 'DEMO - Analista');
+    VALUES (cargo_id, area_id, 'DEMO - Analista')
+    ON CONFLICT (id) DO NOTHING;
 
     -- --------------------------------------------------------------------------------------------
-    -- 5. CATÁLOGO DE JORNADA: OCHO HORAS EFECTIVAS, DE LUNES A SÁBADO
+    -- 5. CATÁLOGO DE JORNADA: OCHO HORAS EFECTIVAS, DE LUNES A SÁBADO (48 HORAS)
     -- --------------------------------------------------------------------------------------------
-    -- El JSON contiene los siete días exactamente una vez. DOMINGO queda como no laborable.
-    -- Nueve horas entre entrada/salida menos una hora de refrigerio = ocho horas efectivas por día.
     SELECT jsonb_agg(
         jsonb_build_object(
             'dia', dia,
@@ -139,15 +134,17 @@ BEGIN
     ]) WITH ORDINALITY AS dias(dia, orden);
 
     INSERT INTO jornada (id, nombre, total_horas_semana, horario_semanal)
-    VALUES (jornada_id, 'DEMO - Lunes a sábado, 48 horas', 48, horario);
+    VALUES (jornada_id, 'DEMO - Lunes a sábado, 48 horas', 48, horario)
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO jornada_area (jornada_id, area_id)
+    VALUES (jornada_id, area_id)
+    ON CONFLICT (jornada_id, area_id) DO NOTHING;
 
     -- --------------------------------------------------------------------------------------------
-    INSERT INTO jornada_area (jornada_id, area_id) VALUES (jornada_id, area_id);
-
     -- 6. LEGAJO: TRES EMPLEADOS FICTICIOS
     -- --------------------------------------------------------------------------------------------
-    -- Ingresan el 01/09/2026: la demostración no necesita fabricar planillas de meses anteriores.
-    -- Los nombres DEMO y el dominio .invalid permiten identificar claramente el conjunto de prueba.
+    indice := 0;
     FOREACH rol IN ARRAY roles_demo LOOP
         empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
 
@@ -165,10 +162,8 @@ BEGIN
     END LOOP;
 
     -- --------------------------------------------------------------------------------------------
-    -- 7. AUTENTICACIÓN: UNA CUENTA POR EMPLEADO
+    -- 7. AUTENTICACIÓN: UNA CUENTA POR EMPLEADO (Clave pública: DemoPlanillas2026!)
     -- --------------------------------------------------------------------------------------------
-    -- usuarios.id y empleados.id representan entidades distintas, aunque se vinculen uno a uno.
-    -- El hash Argon2 existente corresponde a la contraseña pública DemoPlanillas2026!.
     indice := 0;
     FOREACH rol IN ARRAY roles_demo LOOP
         empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
@@ -189,8 +184,6 @@ BEGIN
     -- --------------------------------------------------------------------------------------------
     -- 8. DATOS FINANCIEROS: SUELDO FICTICIO Y ONP
     -- --------------------------------------------------------------------------------------------
-    -- S/3000 es el sueldo de esta demostración, no un parámetro legal ni una remuneración universal.
-    -- No se inventan cuentas bancarias; las demás columnas conservan sus valores por defecto.
     indice := 0;
     FOREACH rol IN ARRAY roles_demo LOOP
         empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
@@ -204,9 +197,6 @@ BEGIN
     -- --------------------------------------------------------------------------------------------
     -- 9. ASISTENCIA: COPIA HISTÓRICA DEL HORARIO ASIGNADO
     -- --------------------------------------------------------------------------------------------
-    -- Cada persona recibe la misma programación desde su ingreso; 2880 minutos = 48 horas semanales.
-    -- app.usuario_id/app.ip se limitan a esta transacción por el tercer argumento true de set_config.
-    -- El actor de cada fila coincide con su usuario DEMO para conservar la evidencia de este conjunto.
     indice := 0;
     FOREACH rol IN ARRAY roles_demo LOOP
         empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
@@ -228,10 +218,6 @@ BEGIN
     -- --------------------------------------------------------------------------------------------
     -- 10. MARCACIONES: ENTRADAS Y SALIDAS DE SEPTIEMBRE DE 2026
     -- --------------------------------------------------------------------------------------------
-    -- generate_series recorre fechas civiles. Se omiten domingos; cada otro día tiene dos marcas.
-    -- AT TIME ZONE convierte las 08:00/17:00 de Lima a instantes TIMESTAMPTZ sin depender del servidor.
-    -- Se generan 26 días × 2 marcas × 3 empleados = 156 marcas ficticias.
-    -- Método MANUAL: este bloque prueba el cálculo; no representa un archivo importado del biométrico.
     indice := 0;
     FOREACH rol IN ARRAY roles_demo LOOP
         empleado_id := ('019a0100-0000-7000-8000-0000000000' || (10 + indice)::text)::uuid;
@@ -265,10 +251,8 @@ BEGIN
     END LOOP;
 
     -- --------------------------------------------------------------------------------------------
-    -- 11. VIDA LEY DEMO: DATO FICTICIO, SEPARADO DE LA CONFIGURACIÓN LEGAL REAL
+    -- 11. VIDA LEY DEMO: SOLO SI EL SEEDER NO REGISTRÓ UNA PÓLIZA VÍA SEED_VIDA_LEY_PCT
     -- --------------------------------------------------------------------------------------------
-    -- Sólo se añade si no existe ninguna fila del código. No sustituye la configuración ya cargada.
-    -- 0.001 es una fracción de prueba: no se propone como prima de una póliza de producción.
     IF NOT EXISTS (SELECT 1 FROM parametro_legal WHERE codigo = 'VIDA_LEY_PCT') THEN
         INSERT INTO parametro_legal (
             id, codigo, nombre, valor, vigente_desde, vigente_hasta, descripcion
@@ -280,25 +264,4 @@ BEGIN
     END IF;
 END $$;
 
--- ================================================================================================
--- 12. CONFIRMACIÓN Y USO DE LA DEMOSTRACIÓN
--- ================================================================================================
 COMMIT;
-
--- RESUMEN ESPERADO DE LOS REGISTROS AÑADIDOS
--- Área: 1. Cargo: 1. Jornada catálogo: 1.
--- Empleados: 3. Usuarios: 3. Datos financieros: 3. Asignaciones históricas: 3. Marcaciones: 156.
--- Vida Ley: 0 o 1 filas nuevas según la configuración previa. Los triggers añaden su auditoría.
--- No se insertan solicitudes, incidencias aprobadas ni planillas calculadas: se generan desde la API.
---
--- ACCESO DE PRUEBA (contraseña pública: DemoPlanillas2026!)
--- RRHH:      DNI 90000001 / rrhh@demo.invalid
--- CONTADOR:  DNI 90000002 / contador@demo.invalid
--- ASISTENTE: DNI 90000003 / asistente@demo.invalid
---
--- RECORRIDO MANUAL
--- 1. Autenticarse mediante POST /api/v1/auth/login.
--- 2. Generar el resumen de incidencias para 2026-09 y revisar su detalle diario.
--- 3. Aprobar la asistencia con RRHH.
--- 4. Solicitar la generación de planillas y consultar el trabajo de la cola hasta su finalización.
--- 5. Revisar, congelar como CONTADOR y descargar la boleta del cálculo congelado.

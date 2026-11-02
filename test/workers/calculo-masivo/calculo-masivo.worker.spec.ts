@@ -4,6 +4,17 @@ import { PayrollPoolService } from '@/workers/calculo-masivo/payroll-pool.servic
 import { PayrollProcessor } from '@/workers/calculo-masivo/payroll.processor';
 import { entrada } from '../../fixtures/motores.fixture';
 
+jest.mock('piscina', () => {
+  const MockPiscina = jest.fn().mockImplementation(() => ({
+    run: jest.fn(),
+    destroy: jest.fn(),
+  }));
+  return {
+    __esModule: true,
+    default: MockPiscina,
+  };
+});
+
 /**
  * Pruebas unitarias para el worker de cálculo masivo de planillas (`Piscina` y `BullMQ`) siguiendo el patrón AAA.
  */

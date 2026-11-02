@@ -6,7 +6,18 @@
 -- Clave pública de prueba: Demo_JYP_2026!; nunca reutilizar en producción.
 -- Activación explícita en psql: SET app.entorno_pruebas = 'SI';\i pruebas-demo/datosprueba.sql
 -- Una segunda ejecución falla y revierte: no se sobrescriben personas existentes.
+-- EJECUCIÓN MANUAL (pgAdmin, DBeaver, DataGrip o extensión SQL de VS Code):
+-- 1. Si el intento anterior falló, ejecute ROLLBACK; en esa misma conexión.
+-- 2. Seleccione la base planillas_db exclusiva de desarrollo/pruebas.
+-- 3. Ejecute SET app.entorno_pruebas = 'SI'; y luego ESTE ARCHIVO COMPLETO
+--    desde la MISMA consola/conexión. NODE_ENV no configura esta variable SQL.
+-- 4. Al finalizar puede ejecutar RESET app.entorno_pruebas;.
+-- Alternativa dentro de este archivo: descomente la línea SET LOCAL ubicada
+-- inmediatamente DESPUÉS de BEGIN. Se revierte al ejecutar COMMIT o ROLLBACK.
+-- Comando desde la raíz del backend: pnpm db:demo.
+-- El comando usa una única conexión y activa la variable solo para esa carga.
 BEGIN;
+-- SET LOCAL app.entorno_pruebas = 'SI'; -- Descomentar solo para esta BD de pruebas.
 DO $$ BEGIN
  IF current_setting('app.entorno_pruebas', true) IS DISTINCT FROM 'SI' THEN
  RAISE EXCEPTION 'Active app.entorno_pruebas=SI solo en una BD de demostración'; END IF;

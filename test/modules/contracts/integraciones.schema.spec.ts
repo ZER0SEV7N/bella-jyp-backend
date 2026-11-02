@@ -1,8 +1,6 @@
-import {
-    ResultadoIntegracionSchema,
-    ConfiguracionExportacionSchema,
-} from '@jyp/shared-contracts';
+import { ResultadoIntegracionSchema, ConfiguracionExportacionSchema } from '@jyp/shared-contracts';
 describe('Manifiesto del ejecutor n8n', () => {
+
     it('No declara éxito cuando no hay archivos ni un error explicado', () => {
         // Arrange: callback vacío, sin evidencia de trabajo realizado.
         const datos = { archivos: [], correos: [] };
@@ -11,6 +9,7 @@ describe('Manifiesto del ejecutor n8n', () => {
         // Assert: el error se informa antes de persistir COMPLETADO.
         expect(r.success).toBe(false);
     });
+    
     it('Permite comunicar un fallo sin documentos parciales', () => {
         // Arrange: n8n detectó un dato faltante antes de escribir archivos.
         const datos = {

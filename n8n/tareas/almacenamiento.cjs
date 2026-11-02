@@ -7,8 +7,11 @@ const { finished } = require('node:stream/promises');
 const { join } = require('node:path');
 
 /**
- * almacena un archivo en el directorio indicado, 
+ * Tarea que almacena un archivo en el directorio indicado, 
  * con el nombre indicado, y devuelve un objeto con métodos para escribir líneas, cerrar el archivo y cancelar la operación.
+ * sus principales funciones son:
+ * - escritor: Crea un escritor de archivos que permite escribir líneas en un archivo temporal y luego renombrarlo al nombre final.
+ * - metadatos: Crea un objeto con metadatos del archivo, incluyendo nombre, tipo, tamaño en bytes, hash SHA-256 y opcionalmente el ID de la planilla.
  */
 
 /**

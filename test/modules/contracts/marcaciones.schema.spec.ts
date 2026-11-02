@@ -1,13 +1,4 @@
 import * as contratos from '@jyp/shared-contracts';
-import {
-    contexto,
-    entrada,
-    horario,
-    horario48,
-    cambiarMarcas,
-    dia,
-    solicitud,
-} from '../fixtures/motores.fixture';
 
 describe('contratos - Reglas aisladas del motor', () => {
     it('El contrato HTTP rechaza una hora sin zona', () => {
