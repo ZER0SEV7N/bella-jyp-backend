@@ -1,0 +1,71 @@
+import type {
+    FilaExportacionDto,
+    ConfiguracionExportacionDto,
+} from '@jyp/shared-contracts';
+/** Identificadores y montos inventados para comprobar posiciones; no datos de clientes. */
+export const filaExportacion = (): FilaExportacionDto => ({
+    planilla_id: '019a0000-0009-7000-8000-000000000001',
+    empleado_id: '019a0000-0001-7000-8000-000000000001',
+    periodo: '2026-09',
+    empresa: {
+        nombreEmpresa: 'EMPRESA DEMO',
+        ruc: '20000000001',
+        direccion: 'Domicilio ficticio',
+    },
+    cabecera: {
+        nombre_completo: 'ANA RAMOS DEMO',
+        nro_documento: '09900001',
+        area: 'OFICINA',
+        cargo: 'OPERADOR',
+        dias_laborados: 30,
+        asignacion_familiar: false,
+        regimen_pension: 'AFP',
+    },
+    resultado: {
+        sueldo_base: '1500.00',
+        asignacion_familia: '0',
+        horas_extras_25: '0',
+        horas_extras_35: '0',
+        descuento_afp_comision: '23.25',
+        descuento_afp_seguro: '20.55',
+        descuento_afp_fondo: '150',
+        descuento_quinta: '0',
+        descuento_adelanto: '0',
+        descuento_tardanzas: '0',
+        descuento_faltas: '0',
+        aporte_vida_ley: '1.5',
+        base_previsional: '1500',
+        neto_a_pagar: '1306.2',
+    },
+    nombres: 'ANA',
+    apellidos: 'RAMOS DEMO',
+    tipo_documento: 'DNI',
+    email: 'persona@example.test',
+    fecha_inicio: '2026-09-01',
+    fecha_cese: null,
+    banco: 'BCP',
+    cuenta: '19100000000001',
+    cci: '00219100000000000001',
+    cuspp: 'DEMO00000001',
+    regimen: 'AFP',
+    minutos_ordinarios: 10560,
+    minutos_sobretiempo: 0,
+});
+export const configuracionExportacion = (): ConfiguracionExportacionDto => ({
+    confirmar_montos_pagados: true,
+    fecha_pago: '2026-10-30',
+    cuenta_cargo: '1910000000001',
+    tipo_cuenta_cargo: 'C',
+    referencia: 'HABERES SEPTIEMBRE 2026',
+    tipos_cuenta_abono: { [filaExportacion().empleado_id]: 'A' },
+    apellidos_afpnet: {
+        [filaExportacion().empleado_id]: { paterno: 'RAMOS', materno: 'DEMO' },
+    },
+    aportes_voluntarios: {
+        [filaExportacion().empleado_id]: {
+            con_fin: '0',
+            sin_fin: '0',
+            empleador: '0',
+        },
+    },
+});

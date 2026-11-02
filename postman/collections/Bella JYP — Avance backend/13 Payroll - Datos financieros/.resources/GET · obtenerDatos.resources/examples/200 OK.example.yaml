@@ -1,0 +1,52 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/payroll/dato-financiero/empleado/{{empleado_id}}"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "893"
+    date: Thu, 22 Oct 2026 05:02:51 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "a1fd50ff-2d0f-7cde-b8eb-4b729bbd4376",
+          "empleado_id": "018f4a7c-9999-7000-3333-000000000001",
+          "id_regimen": "018f4a7c-4444-7000-d000-000000000020",
+          "regimen_nombre": "SPP - SISTEMA PRIVADO DE PENSIONES",
+          "id_tipo_afp": null,
+          "afp_nombre": null,
+          "cuspp": null,
+          "tipo_comision": null,
+          "sueldo_basico": 2400,
+          "id_banco_sueldo": null,
+          "banco_sueldo_nombre": null,
+          "tipo_cuenta_sueldo": "SUELDO",
+          "nro_cuenta_sueldo": null,
+          "cci_sueldo": null,
+          "id_banco_cts": null,
+          "banco_cts_nombre": null,
+          "tipo_cuenta_cts": "AHORROS",
+          "nro_cuenta_cts": null,
+          "cci_cts": null,
+          "regimen_salud": "ESSALUD_REGULAR",
+          "eps_nombre": null,
+          "eps_plan": null,
+          "eps_costo_adicional": 0,
+          "created_at": "2026-10-22T05:02:33.729Z",
+          "updated_at": "2026-10-22T05:02:33.729Z"
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/payroll/dato-financiero/empleado/018f4a7c-9999-7000-3333-000000000001",
+          "timestamp": "2026-10-22T05:02:51.214Z"
+        }
+      }
+order: 1000

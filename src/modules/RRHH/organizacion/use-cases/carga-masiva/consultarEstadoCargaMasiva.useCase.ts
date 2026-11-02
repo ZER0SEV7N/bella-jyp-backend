@@ -31,6 +31,7 @@ export class ConsultarEstadoCargaMasivaUseCase {
       }
     });
 
+    //Si no se encuentra el job, se lanza una excepción NotFoundException con un mensaje que indica que el lote de carga masiva no existe o no pertenece al usuario.
     if (!job) throw new NotFoundException(`El lote de carga masiva con ID ${jobId} no existe o no te pertenece.`);
 
     return job;

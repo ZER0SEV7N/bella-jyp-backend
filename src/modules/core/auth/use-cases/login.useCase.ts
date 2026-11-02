@@ -30,6 +30,7 @@ export class LoginUseCase {
           nro_documento: dto.nro_documento,
           tipo_documento: { tipo_documento: dto.tipo_documento }
         },
+        deleted_at: null,
         activo: true //Condición de seguridad a nivel de tabla auth
       },
       include: {
@@ -64,8 +65,8 @@ export class LoginUseCase {
 
     //Firma en paralelo (Protegiendo el Event Loop)
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, { expiresIn: '15m', secret: process.env.JWT_ACCESS_SECRET }),
-      this.jwtService.signAsync(payload, { expiresIn: '7d', secret: process.env.JWT_REFRESH_SECRET })
+      this.jwtService.signAsync(payload, { jwtid: crypto.randomUUID(), expiresIn: '15m', secret: process.env.JWT_ACCESS_SECRET }),
+      this.jwtService.signAsync(payload, { jwtid: crypto.randomUUID(), expiresIn: '7d', secret: process.env.JWT_REFRESH_SECRET })
     ]);
 
     //Persistencia de Sesión (En tu tabla satélite)

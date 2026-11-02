@@ -6,6 +6,13 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { CrearSolicitudDto } from '@jyp/shared-contracts';
 
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+jest.mock('@/common/utils/transaccion-auditada.util', () => ({
+  // Arrange: el caso de uso recibe el cliente mockeado; los reintentos se prueban por separado.
+  transaccionAuditada: jest.fn((prisma, _actor, trabajo) => trabajo(prisma)),
+  bloquearEmpleado: jest.fn().mockResolvedValue(undefined),
+}));
+
 /**
  * Pruebas unitarias para el caso de uso CrearSolicitudUseCase.
  * Estas pruebas verifican la correcta generación de códigos correlativos,
@@ -19,6 +26,7 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
     //Mocks de PrismaService para simular la base de datos
     const mockPrisma = {
         empleados: { findUnique: jest.fn() },
+        $queryRaw: jest.fn(),
         solicitud: { findFirst: jest.fn(), create: jest.fn() }
     };
 
@@ -65,7 +73,8 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
             //Arrange: Se simula que no existen solicitudes previas para el año actual, y se espera que se genere el primer correlativo correctamente.
             const year = new Date().getFullYear(); //Año actual para el correlativo
             mockPrisma.empleados.findUnique.mockResolvedValue(empleadoMock); //Simular que el empleado existe y está activo
-            mockPrisma.solicitud.findFirst.mockResolvedValue(null); // No hay previas
+            mockPrisma.solicitud.findFirst.mockResolvedValue(null);
+            mockPrisma.$queryRaw.mockResolvedValue([{ ultima_secuencia: null }]); // No hay previas
 
             //La respuesta esperada de la creación de la solicitud, incluyendo el código correlativo generado automáticamente
             const solicitudCreadaEsperada = {
@@ -79,7 +88,7 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
             mockPrisma.solicitud.create.mockResolvedValue(solicitudCreadaEsperada);
 
             //Act: Se ejecuta el caso de uso con el DTO válido y el ID del empleado
-            const resultado = await useCase.execute(dtoValido, 'emp-uuid-100');
+            const resultado = await useCase.execute(dtoValido, 'emp-uuid-100', undefined, 'EMPLEADO', { id: 'usuario-demo', ip: '127.0.0.1' });
 
             //Assert: Se verifica que el resultado contenga el código correlativo esperado y que se haya llamado a Prisma con los datos correctos
             expect(resultado.codigo).toBe(`SOL-${year}-001`);
@@ -96,11 +105,12 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
             //Arrange: Se simula que ya existen solicitudes previas para el año actual, y se espera que se genere el siguiente correlativo correctamente.
             const year = new Date().getFullYear();
             mockPrisma.empleados.findUnique.mockResolvedValue(empleadoMock);
-            mockPrisma.solicitud.findFirst.mockResolvedValue({ codigo: `SOL-${year}-005` }); //Simular que la última solicitud tiene el correlativo 005
+            mockPrisma.solicitud.findFirst.mockResolvedValue({ codigo: `SOL-${year}-005` });
+            mockPrisma.$queryRaw.mockResolvedValue([{ ultima_secuencia: 5n }]); //Simular que la última solicitud tiene el correlativo 005
             mockPrisma.solicitud.create.mockResolvedValue({ id: 'solicitud-uuid-001', codigo: `SOL-${year}-006` }); //Simular la creación de la nueva solicitud con correlativo 006
 
             //Act: Se ejecuta el caso de uso con el DTO válido y el ID del empleado
-            const resultado = await useCase.execute(dtoValido, 'emp-uuid-100');
+            const resultado = await useCase.execute(dtoValido, 'emp-uuid-100', undefined, 'EMPLEADO', { id: 'usuario-demo', ip: '127.0.0.1' });
 
             //Assert: Se verifica que el resultado contenga el código correlativo esperado y que se haya llamado a Prisma con los datos correctos
             expect(resultado.codigo).toBe(`SOL-${year}-006`);
@@ -110,11 +120,12 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
             //Arrange: Se simula que el empleado existe y que no hay solicitudes previas, y se espera que la fecha límite se calcule correctamente y que se adjunte el archivo de sustento.
             mockPrisma.empleados.findUnique.mockResolvedValue(empleadoMock);
             mockPrisma.solicitud.findFirst.mockResolvedValue(null);
+            mockPrisma.$queryRaw.mockResolvedValue([{ ultima_secuencia: null }]);
             mockPrisma.solicitud.create.mockResolvedValue({ id: 'solicitud-uuid-001' });
 
             //Act: Se ejecuta el caso de uso con el DTO válido, el ID del empleado y un archivo de sustento
             const archivo = { url: '/archivos/sustentos/descanso.pdf', nombreOriginal: 'descanso.pdf' };
-            await useCase.execute(dtoValido, 'emp-uuid-100', archivo);
+            await useCase.execute(dtoValido, 'emp-uuid-100', archivo, 'EMPLEADO', { id: 'usuario-demo', ip: '127.0.0.1' });
 
             //Assert: Se verifica que la fecha límite se haya calculado correctamente y que se haya llamado a Prisma con los datos correctos, incluyendo el archivo de sustento
             expect(mockPrisma.solicitud.create).toHaveBeenCalledWith(expect.objectContaining({
@@ -140,7 +151,7 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
             };
 
             //Act & Assert: Se espera que se lance una BadRequestException y que no se haya llamado a Prisma para crear la solicitud
-            await expect(useCase.execute(dtoFechasInvalidas, 'emp-uuid-100')).rejects.toThrow(BadRequestException);
+            await expect(useCase.execute(dtoFechasInvalidas, 'emp-uuid-100', undefined, 'EMPLEADO', { id: 'usuario-demo', ip: '127.0.0.1' })).rejects.toThrow(BadRequestException);
             expect(mockPrisma.solicitud.create).not.toHaveBeenCalled();
         });
 
@@ -149,7 +160,7 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
             mockPrisma.empleados.findUnique.mockResolvedValue({ ...empleadoMock, activo: false });
 
             //Act & Assert: Se espera que se lance una NotFoundException y que no se haya llamado a Prisma para crear la solicitud
-            await expect(useCase.execute(dtoValido, 'emp-uuid-100')).rejects.toThrow(NotFoundException);
+            await expect(useCase.execute(dtoValido, 'emp-uuid-100', undefined, 'EMPLEADO', { id: 'usuario-demo', ip: '127.0.0.1' })).rejects.toThrow(NotFoundException);
             expect(mockPrisma.solicitud.create).not.toHaveBeenCalled();
         });
     });

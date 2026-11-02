@@ -1,0 +1,28 @@
+$kind: http-request
+description: |-
+  PATCH /api/contrato/:id/actualizar
+  Origen: src/modules/RRHH/contrato/controller/contrato.controller.ts:88
+  Handler: actualizarContrato
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/v1/rrhh/contrato/{{contrato_id}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "observacion": "Edición previa a subir el PDF firmado"
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+    language: text/javascript
+examples: .resources/PATCH · actualizarContrato.resources/examples
+order: 2000

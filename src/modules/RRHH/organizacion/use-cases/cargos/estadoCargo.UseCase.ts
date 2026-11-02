@@ -1,5 +1,5 @@
 //src/modules/RRHH/use-cases/organizacion/cargos/estadoCargo.UseCase.ts
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { obtenerCargo } from './helpers/validaciones.helper';
 import { verificarAreaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
@@ -29,18 +29,19 @@ export class EstadoCargoUseCase {
         where: {
           cargo_id: id,
           activo: true,
-          deleted_at: null
-        }
+          deleted_at: null,
+        },
       });
 
-      if (empleadosAsignados > 0) throw new BadRequestException({
-        title: 'Eliminación bloqueada',
-        detail: `Este cargo está siendo ocupado por ${empleadosAsignados} empleado(s) activo(s). Debe reasignarlos antes de desactivar el cargo.`
-      });
+      if (empleadosAsignados > 0)
+        throw new BadRequestException({
+          title: 'Eliminación bloqueada',
+          detail: `Este cargo está siendo ocupado por ${empleadosAsignados} empleado(s) activo(s). Debe reasignarlos antes de desactivar el cargo.`,
+        });
 
       return await this.prisma.cargo.update({
         where: { id },
-        data: { activo: false, deleted_at: new Date() }
+        data: { activo: false, deleted_at: new Date() },
       });
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
@@ -67,27 +68,28 @@ export class EstadoCargoUseCase {
     try {
       const cargo = await this.prisma.cargo.findUnique({ where: { id } });
 
-      if (!cargo) throw new NotFoundException({
-        title: 'Cargo no encontrado',
-        detail: 'El cargo especificado no existe.'
-      });
+      if (!cargo)
+        throw new NotFoundException({
+          title: 'Cargo no encontrado',
+          detail: 'El cargo especificado no existe.',
+        });
 
-      if (cargo.activo && cargo.deleted_at === null) throw new BadRequestException({
-        title: 'Cargo ya activo',
-        detail: `El cargo '${cargo.nombre}' ya se encuentra activo.`
-      });
-      
+      if (cargo.activo && cargo.deleted_at === null)
+        throw new BadRequestException({
+          title: 'Cargo ya activo',
+          detail: `El cargo '${cargo.nombre}' ya se encuentra activo.`,
+        });
+
       await verificarAreaActiva(this.prisma, cargo.id_area);
 
       return await this.prisma.cargo.update({
         where: { id },
         data: { activo: true, deleted_at: null },
-        include: { area: { select: { id: true, nombre: true } } }
+        include: { area: { select: { id: true, nombre: true } } },
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) 
-        throw error;
-      
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+
       throw new InternalServerErrorException({
         title: 'Error al reactivar el cargo',
         detail: error instanceof Error ? error.message : 'Fallo inesperado al restaurar el cargo.',

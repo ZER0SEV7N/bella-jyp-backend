@@ -1,12 +1,7 @@
 //src/modules/RRHH/services/reniec.adapter.ts
 //Adapter para interactuar con el servicio de RENIEC
 //Permite obtener información de un ciudadano peruano a partir de su número de documento (DNI)
-import {
-  Injectable,
-  Logger,
-  RequestTimeoutException,
-  BadGatewayException,
-} from '@nestjs/common';
+import { Injectable, Logger, RequestTimeoutException, BadGatewayException } from '@nestjs/common';
 
 //Interfaz para representar la respuesta de RENIEC
 export interface CiudadanoReniec {

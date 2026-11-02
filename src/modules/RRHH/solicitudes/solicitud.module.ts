@@ -2,11 +2,13 @@
 import { Module } from '@nestjs/common';
 //Casos de uso
 import { SolicitudController } from './controller/solicitud.controller';
-import { AsignarRevisionDeSolicitudUseCase } from './use-cases/asignarRevisionDeSolicitud.useCase';
 import { CrearSolicitudUseCase } from './use-cases/crearSolicitud.useCase';
 import { ObtenerDetalleSolicitudUseCase } from './use-cases/obtenerDetalleSolicitud.useCase';
-import { AnularSolicitudUseCase } from './use-cases/anularSolicitud.useCase';
+import { ObtenerHistorialSolicitudUseCase } from './use-cases/obtenerHistorialSolicitud.useCase';
+import { AsignarRevisionDeSolicitudUseCase } from './use-cases/asignarRevisionDeSolicitud.useCase';
 import { EvaluarSolicitudUseCase } from './use-cases/evaluarSolicitud.useCase';
+import { AnularSolicitudUseCase } from './use-cases/anularSolicitud.useCase';
+import { ObtenerSolicitudesUseCase } from './use-cases/obtenerSolicitudes.useCase';
 //Servicios
 import { PrismaService } from '@/common/prisma/prisma.service';
 
@@ -24,7 +26,9 @@ import { PrismaService } from '@/common/prisma/prisma.service';
         ObtenerDetalleSolicitudUseCase,
         AsignarRevisionDeSolicitudUseCase,
         EvaluarSolicitudUseCase,
-        AnularSolicitudUseCase
+        AnularSolicitudUseCase,
+        ObtenerHistorialSolicitudUseCase,
+        ObtenerSolicitudesUseCase
     ]
 })
 export class SolicitudModule {}

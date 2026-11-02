@@ -1,0 +1,39 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/payroll/dato-financiero/empleado/{{empleado_id}}"
+  method: PUT
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "sueldo_basico": 2500,
+        "password_confirmacion": "{{password_actor_actual}}"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "366"
+    date: Thu, 22 Oct 2026 05:03:34 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "a1fd50ff-2d0f-7cde-b8eb-4b729bbd4376",
+          "empleado_id": "018f4a7c-9999-7000-3333-000000000001",
+          "mensaje": "Datos financieros actualizados y re-encriptados correctamente."
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/payroll/dato-financiero/empleado/018f4a7c-9999-7000-3333-000000000001",
+          "timestamp": "2026-10-22T05:03:34.873Z"
+        }
+      }
+order: 1000

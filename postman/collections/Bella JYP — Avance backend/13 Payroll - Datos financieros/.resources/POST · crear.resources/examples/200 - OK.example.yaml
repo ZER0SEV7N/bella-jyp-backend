@@ -1,0 +1,43 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/payroll/dato-financiero"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "empleado_id": "{{empleado_id}}",
+        "id_regimen": "{{regimen_afp_id}}",
+        "sueldo_basico": 2400,
+        "regimen_salud": "ESSALUD_REGULAR",
+        "tipo_cuenta_sueldo": "SUELDO",
+        "tipo_cuenta_cts": "AHORROS"
+      }
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "341"
+    date: Thu, 22 Oct 2026 05:02:33 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "id": "a1fd50ff-2d0f-7cde-b8eb-4b729bbd4376",
+          "empleado_id": "018f4a7c-9999-7000-3333-000000000001",
+          "mensaje": "Datos financieros del colaborador registrados exitosamente."
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/v1/payroll/dato-financiero",
+          "timestamp": "2026-10-22T05:02:33.769Z"
+        }
+      }
+order: 1000

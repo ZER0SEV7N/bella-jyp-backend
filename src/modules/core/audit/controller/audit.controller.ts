@@ -1,15 +1,6 @@
 //src/modules/core/audit/controller/audit.controller.ts
 //Controlador para manejar las solicitudes relacionadas con la auditoría, como obtener logs de auditoría y registrar auditorías manuales.
-import {
-  Controller,
-  Get,
-  Query,
-  Post,
-  Body,
-  UseGuards,
-  Req,
-  UsePipes,
-} from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, UseGuards, Req, UsePipes, Param, ParseUUIDPipe } from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -19,14 +10,18 @@ import type { ObtenerAuditQueryDto, AuditLogDto } from '@jyp/shared-contracts';
 import { ObtenerLogsUseCase } from '../use-cases/obtenerLogs.useCase';
 import { RegistroAuditoriaUseCase } from '../use-cases/registroAuditoria.useCase';
 import type { FastifyRequest } from 'fastify';
-import {
-  ApiSwaggerAuditoriaController,
-  ApiSwaggerCrearAuditoria,
-  ApiSwaggerListarAuditoria,
-} from '../decorators/audit-swagger.decorator';
+import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria, ApiSwaggerObtenerAuditoriaPorId } from '../decorators/audit-swagger.decorator';
 
+/**
+ * Controlador para manejar las solicitudes relacionadas con la auditoría.
+ * Proporciona endpoints para obtener logs de auditoría y registrar auditorías manuales.
+ * Requiere autenticación mediante JWT y autorización basada en roles.
+ * Los roles permitidos son: ADMIN, CONTADOR, ASISTENTE, RRHH.
+ * @Uri /api/audit
+ * @roles ADMIN, CONTADOR, ASISTENTE, RRHH
+ */
 @ApiSwaggerAuditoriaController()
-@Controller('api/audit')
+@Controller('api/v1/core/audit')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class AuditController {
   constructor(
@@ -37,6 +32,7 @@ export class AuditController {
   /**
    * Obtiene los logs de auditoría con filtros y paginación.
    * Requiere que el usuario tenga el rol de 'ADMIN', 'CONTADOR'.
+   * @summary Listar logs de auditoría
    * GET /api/audit/logs
    * @param query: Parámetros de consulta para filtrar los logs de auditoría.
    * @query page: Número de página (opcional, por defecto 1).
@@ -49,7 +45,7 @@ export class AuditController {
    */
   @ApiSwaggerListarAuditoria()
   @Get('logs')
-  //@Roles('ADMIN', 'CONTADOR')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async obtenerLogs(
     @Query() queryParams: ObtenerAuditQueryDto,
@@ -62,7 +58,19 @@ export class AuditController {
    * Registra un log de auditoría manual.
    * Requiere que el usuario tenga el rol de 'ADMIN', 'CONTADOR' o 'ASISTENTE' o 'RRHH'.
    * POST /api/audit/logs
-   * @param payload: Datos del log de auditoría a registrar.
+   * @param payload: Objeto que contiene la información del log de auditoría a registrar.
+   * @dto : AuditLogDto : {
+   *    - id: string (UUID) - Identificador único del log de auditoría (opcional).
+   *    - usuario_id: string (UUID) - Identificador del usuario que realiza la acción (opcional).
+   *    - accion: string - Acción realizada (obligatorio).
+   *    - tabla_afectada: string - Nombre de la tabla afectada (obligatorio). 
+   *    - registro_id: string (UUID) - Identificador del registro afectado (obligatorio).
+   *    - valores_antes: Record<string, unknown> (opcional) - Valores antes de la acción.
+   *    - valores_despues: Record<string, unknown> (opcional) - Valores después de la acción.
+   *    - direccion_ip: string (IP) - Dirección IP del usuario que realiza la acción (opcional).
+   *  }
+   * @body: AuditLogDto - Objeto que contiene la información del log de auditoría a registrar.
+   * }
    * @returns: El log de auditoría registrado.
    */
   @ApiSwaggerCrearAuditoria()
@@ -71,5 +79,19 @@ export class AuditController {
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async registrarAuditoria(@Body() payload: AuditLogDto) {
     return await this.registroAuditoriaUseCase.execute(payload);
+  }
+
+  /**
+   * Obtiene un log de auditoría por su ID.
+   * Requiere que el usuario tenga el rol de 'ADMIN' o 'CONTADOR'.
+   * @param id - El ID del log de auditoría a obtener.
+   * @param req - La solicitud HTTP.
+   * @returns El log de auditoría correspondiente al ID proporcionado.
+   */
+  @Get('logs/:id')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  @ApiSwaggerObtenerAuditoriaPorId()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string, @Req() req: FastifyRequest & { user: { id: string; rol: string } }) {
+    return this.obtenerLogsUseCase.obtenerPorId(id, req.user);
   }
 }

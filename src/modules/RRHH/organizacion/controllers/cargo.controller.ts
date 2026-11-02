@@ -6,23 +6,34 @@ import { CrearCargoUseCase } from '../use-cases/cargos/crearCargo.useCase';
 import { EditarCargoUseCase } from '../use-cases/cargos/editarCargo.useCase';
 import { EstadoCargoUseCase } from '../use-cases/cargos/estadoCargo.useCase';
 import { ListarCargosUseCase } from '../use-cases/cargos/listarCargos.useCase';
+//Importar guardias de autenticación y autorización
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
-//Importar esquemas y DTOs para validación y tipado
-import { CrearCargoSchema, ActualizarCargoSchema } from '@jyp/shared-contracts';
-import type {CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto} from '@jyp/shared-contracts';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+//Importar esquemas y DTOs para validación y tipado
+import { CrearCargoSchema, ActualizarCargoSchema, ListarCargosQuerySchema } from '@jyp/shared-contracts';
+import type {CrearCargoDto, ActualizarCargoDto, ListarCargosQueryDto} from '@jyp/shared-contracts';
 //Importar decoradores de Swagger para documentación de la API
-import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarCargo, ApiSwaggerDesactivarCargo, ApiSwaggerReactivarCargo, ApiSwaggerListarCargos } from '../decorators/cargo-swagger.decorator';
+import { ApiSwaggerCargosController, ApiSwaggerCrearCargo, ApiSwaggerActualizarCargo, ApiSwaggerDesactivarCargo, ApiSwaggerReactivarCargo, ApiSwaggerListarCargos, ApiDetalleCargo } from '../decorators/cargo-swagger.decorator';
 
 /**
  * Controlador para gestionar los cargos en el módulo de RRHH.
+ * Los endpoints expuestos permiten crear, actualizar, desactivar/reactivar y listar cargos, así como obtener detalles de un cargo específico.
+ * Se aplican validaciones de seguridad y autorización mediante JWT y roles, asegurando que solo usuarios con los permisos adecuados puedan realizar estas operaciones.
+ * Además, se utilizan esquemas de validación para garantizar la integridad de los datos recibidos en las solicitudes.
+ * Los endpoints dispuestos son:
+ * - POST /api/v1/rrhh/cargo/crear: Crear un nuevo cargo.
+ * - PUT /api/v1/rrhh/cargo/:id: Actualizar un cargo existente.
+ * - PATCH /api/v1/rrhh/cargo/:id/reactivar: Reactivar un cargo desactivado.
+ * - DELETE /api/v1/rrhh/cargo/:id/desactivar: Desactivar un cargo (soft delete).
+ * - GET /api/v1/rrhh/cargo: Listar cargos con soporte para paginación y filtros.
+ * - GET /api/v1/rrhh/cargo/:id: Obtener detalles de un cargo por su ID.
  * @requires - JWT Bearer token para autenticación.
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 @ApiSwaggerCargosController()
-@Controller('api/rrhh/cargo')
+@Controller('api/v1/rrhh/cargo')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class CargoController {
   constructor(
@@ -35,7 +46,7 @@ export class CargoController {
   /**
    * Crear un nuevo cargo
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden crear un nuevo cargo.
-   * @POST /api/rrhh/cargo/crear
+   * @POST /api/v1/rrhh/cargo/crear
    * @DTO : {
    *    "id_area": string (UUID válido),
    *    "nombre": string (2-100 carácteres),
@@ -58,7 +69,7 @@ export class CargoController {
   /**
    * Editar un cargo existente
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden editar un cargo existente.
-   * @PUT /api/rrhh/cargo/:id/actualizar
+   * @PUT /api/v1/rrhh/cargo/:id
    * @param id - string (UUID)
    * @DTO : {
    *    "id_area"?: string (UUID válido),
@@ -72,8 +83,8 @@ export class CargoController {
    *           400 Bad Request - Datos inválidos, nombre duplicado en el área destino o banda salarial inconsistente.
    */
   @ApiSwaggerActualizarCargo()
-  @Put(':id/actualizar')
-  @UsePipes(new ZodValidationPipe(ActualizarCargoSchema))
+  @Put(':id')
+  @UsePipes(new ZodValidationPipe(ActualizarCargoSchema, true))
   @Roles('ADMIN', 'RRHH')
   async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ActualizarCargoDto) {
     return await this.editarCargoUseCase.execute(id, payload);
@@ -82,7 +93,7 @@ export class CargoController {
   /**
    * Eliminar un cargo (SOFT DELETE)
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden eliminar un cargo.
-   * @DELETE /api/rrhh/cargo/@param /desactive
+   * @DELETE /api/v1/rrhh/cargo/@param /desactivar
    * @param id string - uuid
    */
   @ApiSwaggerDesactivarCargo()
@@ -97,11 +108,11 @@ export class CargoController {
    * Reactivar un cargo que se encuentra desactivado
    * Solamente los usuarios con rol de "ADMIN" o "RRHH" pueden reactivar un cargo desactivado.
    * Valida que el área a la que pertenece se encuentre activa.
-   * @PATCH /api/rrhh/cargo/:id/reactive
+   * @PATCH /api/v1/rrhh/cargo/:id/reactivar
    * @param id - string (UUID)
    */
   @ApiSwaggerReactivarCargo()
-  @Patch(':id/reactive')
+  @Patch(':id/reactivar')
   @HttpCode(HttpStatus.OK)
   @Roles('ADMIN', 'RRHH')
   async reactive(@Param('id', ParseUUIDPipe) id: string) {
@@ -111,7 +122,7 @@ export class CargoController {
   /**
    * Listar cargos con paginación y filtros
    * Permite listar cargos con soporte de búsqueda global y filtros por área o estado.
-   * @GET /api/rrhh/cargo
+   * @GET /api/v1/rrhh/cargo
    * @Query queryParams : ListarCargosQueryDto {
    *    "page"?: number (default 1),
    *    "limit"?: number (default 10, max 100),
@@ -124,7 +135,24 @@ export class CargoController {
   @ApiSwaggerListarCargos()
   @Get()
   @Roles('ADMIN', 'RRHH')
+  @UsePipes(new ZodValidationPipe(ListarCargosQuerySchema))
   async listarCargos(@Query() queryParams: ListarCargosQueryDto) {
     return await this.listarCargosUseCase.listar(queryParams);
+  }
+
+  /**
+   * Obtener detalles de un cargo por su ID
+   * Permite obtener información detallada de un cargo específico, incluyendo su área y cantidad de empleados activos asociados.
+   * @GET /api/v1/rrhh/cargo/:id
+   * @param id - string (UUID)
+   * @returns Un objeto con los detalles del cargo, su área y metadatos asociados.
+   *          404 Not Found - El cargo con el ID proporcionado no existe o fue eliminado.
+   * 
+   */
+  @Get(':id')
+  @Roles('ADMIN', 'RRHH')
+  @ApiDetalleCargo()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarCargosUseCase.obtenerPorId(id);
   }
 }

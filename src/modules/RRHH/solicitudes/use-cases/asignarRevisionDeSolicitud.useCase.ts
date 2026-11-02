@@ -1,6 +1,9 @@
 //src/modules/RRHH/solicitudes/use-cases/asignarRevisionDeSolicitud.useCase.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { SOLICITUD_INCLUDE, obtenerSolicitudOperativa, verificarRevisorActivo } from '../helpers/validacionesSolicitud.helper';
+import { Prisma } from '@prisma/client';
+import { transaccionAuditada  } from '@/common/utils/transaccion-auditada.util';
 
 /**
  * Caso de uso para asignar la revisión de una solicitud de RRHH a un responsable.
@@ -8,46 +11,50 @@ import { PrismaService } from '@/common/prisma/prisma.service';
  */
 @Injectable()
 export class AsignarRevisionDeSolicitudUseCase {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
     /**
      * Ejecuta el caso de uso para asignar la revisión de una solicitud de RRHH a un responsable.
      * @param solicitudId - El ID de la solicitud a la que se le asignará un responsable.
-     * @param usuarioId - El ID del usuario que será asignado como responsable de la revisión. 
+     * @param usuarioId - El ID del usuario que será asignado como responsable de la revisión.
      */
-    async execute(solicitudId: string, usuarioId: string){
-        const solicitud = await this.prisma.solicitud.findUnique({
-            where: { id: solicitudId, deleted_at: null },
-            include: { responsable: { select: { id: true, empleados: { select: { nombre: true, apellido: true } } } } }
+    async execute(solicitudId: string, usuarioId: string, ip = '127.0.0.1') {
+        //Verificar que el revisor esté activo y tenga permisos para revisar solicitudes
+        await verificarRevisorActivo(this.prisma, usuarioId);
+
+        //Validar que la solicitud exista y esté en un estado que permita la asignación de revisión
+        const solicitud = await obtenerSolicitudOperativa(this.prisma, solicitudId);
+        if (solicitud.estado !== 'PENDIENTE' && solicitud.estado !== 'EN_REVISION') throw new ConflictException({
+            title: 'Solicitud finalizada',
+            detail: `La solicitud ${solicitud.codigo} se encuentra en estado ${solicitud.estado}.`,
         });
 
-        if(!solicitud) throw new NotFoundException('La solicitud especificada no existe o ha sido eliminada.');
+        //Verificar si la solicitud ya tiene un responsable asignado y si es diferente al usuario que intenta tomarla
+        if (solicitud.responsable_id && solicitud.responsable_id !== usuarioId)
+            throw new ConflictException('La solicitud ya se encuentra tomada por otro revisor.');
 
-        if(solicitud.estado === 'APROBADA' || solicitud.estado === 'RECHAZADA' || solicitud.estado === 'ANULADA') 
-            throw new BadRequestException(`La solicitud ya se encuentra dictaminada con estado '${solicitud.estado}'.`);
-        
-        if (solicitud.responsable_id && solicitud.responsable_id !== usuarioId) {
-            const nombreResponsable = solicitud.responsable?.empleados
-                ? `${solicitud.responsable.empleados.nombre} ${solicitud.responsable.empleados.apellido}`
-                : 'otro revisor';
+        //Repetir la toma por el mismo revisor no genera otra actualización ni otro evento de auditoría.
+        if (solicitud.estado === 'EN_REVISION' && solicitud.responsable_id === usuarioId)
+            return this.prisma.solicitud.findUniqueOrThrow({
+                where: { id: solicitudId, estado: 'EN_REVISION', responsable_id: usuarioId, deleted_at: null },
+                include: SOLICITUD_INCLUDE,
+            }).catch(() => { throw new ConflictException('La solicitud ya se encuentra tomada por otro revisor.'); });
 
-            throw new BadRequestException(`La solicitud ya se encuentra tomada en revision por ${nombreResponsable}.`)
+        //Realizar la transacción para actualizar el responsable de la solicitud y cambiar su estado a 'EN_REVISION'
+        try {
+            return await transaccionAuditada(this.prisma, { id: usuarioId, ip }, (tx) =>
+                tx.solicitud.update({
+                    where: { id: solicitud.id, estado: solicitud.estado, responsable_id: solicitud.responsable_id, deleted_at: null },
+                    data: { responsable_id: usuarioId, estado: 'EN_REVISION' },
+                    include: SOLICITUD_INCLUDE,
+            }));
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') throw new ConflictException({
+                title: 'Solicitud modificada',
+                detail: 'Otro usuario modificó la solicitud. Actualice el detalle antes de continuar.'
+            });
+
+            throw error;
         }
-        
-        //Si la solicitud ya tiene un responsable asignado 
-        //y es el mismo que el usuario actual, no se realiza ninguna acción adicional
-        return await this.prisma.solicitud.update({
-            where: { id: solicitudId },
-            data: { responsable_id: usuarioId, estado: 'EN_REVISION'},
-            include: {
-                responsable: {
-                    select: {
-                        id: true,
-                        email: true,
-                        empleados: { select: { nombre: true, apellido: true } }
-                    }
-                }
-            }
-        });
     }
 }

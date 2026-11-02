@@ -1,0 +1,4 @@
+area,empleados,ingresos_brutos,descuentos,neto,reducciones_tiempo,remuneracion_devengada,essalud,vida_ley,costo_empleador
+"Oficina DEMO",4,7800.00,1010.40,6789.60,0.00,7800.00,702.00,7.80,8509.80
+"Seguridad DEMO",3,5700.00,739.24,4960.76,0.00,5700.00,513.00,5.70,6218.70
+"Limpieza DEMO",3,6000.00,776.56,5223.44,0.00,6000.00,540.00,6.00,6546.00

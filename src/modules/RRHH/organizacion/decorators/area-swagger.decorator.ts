@@ -230,3 +230,34 @@ export function ApiSwaggerListarAreas() {
     })
   );
 }
+
+export function ApiDetalleArea() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Detalle de Área',
+      description: 'Obtiene los detalles de un área específica por su ID. Requiere rol ADMIN o RRHH.'
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'ID del área a consultar (UUID).',
+      required: true,
+      schema: { type: 'string', format: 'uuid' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Detalles del área obtenido exitosamente.'
+    }), 
+    ApiResponse({
+      status: 404,
+      description: 'No encontrado. El área con el ID proporcionado no existe.'
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado. El usuario no tiene un token válido.'
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    })
+  );
+}

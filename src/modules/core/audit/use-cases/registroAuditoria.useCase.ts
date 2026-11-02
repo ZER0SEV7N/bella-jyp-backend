@@ -1,11 +1,13 @@
 //src/modules/core/audit/use-cases/RegistroAuditoria.useCase.ts
 //Caso de uso para registrar auditoría en el sistema
+import { crearSnapshotAuditoria } from '@/common/utils/audit-snaphot.util';
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '@/common/cls/cls.constants';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { AuditLogDto } from '@jyp/shared-contracts';
 import { ClsService } from 'nestjs-cls';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
+import { Prisma } from '@prisma/client';
 
 /**
  * Caso de uso para registrar auditoría en el sistema.
@@ -35,11 +37,12 @@ export class RegistroAuditoriaUseCase {
         if (value === undefined || value === null) 
           return value;
         
+        //Utiliza structuredClone si está disponible, 
+        //de lo contrario utiliza la funcion crearSnapshotAuditoria para clonar el valor y ocultar credenciales sensibles.
         if (typeof structuredClone === 'function') 
-          return structuredClone(value);
+          return crearSnapshotAuditoria(value) as T;
         
-
-        return structuredClone(value);
+        return crearSnapshotAuditoria(value) as T;
       };
 
       const auditLog = await this.prisma.audit_log.create({
@@ -49,8 +52,12 @@ export class RegistroAuditoriaUseCase {
           accion: payload.accion,
           tabla_afectada: payload.tabla_afectada,
           registro_id: payload.registro_id,
-          valores_antes: payload.valores_antes ? cloneAuditValue(payload.valores_antes) : null,
-          valores_despues: payload.valores_despues ? cloneAuditValue(payload.valores_despues) : null,
+          valores_antes: payload.valores_antes
+            ? (cloneAuditValue(payload.valores_antes) as Prisma.InputJsonValue)
+            : null,
+          valores_despues: payload.valores_despues
+            ? (cloneAuditValue(payload.valores_despues) as Prisma.InputJsonValue)
+            : null,
           direccion_ip: ipAddress,
         },
       });

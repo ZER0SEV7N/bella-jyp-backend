@@ -1,0 +1,55 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/payroll/bancos"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "648"
+    date: Thu, 22 Oct 2026 05:06:22 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000005",
+            "nombre": "BANBIF"
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000001",
+            "nombre": "BANCO DE CREDITO DEL PERU (BCP)"
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000007",
+            "nombre": "BANCO DE LA NACION"
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000006",
+            "nombre": "BANCO PICHINCHA"
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000002",
+            "nombre": "BBVA PERU"
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000003",
+            "nombre": "INTERBANK"
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000004",
+            "nombre": "SCOTIABANK PERU"
+          }
+        ],
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/payroll/bancos",
+          "timestamp": "2026-10-22T05:06:22.876Z"
+        }
+      }
+order: 1000

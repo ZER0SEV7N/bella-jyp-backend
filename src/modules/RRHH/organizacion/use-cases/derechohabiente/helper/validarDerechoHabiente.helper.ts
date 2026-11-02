@@ -12,17 +12,18 @@ import dayjs from 'dayjs';
  * @throws ConflictException si el empleado tiene un estado de baja o inactivo.
  */
 export async function validarEmpleadoTitular(prisma: PrismaService, empleadoId: string) {
-    const empleado = await prisma.empleados.findUnique({
-        where: { id: empleadoId, deleted_at: null},
-        select: { id: true, activo: true, asig_familiar: true } 
-    });
- 
-    if(!empleado || !empleado.activo) throw new NotFoundException({
-        title: 'Colaborador Titular Inválido',
-        detail: 'El colaborador titular no existe, ha sido cesado o está inactivo.'
+  const empleado = await prisma.empleados.findUnique({
+    where: { id: empleadoId, deleted_at: null },
+    select: { id: true, activo: true, asig_familiar: true },
+  });
+
+  if (!empleado || !empleado.activo)
+    throw new NotFoundException({
+      title: 'Colaborador Titular Inválido',
+      detail: 'El colaborador titular no existe, ha sido cesado o está inactivo.',
     });
 
-    return empleado;
+  return empleado;
 }
 
 /**
@@ -33,22 +34,28 @@ export async function validarEmpleadoTitular(prisma: PrismaService, empleadoId: 
  * @param derechoHabienteId (Opcional) ID del derechohabiente a excluir de la validación (útil para actualizaciones).
  * @throws ConflictException si el documento ya está registrado para otro derechohabiente del mismo empleado titular.
  */
-export async function validarDocumentoDerechohabiente(prisma: PrismaService, empleadoId: string, nroDocumento: string, derechoHabienteId?: string): Promise<void> {
-    const documentoLimpio = nroDocumento.trim()
+export async function validarDocumentoDerechohabiente(
+  prisma: PrismaService,
+  empleadoId: string,
+  nroDocumento: string,
+  derechoHabienteId?: string
+): Promise<void> {
+  const documentoLimpio = nroDocumento.trim();
 
-    const duplicado = await prisma.derechohabientes.findFirst({
-        where : {
-            empleado_id: empleadoId,
-            nro_documento: documentoLimpio,
-            ...(derechoHabienteId ? { id: { not: derechoHabienteId } } : {}), //Excluir el derechohabiente actual si se proporciona un ID (útil para actualizaciones)
-            deleted_at: null
-        },
-        select: { id: true }
-    });
+  const duplicado = await prisma.derechohabientes.findFirst({
+    where: {
+      empleado_id: empleadoId,
+      nro_documento: documentoLimpio,
+      ...(derechoHabienteId ? { id: { not: derechoHabienteId } } : {}), //Excluir el derechohabiente actual si se proporciona un ID (útil para actualizaciones)
+      deleted_at: null,
+    },
+    select: { id: true },
+  });
 
-    if(duplicado) throw new ConflictException({
-        title: 'Derechohabiente Duplicado',
-        detail: `El familiar con documento '${documentoLimpio}' ya se encuentra registrado para este colaborador.`,
+  if (duplicado)
+    throw new ConflictException({
+      title: 'Derechohabiente Duplicado',
+      detail: `El familiar con documento '${documentoLimpio}' ya se encuentra registrado para este colaborador.`,
     });
 }
 
@@ -59,28 +66,29 @@ export async function validarDocumentoDerechohabiente(prisma: PrismaService, emp
  * @throws BadRequestException si la fecha de nacimiento es futura o si la edad no cumple con las restricciones del vínculo especificado.
  */
 export function validarEdadSegunVinculo(vinculo: string, fechaNacimiento: Date): void {
-    const edad = dayjs().diff(dayjs(fechaNacimiento), 'year');
+  const edad = dayjs().diff(dayjs(fechaNacimiento), 'year');
 
-    if (edad < 0) throw new BadRequestException({
-        title: 'Fecha de Nacimiento Inválida',
-        detail: 'La fecha de nacimiento no puede ser futura.',
+  if (edad < 0)
+    throw new BadRequestException({
+      title: 'Fecha de Nacimiento Inválida',
+      detail: 'La fecha de nacimiento no puede ser futura.',
     });
-  
-    if (vinculo === 'HIJO_MENOR' && edad >= 18) throw new BadRequestException({
-        title: 'Inconsistencia de Edad',
-        detail: `Un hijo menor de edad debe tener menos de 18 años (edad calculada: ${edad} años).`,
-    });
-  
 
-    if (vinculo === 'HIJO_MAYOR_ESTUDIANTE' && (edad < 18 || edad > 28)) throw new BadRequestException({
-        title: 'Inconsistencia de Edad',
-        detail: `Un hijo mayor estudiante debe tener entre 18 y 28 años cumplidos (edad calculada: ${edad} años).`
+  if (vinculo === 'HIJO_MENOR' && edad >= 18)
+    throw new BadRequestException({
+      title: 'Inconsistencia de Edad',
+      detail: `Un hijo menor de edad debe tener menos de 18 años (edad calculada: ${edad} años).`,
     });
-  
 
-    if (vinculo === 'HIJO_MAYOR_INCAPACITADO' && edad < 18) throw new BadRequestException({
-        title: 'Inconsistencia de Edad',
-        detail: `La figura de hijo mayor incapacitado aplica a partir de los 18 años (edad calculada: ${edad} años).`,
+  if (vinculo === 'HIJO_MAYOR_ESTUDIANTE' && (edad < 18 || edad > 28))
+    throw new BadRequestException({
+      title: 'Inconsistencia de Edad',
+      detail: `Un hijo mayor estudiante debe tener entre 18 y 28 años cumplidos (edad calculada: ${edad} años).`,
     });
-  
+
+  if (vinculo === 'HIJO_MAYOR_INCAPACITADO' && edad < 18)
+    throw new BadRequestException({
+      title: 'Inconsistencia de Edad',
+      detail: `La figura de hijo mayor incapacitado aplica a partir de los 18 años (edad calculada: ${edad} años).`,
+    });
 }

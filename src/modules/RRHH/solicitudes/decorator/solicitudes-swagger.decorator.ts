@@ -1,6 +1,6 @@
 //src/modules/RRHH/solicitudes/decorator/solicitudes-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes, ApiExtension } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes, ApiExtension, ApiQuery } from '@nestjs/swagger';
 
 /**
  * Decorador Swagger para documentar el controlador de solicitudes en OpenAPI.
@@ -19,8 +19,7 @@ export function ApiSwaggerCrearSolicitud() {
   return applyDecorators(
     ApiOperation({
       summary: 'Crear Solicitud de Permiso / Vacaciones / Descanso',
-      description:
-        'Registra una solicitud formal de colaborador con generación automática de código correlativo (SOL-YYYY-NNN). Soporta subida de archivos adjuntos (PDF o Word, máx. 5MB) mediante multipart/form-data.',
+      description: 'Registra una solicitud formal de colaborador con generación automática de código correlativo (SOL-YYYY-NNN). Soporta subida de archivos adjuntos (PDF o Word, máx. 5MB) mediante multipart/form-data.',
     }),
     ApiConsumes('multipart/form-data', 'application/json'),
     ApiBody({
@@ -65,7 +64,7 @@ export function ApiSwaggerCrearSolicitud() {
           },
           origen: {
             type: 'string',
-            enum: ['PORTAL_EMPLEADO', 'RRHH_MANUAL'],
+            enum: ['PORTAL_EMPLEADO', 'MANUAL_RRHH', 'APLICACION_MOVIL'],
             default: 'PORTAL_EMPLEADO',
           },
           archivo: {
@@ -91,6 +90,24 @@ export function ApiSwaggerCrearSolicitud() {
   );
 }
 
+export function ApiSwaggerListarSolicitudes() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Listar solicitudes',
+      description: 'Obtiene el listado paginado de solicitudes con filtros por estado, tipo, área, texto y rango de fechas.'
+    }),
+    ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
+    ApiQuery({ name: 'limit', required: false, type: Number, example: 10, maximum: 100 }),
+    ApiQuery({ name: 'estado', required: false, enum: ['PENDIENTE', 'EN_REVISION', 'APROBADA', 'RECHAZADA', 'ANULADA'] }),
+    ApiQuery({ name: 'tipo', required: false, enum: ['VACACIONES', 'ADELANTO_VACACIONES', 'VENTA_VACACIONES', 'LICENCIA_MEDICA', 'PERMISO', 'JUSTIFICACION_ASISTENCIA', 'ACTUALIZACION_DATOS', 'ADELANTO_SUELDO', 'RENUNCIA'] }),
+    ApiQuery({ name: 'area_id', required: false, type: String, format: 'uuid' }),
+    ApiQuery({ name: 'search', required: false, type: String }),
+    ApiQuery({ name: 'fecha_desde', required: false, type: String, example: '2026-01-01' }),
+    ApiQuery({ name: 'fecha_hasta', required: false, type: String, example: '2026-12-31' }),
+    ApiResponse({ status: 200, description: 'Listado paginado de solicitudes.' })
+  );
+}
+
 /**
  * Documentación de la consulta detallada de una solicitud por ID o código.
  */
@@ -98,8 +115,7 @@ export function ApiSwaggerObtenerDetalleSolicitud() {
   return applyDecorators(
     ApiOperation({
       summary: 'Obtener Detalle de Solicitud',
-      description:
-        'Recupera la información integral de una solicitud por su UUID o código correlativo (ej. SOL-2026-001), calculando antigüedad laboral y alertas de urgencia.',
+      description: 'Recupera la información integral de una solicitud por su UUID o código correlativo (ej. SOL-2026-001), calculando antigüedad laboral y alertas de urgencia.',
     }),
     ApiParam({
       name: 'idOCodigo',
@@ -124,8 +140,7 @@ export function ApiSwaggerAsignarRevision() {
   return applyDecorators(
     ApiOperation({
       summary: 'Tomar Solicitud en Revisión',
-      description:
-        'Asigna la solicitud al usuario autenticado (ADMIN o RRHH) y cambia su estado a EN_REVISION.',
+      description: 'Asigna la solicitud al usuario autenticado (ADMIN o RRHH) y cambia su estado a EN_REVISION.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({
@@ -133,13 +148,14 @@ export function ApiSwaggerAsignarRevision() {
       description: 'UUID de la solicitud a tomar en revisión.',
       schema: { type: 'string', format: 'uuid' },
     }),
+    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
     ApiResponse({
       status: 200,
       description: 'Solicitud tomada en revisión exitosamente.',
     }),
     ApiResponse({
       status: 400,
-      description: 'La solicitud ya fue dictaminada o ya está tomada por otro revisor.',
+      description: 'Usuario revisor inválido.',
     }),
     ApiResponse({
       status: 404,
@@ -155,8 +171,7 @@ export function ApiSwaggerEvaluarSolicitud() {
   return applyDecorators(
     ApiOperation({
       summary: 'Evaluar Solicitud (Aprobar o Rechazar)',
-      description:
-        'Dictamina una solicitud en estado PENDIENTE o EN_REVISION. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.',
+      description: 'Dictamina exclusivamente una solicitud EN_REVISION tomada por el usuario autenticado. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({
@@ -182,13 +197,14 @@ export function ApiSwaggerEvaluarSolicitud() {
         },
       },
     }),
+    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
     ApiResponse({
       status: 200,
       description: 'Solicitud evaluada y dictaminada exitosamente.',
     }),
     ApiResponse({
       status: 400,
-      description: 'Solicitud ya dictaminada previamente o rechazo sin motivo descriptivo.',
+      description: 'Rechazo sin motivo descriptivo.',
     }),
     ApiResponse({
       status: 404,
@@ -203,9 +219,8 @@ export function ApiSwaggerEvaluarSolicitud() {
 export function ApiSwaggerAnularSolicitud() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Anular Solicitud (Baja Lógica)',
-      description:
-        'Aplica una baja lógica a una solicitud que no haya sido aprobada formalmente, registrando el motivo de anulación.',
+      summary: 'Anular Solicitud',
+      description: 'Anula una solicitud PENDIENTE o EN_REVISION, exige un motivo y conserva el registro consultable. No modifica deleted_at.',
     }),
     ApiExtension('x-roles', ['ADMIN', 'RRHH']),
     ApiParam({
@@ -225,17 +240,28 @@ export function ApiSwaggerAnularSolicitud() {
         },
       },
     }),
+    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
     ApiResponse({
       status: 200,
       description: 'Solicitud anulada exitosamente.',
     }),
     ApiResponse({
       status: 400,
-      description: 'No se puede anular una solicitud formalmente aprobada o motivo insuficiente.',
+      description: 'Motivo de anulación inválido.',
     }),
     ApiResponse({
       status: 404,
       description: 'Solicitud no encontrada.',
     }),
   );
+}
+
+/** Historial administrativo de una solicitud, incluyendo anulaciones. */
+export function ApiSwaggerObtenerHistorialSolicitud() {
+    return applyDecorators(
+        ApiOperation({ summary: 'Obtener historial de solicitud', description: 'Consulta por UUID o código. El EMPLEADO solo puede consultar su propia solicitud; los registros proceden de audit_log.' }),
+        ApiParam({ name: 'idOCodigo', description: 'UUID o código SOL-YYYY-NNN.', example: 'SOL-2026-001' }),
+        ApiResponse({ status: 200, description: 'Historial ordenado cronológicamente; puede estar vacío si no hay eventos registrados.' }),
+        ApiResponse({ status: 404, description: 'Solicitud inexistente o fuera del acceso del colaborador.' })
+    );
 }

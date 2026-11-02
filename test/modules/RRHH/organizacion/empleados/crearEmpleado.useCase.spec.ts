@@ -1,3 +1,5 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+// Actualización AAA: los datos de Arrange contienen el legajo obligatorio del modelo actual.
 //test/modules/RRHH/organizacion/empleados/crearEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { CrearEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/crearEmpleado.useCase';
@@ -39,10 +41,12 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     cargo_id: '018f4a7c-cargo-0000-0000-000000000001',
     area_id: '018f4a7c-area-0000-0000-000000000001',
     documento_id: '018f4a7c-tdoc-0000-0000-000000000001',
-    estado_empleado_id: '018f4a7c-est-0000-0000-000000000001',
     nro_documento: '70112233',
     nombre: 'Juan',
     apellido: 'Perez',
+    email: 'demo@example.test', telefono: '900000001', sexo: 'MASCULINO', estado_civil: 'SOLTERO',
+    nacionalidad: 'PERUANA', direccion: 'Dirección demo', referencia_direccion: 'Referencia demo',
+    ubigeo: '150101', distrito: 'LIMA', provincia: 'LIMA', departamento: 'LIMA',
     asig_familiar: false,
     fecha_nacimiento: '1995-05-15T00:00:00.000Z',
     fecha_inicio: '2026-09-01T00:00:00.000Z',
@@ -89,6 +93,9 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
           nro_documento: '70112233',
           nombre: 'Juan',
           apellido: 'Perez',
+    email: 'demo@example.test', telefono: '900000001', sexo: 'MASCULINO', estado_civil: 'SOLTERO',
+    nacionalidad: 'PERUANA', direccion: 'Dirección demo', referencia_direccion: 'Referencia demo',
+    ubigeo: '150101', distrito: 'LIMA', provincia: 'LIMA', departamento: 'LIMA',
           activo: true
         })
       }));

@@ -6,7 +6,7 @@ import { VerificarExpiracionContratosUseCase } from '../use-cases/verificarExpir
 
 /**
  * Cron job para verificar contratos próximos a expirar.
- * Este cron job se ejecuta cada 30 días y verifica cuántos contratos están próximos a vencer.
+ * Este cron job se ejecuta cada día a medianoche (hora de Lima) y verifica cuántos contratos están próximos a vencer.
  * Si se encuentran contratos próximos a expirar, se emite un evento 'contratos.expirar.check' con la cantidad de contratos.
  *
  */
@@ -16,21 +16,21 @@ export class ContratosCron {
 
   constructor(
     private readonly verificarExpiracion: VerificarExpiracionContratosUseCase,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { timeZone: 'America/Lima', waitForCompletion: true })
   async revisarContratosPorVencer() {
     const cantidad = await this.verificarExpiracion.execute();
 
-    if (cantidad > 0) 
+    if (cantidad > 0)
       //Disparar el evento para notificaciones y alertas
       this.eventEmitter.emit('alerta.global', {
         titulo: 'Contratos por Vencer',
         mensaje: `Existen ${cantidad} contratos que vencerán en los próximos 30 días. Por favor, revise el panel.`,
         tipo: 'WARNING',
         modulo_origen: 'CONTRATOS',
-        roles_destino: ['ADMIN', 'RRHH']
+        roles_destino: ['ADMIN', 'RRHH'],
       });
   }
 }

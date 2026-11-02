@@ -1,11 +1,6 @@
 //src/common/interceptors/audit-context.interceptor.ts
 //Interceptor para capturar el contexto de auditoría (usuario e IP) en cada solicitud HTTP
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { Observable } from 'rxjs';
 import type { FastifyRequest } from 'fastify';

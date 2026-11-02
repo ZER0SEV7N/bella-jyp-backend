@@ -4,6 +4,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import 'dotenv/config';
 import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
@@ -18,10 +19,7 @@ import { IdentityGenerator } from '../utils/uuid.util';
  * - Utilizar ClsService para obtener información del contexto de la solicitud (usuario e IP) para auditoría.
  */
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   //Logger para registrar eventos y errores relacionados con la base de datos
   private readonly logger = new Logger(PrismaService.name);
 
@@ -40,11 +38,7 @@ export class PrismaService
 
     //Inicializar el motor nativo con el adaptador inyectado
     super({ adapter,
-      log:
-        process.env.NODE_ENV === 'development'
-          ? ['query', 'error', 'warn']
-          : ['error'],
-    });
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'] });
 
     //Middleware para inyectar información de auditoría en cada operación de Prisma
     const clsService = this.cls; //Referencia al servicio de ClsService para uso dentro del middleware
@@ -59,6 +53,9 @@ export class PrismaService
             //Omitir tablas de auditoría para evitar recursión infinita
             if(!model || ['audit_log', 'carga_masiva_jobs', 'anotacion_tareas', 'tokens_seguridad'].includes(model)) return query(args);
 
+            //Estas tablas tienen auditoría SQL atómica; no se duplica fuera de su transacción.
+            if (['asistencia_marcacion', 'asistencia_decision', 'asistencia_jornada', 'asistencia_calendario', 'incidencias_mes', 'historial_planillas', 'adelanto_desembolso', 'novedad_planilla', 'solicitud'].includes(model)) return query(args);
+
             //Filtar solo operaciones DML (Create, Update, Delete, Upsert) para inyectar auditoría
             const isDML = ['create', 'update', 'delete', 'upsert'].includes(operation);
             if (!isDML) return query(args);
@@ -68,7 +65,7 @@ export class PrismaService
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
             if (operation === 'update' || operation === 'delete') {
               try {
-                valoresAntes = await getModelClient(model).findUnique({ where: (args as any).where });
+                valoresAntes = await getModelClient(model).findUnique({ where: args.where });
               } catch (error) {
                 localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`, error);
               }
@@ -95,7 +92,7 @@ export class PrismaService
                   usuario_id: userId,
                   accion: operation.toUpperCase(),
                   tabla_afectada: model,
-                  registro_id: (resultado as any)?.id || (args as any).where?.id || IdentityGenerator.generateId(),
+                  registro_id: getId(resultado) || getWhereId(args) || IdentityGenerator.generateId(),
                   valores_antes: valoresAntes
                     ? structuredClone(valoresAntes)
                     : null,
@@ -141,4 +138,33 @@ export class PrismaService
     await this.$disconnect();
     this.logger.log('Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).');
   }
+}
+
+/**
+ * Función para obtener el ID de un registro a partir de un objeto que puede contener un campo 'id'.
+ * Si el objeto no tiene un campo 'id' o si el valor de 'id' no es una cadena, retorna undefined.
+ * @param value - El objeto del cual se desea obtener el ID.
+ * @returns - El ID del registro si está presente y es una cadena, o undefined si no se puede determinar.
+ */
+function getId(value: unknown): string | undefined {
+  if (typeof value !== 'object' || value === null || !('id' in value)) {
+    return undefined;
+  }
+
+  const id = value.id;
+  return typeof id === 'string' ? id : undefined;
+}
+
+/**
+ * Función para obtener el ID de un registro a partir de los argumentos de una operación de Prisma.
+ * Si los argumentos no contienen un objeto 'where' o si el 'where' no tiene un campo 'id', retorna undefined.
+ * @param args - Los argumentos de la operación de Prisma, que pueden incluir un objeto 'where' con el ID del registro.
+ * @returns - El ID del registro si está presente, o undefined si no se puede determinar.
+ */
+function getWhereId(args: unknown): string | undefined {
+  if (typeof args !== 'object' || args === null || !('where' in args)) {
+    return undefined;
+  }
+
+  return getId(args.where);
 }

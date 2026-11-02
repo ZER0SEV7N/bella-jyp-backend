@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import 'dotenv/config';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import fastifyCookie from '@fastify/cookie';
@@ -49,7 +50,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   //Ruta para acceder a la documentación de Swagger
-  SwaggerModule.setup('api/docs', app, document, {
+  SwaggerModule.setup('api/v1/docs', app, document, {
     swaggerOptions: { persistAuthorization: true } //Mantener el token de autorización en la interfaz de Swagger después de recargar la página
   });
 

@@ -33,9 +33,10 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
 
   // Mock del servicio Prisma para simular la interacción con la base de datos
   const mockPrismaService = {
+    empleados: { findUnique: jest.fn().mockResolvedValue({ afp_fecha_filiacion: null }) },
     dato_financiero: { findUnique: jest.fn(), update: jest.fn() },
     usuarios: { findUnique: jest.fn() },
-    regimen_pension: { findUnique: jest.fn() },
+    regimen_pension: { findUnique: jest.fn().mockResolvedValue({ id: 'regimen-onp', nombre: 'ONP' }) },
     tipo_afp: { findUnique: jest.fn() },
     bancos: { findUnique: jest.fn() },
   };

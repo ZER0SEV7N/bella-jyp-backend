@@ -1,0 +1,74 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/contrato?page=1&limit=10"
+  method: GET
+  queryParams:
+    - key: page
+      value: "1"
+      disabled: false
+      description: ""
+    - key: limit
+      value: "10"
+      disabled: false
+      description: ""
+    - key: search
+      value: demo
+      disabled: true
+    - key: empleado_id
+      value: "{{empleado_id}}"
+      disabled: true
+    - key: estado
+      value: ""
+      disabled: true
+    - key: area_id
+      value: "{{area_id}}"
+      disabled: true
+    - key: por_vencer_dias
+      value: "30"
+      disabled: true
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "735"
+    date: Thu, 22 Oct 2026 04:51:41 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "a1f0dc7b-1d0b-7f10-80fc-2ad6bd713ce1",
+            "empleado_id": "a1c830b2-0302-7a72-9bb7-e142f04ddd72",
+            "colaborador": "Ana Demo Pruebas",
+            "nro_documento": "90000002",
+            "area": "Area demo Postman",
+            "cargo": "Analista demo",
+            "estado": "RENOVADO",
+            "tipo_modalidad": "PLAZO_FIJO",
+            "fecha_inicio": "2026-01-01T00:00:00.000Z",
+            "fecha_fin": "2026-12-31T00:00:00.000Z",
+            "dias_restantes": 69,
+            "alerta_vencimiento": "REGULAR",
+            "contrato_origen_id": null,
+            "es_prorroga": false,
+            "url_documento": null,
+            "tiene_archivo": false,
+            "observacion": "Edición previa a subir el PDF firmado"
+          }
+        ],
+        "meta": {
+          "total": 1,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1,
+          "message": "Operación exitosa.",
+          "path": "/api/v1/rrhh/contrato?page=1&limit=10",
+          "timestamp": "2026-10-22T04:51:41.592Z"
+        }
+      }
+order: 1000

@@ -1,0 +1,38 @@
+$kind: http-request
+description: |-
+  GET /api/rrhh/cargo
+  Origen: src/modules/RRHH/organizacion/controllers/cargo.controller.ts:126
+  Handler: listarCargos
+  Roles: ADMIN, RRHH
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/v1/rrhh/cargo?page=1&limit=10"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+    disabled: false
+    description: ""
+  - key: limit
+    value: "10"
+    disabled: false
+    description: ""
+  - key: id_area
+    value: "{{area_id}}"
+    disabled: true
+  - key: search
+    value: demo
+    disabled: true
+  - key: activo
+    value: "true"
+    disabled: true
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+    language: text/javascript
+examples: .resources/GET · listarCargos.resources/examples
+order: 5000

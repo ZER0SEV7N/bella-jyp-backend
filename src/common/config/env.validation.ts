@@ -10,24 +10,45 @@ export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('3000'),
 
-  //Base de datos PostgreSQL (Prisma ORM)
+  FRONTEND_ORIGINS: z.string().default('http://localhost:5173'),
+  FRONTEND_RESET_PASSWORD_URL: z.string().default('http://localhost:5173/restablecer-password'),
+  DIA_PAGO_PLANILLA: z.string().regex(/^(ULTIMO|[1-9]|[12]\d|3[01])$/).default('ULTIMO'),
+  DIAS_AVISO_PAGO: z.coerce.number().int().min(0).max(31).default(3),
+  DIAS_AVISO_SOLICITUD: z.coerce.number().int().min(0).max(31).default(2),
+
+  // Base de datos PostgreSQL (Prisma ORM)
   DATABASE_URL: z.string({ error: 'DATABASE_URL es requerida' }).min(1, 'DATABASE_URL no puede estar vacía'),
   DIRECT_URL: z.string().optional(),
 
-  //Integración con API de RENIEC (Consulta DNI)
+  // Infraestructura Redis (BullMQ, Caché y Notificaciones)
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
+
+  // Integración con API de RENIEC (Consulta DNI)
   RENIEC_API_KEY: z.string().optional().default(''),
   RENIEC_API_URL: z.string().optional(),
 
-  //Seguridad de Sesiones y Autenticación JWT
+  // Seguridad de Sesiones y Autenticación JWT (mínimo 32 caracteres)
   COOKIE_SECRET: z.string().optional().default('cookie_secret_default_32_bytes_min_2026'),
   JWT_ACCESS_SECRET: z.string({ error: 'JWT_ACCESS_SECRET es requerida' }).min(32, 'La clave secreta debe tener al menos 32 caracteres'),
   JWT_REFRESH_SECRET: z.string({ error: 'JWT_REFRESH_SECRET es requerida' }).min(32, 'La clave secreta debe tener al menos 32 caracteres'),
 
-  //Cifrado criptográfico en reposo AES-256-GCM para datos financieros
-  FINANCIAL_DATA_ENCRYPTION_KEY: z.string()
+  // Cifrado criptográfico en reposo AES-256-GCM para datos financieros
+  FINANCIAL_DATA_ENCRYPTION_KEY: z
+    .string()
     .min(32, 'La clave de cifrado financiero debe tener al menos 32 caracteres')
     .optional()
     .default('jyp_financial_master_key_super_secret_32_bytes_2026!'),
+
+  // Datos empresariales temporales del MVP
+  EMPRESA_NOMBRE: z.string().default('J&P PERIFERICOS SAC'),
+  EMPRESA_RUC: z.string().default('20545122520'),
+  EMPRESA_DIRECCION: z.string().default('Jr. Emilio Fernández 160, Dpto. 1804'),
+
+  // Integración asíncrona con n8n (M2M HMAC-SHA256)
+  N8N_WEBHOOK_SECRET: z.string().optional(),
+  N8N_WEBHOOK_URL_TRABAJOS: z.string().optional(),
+  ARCHIVOS_INTEGRACION_DIR: z.string().default('archivos/integraciones'),
 });
 
 export type EnvConfig = z.infer<typeof EnvSchema>;

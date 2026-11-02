@@ -2,8 +2,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {BadRequestException,NotFoundException, InternalServerErrorException} from '@nestjs/common';
 import { AfpController } from '@/modules/payroll/afp/controller/afp.controller';
-import { AgregarAportacionUseCase } from '@/modules/payroll/afp/use-cases/aportacion/agregarAportacion.useCase';
-import { ListarAportacionesUseCase } from '@/modules/payroll/afp/use-cases/aportacion/listarAportacion.useCase';
 import { AgregarComisionUseCase } from '@/modules/payroll/afp/use-cases/comision/agregarComision.useCase';
 import { ListarComisionesUseCase } from '@/modules/payroll/afp/use-cases/comision/listarComision.useCase';
 import { AgregarTipoAfpUseCase } from '@/modules/payroll/afp/use-cases/tipo-afp/agregarTipoAfp.useCase';
@@ -11,10 +9,8 @@ import { ListarTiposAfpUseCase } from '@/modules/payroll/afp/use-cases/tipo-afp/
 import type {
   CrearTipoAfpDto,
   CrearComisionDto,
-  AportacionDto,
   ListarTiposAfpQueryDto,
-  ListarComisionesQueryDto,
-  ListarAportacionesQueryDto,
+  ListarComisionesQueryDto
 } from '@jyp/shared-contracts';
 
 /**
@@ -41,8 +37,6 @@ describe('AfpController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', () =
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AfpController],
       providers: [
-        { provide: AgregarAportacionUseCase, useValue: mockAgregarAportacionUseCase },
-        { provide: ListarAportacionesUseCase, useValue: mockListarAportacionesUseCase },
         { provide: AgregarComisionUseCase, useValue: mockAgregarComisionUseCase },
         { provide: ListarComisionesUseCase, useValue: mockListarComisionesUseCase },
         { provide: AgregarTipoAfpUseCase, useValue: mockAgregarTipoAfpUseCase },
@@ -54,55 +48,6 @@ describe('AfpController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', () =
   });
 
   afterEach(() => jest.clearAllMocks());
-
-  describe('Aportaciones HTTP Endpoints', () => {
-    describe('POST /api/afp/aportaciones - agregarAportacion()', () => {
-      const payload: AportacionDto = {
-        nombre: 'Aporte Obligatorio Fondo',
-        afp_id: mockAfpId,
-        cantidad: 10.0,
-      };
-
-      it('Happy Path: Debe registrar exitosamente una nueva aportación', async () => {
-        const mockCreated = { id: 'aportacion-uuid-1', ...payload };
-        mockAgregarAportacionUseCase.execute.mockResolvedValueOnce(mockCreated);
-
-        const result = await controller.agregarAportacion(payload);
-
-        expect(mockAgregarAportacionUseCase.execute).toHaveBeenCalledWith(payload);
-        expect(result).toEqual(mockCreated);
-      });
-
-      it('Excepción: Debe propagar NotFoundException si la AFP asignada no existe', async () => {
-        mockAgregarAportacionUseCase.execute.mockRejectedValueOnce(new NotFoundException('No se puede registrar la aportación porque la AFP no existe.'));
-
-        await expect(controller.agregarAportacion(payload)).rejects.toThrow(NotFoundException);
-      });
-
-      it('Excepción / Resiliencia: Debe propagar InternalServerErrorException ante fallos inesperados', async () => {
-        mockAgregarAportacionUseCase.execute.mockRejectedValueOnce(new InternalServerErrorException('Error al registrar aportación.'));
-
-        await expect(controller.agregarAportacion(payload)).rejects.toThrow(InternalServerErrorException);
-      });
-    });
-
-    describe('GET /api/afp/aportaciones - listarAportacion()', () => {
-      it('Happy Path: Debe listar aportaciones paginadas delegando a ListarAportacionesUseCase', async () => {
-        const query: ListarAportacionesQueryDto = { page: 1, limit: 10, afp_id: mockAfpId };
-        const mockResponse = {
-          data: [{ id: 'aportacion-1', nombre: 'Fondo', cantidad: 10.0 }],
-          meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-        };
-
-        mockListarAportacionesUseCase.listar.mockResolvedValueOnce(mockResponse);
-
-        const result = await controller.listarAportacion(query);
-
-        expect(mockListarAportacionesUseCase.listar).toHaveBeenCalledWith(query);
-        expect(result).toEqual(mockResponse);
-      });
-    });
-  });
 
   describe('Comisiones HTTP Endpoints', () => {
     describe('POST /api/afp/comisiones - agregarComision()', () => {

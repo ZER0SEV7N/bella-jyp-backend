@@ -1,0 +1,29 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/auth/refresh"
+  method: POST
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    set-cookie: jyp_rt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMWNiNjNkMi0yMTAyLTc1NzItODg1OC1lNDY5NmU0ZmFjMDciLCJlbWFpbCI6ImRlbW9AZXhhbXBsZS50ZXN0Iiwicm9sIjoiRU1QTEVBRE8iLCJkb2MiOiI3MDAwMDAwMSIsImVtcElkIjoiMDE4ZjRhN2MtOTk5OS03MDAwLTMzMzMtMDAwMDAwMDAwMDAxIiwibm9tYnJlIjoiQWRtaW5pc3RyYWRvciBTaXN0ZW1hIENlbnRyYWwiLCJpYXQiOjE3OTI2MjU0NDMsImV4cCI6MTc5MzIzMDI0MywianRpIjoiMGU3YTBlYWMtM2ZjNy00ZGJmLThmMTMtODI5OTA1OWUzMTc5In0.K3b-eOEc88CpH8PtZ4i-Hy06mr88reHd4TZtflcUpio; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax
+    content-length: "602"
+    date: Wed, 21 Oct 2026 23:30:43 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMWNiNjNkMi0yMTAyLTc1NzItODg1OC1lNDY5NmU0ZmFjMDciLCJlbWFpbCI6ImRlbW9AZXhhbXBsZS50ZXN0Iiwicm9sIjoiRU1QTEVBRE8iLCJkb2MiOiI3MDAwMDAwMSIsImVtcElkIjoiMDE4ZjRhN2MtOTk5OS03MDAwLTMzMzMtMDAwMDAwMDAwMDAxIiwibm9tYnJlIjoiQWRtaW5pc3RyYWRvciBTaXN0ZW1hIENlbnRyYWwiLCJpYXQiOjE3OTI2MjU0NDMsImV4cCI6MTc5MjYyNjM0MywianRpIjoiMDk4OTk0N2ItNGMwMy00MTQ0LTk3MjgtYmFmODY1NWY4OTVjIn0.84MtPf7IK49N6bm__pPifERqPbOqD9XGe39aAjHVzj0"
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/auth/refresh",
+          "timestamp": "2026-10-21T23:30:43.764Z"
+        }
+      }
+order: 1000

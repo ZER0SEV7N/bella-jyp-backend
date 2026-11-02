@@ -1,8 +1,19 @@
 //test/modules/RRHH/solicitudes/asignarRevisionDeSolicitud.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { AsignarRevisionDeSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/asignarRevisionDeSolicitud.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
+
+/** Actualización de esta prueba: Arrange prepara datos y mocks; 
+ * Act ejecuta la operación; Assert comprueba el resultado y sus efectos. 
+ * Se conservan los comentarios originales. 
+ * 
+ */
+jest.mock('@/common/utils/transaccion-auditada.util', () => ({
+  // Arrange: el caso de uso recibe el cliente mockeado; los reintentos se prueban por separado.
+  transaccionAuditada: jest.fn((prisma, _actor, trabajo) => trabajo(prisma)),
+  bloquearEmpleado: jest.fn().mockResolvedValue(undefined),
+}));
 
 /**
  * Pruebas unitarias para el caso de uso AsignarRevisionDeSolicitudUseCase.
@@ -15,7 +26,7 @@ describe('AsignarRevisionDeSolicitudUseCase - Pruebas Unitarias', () => {
     let prisma: PrismaService;
 
     //Mocks de PrismaService para simular la base de datos
-    const mockPrisma = { solicitud: { findUnique: jest.fn(), update: jest.fn() } };
+    const mockPrisma = { usuarios: { findUnique: jest.fn().mockResolvedValue({ activo: true, deleted_at: null, rol: 'RRHH' }) }, solicitud: { findUnique: jest.fn(), update: jest.fn() } };
 
     //Datos de prueba para una solicitud ficticia y un revisor
     const idSolicitud = 'sol-uuid-1';
@@ -57,7 +68,7 @@ describe('AsignarRevisionDeSolicitudUseCase - Pruebas Unitarias', () => {
         //Assert: Se verifica que el resultado tenga el estado actualizado a EN_REVISION y que se haya llamado a Prisma con los datos correctos
         expect(resultado.estado).toBe('EN_REVISION');
         expect(mockPrisma.solicitud.update).toHaveBeenCalledWith({
-            where: { id: idSolicitud },
+            where: { id: idSolicitud, estado: 'PENDIENTE', responsable_id: null, deleted_at: null },
             data: { responsable_id: idUsuarioRevisor, estado: 'EN_REVISION' },
             include: expect.any(Object)
         });
@@ -71,7 +82,7 @@ describe('AsignarRevisionDeSolicitudUseCase - Pruebas Unitarias', () => {
         });
 
         //Act & Assert: Se espera que se lance una BadRequestException y que no se haya llamado a Prisma para actualizar la solicitud
-        await expect(useCase.execute(idSolicitud, idUsuarioRevisor)).rejects.toThrow(BadRequestException);
+        await expect(useCase.execute(idSolicitud, idUsuarioRevisor)).rejects.toThrow(ConflictException);
         expect(mockPrisma.solicitud.update).not.toHaveBeenCalled();
     });
 
@@ -85,7 +96,7 @@ describe('AsignarRevisionDeSolicitudUseCase - Pruebas Unitarias', () => {
         });
 
         //Act & Assert: Se espera que se lance una BadRequestException y que no se haya llamado a Prisma para actualizar la solicitud
-        await expect(useCase.execute(idSolicitud, idUsuarioRevisor)).rejects.toThrow(BadRequestException);
+        await expect(useCase.execute(idSolicitud, idUsuarioRevisor)).rejects.toThrow(ConflictException);
         expect(mockPrisma.solicitud.update).not.toHaveBeenCalled();
     });
 

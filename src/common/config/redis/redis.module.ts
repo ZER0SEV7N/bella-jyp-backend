@@ -6,6 +6,25 @@ import { REDIS_CLIENT } from '../../cls/redis.constants';
 import { CacheCatalogoService } from './cache-catalogo.service';
 
 /**
+ * Extrae una descripción legible del error de conexión de Redis.
+ * En Node.js 20+ sobre Windows, cuando localhost (::1 y 127.0.0.1) rechaza la conexión,
+ * ioredis emite un AggregateError cuyo `err.message` viene vacío.
+ */
+function describirErrorRedis(err: Error & { code?: string; errors?: Array<Error & { code?: string }> }): string {
+  if (err.message && err.message.trim().length > 0) {
+    return err.message;
+  }
+  if (err.code) {
+    return err.code;
+  }
+  if (Array.isArray(err.errors) && err.errors.length > 0) {
+    const primero = err.errors[0];
+    return primero.message || primero.code || 'ECONNREFUSED';
+  }
+  return 'ECONNREFUSED';
+}
+
+/**
  * Módulo global de Redis para la aplicación.
  * Configura la conexión a Redis y proporciona el cliente de Redis a través de inyección de dependencias.
  * @requires - BullModule para manejar colas de trabajo con Redis.
@@ -25,31 +44,40 @@ import { CacheCatalogoService } from './cache-catalogo.service';
         attempts: 3, //Número de reintentos por defecto para los jobs
         backoff: { type: 'exponential', delay: 2000 }, //Estrategia de reintento exponencial con un retraso inicial de 2 segundos
         removeOnComplete: true, //Eliminar automáticamente los jobs completados
-        removeOnFail: false //No eliminar automáticamente los jobs fallidos para permitir la depuración
+        removeOnFail: false, //No eliminar automáticamente los jobs fallidos para permitir la depuración
       },
     }),
   ],
-  providers: [{
-    provide: REDIS_CLIENT,
+  providers: [
+    {
+      provide: REDIS_CLIENT,
 
-    //Crear un cliente de Redis utilizando la configuración de entorno y manejar eventos de conexión y error
-    useFactory: () => {
-      //Crear un logger para registrar eventos relacionados con Redis
-      const logger = new Logger('RedisClient');
-      //Crear un cliente de Redis con la configuración de host, puerto y contraseña
-      const client = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      //Crear un cliente de Redis utilizando la configuración de entorno y manejar eventos de conexión y error
+      useFactory: () => {
+        //Crear un logger para registrar eventos relacionados con Redis
+        const logger = new Logger('RedisClient');
+        const host = process.env.REDIS_HOST || 'localhost';
+        const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+        //Crear un cliente de Redis con la configuración de host, puerto y contraseña
+        const client = new Redis({
+          host,
+          port,
           password: process.env.REDIS_PASSWORD || undefined,
-          lazyConnect: false
-      });
-      client.on('connect', () => logger.log('Conexión Cache-Aside establecida con Redis.'));
-      client.on('error', (err) => logger.error(`Error en socket Redis: ${err.message}`));
-      return client;
+          lazyConnect: false,
+        });
+        client.on('connect', () => logger.log('Conexión Cache-Aside establecida con Redis.'));
+        client.on('error', (err: Error & { code?: string; errors?: Array<Error & { code?: string }> }) => {
+          const detalle = describirErrorRedis(err);
+          logger.error(
+            `Error en socket Redis (${host}:${port}): ${detalle}. Verifique que el servidor/contenedor de Redis esté en ejecución (ej. docker compose up -d redis).`,
+          );
+        });
+        return client;
+      },
     },
-  }, CacheCatalogoService
+    CacheCatalogoService,
   ],
-  exports: [BullModule, REDIS_CLIENT, CacheCatalogoService] //Exportar el módulo de Bull, el cliente de Redis y el servicio de caché de catálogos para que puedan ser utilizados en otros módulos de la aplicación
+  exports: [BullModule, REDIS_CLIENT, CacheCatalogoService], //Exportar el módulo de Bull, el cliente de Redis y el servicio de caché de catálogos para que puedan ser utilizados en otros módulos de la aplicación
 })
 
 /**

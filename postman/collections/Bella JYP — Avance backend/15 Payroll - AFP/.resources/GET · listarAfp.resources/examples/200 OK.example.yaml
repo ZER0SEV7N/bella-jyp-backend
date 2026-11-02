@@ -1,0 +1,66 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/payroll/afp/tipos?page=1&limit=10"
+  method: GET
+  queryParams:
+    page: "1"
+    limit: "10"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "935"
+    date: Thu, 22 Oct 2026 05:00:12 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000104",
+            "id_regimen": "018f4a7c-4444-7000-d000-000000000020",
+            "nombre": "HABITAT",
+            "regimen_pension": {
+              "nombre": "SPP - SISTEMA PRIVADO DE PENSIONES"
+            }
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000101",
+            "id_regimen": "018f4a7c-4444-7000-d000-000000000020",
+            "nombre": "INTEGRA",
+            "regimen_pension": {
+              "nombre": "SPP - SISTEMA PRIVADO DE PENSIONES"
+            }
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000102",
+            "id_regimen": "018f4a7c-4444-7000-d000-000000000020",
+            "nombre": "PRIMA",
+            "regimen_pension": {
+              "nombre": "SPP - SISTEMA PRIVADO DE PENSIONES"
+            }
+          },
+          {
+            "id": "018f4a7c-4444-7000-d000-000000000103",
+            "id_regimen": "018f4a7c-4444-7000-d000-000000000020",
+            "nombre": "PROFUTURO",
+            "regimen_pension": {
+              "nombre": "SPP - SISTEMA PRIVADO DE PENSIONES"
+            }
+          }
+        ],
+        "meta": {
+          "total": 4,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1,
+          "message": "Operación exitosa.",
+          "path": "/api/v1/payroll/afp/tipos?page=1&limit=10",
+          "timestamp": "2026-10-22T05:00:12.513Z"
+        }
+      }
+order: 1000

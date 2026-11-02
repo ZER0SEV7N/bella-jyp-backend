@@ -1,0 +1,19 @@
+$kind: http-request
+description: |-
+  GET /api/rrhh/solicitudes/:idOCodigo/historial
+  Origen: src/modules/RRHH/solicitudes/controller/solicitud.controller.ts:87
+  Handler: obtenerHistorial
+  Roles: ADMIN, RRHH, EMPLEADO, CONTADOR
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/v1/rrhh/solicitudes/{{solicitud_codigo}}/historial"
+method: GET
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+    language: text/javascript
+order: 2000

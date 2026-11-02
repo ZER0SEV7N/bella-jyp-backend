@@ -6,10 +6,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
  * Decorador para agrupar operaciones del módulo de usuarios.
  */
 export function ApiSwaggerUsuariosController() {
-  return applyDecorators(
-    ApiTags('Core - Usuarios'),
-    ApiBearerAuth('JWT-auth'),
-  );
+  return applyDecorators(ApiTags('Core - Usuarios'), ApiBearerAuth('JWT-auth'));
 }
 
 /**
@@ -19,8 +16,7 @@ export function ApiSwaggerObtenerMiPerfil() {
   return applyDecorators(
     ApiOperation({
       summary: 'Obtener información del perfil en sesión',
-      description: `
-Devuelve los metadatos de identidad, credenciales y vínculo laboral del usuario conectado.
+      description: `Devuelve los metadatos de identidad, credenciales y vínculo laboral del usuario conectado.
 - **Fuente de Identidad**: Extrae el identificador de usuario (\`req.user.id\`) verificado por el \`JwtAccessGuard\`.
 - **Uso en Frontend**: Permite poblar el store global (Zustand/Redux) para autorizaciones en la UI, menús laterales y renderizado condicional de componentes según rol.`,
     }),
@@ -53,6 +49,6 @@ Devuelve los metadatos de identidad, credenciales y vínculo laboral del usuario
     ApiResponse({
       status: 404,
       description: 'El usuario autenticado ya no existe o fue dado de baja.',
-    }),
+    })
   );
 }

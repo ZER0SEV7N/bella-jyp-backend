@@ -1,0 +1,51 @@
+$kind: http-request
+description: |-
+  GET /api/v1/rrhh/solicitudes/  
+  Origen: src/modules/RRHH/solicitudes/controller/solicitud.controller.ts:101  
+  Handler: Listar todo  
+  Roles: ADMIN, RRHH, EMPLEADO, CONTADOR  
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/v1/rrhh/solicitudes?page=1&limit=10"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+    disabled: false
+    description: ""
+  - key: limit
+    value: "10"
+    disabled: false
+    description: ""
+  - key: search
+    value: null
+    disabled: true
+    description: ""
+  - key: tipo
+    value: null
+    disabled: true
+    description: ""
+  - key: area_id
+    value: null
+    disabled: true
+    description: ""
+  - key: estado
+    value: null
+    disabled: true
+    description: ""
+  - key: fecha_desde
+    value: null
+    disabled: true
+    description: ""
+  - key: fecha_hasta
+    value: null
+    disabled: true
+    description: ""
+scripts:
+  - type: afterResponse
+    code: "pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));\r
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());"
+    language: text/javascript
+order: 9000

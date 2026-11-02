@@ -27,7 +27,7 @@ export interface ResultadoRefrescarToken {
 export class RefrescarTokenUseCase {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService
   ) {}
 
   /**
@@ -38,7 +38,7 @@ export class RefrescarTokenUseCase {
    */
   async execute(refreshToken: string): Promise<ResultadoRefrescarToken> {
     if (!refreshToken) throw new UnauthorizedException('Refresh token no proporcionado.');
-    
+
     let payload: any; //Variable para almacenar el payload decodificado del Refresh Token
     try {
       //Decodificar y verificar el Refresh Token usando la clave secreta correspondiente
@@ -58,76 +58,87 @@ export class RefrescarTokenUseCase {
           select: {
             nombre: true,
             apellido: true,
-            nro_documento: true
-          }
-        }
-      }
+            nro_documento: true,
+          },
+        },
+      },
     });
 
     // Validar que el usuario exista y esté activo
     if (!user?.activo || user.deleted_at !== null) throw new UnauthorizedException('Usuario no encontrado o inactivo.');
-    
 
     //Validar que el Refresh Token no haya sido revocado o usado previamente
-    const tokenActivo = await this.prisma.tokens_seguridad.findFirst({
+    const tokensActivos = await this.prisma.tokens_seguridad.findMany({
       where: {
         usuario_id: user.id,
         proposito: 'REFRESH_TOKEN',
         usado: false,
-        expira_en: { gt: new Date() }
-      }
+        expira_en: { gt: new Date() },
+      },
     });
+
+    let tokenActivo: (typeof tokensActivos)[number] | undefined;
+    for (const candidato of tokensActivos) {
+      if (await argon2.verify(candidato.token_hash, refreshToken)) {
+        tokenActivo = candidato;
+        break;
+      }
+    }
 
     //Si no se encuentra un token activo, significa que el Refresh Token ha sido revocado o usado previamente
     if (!tokenActivo) throw new UnauthorizedException('Sesión cerrada o token revocado.');
-    
+
     //Obtener el nombre completo del usuario a partir de los datos del empleado, si están disponibles
     const nombreCompleto = user.empleados ? `${user.empleados.nombre ?? ''} ${user.empleados.apellido ?? ''}`.trim() : 'Usuario del Sistema';
 
     const nuevoPayload = {
       sub: user.id,
       email: user.email,
-      roles: user.rol,
+      rol: user.rol,
       doc: payload.doc || user.empleado_id,
       empId: user.empleado_id,
-      nombre: nombreCompleto
+      nombre: nombreCompleto,
     };
 
     // 3. Emisión dual de tokens
     const [newAccessToken, newRefreshToken] = await Promise.all([
       this.jwtService.signAsync(nuevoPayload, {
+        jwtid: crypto.randomUUID(),
         secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234',
-        expiresIn: '15m'
+        expiresIn: '15m',
       }),
       this.jwtService.signAsync(nuevoPayload, {
+        jwtid: crypto.randomUUID(),
         secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234',
-        expiresIn: '7d'
-      })
+        expiresIn: '7d',
+      }),
     ]);
 
     //Rotar el Refresh Token: marcar el token actual como usado y crear un nuevo registro de token en la base de datos
     const hashedRT = await argon2.hash(newRefreshToken, { type: argon2.argon2id });
 
-    await this.prisma.$transaction([
-      this.prisma.tokens_seguridad.update({
-        where: { id: tokenActivo.id },
-        data: { usado: true }
-      }),
-      this.prisma.tokens_seguridad.create({
+    await this.prisma.$transaction(async (tx) => {
+      const consumido = await tx.tokens_seguridad.updateMany({
+        where: { id: tokenActivo.id, usado: false, expira_en: { gt: new Date() } },
+        data: { usado: true },
+      });
+      if (consumido.count !== 1) throw new UnauthorizedException('El refresh token ya fue utilizado.');
+
+      await tx.tokens_seguridad.create({
         data: {
           id: crypto.randomUUID(),
           usuario_id: user.id,
           token_hash: hashedRT,
           proposito: 'REFRESH_TOKEN',
           expira_en: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          usado: false
-        }
-      })
-    ]);
+          usado: false,
+        },
+      });
+    });
 
     return {
       accessToken: newAccessToken,
-      newRefreshToken
+      newRefreshToken,
     };
   }
 }

@@ -1,0 +1,37 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/contrato/{{contrato_id}}/subir-pdf"
+  method: POST
+  body:
+    type: formdata
+    content:
+      - type: file
+        key: file
+        src:
+          - /C:/Users/ZER0SEV7N/Documents/ntt/2026-10-05 - Contrato de trabajo - Daniel Enrique Singer Rojas.pdf
+        disabled: false
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "385"
+    date: Thu, 22 Oct 2026 04:53:34 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 201,
+        "data": {
+          "message": "Documento subido y vinculado correctamente. El contrato ya no puede ser editado.",
+          "url": "/archivos/contratos/1792644814884-a1f51824-3704-7c85-9b02-4f1fa715f3d8.pdf"
+        },
+        "meta": {
+          "message": "Recurso creado o provisionado exitosamente.",
+          "path": "/api/v1/rrhh/contrato/a1f507ff-2e0f-7299-a4ea-1410c442ca24/subir-pdf",
+          "timestamp": "2026-10-22T04:53:34.917Z"
+        }
+      }
+order: 1000

@@ -23,24 +23,18 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
     //DTO de prueba para crear un contrato
     const dtoCrear: CrearContratoDto = {
         empleado_id: mockEmpleadoId,
-        id_estado: mockEstadoId,
+        estado: 'VIGENTE',
         tipo_modalidad: 'PLAZO_FIJO',
-        fecha_inicio: new Date('2026-09-01'),
-        fecha_fin: new Date('2027-02-28'),
+        fecha_inicio: '2026-09-01',
+        fecha_fin: '2027-02-28',
         observacion: 'Contrato laboral inicial',
     };
 
     //Mock del servicio Prisma para simular la interacción con la base de datos
     const mockPrismaService = {
-        empleados: {
-            findUnique: jest.fn()
-        },
-        estado_contrato: {
-            findUnique: jest.fn()
-        },
-        contratos: {
-            create: jest.fn()
-        },
+        empleados: { findUnique: jest.fn() },
+        estado_contrato: { findUnique: jest.fn() },
+        contratos: { create: jest.fn() },
     };
 
     //Configuración del módulo de pruebas antes de cada prueba
@@ -79,13 +73,14 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             const result = await useCase.execute(dtoCrear, 'https://s3.jyp.com/temp.pdf');
 
             //Assert: Verificar que los métodos de Prisma se llamaron con los parámetros correctos y que el resultado contiene un ID
-            expect(prismaService.empleados.findUnique).toHaveBeenCalledWith({ where: { id: mockEmpleadoId } });
-            expect(prismaService.estado_contrato.findUnique).toHaveBeenCalledWith({ where: { id: mockEstadoId } });
+            expect(prismaService.empleados.findUnique).toHaveBeenCalledWith({ where: { id: mockEmpleadoId, deleted_at: null }, select: { id: true, activo: true, deleted_at: true } });
+            // El estado se guarda como enum; no se consulta la tabla de catálogo retirada.
+            expect(mockPrismaService.estado_contrato.findUnique).not.toHaveBeenCalled();
             expect(prismaService.contratos.create).toHaveBeenCalledWith(
                 expect.objectContaining({
                     data: expect.objectContaining({
                         empleado_id: mockEmpleadoId,
-                        id_estado: mockEstadoId,
+                        estado: 'VIGENTE',
                         url: 'https://s3.jyp.com/temp.pdf'
                     })
                 })
@@ -100,11 +95,11 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             //Act: Ejecutar el caso de uso para crear un contrato
             await expect(useCase.execute(dtoCrear)).rejects.toThrow(NotFoundException);
             await expect(useCase.execute(dtoCrear)).rejects.toMatchObject({ 
-                response: expect.objectContaining({ message: 'No se encontró un empleado activo con el ID proporcionado' })
+                response: expect.objectContaining({ detail: 'No se encontró un empleado activo con el ID proporcionado.' })
             });
         });
 
-        it('Excepción: Debe lanzar NotFoundException si el estado_contrato no existe en el catálogo', async () => {
+        it('Debe utilizar el enum VIGENTE sin depender del catálogo retirado', async () => {
             //Arrange: Configuración del mock para simular que el empleado existe pero el estado del contrato no
             mockPrismaService.empleados.findUnique.mockResolvedValue({
                 id: mockEmpleadoId,
@@ -114,7 +109,9 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             mockPrismaService.estado_contrato.findUnique.mockResolvedValue(null);
 
             //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
-            await expect(useCase.execute(dtoCrear)).rejects.toThrow(new NotFoundException('El estado de contrato especificado no existe en el catálogo.'));
+            // Actualización: el estado ya no es una llave foránea; se verifica el valor que se guarda.
+            mockPrismaService.contratos.create.mockImplementation(({ data }) => Promise.resolve(data));
+            await expect(useCase.execute(dtoCrear)).resolves.toMatchObject({ estado: 'VIGENTE' });
         });
 
         it('Resiliencia: Debe transformar cualquier error imprevisto a InternalServerErrorException', async () => {

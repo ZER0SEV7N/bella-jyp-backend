@@ -1,0 +1,35 @@
+$kind: http-request
+description: |-
+  POST /api/afp/tipos
+  Origen: src/modules/payroll/afp/controller/afp.controller.ts:116
+  Handler: asignarTipoAfp
+  Roles: JYP
+  HTTP esperado con datos y estado válidos: 201.
+url: "{{base_url}}/api/afp/tipos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "AFP DEMO POSTMAN",
+      "id_regimen": "{{regimen_afp_id}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_jyp}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [201]', () =>
+      pm.expect([201]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+
+      if (pm.response.code < 300) { const r=pm.response.json(); const d=r.data
+      || r; if (d.id) pm.environment.set('tipo_afp_id',d.id); }
+    language: text/javascript
+order: 3000

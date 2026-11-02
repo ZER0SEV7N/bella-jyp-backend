@@ -1,6 +1,7 @@
 //src/modules/RRHH/contrato/use-cases/anularContrato.useCase.ts
-import {Injectable,NotFoundException, InternalServerErrorException} from '@nestjs/common';
+import {Injectable,NotFoundException, InternalServerErrorException, BadRequestException} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { estado_contrato_enum } from '@prisma/client';
 
 /**
  * Caso de uso para anular un contrato en el módulo de RRHH
@@ -22,16 +23,20 @@ export class AnularContratoUseCase {
   async execute(idContrato: string) {
     const contrato = await this.prisma.contratos.findUnique({where: { id: idContrato } });
     
-    if (contrato?.deleted_at !== null) 
-      throw new NotFoundException('Contrato no encontrado o ya eliminado.');
+    //Validaciones de negocio
+    if (!contrato || contrato.deleted_at !== null) throw new NotFoundException('Contrato no encontrado o ya anulado.');
+    if (contrato.estado === estado_contrato_enum.ANULADO) throw new BadRequestException('El contrato ya se encuentra en estado ANULADO.');
     
     try {
       return await this.prisma.contratos.update({
         where: { id: idContrato },
-        data: { deleted_at: new Date() }
+        data: {
+          estado: estado_contrato_enum.ANULADO,
+          deleted_at: new Date(),
+        },
       });
     } catch (error) {
-      throw new InternalServerErrorException('Error al intentar eliminar el contrato.');
+      throw new InternalServerErrorException('Error al intentar anular el contrato.');
     }
   }
 }

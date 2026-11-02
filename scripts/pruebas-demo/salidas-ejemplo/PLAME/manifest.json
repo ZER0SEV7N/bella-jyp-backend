@@ -1,0 +1,17 @@
+{
+  "archivos": [
+    {
+      "nombre": "060120260920000000001.jor",
+      "tipo": "text/plain",
+      "bytes": 230,
+      "sha256": "d88559f2980953c72cfd9f5c796ba62b32f5aaba60a208d22c78e4c3232749a6"
+    },
+    {
+      "nombre": "060120260920000000001.rem",
+      "tipo": "text/plain",
+      "bytes": 1080,
+      "sha256": "63ec3cb1feea03bd427061e20a34fb05af3e0f164e2f0bb1d08f3ab8906d38c4"
+    }
+  ],
+  "correos": []
+}

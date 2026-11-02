@@ -1,0 +1,25 @@
+$kind: http-request
+description: >-
+  DELETE /api/rrhh/derechohabientes/:id/desactivar
+
+  Origen:
+  src/modules/RRHH/organizacion/controllers/derechohabiente.controller.ts:131
+
+  Handler: desactivar
+
+  Roles: ADMIN, RRHH
+
+  HTTP esperado con datos y estado válidos: 200.
+url: "{{base_url}}/api/v1/rrhh/derechohabientes/{{derechohabiente_id}}/desactivar"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('HTTP esperado: [200]', () =>
+      pm.expect([200]).to.include(pm.response.code));
+
+      if (pm.response.code < 300) pm.test('Respuesta JSON', () =>
+      pm.response.json());
+    language: text/javascript
+examples: .resources/DELETE · desactivar.resources/examples
+order: 4000

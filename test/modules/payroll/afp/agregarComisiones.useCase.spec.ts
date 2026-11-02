@@ -1,3 +1,4 @@
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
 //test/modules/afp/agregarComisiones.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import {
@@ -28,14 +29,9 @@ describe('AgregarComisionUseCase', () => {
   beforeEach(async () => {
     mockPrisma = {
       tipo_afp: { findUnique: jest.fn() },
-      comisiones_afp: { update: jest.fn(), create: jest.fn() },
+      comisiones_afp: { findFirst: jest.fn().mockResolvedValue(null), findUnique: jest.fn().mockResolvedValue({ periodo_inicio: new Date('2026-01-01') }), update: jest.fn(), create: jest.fn() },
       //Simulador de la transacción que simplemente ejecuta y devuelve las promesas en orden
-      $transaction: jest.fn(async (operaciones) => {
-        const resultados = [];
-        for (const op of operaciones) resultados.push(await op);
-
-        return resultados;
-      }),
+      $transaction: jest.fn(async (operaciones) => typeof operaciones === 'function' ? operaciones(mockPrisma) : Promise.all(operaciones)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -98,6 +94,7 @@ describe('AgregarComisionUseCase', () => {
         periodo_inicio: expect.any(Date),
         comision_sobre_ra: 1.55,
       }),
+      include: { tipo_afp: { select: { id: true, nombre: true } } },
     });
 
     //Verificar que el resultado final sea la nueva comisión creada
@@ -140,6 +137,12 @@ describe('AgregarComisionUseCase', () => {
       tipo_afp_id: 'uuid-afp-fantasma',
       nueva_comision: {
         /* ... */
+        // La fecha válida permite alcanzar el fallo de BD que prueba este escenario.
+        periodo_inicio: '2026-08-01',
+        aporte_obligatorio: 10,
+        prima_seguro: 1.37,
+        comision_sobre_ra: 1.55,
+        comision_mixta: 0.78,
       },
     };
     mockPrisma.tipo_afp.findUnique.mockResolvedValue(null);
@@ -162,6 +165,12 @@ describe('AgregarComisionUseCase', () => {
       tipo_afp_id: 'uuid-afp-integra',
       nueva_comision: {
         /* ... */
+        // La fecha válida permite alcanzar el fallo de BD que prueba este escenario.
+        periodo_inicio: '2026-08-01',
+        aporte_obligatorio: 10,
+        prima_seguro: 1.37,
+        comision_sobre_ra: 1.55,
+        comision_mixta: 0.78,
       },
     };
     mockPrisma.tipo_afp.findUnique.mockResolvedValue({
@@ -178,5 +187,21 @@ describe('AgregarComisionUseCase', () => {
     await expect(useCase.execute(payload as any)).rejects.toThrow(
       'Ocurrió un error al intentar registrar la comisión',
     );
+  });
+});
+
+/** Vigencias civiles y datos que ahora exige el motor de planilla. */
+describe('AgregarComisionUseCase - fechas DATE', () => {
+  it('Conserva el día civil y persiste el tope de seguro y flujo mixto', async () => {
+    // Arrange: registro anterior de julio y nueva vigencia de agosto, en puntos porcentuales.
+    const tx = { comisiones_afp: { findUnique: jest.fn().mockResolvedValue({ periodo_inicio: new Date('2026-07-01') }), update: jest.fn(), create: jest.fn().mockImplementation(({ data }) => data) } };
+    const prisma = { tipo_afp: { findUnique: jest.fn().mockResolvedValue({ id: 'afp' }) }, $transaction: jest.fn((fn) => fn(tx)) };
+    const caso = new AgregarComisionUseCase(prisma as never);
+    const dto = { tipo_afp_id: 'afp', anterior_comision: { id: 'anterior', periodo_final: '2026-07-31' }, nueva_comision: { periodo_inicio: '2026-08-01', aporte_obligatorio: 10, prima_seguro: 1.37, comision_sobre_ra: 1.55, comision_mixta: 0.78, comision_flujo_mixta: 0, remuneracion_maxima_asegurable: 12732.70 } };
+    // Act: registrar la nueva vigencia sin transformar DATE a un instante de Lima.
+    await caso.execute(dto);
+    // Assert: fechas UTC civiles exactas y configuración previsional completa en la persistencia.
+    expect(tx.comisiones_afp.update).toHaveBeenCalledWith({ where: { id: 'anterior' }, data: { periodo_final: new Date('2026-07-31T00:00:00Z') } });
+    expect(tx.comisiones_afp.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ periodo_inicio: new Date('2026-08-01T00:00:00Z'), comision_flujo_mixta: 0, remuneracion_maxima_asegurable: 12732.70 }) }));
   });
 });

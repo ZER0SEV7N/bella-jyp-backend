@@ -1,9 +1,16 @@
 //test/modules/RRHH/solicitudes/evaluarSolicitud.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { EvaluarSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/evaluarSolicitud.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { EvaluarSolicitudDto } from '@jyp/shared-contracts';
+
+/** Actualización de esta prueba: Arrange prepara datos y mocks; Act ejecuta la operación; Assert comprueba el resultado y sus efectos. Se conservan los comentarios originales. */
+jest.mock('@/common/utils/transaccion-auditada.util', () => ({
+  // Arrange: el caso de uso recibe el cliente mockeado; los reintentos se prueban por separado.
+  transaccionAuditada: jest.fn((prisma, _actor, trabajo) => trabajo(prisma)),
+  bloquearEmpleado: jest.fn().mockResolvedValue(undefined),
+}));
 
 /**
  * Pruebas unitarias para el caso de uso EvaluarSolicitudUseCase.
@@ -16,7 +23,7 @@ describe('EvaluarSolicitudUseCase - Pruebas Unitarias', () => {
     let prisma: PrismaService;
 
     //Mocks de PrismaService para simular la base de datos
-    const mockPrisma = { solicitud: { findUnique: jest.fn(), update: jest.fn() } };
+    const mockPrisma = { usuarios: { findUnique: jest.fn().mockResolvedValue({ activo: true, deleted_at: null, rol: 'RRHH' }) }, solicitud: { findUnique: jest.fn(), update: jest.fn() } };
 
     //Datos de prueba para una solicitud ficticia y un evaluador
     const idSolicitud = 'sol-uuid-1';
@@ -42,6 +49,7 @@ describe('EvaluarSolicitudUseCase - Pruebas Unitarias', () => {
         mockPrisma.solicitud.findUnique.mockResolvedValue({
             id: idSolicitud,
             estado: 'EN_REVISION',
+            responsable_id: idEvaluador,
             observacion: null
         });
 
@@ -59,11 +67,11 @@ describe('EvaluarSolicitudUseCase - Pruebas Unitarias', () => {
         //Assert: Se verifica que el resultado tenga el estado actualizado a APROBADA y que se haya llamado a Prisma con los datos correctos
         expect(resultado.estado).toBe('APROBADA');
         expect(mockPrisma.solicitud.update).toHaveBeenCalledWith({
-            where: { id: idSolicitud },
+            where: { id: idSolicitud, estado: 'EN_REVISION', responsable_id: idEvaluador, deleted_at: null },
             data: {
                 estado: 'APROBADA',
                 observacion: 'Aprobado conforme al plan vacacional',
-                responsable_id: idEvaluador
+                efecto_asistencia: undefined
             },
             include: expect.any(Object)
         });
@@ -71,7 +79,7 @@ describe('EvaluarSolicitudUseCase - Pruebas Unitarias', () => {
 
     it('Debe exigir observación descriptiva (mínimo 5 caracteres) al RECHAZAR', async () => {
         //Arrange: Se simula que la solicitud existe y está en estado PENDIENTE, y se espera que se lance una BadRequestException al intentar rechazarla sin una observación válida.
-        mockPrisma.solicitud.findUnique.mockResolvedValue({ id: idSolicitud, estado: 'PENDIENTE' });
+        mockPrisma.solicitud.findUnique.mockResolvedValue({ id: idSolicitud, estado: 'EN_REVISION', responsable_id: idEvaluador });
 
         //Act: Se ejecuta el caso de uso con un DTO de evaluación sin una observación válida.
         const dtoSinMotivo: EvaluarSolicitudDto = { estado: 'RECHAZADA', observacion: 'No' };
@@ -89,6 +97,6 @@ describe('EvaluarSolicitudUseCase - Pruebas Unitarias', () => {
         const dto: EvaluarSolicitudDto = { estado: 'RECHAZADA', observacion: 'Cancelación tardía' };
 
         //Assert: Se espera que se lance una BadRequestException y que no se haya llamado a Prisma para actualizar la solicitud
-        await expect(useCase.execute(idSolicitud, dto, idEvaluador)).rejects.toThrow(BadRequestException);
+        await expect(useCase.execute(idSolicitud, dto, idEvaluador)).rejects.toThrow(ConflictException);
     });
 });

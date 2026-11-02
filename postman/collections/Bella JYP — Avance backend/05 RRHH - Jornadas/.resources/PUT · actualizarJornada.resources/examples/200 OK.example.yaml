@@ -1,0 +1,130 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/jornadas/{{jornada_id}}"
+  method: PUT
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "descripcion": "Jornada de oficina actualizada"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "1867"
+    date: Thu, 22 Oct 2026 03:52:05 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "a1bc55d8-0808-7172-bcd6-6d1218d2b436",
+          "nombre": "Oficina demo 40H",
+          "descripcion": "Jornada de oficina actualizada",
+          "duracion": "TIEMPO_COMPLETO",
+          "turno": "MANANA",
+          "modalidad": "PRESENCIAL",
+          "tolerancia_minutos": 5,
+          "total_horas_semana": "40",
+          "horario_semanal": [
+            {
+              "dia": "LUNES",
+              "salida": "18:00",
+              "entrada": "09:00",
+              "laborable": true,
+              "modalidad": "PRESENCIAL",
+              "total_horas": 8,
+              "fin_descanso": "14:00",
+              "inicio_descanso": "13:00"
+            },
+            {
+              "dia": "MARTES",
+              "salida": "18:00",
+              "entrada": "09:00",
+              "laborable": true,
+              "modalidad": "PRESENCIAL",
+              "total_horas": 8,
+              "fin_descanso": "14:00",
+              "inicio_descanso": "13:00"
+            },
+            {
+              "dia": "MIERCOLES",
+              "salida": "18:00",
+              "entrada": "09:00",
+              "laborable": true,
+              "modalidad": "PRESENCIAL",
+              "total_horas": 8,
+              "fin_descanso": "14:00",
+              "inicio_descanso": "13:00"
+            },
+            {
+              "dia": "JUEVES",
+              "salida": "18:00",
+              "entrada": "09:00",
+              "laborable": true,
+              "modalidad": "PRESENCIAL",
+              "total_horas": 8,
+              "fin_descanso": "14:00",
+              "inicio_descanso": "13:00"
+            },
+            {
+              "dia": "VIERNES",
+              "salida": "18:00",
+              "entrada": "09:00",
+              "laborable": true,
+              "modalidad": "PRESENCIAL",
+              "total_horas": 8,
+              "fin_descanso": "14:00",
+              "inicio_descanso": "13:00"
+            },
+            {
+              "dia": "SABADO",
+              "salida": null,
+              "entrada": null,
+              "laborable": false,
+              "modalidad": "PRESENCIAL",
+              "total_horas": 0,
+              "fin_descanso": null,
+              "inicio_descanso": null
+            },
+            {
+              "dia": "DOMINGO",
+              "salida": null,
+              "entrada": null,
+              "laborable": false,
+              "modalidad": "PRESENCIAL",
+              "total_horas": 0,
+              "fin_descanso": null,
+              "inicio_descanso": null
+            }
+          ],
+          "patron_rotacion": null,
+          "activo": true,
+          "deleted_at": null,
+          "created_at": "2026-10-22T03:51:35.137Z",
+          "updated_at": "2026-10-22T03:52:05.458Z",
+          "jornada_areas": [
+            {
+              "jornada_id": "a1bc55d8-0808-7172-bcd6-6d1218d2b436",
+              "area_id": "a1b20d1c-090c-7601-9138-94c8aa9e401a",
+              "area": {
+                "id": "a1b20d1c-090c-7601-9138-94c8aa9e401a",
+                "nombre": "Area demo Postman"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/rrhh/jornadas/a1bc55d8-0808-7172-bcd6-6d1218d2b436",
+          "timestamp": "2026-10-22T03:52:05.479Z"
+        }
+      }
+order: 1000

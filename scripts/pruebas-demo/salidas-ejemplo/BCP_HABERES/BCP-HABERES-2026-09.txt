@@ -1,0 +1,11 @@
+100001020261030XC00011910000000099       00000000016973.80HABERES DEMO SEPTIEMBRE                 000000000000154
+2A19100000000001      109900001       ANA RAMOS DEMO                                                             ABONO HABERES                           PLANILLA            000100000000001305.00S
+2A19100000000002      109900002       LUIS VEGA DEMO                                                             ABONO HABERES                           PLANILLA            000100000000001392.00S
+2A19100000000003      109900003       MARTA TORRES DEMO                                                          ABONO HABERES                           PLANILLA            000100000000001479.00S
+2A19100000000004      109900004       JOSE SOTO DEMO                                                             ABONO HABERES                           PLANILLA            000100000000001566.00S
+2A19100000000005      109900005       ROSA DIAZ DEMO                                                             ABONO HABERES                           PLANILLA            000100000000001653.00S
+2A19100000000006      109900006       DIEGO LUNA DEMO                                                            ABONO HABERES                           PLANILLA            000100000000001741.60S
+2A19100000000007      109900007       LUCIA ROJAS DEMO                                                           ABONO HABERES                           PLANILLA            000100000000001828.68S
+2A19100000000008      109900008       PEDRO REYES DEMO                                                           ABONO HABERES                           PLANILLA            000100000000001915.76S
+2A19100000000009      109900009       ELENA PAZ DEMO                                                             ABONO HABERES                           PLANILLA            000100000000002002.84S
+2A19100000000010      109900010       MARCO LEON DEMO                                                            ABONO HABERES                           PLANILLA            000100000000002089.92S

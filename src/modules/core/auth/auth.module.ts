@@ -1,3 +1,4 @@
+import { IntegracionesModule } from '@/modules/integraciones/integraciones.module';
 //src/modules/core/auth/auth.module.ts
 //Modulo de autenticacion
 //Se encarga de manejar la autenticación y autorización de usuarios internos,
@@ -16,6 +17,7 @@ import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
+    IntegracionesModule,
     PrismaModule,
     //El secreto del Access Token se carga dinámicamente.
     //El Refresh Token usa su propio secreto inyectado en el Use Case.

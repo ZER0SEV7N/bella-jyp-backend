@@ -1,79 +1,218 @@
+# COMPOSE LOCAL DEL MVP
+# Se ejecuta desde la raíz del backend: docker compose up -d --build
+# Compose toma las sustituciones ${VARIABLE} del entorno o del archivo .env.
+# ${VARIABLE:-valor} usa un valor por defecto; ${VARIABLE:?mensaje} exige que se defina.
+# Este archivo no crea tablas, ejecuta migraciones ni carga datos de prueba.
+# En Azure, una base externa se configura con su URL y dependencias de despliegue propias.
+
 services:
+  # --------------------------------------------------------------------------
+  # 1. POSTGRESQL DE LA APLICACIÓN: empleados, asistencia, planillas y auditoría.
+  # --------------------------------------------------------------------------
+  # Prepara únicamente el directorio compartido. No inicia otra base ni modifica archivos existentes.
+  archivos-permisos:
+    image: postgres:17-alpine # Reutiliza las herramientas de la imagen ya descargada.
+    user: "0:0"
+    entrypoint: ["sh", "-c"]
+    command: ["chown 1000:1000 /compartido && chmod 700 /compartido"]
+    volumes:
+      - ./archivos/integraciones:/compartido
+    restart: "no"
+
   postgres:
-    image: postgres:17-alpine # Utiliza la imagen oficial de PostgreSQL en su versión 17-alpine
-    container_name: planillas_db # Nombre del contenedor para la base de datos
+    image: postgres:17-alpine # Se mantiene la versión usada por los volúmenes actuales.
+    container_name: planillas_db # Nombre local reconocible del contenedor.
+    restart: unless-stopped # Reinicia el servicio salvo que se lo detenga expresamente.
+    ports:
+      - "5432:5432" # Puerto del host:puerto interno; permite usar un cliente SQL local.
+    environment:
+      # Estas variables inicializan la base al crear un volumen vacío.
+      # Cambiarlas después no modifica automáticamente usuarios o contraseñas ya guardados.
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-bella}
+      - POSTGRES_DB=${DB_NAME:-planillas_db}
+    volumes:
+      - postgres_payroll_data:/var/lib/postgresql/data # Conserva los datos al recrear el contenedor.
+    networks:
+      - planillas_net # El backend encuentra este servicio mediante el nombre "postgres".
+    healthcheck:
+      # Verifica disponibilidad de PostgreSQL; no comprueba tablas, triggers ni seeders.
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-planillas_db}"]
+      interval: 10s # Tiempo entre comprobaciones de salud.
+      timeout: 5s # Tiempo máximo de una comprobación.
+      retries: 5 # Fallos consecutivos antes de considerarlo no saludable.
+
+  # --------------------------------------------------------------------------
+  # 2. REDIS: colas BullMQ, caché e historial de notificaciones del backend.
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: planillas_redis
     restart: unless-stopped
     ports:
-      - "5432:5432" # Expone el puerto 5432 para acceder a la base de datos
-    environment:
-      - POSTGRES_USER=${DB_USER:-postgres} # Usuario de la base de datos
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-bella} # Contraseña del usuario de la base de datos
-      - POSTGRES_DB=${DB_NAME:-planillas_db} # Nombre de la base de datos
+      - "6379:6379" # Puerto publicado para herramientas locales de desarrollo.
     volumes:
-      - postgres_payroll_data:/var/lib/postgresql/data # Monta un volumen para persistir los datos de la base de datos
+      - redis_payroll_data:/data # Mantiene los archivos de persistencia de Redis.
+    command: redis-server --appendonly yes # Activa AOF para conservar escrituras y trabajos.
     networks:
-      - planillas_net
+      - planillas_net # El backend se conecta a redis:6379 dentro de esta red.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-planillas_db}"] # Se añade la flag -d para asegurar la salud sobre la BD específica
+      test: ["CMD", "redis-cli", "ping"] # Redis debe responder PONG.
       interval: 10s
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine # Utiliza la imagen oficial de Redis en su versión 7-alpine
-    container_name: planillas_redis # Nombre del contenedor para Redis
-    restart: unless-stopped
-    ports: 
-      - "6379:6379" # Expone el puerto 6379 para acceder a Redis
-    volumes:
-      - redis_payroll_data:/data # Monta un volumen para persistir los datos de Redis
-    command: redis-server --appendonly yes # Opcional: Asegura que Redis guarde las colas en disco de forma persistente
-    networks:
-      - planillas_net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
+  # --------------------------------------------------------------------------
+  # 3. API NESTJS: peticiones HTTP, validaciones y consumo de las colas del MVP.
+  # --------------------------------------------------------------------------
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile
-      secrets:
-        - github_token
+      context: . # La raíz del backend contiene Dockerfile, package.json, prisma y vendor.
+      dockerfile: Dockerfile # Respetar la mayúscula del nombre en Linux.
     container_name: planillas_backend
     restart: unless-stopped
     depends_on:
+      archivos-permisos:
+        condition: service_completed_successfully
+      # Orden de arranque: primero deben estar disponibles PostgreSQL y Redis.
+      # Esta condición no instala el esquema ni sustituye la gestión de reconexiones.
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:5173} # Orígenes admitidos por HTTP y WebSocket.
+      DIA_PAGO_PLANILLA: ${DIA_PAGO_PLANILLA:-ULTIMO} # ULTIMO o 1-31 para el recordatorio mensual.
+      DIAS_AVISO_PAGO: ${DIAS_AVISO_PAGO:-3} # Anticipación del recordatorio de pago.
+      DIAS_AVISO_SOLICITUD: ${DIAS_AVISO_SOLICITUD:-2} # Anticipación respecto del plazo de revisión.
+      N8N_BASE_URL: http://n8n:5678 # Dirección interna reservada para la integración con n8n.
+      RENIEC_API_KEY: ${RENIEC_API_KEY:-} # Credencial opcional del proveedor de consultas.
+      RENIEC_API_URL: ${RENIEC_API_URL:-} # URL del proveedor configurado.
+      # Canal de trabajos: una misma llave HMAC en API y ejecutor, sin claves por defecto.
+      N8N_WEBHOOK_URL_TRABAJOS: http://n8n:5678/webhook/jyp/trabajos
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:?Defina la llave HMAC de integración}
+      FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL:-http://localhost:5173/restablecer-password}
+      ARCHIVOS_INTEGRACION_DIR: /app/archivos/integraciones
       PORT: 3000
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development} # Compose local usa HTTP; production requiere HTTPS.
+      # Conexión LOCAL de Compose. Dentro del contenedor, localhost sería el propio backend.
+      # Para una BD de Azure, se sustituye por su URL externa y se revisa depends_on de postgres.
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-bella}@postgres:5432/${DB_NAME:-planillas_db}?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-jyp-dev-secret-key-1234}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-jyp-dev-refresh-secret-1234}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-01234567890123456789012345678901}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Defina la llave de acceso JWT}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Defina la llave de refresco JWT}
+      FINANCIAL_DATA_ENCRYPTION_KEY: ${FINANCIAL_DATA_ENCRYPTION_KEY:?Defina la llave de cifrado financiero}
+      COOKIE_SECRET: ${COOKIE_SECRET:?Defina la llave de cookies}
+      # Datos empresariales temporales del MVP; no son secretos de infraestructura.
+      # Al existir Empresa en BD, la planilla leerá la empresa asociada y conservará su snapshot.
+      EMPRESA_NOMBRE: ${EMPRESA_NOMBRE:?Defina el nombre de la empresa}
+      EMPRESA_RUC: ${EMPRESA_RUC:?Defina el RUC de la empresa}
+      EMPRESA_DIRECCION: ${EMPRESA_DIRECCION:?Defina la direccion de la empresa}
     ports:
-      - "3000:3000"
+      - "3000:3000" # API y Swagger accesibles desde el host.
     volumes:
-      - uploads_data:/app/archivos
+      # n8n escribe; el backend solo descarga los archivos registrados en este directorio local.
+      - ./archivos/integraciones:/app/archivos/integraciones:ro
+      - uploads_data:/app/archivos # Documentos del MVP conservados fuera del contenedor efímero.
     networks:
       - planillas_net
 
-secrets:
-  github_token:
-    environment: GITHUB_TOKEN
+  # --------------------------------------------------------------------------
+  # 4. POSTGRESQL PROPIO DE N8N: workflows, ejecuciones y credenciales de n8n.
+  # No contiene tablas de empleados o planillas de la aplicación.
+  # No publica puerto al host: n8n accede mediante n8n-postgres:5432.
+  # --------------------------------------------------------------------------
+  n8n-postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: n8n # Usuario de esta base, diferente al usuario del editor web.
+      POSTGRES_DB: n8n # Base exclusiva de n8n.
+      POSTGRES_PASSWORD: ${N8N_DB_PASSWORD:?Defina una contraseña propia para n8n}
+    volumes:
+      - n8n_postgres_data:/var/lib/postgresql/data # Datos de n8n independientes de la BD de planillas.
+    networks: [planillas_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n -d n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # --------------------------------------------------------------------------
+  # 5. N8N: editor y ejecución de automatizaciones. Los workflows se configuran aparte.
+  # Mantiene su misma versión; esta revisión no actualiza ni ejecuta contenedores.
+  # --------------------------------------------------------------------------
+  n8n:
+    build:
+      context: .
+      dockerfile: n8n/Dockerfile
+    image: jyp-n8n-local:2.44.6
+    restart: unless-stopped
+    depends_on:
+      archivos-permisos:
+        condition: service_completed_successfully
+      n8n-postgres:
+        condition: service_healthy # Espera su propia base, no la base de la aplicación.
+    environment:
+      # El workflow ejecuta únicamente el script propio mediante Execute Command.
+      # En n8n 2 este nodo está deshabilitado por defecto; el editor es solo para administradores JYP.
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: 2 # Acota renderizado y correo simultáneo en el MVP.
+      NODES_EXCLUDE: '["n8n-nodes-base.localFileTrigger"]'
+      JYP_BACKEND_URL: http://host.docker.internal:3000
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:?Defina la llave HMAC de integración}
+      ARCHIVOS_INTEGRACION_DIR: /files
+      # LOCAL conserva .eml sin enviar; SMTP utiliza el servidor configurado (Mailpit para pruebas).
+      N8N_CORREOS_MODO: ${N8N_CORREOS_MODO:-LOCAL}
+      N8N_PDF_PASSWORD_MODE: DOCUMENTO
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_FROM: ${SMTP_FROM:-planillas@example.test}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      DB_TYPE: postgresdb # Guarda sus datos en PostgreSQL en lugar de la base local por defecto.
+      DB_POSTGRESDB_HOST: n8n-postgres # Nombre DNS del servicio dentro de la red Docker.
+      DB_POSTGRESDB_PORT: 5432 # Puerto interno de PostgreSQL; no requiere publicarlo al host.
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD:?Defina una contraseña propia para n8n} # Debe coincidir con el servidor.
+      # Cifra las credenciales guardadas por n8n. Conservar esta misma llave al reiniciar/restaurar.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Defina una llave estable para n8n}
+      GENERIC_TIMEZONE: America/Lima # Zona horaria usada por los nodos de programación.
+      TZ: America/Lima # Zona horaria del proceso del contenedor.
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true" # Intenta restringir el archivo de configuración a su propietario.
+      N8N_SECURE_COOKIE: ${N8N_SECURE_COOKIE:-false} # false para este editor local HTTP; true al usar HTTPS.
+      # URL que n8n anuncia para sus webhooks. La variable .env mantiene el mismo nombre.
+      # N8N_WEBHOOK_URL sustituye el alias WEBHOOK_URL, deprecado según la documentación actual.
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
+    ports:
+      - "127.0.0.1:5678:5678" # Editor disponible solo desde este host, no expuesto directamente a Internet.
+    volumes:
+      - ./archivos/integraciones:/files
+      - n8n_data:/home/node/.n8n # Conserva configuración y archivos internos de n8n.
+    networks: [planillas_net] # Puede comunicarse con los servicios de esta misma red.
+
+  # Captura de correos SMTP de prueba. La interfaz solo se publica en este equipo.
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks: [planillas_net]
+
+
+# Volúmenes persistentes. No borrarlos al actualizar una instalación con información.
 volumes:
-  postgres_payroll_data:
-  redis_payroll_data:
-  uploads_data:
+  n8n_data: # Archivos internos/configuración de n8n.
+  n8n_postgres_data: # Workflows, ejecuciones y credenciales de n8n en PostgreSQL.
+  postgres_payroll_data: # Datos empresariales y laborales de la aplicación.
+  redis_payroll_data: # Persistencia de colas, caché e historial en Redis.
+  uploads_data: # Contratos, sustentos y demás archivos del MVP.
 
+# Red bridge para resolver los nombres de servicio entre contenedores.
+# Publicar un puerto al host depende de ports, no de escribirlo en networks.
 networks:
   planillas_net:
     driver: bridge

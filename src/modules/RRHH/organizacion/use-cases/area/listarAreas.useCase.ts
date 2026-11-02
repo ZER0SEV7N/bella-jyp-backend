@@ -1,5 +1,6 @@
 //src/modules/RRHH/organizacion/use-cases/areas/listarAreas.useCase.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ListarAreasQueryDto } from '@jyp/shared-contracts';
 
@@ -26,17 +27,17 @@ export class ListarAreasUseCase {
       const limit = Number(query.limit) || 10;
       const skip = (page - 1) * limit;
 
-      const where: Record<string, any> = { deleted_at: null };
+      const where: Prisma.areaWhereInput = { deleted_at: null };
 
       //Filtrar por estado si se proporciona en la consulta
       if (query.activo !== undefined) where.activo = query.activo;
       //Filtrar por búsqueda en nombre o descripción si se proporciona en la consulta
-      if (query.search && query.search.trim() !== '') 
+      if (query.search && query.search.trim() !== '')
         where.OR = [
           { nombre: { contains: query.search.trim(), mode: 'insensitive' } },
-          { descripcion: { contains: query.search.trim(), mode: 'insensitive' } }
+          { descripcion: { contains: query.search.trim(), mode: 'insensitive' } },
         ];
-      
+
       //Realizar la consulta a la base de datos utilizando Prisma en una transacción para obtener el total y las áreas
       const [total, areas] = await this.prisma.$transaction([
         this.prisma.area.count({ where }),
@@ -45,16 +46,20 @@ export class ListarAreasUseCase {
           skip,
           take: limit,
           orderBy: { nombre: 'asc' },
-          include: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true,
+            activo: true,
             _count: {
               select: {
-                cargo: { where: { deleted_at: null, activo: true } },
-                empleados: { where: { deleted_at: null, activo: true } },
-                jornada_areas: true
-              }
-            }
-          }
-        })
+                cargo: { where: { activo: true, deleted_at: null } },
+                empleados: { where: { activo: true, deleted_at: null } },
+                jornada_areas: true,
+              },
+            },
+          },
+        }),
       ]);
 
       //Mapear los resultados para incluir solo los campos necesarios y los conteos de relaciones
@@ -65,15 +70,31 @@ export class ListarAreasUseCase {
         activo: a.activo,
         total_cargos: a._count.cargo,
         total_empleados: a._count.empleados,
-        total_jornadas: a._count.jornada_areas
+        total_jornadas: a._count.jornada_areas,
       }));
 
       return {
         data,
-        meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
+        meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
       };
     } catch (error) {
       throw new InternalServerErrorException('Ocurrió un error al obtener el listado de áreas.', error instanceof Error ? error.message : undefined);
     }
+  }
+
+  /**
+   * Obtiene un área por su ID, incluyendo sus cargos y jornadas asociadas.
+   * @param id - El ID del área que se desea obtener.
+   * @throws NotFoundException si el área con el ID proporcionado no existe o ha sido eliminada.
+   * @throws InternalServerErrorException si ocurre un error inesperado durante la consulta.
+   * @returns - El área encontrada con sus cargos y jornadas asociadas.
+   */
+  async obtenerPorId(id: string) {
+    const elemento = await this.prisma.area.findUnique({
+      where: { id, deleted_at: null },
+      include: { cargo: { where: { deleted_at: null } }, jornada_areas: { include: { jornada: true } } },
+    });
+    if (!elemento) throw new NotFoundException('No se encontró el registro solicitado.');
+    return elemento;
   }
 }

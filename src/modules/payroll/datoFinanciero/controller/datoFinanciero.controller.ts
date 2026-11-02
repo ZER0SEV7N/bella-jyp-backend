@@ -18,7 +18,7 @@ import { ApiSwaggerDatoFinancieroController, ApiSwaggerObtenerDatoFinanciero, Ap
    * Unicamente el ADMINISTRADOR, RRHH, CONTADOR, ASISTENTE puede obtener los datos financieros de un empleado
    * Para su registro y modificaciones SOLAMENTE tiene permisos el ADMIN, CONTADOR, RRHH
    */
-  @Controller('api/dato-financiero')
+  @Controller('api/v1/payroll/dato-financiero')
   @UseGuards(JwtAccessGuard, RolesGuard)
   @ApiSwaggerDatoFinancieroController()
   export class DatoFinancieroController {
@@ -101,7 +101,7 @@ import { ApiSwaggerDatoFinancieroController, ApiSwaggerObtenerDatoFinanciero, Ap
     @Put('empleado/:idEmpleado')
     @ApiSwaggerActualizarDatoFinanciero()
     @Roles('ADMIN', 'RRHH')
-    @UsePipes(new ZodValidationPipe(ActualizarDatoFinancieroSchema))
+    @UsePipes(new ZodValidationPipe(ActualizarDatoFinancieroSchema, true))
     async actualizar(@Param('idEmpleado', ParseUUIDPipe) IdEmpleado: string,
         @Body() payload: ActualizarDatoFinancieroDto,
         @Req() req: FastifyRequest & { user: {id: string} }

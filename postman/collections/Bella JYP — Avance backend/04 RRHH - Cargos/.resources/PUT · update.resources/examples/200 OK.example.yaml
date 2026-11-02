@@ -1,0 +1,49 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/cargo/{{cargo_id}}"
+  method: PUT
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "descripcion": "Cargo actualizado desde Postman"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "578"
+    date: Thu, 22 Oct 2026 03:50:10 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "id": "a1b796a1-0201-7cb4-9c33-1eb8eddd4356",
+          "id_area": "a1b20d1c-090c-7601-9138-94c8aa9e401a",
+          "nombre": "Analista demo",
+          "descripcion": "Cargo actualizado desde Postman",
+          "sueldo_minimo": "1500",
+          "sueldo_maximo": "4000",
+          "activo": true,
+          "created_at": "2026-10-22T03:46:24.041Z",
+          "updated_at": "2026-10-22T03:50:10.782Z",
+          "deleted_at": null,
+          "area": {
+            "id": "a1b20d1c-090c-7601-9138-94c8aa9e401a",
+            "nombre": "Area demo Postman"
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/rrhh/cargo/a1b796a1-0201-7cb4-9c33-1eb8eddd4356",
+          "timestamp": "2026-10-22T03:50:10.801Z"
+        }
+      }
+order: 1000

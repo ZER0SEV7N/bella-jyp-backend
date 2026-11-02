@@ -23,13 +23,13 @@ import { ApiSwaggerDerechohabienteController, ApiSwaggerRegistrarDerechohabiente
  * Este controlador expone endpoints para registrar, listar, subir sustentos y cambiar el estado de los derechohabientes asociados a empleados titulares.
  * Se aplican guardias de autenticación y autorización para proteger los endpoints según los roles definidos.
  * Endpoints disponibles:
- * - POST /api/rrhh/derechohabientes: Registrar un nuevo derechohabiente.
- * - GET /api/rrhh/derechohabientes/empleado/:empleadoId: Listar derechohabientes de un empleado titular.
- * - DELETE /api/rrhh/derechohabientes/:id/desactivar: Desactivar un derechohabiente.
- * - PATCH /api/rrhh/derechohabientes/:id/reactivar: Reactivar un derechohabiente previamente desactivado.
- * - POST /api/rrhh/derechohabientes/sustento/abrir: Subir un sustento documental para un derechohabiente.
+ * - POST /api/v1/rrhh/derechohabientes: Registrar un nuevo derechohabiente.
+ * - GET /api/v1/rrhh/derechohabientes/empleado/:empleadoId: Listar derechohabientes de un empleado titular.
+ * - DELETE /api/v1/rrhh/derechohabientes/:id/desactivar: Desactivar un derechohabiente.
+ * - PATCH /api/v1/rrhh/derechohabientes/:id/reactivar: Reactivar un derechohabiente previamente desactivado.
+ * - POST /api/v1/rrhh/derechohabientes/sustento/abrir: Subir un sustento documental para un derechohabiente.
  */
-@Controller('api/rrhh/derechohabientes')
+@Controller('api/v1/rrhh/derechohabientes')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @ApiSwaggerDerechohabienteController()
 export class DerechohabienteController {
@@ -42,7 +42,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para registrar un nuevo derechohabiente asociado a un empleado titular.
-     * @Post /api/rrhh/derechohabientes
+     * @Post /api/v1/rrhh/derechohabientes
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param dto : {
      *   - empleado_id: string - ID del empleado titular al que se asociará el derechohabiente.
@@ -69,7 +69,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para subir un sustento documental asociado a un derechohabiente.
-     * @Post /api/rrhh/derechohabientes/sustento/abrir
+     * @Post /api/v1/rrhh/derechohabientes/sustento/abrir
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param req - FastifyRequest que contiene el archivo multipart y los campos del formulario.
      * @returns - La referencia al sustento documental registrado en la base de datos.
@@ -80,6 +80,8 @@ export class DerechohabienteController {
     @ApiSwaggerSubirSustentoDerechohabiente()
     @Roles('ADMIN', 'RRHH')
     async subirSustento(@Req() req: FastifyRequest) {
+        if (!req.isMultipart()) throw new BadRequestException('La petición debe ser multipart/form-data.');
+
         //Extraccion de archivo multipart y campos con fastify
         const data = await req.file();
         if(!data) throw new BadRequestException({
@@ -92,14 +94,20 @@ export class DerechohabienteController {
         for(const [key, value] of Object.entries(data.fields)) 
             rawFields[key] = (value as any).value;
 
-        const parsedDto: SubirSustentoDerechohabienteDto = SubirSustentoDerechohabienteSchema.parse(rawFields);
+        let parsedDto: SubirSustentoDerechohabienteDto;
+        try {
+            parsedDto = new ZodValidationPipe(SubirSustentoDerechohabienteSchema).transform(rawFields, { type: 'body' });
+        } catch (error) {
+            data.file.resume();
+            throw error;
+        }
 
         return await this.subirSustentoUseCase.execute(parsedDto, data);   
     }
 
     /**
      * Endpoint para listar los derechohabientes asociados a un empleado titular específico.
-     * @Get /api/rrhh/derechohabientes/empleado/:empleadoId
+     * @Get /api/v1/rrhh/derechohabientes/empleado/:empleadoId
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param empleadoId - ID del empleado titular cuyos derechohabientes se desean listar.
      * @returns - Una lista de derechohabientes asociados al empleado titular especificado.
@@ -114,7 +122,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para desactivar un derechohabiente específico.
-     * @Delete /api/rrhh/derechohabientes/:id/desactivar
+     * @Delete /api/v1/rrhh/derechohabientes/:id/desactivar
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param id - ID del derechohabiente que se desea desactivar.
      * @returns - Un mensaje de confirmación indicando que el derechohabiente ha sido desactivado.
@@ -130,7 +138,7 @@ export class DerechohabienteController {
 
     /**
      * Endpoint para reactivar un derechohabiente previamente desactivado.
-     * @Patch /api/rrhh/derechohabientes/:id/reactivar
+     * @Patch /api/v1/rrhh/derechohabientes/:id/reactivar
      * @Roles ('ADMIN', 'RRHH') - Solo usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.
      * @param id - ID del derechohabiente que se desea reactivar.
      * @returns - Un mensaje de confirmación indicando que el derechohabiente ha sido reactivado.
@@ -144,4 +152,10 @@ export class DerechohabienteController {
         return await this.estadoUseCase.reactivar(id);
     }
 
+
+    @Get(':id')
+    @Roles('ADMIN', 'RRHH')
+    obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+        return this.listarUseCase.obtenerPorId(id);
+    }
 }

@@ -72,3 +72,12 @@ export function normalizarParaBusqueda(texto: string): string {
         .toLowerCase() // Convierte a minúsculas
         .replace(/[^a-z0-9\s]/g, ''); // Elimina caracteres especiales
 }
+/**
+ * Transformar cualquier fecha al fomrato de perido 
+ * @param fecha - fecha actual del servidor para obenter le periodo 
+ * @returns - valor de tipo String -> formato '2026-09'
+ */
+export function transformarPeriodo(fecha: Date): string {
+    const periodo= dayjs(fecha).format('YYYY-MM'); 
+    return periodo;
+}

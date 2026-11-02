@@ -1,6 +1,12 @@
 $kind: collection
-name: Planilla
+description: ""
 variables:
   - key: json_web_token_0d33
     secret: true
     disabled: false
+  - key: json_web_token_0zra
+    secret: true
+  - key: json_web_token_0zd7
+    secret: true
+  - key: json_web_token_0fkq
+    secret: true

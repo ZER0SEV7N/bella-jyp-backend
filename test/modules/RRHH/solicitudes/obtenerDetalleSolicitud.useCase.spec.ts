@@ -56,7 +56,11 @@ describe('ObtenerDetalleSolicitudUseCase - Pruebas Unitarias', () => {
         mockPrisma.solicitud.findFirst.mockResolvedValue(solicitudBaseMock);
 
         //Act: Se ejecuta el caso de uso con el código correlativo de la solicitud
-        const resultado = await useCase.execute('SOL-2026-001');
+        const resultado = await useCase.execute(
+            'SOL-2026-001',
+            undefined,
+            undefined
+        );
 
         //Assert: Se verifica que el resultado tenga los datos correctos, incluyendo el código, nombre completo del colaborador, antigüedad calculada y sin alerta de urgencia
         expect(resultado.codigo).toBe('SOL-2026-001');
@@ -78,7 +82,11 @@ describe('ObtenerDetalleSolicitudUseCase - Pruebas Unitarias', () => {
         });
 
         //Act: Se ejecuta el caso de uso con el ID de la solicitud
-        const resultado = await useCase.execute('sol-uuid-1');
+        const resultado = await useCase.execute(
+            '018f4a7c-1111-7000-8000-000000000001',
+            undefined,
+            undefined
+        );
 
         //Assert: Se verifica que el resultado tenga la alerta de urgencia generada correctamente
         expect(resultado.alerta_urgencia).not.toBeNull();
@@ -90,6 +98,6 @@ describe('ObtenerDetalleSolicitudUseCase - Pruebas Unitarias', () => {
         mockPrisma.solicitud.findFirst.mockResolvedValue(null);
 
         //Act & Assert: Se espera que se lance una NotFoundException al intentar obtener el detalle de una solicitud inexistente
-        await expect(useCase.execute('SOL-9999-999')).rejects.toThrow(NotFoundException);
+        await expect(useCase.execute('SOL-9999-999', undefined, undefined)).rejects.toThrow(NotFoundException);
     });
 });

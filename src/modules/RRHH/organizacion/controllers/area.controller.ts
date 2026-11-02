@@ -1,26 +1,40 @@
+import { ApiContratoBody, ApiContratoQuery } from '@/common/decorators/api-contrato.decorator';
 //src/modules/RRHH/controller/Area.controller.ts
-import { Controller, Post, Body, HttpCode, HttpStatus, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query, Put } from '@nestjs/common';
 //Casos de uso para las operaciones de area
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { EditarAreaUseCase } from '../use-cases/area/editarArea.useCase';
 import { EstadoAreaUseCase } from '../use-cases/area/estadoArea.useCase';
 import { ListarAreasUseCase } from '../use-cases/area/listarAreas.useCase';
+//Importar guardias de autenticación y autorización
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
 //Importar esquemas y DTOs para validación y tipado
 import { CrearAreaSchema, ActualizarAreaSchema, ListarAreasQuerySchema } from '@jyp/shared-contracts';
 import type { CrearAreaDto, ActualizarAreaDto, ListarAreasQueryDto } from '@jyp/shared-contracts';
-import { ApiSwaggerAreasController, ApiSwaggerCrearArea, ApiSwaggerActualizarArea, ApiSwaggerDesactivarArea, ApiSwaggerReactivarArea, ApiSwaggerListarAreas } from '../decorators/area-swagger.decorator';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { ApiSwaggerAreasController, ApiSwaggerCrearArea, ApiSwaggerActualizarArea, ApiSwaggerDesactivarArea, ApiSwaggerReactivarArea, ApiSwaggerListarAreas, ApiDetalleArea } from '../decorators/area-swagger.decorator';
+
 
 /**
  * Controlador para gestionar las áreas en el módulo de RRHH.
+ * Los endpoints expuestos permiten crear, actualizar, desactivar/reactivar y listar áreas, así como obtener detalles de un área específica.
+ * Se aplican validaciones de seguridad y autorización mediante JWT y roles, asegurando que solo usuarios con los permisos adecuados puedan realizar estas operaciones.
+ * Además, se utilizan esquemas de validación para garantizar la integridad de los datos recibidos en las solicitudes.
+ * Los endpoints dispuestos son:
+ * - POST /api/v1/rrhh/area/crear: Crear un nuevo área.
+ * - PUT /api/v1/rrhh/area/:id: Actualizar un área existente.
+ * - PATCH /api/v1/rrhh/area/:id/reactivar: Reactivar un área desactivada.
+ * - DELETE /api/v1/rrhh/area/:id/desactivar: Desactivar un área (soft delete).
+ * - GET /api/v1/rrhh/area: Listar áreas con soporte para paginación y filtros.
+ * - GET /api/v1/rrhh/area/:id: Obtener detalles de un área por su ID.
  * @requires - JWT Bearer token para autenticación.
  * @requires - Roles: ADMIN, RRHH para autorización.
  */
 @ApiSwaggerAreasController()
-@Controller('api/rrhh/area')
-@UseGuards(JwtAccessGuard)
+@Controller('api/v1/rrhh/area')
+@UseGuards(JwtAccessGuard, RolesGuard)
 export class AreaController {
   //Inyectar los casos de uso necesarios para manejar las operaciones relacionadas con las areas
   constructor(
@@ -32,24 +46,26 @@ export class AreaController {
 
   /**
    * Crear un nuevo area
-   * @POST - /api/rrhh/area/crear
+   * @POST - /api/v1/rrhh/area/crear
    * @param payload : dtoCrearAreaInput{
    *    "nombre" : "Area-prueba-Nro1",
    *    "descripcion" : "Descripcion-Nro1"
    * }
    * @Returns
    */
+  
   @ApiSwaggerCrearArea()
   @Post('crear')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(CrearAreaSchema))
+  @ApiContratoBody(CrearAreaSchema)
   async crear(@Body() payload: CrearAreaDto) {
     return await this.crearAreaUseCase.execute(payload);
   }
 
   /**
    * Actualizar un area existente
-   * @PATCH - /api/rrhh/area/:id/actualizar
+   * @Put - /api/v1/rrhh/area/:id
    * @param id_area string - UUID
    * @param payload : dtoActualizarAreaInput{
    *    "nombre" : "Area-Nro1",
@@ -59,52 +75,51 @@ export class AreaController {
    *          404 Not Found - El area con el ID proporcionado no existe.
    *          400 Bad Request - Los datos proporcionados son inválidos.
    */
+  
   @ApiSwaggerActualizarArea()
-  @Patch(':id/actualizar')
+  @Put(':id')
   @Roles('ADMIN', 'RRHH')
-  @UsePipes(new ZodValidationPipe(ActualizarAreaSchema))
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() payload: ActualizarAreaDto,
-  ) {
+  @UsePipes(new ZodValidationPipe(ActualizarAreaSchema, true))
+  @ApiContratoBody(ActualizarAreaSchema)
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ActualizarAreaDto ) {
     return await this.editarAreaUseCase.execute(id, payload);
   }
 
   /**
    * Reactivar un area que se encuentra desactivada
-   * @PATCH - /api/rrhh/area/:id/reactive
+   * @PATCH - /api/v1/rrhh/area/:id/reactivar
    * @param id_area - string - uuid
    * @returns: 200 OK - El area ha sido reactivada exitosamente.
    *          404 Not Found - El area con el ID proporcionado no existe.
    *          400 Bad Request - El area ya está activa.
    */
   @ApiSwaggerReactivarArea()
-  @Patch(':id/reactive')
+  @Patch(':id/reactivar')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
-  async reactive(@Param('id') id: string) {
+  async reactive(@Param('id', ParseUUIDPipe) id: string) {
     return await this.estadoAreaUseCase.reactivar(id);
   }
 
   /**
    * Eliminar un area (SOFT DELETE)
-   * @DELETE - /api/rrhh/area/:id/desactive
+   * @DELETE - /api/v1/rrhh/area/:id/desactive
    * @param id_area string - UUID
    * @returns - 200 OK - El area ha sido desactivada exitosamente.
    *        404 Not Found - El area con el ID proporcionado no existe.
    *        400 Bad Request - El area tiene cargos activos asociados y no puede ser desactivada.
    */
   @ApiSwaggerDesactivarArea()
-  @Delete(':id/desactive')
+  @Delete(':id/desactivar')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.OK)
-  async eliminar(@Param('id') id: string) {
+  async eliminar(@Param('id', ParseUUIDPipe) id: string) {
     return await this.estadoAreaUseCase.desactivar(id);
   }
 
   /**
    * Listar areas con paginación y filtros
-   * @GET - /api/rrhh/area
+   * @GET - /api/v1/rrhh/area
    * @Query queryParams : ListarAreasQueryDto {
    *     "page": 1,
    *     "limit": 10,
@@ -113,11 +128,27 @@ export class AreaController {
    * }
    * @returns Un objeto con las areas encontradas y metadatos de paginación.
    */
+  
   @ApiSwaggerListarAreas()
   @Get()
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ListarAreasQuerySchema))
+  @ApiContratoQuery(ListarAreasQuerySchema)
   async listarAreas(@Query() queryParams: ListarAreasQueryDto) {
     return await this.listarAreasUseCase.listar(queryParams);
+  }
+
+  /**
+   * Obtener detalles de un area por su ID
+   * @GET - /api/v1/rrhh/area/:id
+   * @param id_area string - UUID
+   * @returns Detalles del area solicitado.
+   *          404 Not Found - El area con el ID proporcionado no existe.
+   */
+  @Get(':id')
+  @Roles('ADMIN', 'RRHH')
+  @ApiDetalleArea()
+  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarAreasUseCase.obtenerPorId(id);
   }
 }

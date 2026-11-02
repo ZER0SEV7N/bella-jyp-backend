@@ -10,29 +10,17 @@ describe('ValidarCargaMasivaUseCase - Pruebas Unitarias (Dry Run)', () => {
 
   // Mock de catálogos en caso de que el caso de uso realice verificación cruzada
   const mockPrismaService = {
-    tipo_documento: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'doc-1', tipo_documento: 'DNI' }]),
-    },
-    area: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'area-1', nombre: 'Oficina Central' }]),
-    },
-    cargo: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'cargo-1', nombre: 'Contador Principal' }]),
-    },
-    jornada: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'jornada-1', nombre: 'Turno Mañana (Oficina)' }]),
-    },
-    regimen_pension: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'reg-1', nombre: 'ONP' }]),
-    },
-    bancos: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'banco-1', nombre: 'BCP' }]),
-    },
+    tipo_documento: { findMany: jest.fn().mockResolvedValue([{ id: 'doc-1', tipo_documento: 'DNI' }]) },
+    area: { findMany: jest.fn().mockResolvedValue([{ id: 'area-1', nombre: 'Oficina Central' }]) },
+    cargo: { findMany: jest.fn().mockResolvedValue([{ id: 'cargo-1', nombre: 'Contador Principal' }]) },
+    jornada: { findMany: jest.fn().mockResolvedValue([{ id: 'jornada-1', nombre: 'Turno Mañana (Oficina)' }])},
+    regimen_pension: { findMany: jest.fn().mockResolvedValue([{ id: 'reg-1', nombre: 'ONP' }]) },
+    bancos: { findMany: jest.fn().mockResolvedValue([{ id: 'banco-1', nombre: 'BCP' }]) }
   };
 
   // Cabeceras y filas con la estructura completa de CargaMasivaFilaSchema
   const csvHeaders =
-    'tipo_documento,nro_documento,nombre,apellido,sexo,estado_civil,fecha_nacimiento,direccion,departamento,provincia,distrito,fecha_inicio,asig_familiar,area,cargo,jornada,sueldo_basico,regimen_pension\n';
+    'tipo_documento,nro_documento,nombre,apellido,sexo,estado_civil,fecha_nacimiento,email,telefono,direccion,referencia_direccion,departamento,provincia,distrito,ubigeo,fecha_inicio,asig_familiar,area,cargo,jornada,sueldo_basico,regimen_pension\n';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -50,7 +38,7 @@ describe('ValidarCargaMasivaUseCase - Pruebas Unitarias (Dry Run)', () => {
   describe('execute() - Pre-validación CSV', () => {
     it('Happy Path: Debe pre-validar un CSV sin realizar escrituras en BD', async () => {
       const validRow =
-        'DNI,70998877,Roberto,Flores Gomez,MASCULINO,SOLTERO,1992-04-10,Av. Central 123,LIMA,LIMA,SAN ISIDRO,2026-01-15,true,Oficina Central,Contador Principal,Turno Mañana (Oficina),3500.00,ONP\n';
+        'DNI,70998877,Roberto,Flores Gomez,MASCULINO,SOLTERO,1992-04-10,roberto@jyp.pe,987654321,Av. Central 123,Frente al parque,LIMA,LIMA,SAN ISIDRO,150131,2026-01-15,true,Oficina Central,Contador Principal,Turno Mañana (Oficina),3500.00,ONP\n';
 
       const csvContent = `${csvHeaders}${validRow}`;
       const stream = Readable.from([csvContent]);
@@ -69,7 +57,7 @@ describe('ValidarCargaMasivaUseCase - Pruebas Unitarias (Dry Run)', () => {
     it('Debe capturar errores de filas inválidas en el reporte de errores', async () => {
       // Fila con todas las columnas obligatorias excepto nro_documento (vacío)
       const invalidRow =
-        'DNI,,Roberto,Flores Gomez,MASCULINO,SOLTERO,1992-04-10,Av. Central 123,LIMA,LIMA,SAN ISIDRO,2026-01-15,false,Oficina Central,Contador Principal,Turno Mañana (Oficina),3500.00,ONP\n';
+        'DNI,,Roberto,Flores Gomez,MASCULINO,SOLTERO,1992-04-10,roberto@jyp.pe,987654321,Av. Central 123,Frente al parque,LIMA,LIMA,SAN ISIDRO,150131,2026-01-15,false,Oficina Central,Contador Principal,Turno Mañana (Oficina),3500.00,ONP\n';
 
       const csvContent = `${csvHeaders}${invalidRow}`;
       const stream = Readable.from([csvContent]);

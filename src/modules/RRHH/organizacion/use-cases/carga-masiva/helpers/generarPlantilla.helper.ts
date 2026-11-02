@@ -12,7 +12,7 @@ export async function generarPlantillaExcel(): Promise<Buffer> {
   workbook.creator = 'JYP Planillas';
   workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet('Plantilla Empleados', {views: [{ showGridLines: true }]});
+  const sheet = workbook.addWorksheet('Plantilla Empleados', { views: [{ showGridLines: true }] });
 
   sheet.columns = [
     //1. Identificación y Filiación
@@ -23,6 +23,10 @@ export async function generarPlantillaExcel(): Promise<Buffer> {
     { header: 'sexo', key: 'sexo', width: 14 },
     { header: 'estado_civil', key: 'estado_civil', width: 16 },
     { header: 'fecha_nacimiento', key: 'fecha_nacimiento', width: 18 },
+
+    { header: 'nacionalidad', key: 'nacionalidad', width: 16 },
+    { header: 'referencia_direccion', key: 'referencia_direccion', width: 30 },
+    { header: 'afp_fecha_filiacion', key: 'afp_fecha_filiacion', width: 20 },
 
     //2. Contacto y Domicilio (Fiscalización)
     { header: 'email', key: 'email', width: 28 },
@@ -72,13 +76,14 @@ export async function generarPlantillaExcel(): Promise<Buffer> {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF1F497D' }
+      fgColor: { argb: 'FF1F497D' },
     };
     cell.alignment = { vertical: 'middle', horizontal: 'center' };
   });
 
   //Agregar filas de ejemplo para ilustrar cómo llenar la plantilla
-  const filasEjemplo = [{
+  const filasEjemplo = [
+    {
       tipo_documento: 'DNI',
       nro_documento: '70122334',
       nombre: 'Carlos',
@@ -89,6 +94,9 @@ export async function generarPlantillaExcel(): Promise<Buffer> {
       email: 'contador@jyp.com',
       telefono: '987654321',
       direccion: 'Av. Las Camelias 450 Dpto 302',
+      nacionalidad: 'PERUANA',
+      referencia_direccion: 'Frente al parque',
+      afp_fecha_filiacion: '2024-02-01',
       departamento: 'LIMA',
       provincia: 'LIMA',
       distrito: 'SAN ISIDRO',
@@ -112,7 +120,7 @@ export async function generarPlantillaExcel(): Promise<Buffer> {
       nro_cuenta_cts: '0011-0123-45-0100012345',
       cci_cts: '011-123-000100012345-67',
       regimen_salud: 'ESSALUD_REGULAR',
-      eps_costo_adicional: 0
+      eps_costo_adicional: 0,
     },
     {
       tipo_documento: 'CE',
@@ -125,6 +133,9 @@ export async function generarPlantillaExcel(): Promise<Buffer> {
       email: 'miguel.osorio@jyp.com',
       telefono: '912345678',
       direccion: 'Jr. Los Álamos 124',
+      nacionalidad: 'PERUANA',
+      referencia_direccion: 'Frente al parque',
+      afp_fecha_filiacion: '2024-02-01',
       departamento: 'LIMA',
       provincia: 'LIMA',
       distrito: 'SURQUILLO',
@@ -148,22 +159,15 @@ export async function generarPlantillaExcel(): Promise<Buffer> {
       nro_cuenta_cts: '200-3009876543',
       cci_cts: '003-200-00300987654321-22',
       regimen_salud: 'EPS',
-      eps_costo_adicional: 45.5
-    }
+      eps_costo_adicional: 45.5,
+    },
   ];
 
   filasEjemplo.forEach((data) => {
     const row = sheet.addRow(data);
-    [
-      'nro_documento',
-      'telefono',
-      'ubigeo',
-      'nro_cuenta_sueldo',
-      'cci_sueldo',
-      'nro_cuenta_cts',
-      'cci_cts',
-      'cuspp'
-    ].forEach((key) => { row.getCell(key).numFmt = '@'; });
+    ['nro_documento', 'telefono', 'ubigeo', 'nro_cuenta_sueldo', 'cci_sueldo', 'nro_cuenta_cts', 'cci_cts', 'cuspp'].forEach((key) => {
+      row.getCell(key).numFmt = '@';
+    });
   });
 
   const arrayBuffer = await workbook.xlsx.writeBuffer();

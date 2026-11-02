@@ -9,7 +9,7 @@ import { ApiSwaggerUsuariosController, ApiSwaggerObtenerMiPerfil } from '../deco
 /**
  * Controlador para manejar las operaciones relacionadas con los usuarios
  */
-@Controller('api/usuarios')
+@Controller('api/v1/usuarios')
 @UseGuards(JwtAccessGuard) //Protege todas las rutas de este controlador con JWT
 @ApiSwaggerUsuariosController() //Documentación Swagger para el módulo de usuarios
 export class UsuariosController {

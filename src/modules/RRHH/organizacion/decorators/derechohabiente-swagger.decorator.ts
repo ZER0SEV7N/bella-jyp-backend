@@ -1,14 +1,6 @@
 // src/modules/rrhh/organizacion/decorators/derechohabiente-swagger.decorator.ts
 import { applyDecorators } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-  ApiBody,
-  ApiConsumes,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody, ApiConsumes } from '@nestjs/swagger';
 
 /**
  * Decorador de nivel controlador para agrupar las operaciones de derechohabientes en Swagger.

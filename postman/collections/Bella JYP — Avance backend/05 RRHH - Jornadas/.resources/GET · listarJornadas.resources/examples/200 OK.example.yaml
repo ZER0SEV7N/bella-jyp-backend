@@ -1,0 +1,250 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/rrhh/jornadas?page=1&limit=10"
+  method: GET
+  queryParams:
+    - key: page
+      value: "1"
+      disabled: false
+      description: ""
+    - key: limit
+      value: "10"
+      disabled: false
+      description: ""
+    - key: search
+      value: demo
+      disabled: true
+    - key: area_id
+      value: "{{area_id}}"
+      disabled: true
+    - key: turno
+      value: MANANA
+      disabled: true
+    - key: modalidad
+      value: PRESENCIAL
+      disabled: true
+    - key: duracion
+      value: TIEMPO_COMPLETO
+      disabled: true
+    - key: activo
+      value: "true"
+      disabled: true
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "3429"
+    date: Thu, 22 Oct 2026 03:50:39 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": [
+          {
+            "id": "018f4a7c-6666-7000-f000-000000000002",
+            "nombre": "Turno Nocturno Seguridad",
+            "descripcion": "Turno de noche para vigilancia y control de acceso",
+            "duracion": "TIEMPO_COMPLETO",
+            "turno": "NOCHE",
+            "modalidad": "PRESENCIAL",
+            "tolerancia_minutos": 10,
+            "total_horas_semana": 40,
+            "horario_semanal": [
+              {
+                "dia": "LUNES",
+                "salida": "06:00",
+                "entrada": "22:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              },
+              {
+                "dia": "MARTES",
+                "salida": "06:00",
+                "entrada": "22:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              },
+              {
+                "dia": "MIERCOLES",
+                "salida": "06:00",
+                "entrada": "22:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              },
+              {
+                "dia": "JUEVES",
+                "salida": "06:00",
+                "entrada": "22:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              },
+              {
+                "dia": "VIERNES",
+                "salida": "06:00",
+                "entrada": "22:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              },
+              {
+                "dia": "SABADO",
+                "salida": null,
+                "entrada": null,
+                "laborable": false,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 0,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              },
+              {
+                "dia": "DOMINGO",
+                "salida": null,
+                "entrada": null,
+                "laborable": false,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 0,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              }
+            ],
+            "patron_rotacion": null,
+            "activo": true,
+            "total_empleados": 1,
+            "total_areas": 1,
+            "areas": [
+              {
+                "id": "018f4a7c-7777-7000-1111-000000000004",
+                "nombre": "Seguridad y Operaciones"
+              }
+            ]
+          },
+          {
+            "id": "018f4a7c-6666-7000-f000-000000000001",
+            "nombre": "Jornada Estándar Oficina",
+            "descripcion": "Horario administrativo de 40h semanales de Lunes a Viernes",
+            "duracion": "TIEMPO_COMPLETO",
+            "turno": "MANANA",
+            "modalidad": "PRESENCIAL",
+            "tolerancia_minutos": 15,
+            "total_horas_semana": 40,
+            "horario_semanal": [
+              {
+                "dia": "LUNES",
+                "salida": "17:00",
+                "entrada": "08:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": "14:00",
+                "inicio_descanso": "13:00"
+              },
+              {
+                "dia": "MARTES",
+                "salida": "17:00",
+                "entrada": "08:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": "14:00",
+                "inicio_descanso": "13:00"
+              },
+              {
+                "dia": "MIERCOLES",
+                "salida": "17:00",
+                "entrada": "08:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": "14:00",
+                "inicio_descanso": "13:00"
+              },
+              {
+                "dia": "JUEVES",
+                "salida": "17:00",
+                "entrada": "08:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": "14:00",
+                "inicio_descanso": "13:00"
+              },
+              {
+                "dia": "VIERNES",
+                "salida": "17:00",
+                "entrada": "08:00",
+                "laborable": true,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 8,
+                "fin_descanso": "14:00",
+                "inicio_descanso": "13:00"
+              },
+              {
+                "dia": "SABADO",
+                "salida": null,
+                "entrada": null,
+                "laborable": false,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 0,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              },
+              {
+                "dia": "DOMINGO",
+                "salida": null,
+                "entrada": null,
+                "laborable": false,
+                "modalidad": "PRESENCIAL",
+                "total_horas": 0,
+                "fin_descanso": null,
+                "inicio_descanso": null
+              }
+            ],
+            "patron_rotacion": null,
+            "activo": true,
+            "total_empleados": 5,
+            "total_areas": 3,
+            "areas": [
+              {
+                "id": "018f4a7c-7777-7000-1111-000000000001",
+                "nombre": "Oficina Central / Gerencia"
+              },
+              {
+                "id": "018f4a7c-7777-7000-1111-000000000002",
+                "nombre": "Contabilidad y Finanzas"
+              },
+              {
+                "id": "018f4a7c-7777-7000-1111-000000000003",
+                "nombre": "Recursos Humanos"
+              }
+            ]
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1,
+          "message": "Operación exitosa.",
+          "path": "/api/v1/rrhh/jornadas?page=1&limit=10",
+          "timestamp": "2026-10-22T03:50:39.331Z"
+        }
+      }
+order: 1000

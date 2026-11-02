@@ -1,0 +1,68 @@
+$kind: http-example
+request:
+  url: "{{base_url}}/api/v1/health"
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    content-type: application/json; charset=utf-8
+    content-length: "1243"
+    date: Wed, 21 Oct 2026 23:31:24 GMT
+    connection: keep-alive
+    keep-alive: timeout=72
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 200,
+        "data": {
+          "status": "online",
+          "system": "Bella Planillas API - Backend RRHH & Nómina",
+          "version": "1.0.0",
+          "environment": "development",
+          "timestamp": "2026-10-21T23:31:24.609Z",
+          "credits": {
+            "organization": "J&P Perifericos S.A.C",
+            "project": "Bella Planillas Enterprise System",
+            "makers": [
+              {
+                "name": "Daniel Singer",
+                "role": "Desarrollador Principal y Líder de Equipo",
+                "comment": "Líder del equipo de desarrollo & encargado del backend"
+              },
+              {
+                "name": "Rodrigo del Castillo",
+                "role": "Desarrollador Frontend",
+                "comment": "Se encargo de la implementación del frontend y la experiencia del usuario"
+              },
+              {
+                "name": "Adrian Matias Dueñas",
+                "role": "Desarrollador Backend",
+                "comment": "Se encargo de la implementación del backend y las integraciones"
+              },
+              {
+                "name": "Dylan Yessid Florez",
+                "role": "Scrum Master and Developer",
+                "comment": "Documentacion & Backend"
+              },
+              {
+                "name": "Julio Vargas",
+                "role": "Desarrollador Junior",
+                "comment": "Ayudante de Frontend, colaboración en la implementación de funcionalidades y pruebas"
+              },
+              {
+                "name": "Luis Sipion",
+                "role": "Desarrollador Junior",
+                "comment": "Ayudante de Frontend, colavoración en la implementación de funcionalidades y pruebas"
+              }
+            ]
+          }
+        },
+        "meta": {
+          "message": "Operación exitosa.",
+          "path": "/api/v1/health",
+          "timestamp": "2026-10-21T23:31:24.609Z"
+        }
+      }
+order: 1000
