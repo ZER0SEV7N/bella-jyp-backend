@@ -5,9 +5,13 @@ const { unlink } = require('node:fs/promises');
 const { pipeline } = require('node:stream/promises');
 const { join } = require('node:path');
 const { escritor, metadatos } = require('./almacenamiento.cjs');
-const { cabeceraBcp, detalleBcp } = require('../../dist/modules/integraciones/domain/bcp-haberes');
-const { lineaAfpnet } = require('../../dist/modules/integraciones/domain/afpnet');
+const bancoHaberesMod = require('../../dist/modules/integraciones/domain/banco-haberes');
+const cabeceraBcp = bancoHaberesMod.cabeceraBcp || bancoHaberesMod.cabeceraBanco;
+const detalleBcp = bancoHaberesMod.detalleBcp;
+const afpnetMod = require('../../dist/modules/integraciones/domain/afpnet');
+const lineaAfpnet = afpnetMod.lineaAfpnet || afpnetMod.lineaAFPNET;
 const { lineaJornadaPlame, lineasRemuneracionPlame, nombrePlame } = require('../../dist/modules/integraciones/domain/plame');
+
 /**
  * Tarea de exportación de formatos homologados para la integración con sistemas bancarios y de seguridad social.
  * Esta tarea procesa un conjunto de filas de trabajo y genera archivos de salida en formatos específicos según el tipo de exportación solicitado.

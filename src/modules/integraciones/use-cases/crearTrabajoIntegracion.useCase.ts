@@ -57,12 +57,24 @@ export class CrearTrabajoIntegracionUseCase {
         if (dto.tipo === 'PLAME' && dto.configuracion.confirmar_montos_pagados !== true)
             throw new BadRequestException('El contador debe confirmar los montos pagados/descontados para exportar .rem. Cerrar una planilla no confirma su pago.');
         
+        // Si en BCP_HABERES se especifica el mapa `tipos_cuenta_abono` y no se filtró por `empleado_id`,
+        // se restringe la selección a los colaboradores declarados en dicho mapa para evitar colisiones
+        // cuando coexisten los empleados demo de Postman y los empleados demo de n8n en la misma base.
+        const empleadosAbono =
+            dto.tipo === 'BCP_HABERES' &&
+            !dto.empleado_id &&
+            dto.configuracion.tipos_cuenta_abono &&
+            Object.keys(dto.configuracion.tipos_cuenta_abono).length > 0
+                ? Object.keys(dto.configuracion.tipos_cuenta_abono)
+                : null;
+
         // Validaciones específicas para SUNAT
         return this.prisma.$transaction(async (tx) => {
             const planillas = await tx.historial_planillas.findMany({
                 where: {
                     periodo: dto.periodo,
                     ...(dto.empleado_id ? { empleado_id: dto.empleado_id } : {}),
+                    ...(!dto.empleado_id && empleadosAbono ? { empleado_id: { in: empleadosAbono } } : {}),
                     ...(dto.area_id ? { empleados: { area_id: dto.area_id } } : {})
                 },
                 select: { id: true, estado: true },

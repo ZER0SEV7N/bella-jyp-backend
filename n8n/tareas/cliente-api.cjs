@@ -1,6 +1,7 @@
 //n8n/tareas/cliente-api.cjs
-const { firmarM2m } = require('../../dist/common/utils/firma-m2m.util');
+const { firmarM2M } = require('../../dist/common/utils/firma-m2m.util');
 const { IdentityGenerator } = require('../../dist/common/utils/uuid.util');
+const firmar = firmarM2M || firmarM2m;
 
 /**
  * Tarea que proporciona funciones para interactuar con la API del backend de manera segura mediante autenticación M2M.
@@ -34,7 +35,7 @@ async function llamarApi(metodo, ruta, cuerpo = null) {
                 'Content-Type': 'application/json',
                 'X-Jyp-Timestamp': instante,
                 'X-Jyp-Nonce': nonce,
-                'X-Jyp-Signature': firmarM2m(
+                'X-Jyp-Signature': firmar(
                     secreto,
                     metodo,
                     ruta,

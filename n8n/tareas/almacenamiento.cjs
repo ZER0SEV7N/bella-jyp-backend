@@ -27,7 +27,7 @@ function escritor(directorio, nombre, encoding = 'latin1') {
 
     // Se crea un flujo de escritura para el archivo temporal con las opciones especificadas.
     const stream = createWriteStream(temporal, {
-        flags: 'wx',
+        flags: 'w',
         mode: 0o600,
         encoding,
     });
