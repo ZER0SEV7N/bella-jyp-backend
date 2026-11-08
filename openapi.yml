@@ -3797,7 +3797,7 @@ paths:
       tags:
       - Notificaciones
       x-roles: []
-  /api/v1/payroll/afp/comisiones:
+  /api/v1/nomina/afp/comisiones:
     post:
       description: Abre un nuevo periodo de tasas y cierra el anterior (SCD Tipo 2). Requiere permisos de administrador
         o contador.
@@ -3953,7 +3953,7 @@ paths:
         roles:
         - ADMIN
         - CONTADOR
-  /api/v1/payroll/afp/tipos:
+  /api/v1/nomina/afp/tipos:
     post:
       description: Registra una nueva Administradora (Ej. Integra, Prima). Requiere permisos de administrador o
         contador.
@@ -4035,7 +4035,7 @@ paths:
         roles:
         - ADMIN
         - CONTADOR
-  /api/v1/payroll/bancos:
+  /api/v1/nomina/bancos:
     get:
       description: 'Devuelve la lista de bancos peruanos registrados (`BCP`, `BBVA`, `INTERBANK`, `SCOTIABANK`,
         etc.) para la asociación de cuentas sueldo y cuentas CTS.
@@ -4065,8 +4065,8 @@ paths:
       - JWT-auth: []
       summary: Listar el catálogo de entidades bancarias habilitadas
       tags:
-      - Payroll - Bancos
-  /api/v1/payroll/bancos/{id}:
+      - nomina - Bancos
+  /api/v1/nomina/bancos/{id}:
     get:
       description: Información completa del registro seleccionado.
       operationId: BancosController_obtenerPorId
@@ -4117,13 +4117,13 @@ paths:
       - JWT-auth: []
       summary: Obtener detalle de bancos
       tags:
-      - Payroll - Bancos
+      - nomina - Bancos
       x-roles:
       - ADMIN
       - CONTADOR
       - RRHH
       - ASISTENTE
-  /api/v1/payroll/dato-financiero:
+  /api/v1/nomina/dato-financiero:
     post:
       description: "Registra las cuentas de dispersión de fondos, régimen previsional y cobertura de salud de un\
         \ empleado.\n- **Roles Autorizados**: `ADMIN`, `CONTADOR`, `RRHH`.\n- **Estructura Bancaria Doble**: Separa\
@@ -4243,8 +4243,8 @@ paths:
       - JWT-auth: []
       summary: Registrar la ficha financiera y bancaria inicial
       tags:
-      - Payroll - Datos Financieros
-  /api/v1/payroll/dato-financiero/empleado/{idEmpleado}:
+      - nomina - Datos Financieros
+  /api/v1/nomina/dato-financiero/empleado/{idEmpleado}:
     get:
       description: "Recupera la ficha completa bancaria, previsional (AFP/ONP) y de salud (EsSalud/EPS).\n- **Roles\
         \ Autorizados**: `ADMIN`, `CONTADOR`, `RRHH`, `ASISTENTE`.\n- **Enmascaramiento de Seguridad (Data Masking)**:\n\
@@ -4305,7 +4305,7 @@ paths:
       - JWT-auth: []
       summary: Obtener expediente financiero y previsional del empleado
       tags:
-      - Payroll - Datos Financieros
+      - nomina - Datos Financieros
     put:
       description: "Modifica cuentas bancarias (Sueldo/CTS), condiciones de seguro de salud o esquema previsional.\n\
         - **Roles Autorizados**: `ADMIN`, `RRHH`.\n- **Mecanismo de Step-Up Authentication**:\n  - Para evitar fraudes\
@@ -4430,8 +4430,8 @@ paths:
       - JWT-auth: []
       summary: Actualizar expediente financiero (Step-Up Authentication)
       tags:
-      - Payroll - Datos Financieros
-  /api/v1/payroll/planillas:
+      - nomina - Datos Financieros
+  /api/v1/nomina/planillas:
     get:
       description: Resumen paginado con identificación y totales monetarios.
       operationId: PlanillasController_listar
@@ -4631,12 +4631,12 @@ paths:
       - JWT-auth: []
       summary: Listar planillas por período
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - ADMIN
       - CONTADOR
       - ASISTENTE
-  /api/v1/payroll/planillas/desembolsos:
+  /api/v1/nomina/planillas/desembolsos:
     post:
       description: 'Registra el código de operación bancaria, banco de cargo y fecha de pago para las boletas en
         estado `CERRADA` del periodo `YYYY-MM`, transicionándolas al estado final `PAGADA`.
@@ -4809,10 +4809,10 @@ paths:
       - JWT-auth: []
       summary: Registrar la evidencia de desembolso bancario y marcar la planilla como PAGADA
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - CONTADOR
-  /api/v1/payroll/planillas/generar:
+  /api/v1/nomina/planillas/generar:
     post:
       description: "Valida que la asistencia del periodo `YYYY-MM` se encuentre `APROBADA` y encola un trabajo asíncrono\
         \ en **BullMQ (`calculo-planilla`)** procesado por un pool de hilos (`Piscina`) para calcular la planilla\
@@ -4972,12 +4972,12 @@ paths:
       - JWT-auth: []
       summary: Encolar el cálculo masivo de planillas del periodo (BullMQ + Piscina Worker Threads)
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - ADMIN
       - CONTADOR
       - ASISTENTE
-  /api/v1/payroll/planillas/novedades:
+  /api/v1/nomina/planillas/novedades:
     post:
       description: 'Inscribe un concepto monetario puntual aplicable al cálculo de planilla de un colaborador en
         el periodo `YYYY-MM`.
@@ -5185,12 +5185,12 @@ paths:
       - JWT-auth: []
       summary: Registrar una novedad monetaria de planilla (adelanto, bono, EPS, descuento autorizado o quinta previa)
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - ADMIN
       - CONTADOR
       - ASISTENTE
-  /api/v1/payroll/planillas/novedades/listar:
+  /api/v1/nomina/planillas/novedades/listar:
     get:
       description: Devuelve hasta cien novedades del período, ordenadas por creación.
       operationId: NovedadesPlanillaController_listarNovedades
@@ -5367,12 +5367,12 @@ paths:
       - JWT-auth: []
       summary: Listar novedades del colaborador
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - ADMIN
       - CONTADOR
       - ASISTENTE
-  /api/v1/payroll/planillas/novedades/{id}/resolver:
+  /api/v1/nomina/planillas/novedades/{id}/resolver:
     post:
       description: Aprueba, rechaza o anula con motivo y versión. Solo una novedad aprobada participa en el cálculo.
       operationId: NovedadesPlanillaController_resolverNovedad
@@ -5567,10 +5567,10 @@ paths:
       - JWT-auth: []
       summary: Resolver novedad de planilla
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - CONTADOR
-  /api/v1/payroll/planillas/trabajos/{id}:
+  /api/v1/nomina/planillas/trabajos/{id}:
     get:
       description: Devuelve progreso y errores por colaborador. El asistente consulta sus propios trabajos; ADMIN
         y CONTADOR pueden consultar otros.
@@ -5745,12 +5745,12 @@ paths:
       - JWT-auth: []
       summary: Consultar progreso del cálculo
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - ADMIN
       - CONTADOR
       - ASISTENTE
-  /api/v1/payroll/planillas/{id}:
+  /api/v1/nomina/planillas/{id}:
     get:
       description: Incluye conceptos, versión e instantánea de cálculo.
       operationId: PlanillasController_detalle
@@ -6016,12 +6016,12 @@ paths:
       - JWT-auth: []
       summary: Obtener detalle de planilla
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - ADMIN
       - CONTADOR
       - ASISTENTE
-  /api/v1/payroll/planillas/{id}/boleta:
+  /api/v1/nomina/planillas/{id}/boleta:
     get:
       description: Requiere una planilla validada y genera el PDF desde su instantánea.
       operationId: PlanillasController_boleta
@@ -6129,12 +6129,12 @@ paths:
       - JWT-auth: []
       summary: Descargar boleta
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - ADMIN
       - CONTADOR
       - ASISTENTE
-  /api/v1/payroll/planillas/{id}/congelar:
+  /api/v1/nomina/planillas/{id}/congelar:
     post:
       description: Solo CONTADOR. Comprueba versión, fuentes e importes; el trigger impide modificaciones posteriores.
       operationId: PlanillasController_congelar
@@ -6419,7 +6419,7 @@ paths:
       - JWT-auth: []
       summary: Validar y congelar la planilla
       tags:
-      - Payroll - Planillas
+      - nomina - Planillas
       x-roles:
       - CONTADOR
   /api/v1/rrhh/area:
@@ -9851,7 +9851,7 @@ components:
           description: Explicación detallada del error específica para esta ocurrencia.
         instance:
           type: string
-          example: /api/v1/payroll/planillas/generar
+          example: /api/v1/nomina/planillas/generar
           description: Ruta del endpoint donde ocurrió la incidencia.
         timestamp:
           type: string

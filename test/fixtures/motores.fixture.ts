@@ -1,6 +1,6 @@
 import { calcularAsistencia } from '@/modules/asistencia/domain/calcular-asistencia';
 import type {ContextoAsistencia, HorarioDia, SolicitudAsistencia} from '@/modules/asistencia/domain/asistencia.types';
-import type { EntradaPlanilla } from '@/modules/payroll/planillas/domain/planilla.types';
+import type { EntradaPlanilla } from '@/modules/nomina/planillas/domain/planilla.types';
 
 /**
  * Fixtures para pruebas unitarias de los motores de cálculo de asistencia y planillas.

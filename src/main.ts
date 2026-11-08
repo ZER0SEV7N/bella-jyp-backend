@@ -17,6 +17,12 @@ async function bootstrap() {
   //Registro de filtros globales e interceptores globales
   app.useGlobalFilters(new Rfc7807ExceptionFilter());
   app.useGlobalInterceptors(new TransformResponseInterceptor());
+  app.enableCors({
+    origin: (process.env.FRONTEND_ORIGINS || '*').split(',').map(origin => origin.trim()),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
   //Cookies seguras
   await app.register(fastifyCookie as any, {secret: process.env.COOKIE_SECRET});
@@ -58,4 +64,4 @@ async function bootstrap() {
   app.enableShutdownHooks();
   await app.listen(process.env.PORT || 3000, '0.0.0.0');
 }
-bootstrap();
+void bootstrap();

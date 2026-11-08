@@ -10,13 +10,13 @@ import { TareasModule } from './modules/RRHH/tareas/tareas.module';
 import { ContratoModule } from './modules/RRHH/contrato/contrato.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificacionesModule } from './common/notificaciones/notificaciones.module';
-import { AfpModule } from './modules/payroll/afp/afp.module';
+import { AfpModule } from './modules/nomina/afp/afp.module';
 import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
-import { DatosFinancieroModule } from './modules/payroll/datoFinanciero/datosFinanciero.module';
+import { DatosFinancieroModule } from './modules/RRHH/datoFinanciero/datosFinanciero.module';
 import { SolicitudModule } from './modules/RRHH/solicitudes/solicitud.module';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
-import { BancosModule } from './modules/payroll/bancos/bancos.module';
-import { PlanillasModule } from './modules/payroll/planillas/planillas.module';
+import { BancosModule } from './modules/nomina/bancos/bancos.module';
+import { PlanillasModule } from './modules/nomina/planillas/planillas.module';
 
 @Module({
   imports: [
