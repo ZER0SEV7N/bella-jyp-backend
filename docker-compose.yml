@@ -159,7 +159,7 @@ services:
       # En n8n 2 este nodo está deshabilitado por defecto; el editor es solo para administradores JYP.
       N8N_CONCURRENCY_PRODUCTION_LIMIT: 2 # Acota renderizado y correo simultáneo en el MVP.
       NODES_EXCLUDE: '["n8n-nodes-base.localFileTrigger"]'
-      JYP_BACKEND_URL: http://host.docker.internal:3000
+      JYP_BACKEND_URL: http://backend:3000
       N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:?Defina la llave HMAC de integración}
       ARCHIVOS_INTEGRACION_DIR: /files
       # LOCAL conserva .eml sin enviar; SMTP utiliza el servidor configurado (Mailpit para pruebas).

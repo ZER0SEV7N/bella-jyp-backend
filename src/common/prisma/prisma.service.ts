@@ -1,5 +1,4 @@
 //src/common/prisma/prisma.service.ts
-//Servicio de Prisma para interactuar con la base de datos
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -8,6 +7,40 @@ import 'dotenv/config';
 import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
+import { crearSnapshotAuditoria } from '../utils/audit-snaphot.util';
+
+/** 
+ * Tablas excluidas de la extensión de auditoría para evitar recursión o ruido técnico. 
+ */
+const TABLAS_EXCLUIDAS_AUDITORIA = new Set([
+  'audit_log',
+  'carga_masiva_jobs',
+  'anotacion_tareas',
+  'tokens_seguridad',
+  'integracion_trabajo',
+]);
+
+/** 
+ * Tablas cuya auditoría se realiza de forma atómica mediante triggers SQL dentro de `transaccionAuditada`. 
+ * 
+ */
+const TABLAS_AUDITORIA_SQL_ATOMICA = new Set([
+  'asistencia_marcacion',
+  'asistencia_decision',
+  'asistencia_jornada',
+  'asistencia_calendario',
+  'incidencias_mes',
+  'historial_planillas',
+  'adelanto_desembolso',
+  'novedad_planilla',
+  'solicitud',
+]);
+
+/** 
+ * Operaciones individuales y masivas auditadas por la extensión de Prisma (AUD-F3). 
+ */
+const OPERACIONES_DML_INDIVIDUALES = new Set(['create', 'update', 'delete', 'upsert']);
+const OPERACIONES_DML_MASIVAS = new Set(['createMany', 'updateMany', 'deleteMany']);
 
 /**
  * Servicio de Prisma que extiende el cliente de Prisma para incluir auditoría y manejo de ciclo de vida del módulo.
@@ -51,21 +84,22 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         $allModels: {
           async $allOperations({ model, operation, args, query }) {
             //Omitir tablas de auditoría para evitar recursión infinita
-            if(!model || ['audit_log', 'carga_masiva_jobs', 'anotacion_tareas', 'tokens_seguridad'].includes(model)) return query(args);
+            if (!model || TABLAS_EXCLUIDAS_AUDITORIA.has(model) || TABLAS_AUDITORIA_SQL_ATOMICA.has(model)) {
+              return query(args);
+            }
 
-            //Estas tablas tienen auditoría SQL atómica; no se duplica fuera de su transacción.
-            if (['asistencia_marcacion', 'asistencia_decision', 'asistencia_jornada', 'asistencia_calendario', 'incidencias_mes', 'historial_planillas', 'adelanto_desembolso', 'novedad_planilla', 'solicitud'].includes(model)) return query(args);
-
-            //Filtar solo operaciones DML (Create, Update, Delete, Upsert) para inyectar auditoría
-            const isDML = ['create', 'update', 'delete', 'upsert'].includes(operation);
-            if (!isDML) return query(args);
-
+            const esIndividual = OPERACIONES_DML_INDIVIDUALES.has(operation);
+            const esMasiva = OPERACIONES_DML_MASIVAS.has(operation);
+            if (!esIndividual && !esMasiva) {
+              return query(args);
+            }
+            
             let valoresAntes = null; //Variable para almacenar los valores antes de la operación (para auditoría)
 
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
             if (operation === 'update' || operation === 'delete') {
               try {
-                valoresAntes = await getModelClient(model).findUnique({ where: args.where });
+                valoresAntes = await getModelClient(model).findUnique({ where: (args as any).where });
               } catch (error) {
                 localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`, error);
               }
@@ -76,30 +110,34 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
             //Capturar el estado Exacto después de la operación para operaciones de Create, Update y Upsert
             let valoresDespues = null;
-            if (operation === 'create' || operation === 'update' || operation === 'upsert')
+            if (operation === 'create' || operation === 'update' || operation === 'upsert') {
               valoresDespues = resultado;
+            } else if (esMasiva) {
+              valoresDespues = {
+                operacion_masiva: operation,
+                filtro: (args as any)?.where ?? null,
+                datos: (args as any)?.data ?? null,
+                registros_afectados: (resultado as any)?.count ?? null,
+              };
+            }
 
             //Extraer información de auditoría del contexto de la solicitud usando ClsService
             let userId = clsService.get(CLS_USER_ID) || 'system';
             if (!userId || userId === 'system') userId = null;
-
             const ipAddress = clsService.get(CLS_IP_ADDRESS) || '127.0.0.1';
+            const registroId = getId(resultado) || getWhereId(args) || IdentityGenerator.generateId();
 
             //Registrar la operación en la tabla de auditoría
             try {
               await createAuditLog({
-                  id: IdentityGenerator.generateId(),
-                  usuario_id: userId,
-                  accion: operation.toUpperCase(),
-                  tabla_afectada: model,
-                  registro_id: getId(resultado) || getWhereId(args) || IdentityGenerator.generateId(),
-                  valores_antes: valoresAntes
-                    ? structuredClone(valoresAntes)
-                    : null,
-                  valores_despues: valoresDespues
-                    ? structuredClone(valoresDespues)
-                    : null,
-                  direccion_ip: ipAddress,
+                id: IdentityGenerator.generateId(),
+                usuario_id: userId,
+                accion: operation.toUpperCase(),
+                tabla_afectada: model,
+                registro_id: registroId,
+                valores_antes: valoresAntes ? crearSnapshotAuditoria(valoresAntes) : null,
+                valores_despues: valoresDespues ? crearSnapshotAuditoria(valoresDespues) : null,
+                direccion_ip: ipAddress,
               });
             } catch (error) {
               localLogger.error(`Auditoría: No se pudo registrar la operación de ${operation} en ${model}`, error);

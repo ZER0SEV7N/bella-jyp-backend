@@ -22,11 +22,11 @@ COPY prisma ./prisma
 # Soporta instalación mediante paquete local en vendor/ o con secret github_token
 RUN --mount=type=secret,id=github_token,required=false \
     if [ -f /run/secrets/github_token ] && [ -s /run/secrets/github_token ]; then \
-    git config --global url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
-    pnpm install && \
-    git config --global --unset-all url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf; \
+      git config --global url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
+      pnpm install && \
+      git config --global --unset-all url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf; \
     else \
-    npm ci; \
+      npm ci; \
     fi
 
 # Generar el cliente de Prisma para Linux

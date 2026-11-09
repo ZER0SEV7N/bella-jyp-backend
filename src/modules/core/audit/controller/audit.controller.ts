@@ -8,6 +8,7 @@ import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { ObtenerAuditQuerySchema } from '@jyp/shared-contracts';
 import type { ObtenerAuditQueryDto, AuditLogDto } from '@jyp/shared-contracts';
 import { ObtenerLogsUseCase } from '../use-cases/obtenerLogs.useCase';
+import { ObtenerHistorialUseCase } from '../use-cases/obtenerHistorial.useCase';
 import { RegistroAuditoriaUseCase } from '../use-cases/registroAuditoria.useCase';
 import type { FastifyRequest } from 'fastify';
 import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria, ApiSwaggerObtenerAuditoriaPorId } from '../decorators/audit-swagger.decorator';
@@ -27,13 +28,14 @@ export class AuditController {
   constructor(
     private readonly obtenerLogsUseCase: ObtenerLogsUseCase,
     private readonly registroAuditoriaUseCase: RegistroAuditoriaUseCase,
+    private readonly obtenerHistorialUseCase: ObtenerHistorialUseCase,
   ) {}
 
   /**
    * Obtiene los logs de auditoría con filtros y paginación.
    * Requiere que el usuario tenga el rol de 'ADMIN', 'CONTADOR'.
    * @summary Listar logs de auditoría
-   * GET /api/audit/logs
+   * GET /api/v1/core/audit/logs
    * @param query: Parámetros de consulta para filtrar los logs de auditoría.
    * @query page: Número de página (opcional, por defecto 1).
    * @query limit: Número de registros por página (opcional, por defecto 50, máximo 100).
@@ -57,7 +59,7 @@ export class AuditController {
   /**
    * Registra un log de auditoría manual.
    * Requiere que el usuario tenga el rol de 'ADMIN', 'CONTADOR' o 'ASISTENTE' o 'RRHH'.
-   * POST /api/audit/logs
+   * POST /api/v1/core/audit/logs
    * @param payload: Objeto que contiene la información del log de auditoría a registrar.
    * @dto : AuditLogDto : {
    *    - id: string (UUID) - Identificador único del log de auditoría (opcional).
@@ -84,6 +86,8 @@ export class AuditController {
   /**
    * Obtiene un log de auditoría por su ID.
    * Requiere que el usuario tenga el rol de 'ADMIN' o 'CONTADOR'.
+   * @summary Obtener log de auditoría por ID
+   * @GET /api/v1/core/audit/logs/:id
    * @param id - El ID del log de auditoría a obtener.
    * @param req - La solicitud HTTP.
    * @returns El log de auditoría correspondiente al ID proporcionado.
@@ -93,5 +97,32 @@ export class AuditController {
   @ApiSwaggerObtenerAuditoriaPorId()
   async obtenerPorId(@Param('id', ParseUUIDPipe) id: string, @Req() req: FastifyRequest & { user: { id: string; rol: string } }) {
     return this.obtenerLogsUseCase.obtenerPorId(id, req.user);
+  }
+
+  /**
+   * Obtiene el historial de auditoría de un registro específico.
+   * Requiere que el usuario tenga el rol de 'ADMIN', 'RRHH' o 'CONTADOR'.
+   * @summary Obtener historial de auditoría de un registro
+   * @description Obtiene el historial de auditoría de un registro específico, incluyendo los cambios realizados en sus campos.
+   * @GET /api/v1/core/audit/historial/:tabla/:registroId
+   * @param tabla - Nombre de la tabla afectada.
+   * @param registroId - ID del registro afectado.
+   * @param req - La solicitud HTTP.
+   * @param page - Número de página para la paginación (opcional, por defecto 1).
+   * @param limit - Cantidad de registros por página para la paginación (opcional, por defecto 20).
+   * @returns Un objeto con el historial de auditoría del registro, incluyendo los cambios realizados en sus campos.
+   */
+  @Get('historial/:tabla/:registroId')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  async obtenerHistorialRegistro(@Param('tabla') tabla: string, @Param('registroId', ParseUUIDPipe) registroId: string,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }, @Query('page') page = '1', @Query('limit') limit = '20',
+  ) {
+    return this.obtenerHistorialUseCase.obtenerHistorialRegistro(
+      tabla,
+      registroId,
+      req.user,
+      Math.max(1, Number(page) || 1),
+      Math.min(100, Math.max(1, Number(limit) || 20)),
+    );
   }
 }

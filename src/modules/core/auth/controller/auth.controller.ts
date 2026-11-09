@@ -20,14 +20,14 @@ import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProv
  * Este controlador expone endpoints para iniciar sesión, refrescar tokens, provisionar usuarios y solicitar recuperación de contraseña.
  * Utiliza casos de uso específicos para cada operación y aplica validaciones y guardias según sea necesario.
  * Endpoints:
- * - POST /api/auth/login: Inicia sesión y emite tokens de acceso y refresco.
- * - POST /api/auth/refresh: Refresca el token de acceso utilizando el token de refresco.
- * - POST /api/auth/provisionar: Provisiona un nuevo usuario (requiere rol ADMIN o RRHH).
- * - POST /api/auth/recuperar-password: Solicita la recuperación de contraseña enviando un correo con un enlace de restablecimiento.
- * - POST /api/auth/logout: Cierra sesión e invalida los tokens.
+ * - POST /api/v1/core/auth/login: Inicia sesión y emite tokens de acceso y refresco.
+ * - POST /api/v1/core/auth/refresh: Refresca el token de acceso utilizando el token de refresco.
+ * - POST /api/v1/core/auth/provisionar: Provisiona un nuevo usuario (requiere rol ADMIN o RRHH).
+ * - POST /api/v1/core/auth/recuperar-password: Solicita la recuperación de contraseña enviando un correo con un enlace de restablecimiento.
+ * - POST /api/v1/core/auth/logout: Cierra sesión e invalida los tokens.
  */
 @ApiSwaggerController()
-@Controller('api/v1/auth')
+@Controller('api/v1/core/auth')
 export class AuthController {
   constructor(
     private readonly loginUseCase: LoginUseCase,
@@ -39,7 +39,7 @@ export class AuthController {
 
   /**
    * Endpoint para iniciar sesión en el sistema utilizando credenciales de usuario.
-   * @POST /api/auth/login
+   * @POST /api/v1/core/auth/login
    * @param payload - LoginDTO - Objeto que contiene las credenciales de inicio de sesión (número de documento y contraseña).
    * @body - LoginDTO: {
    *    - tipo_documento: string - Tipo de documento del usuario.
@@ -70,7 +70,7 @@ export class AuthController {
 
   /**
    * Endpoint para refrescar el token de acceso utilizando el token de refresco almacenado en una cookie HttpOnly.
-   * @POST /api/auth/refresh
+   * @POST /api/v1/core/auth/refresh
    * @param req - FastifyRequest - La solicitud HTTP entrante, que contiene la cookie de refresh token.
    * @param res - FastifyReply - La respuesta HTTP que se enviará al cliente, utilizada para establecer la nueva cookie de refresh token si es necesario.
    * @returns - Un objeto que contiene el nuevo access token.
@@ -111,7 +111,7 @@ export class AuthController {
 
   /**
    * Endpoint para provisionar un nuevo usuario en el sistema.
-   * @POST /api/auth/provisionar
+   * @POST /api/v1/core/auth/provisionar
    * @roles - Requiere que el usuario tenga el rol de 'ADMIN' o 'RRHH'.
    * @param payload - ProvisionarUsuarioDTO - Objeto que contiene la información del nuevo usuario a provisionar.
    * @body - ProvisionarUsuarioDTO: {
@@ -130,7 +130,7 @@ export class AuthController {
   @ApiSwaggerProvisionar()
   @Post('provisionar')
   @HttpCode(HttpStatus.CREATED)
-  //@UseGuards(JwtAccessGuard, RolesGuard)
+  //@UseGuards(JwtAccessGuard, RolesGuard) // <---- Esto esta comentado para permitir que el endpoint sea accesible sin autenticación, pero en producción debería estar protegido. Lo dejamos comentado a proposito para pruebas y desarrollo.
   @Roles('JYP','ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ProvisionarUsuarioSchema))
   async provisionar(@Body() payload: ProvisionarUsuarioDTO) {
@@ -140,7 +140,7 @@ export class AuthController {
 
   /**
    * Endpoint para solicitar la recuperación de contraseña de un usuario.
-   * @POST /api/auth/recuperar-password
+   * @POST /api/v1/core/auth/recuperar-password
    * @param payload - SolicitudRecuperacionDTO - Objeto que contiene la información necesaria para solicitar la recuperación de contraseña.
    * @body - SolicitudRecuperacionDTO: {
    *    - email: string - Correo electrónico del usuario que solicita la recuperación de contraseña.
@@ -159,7 +159,7 @@ export class AuthController {
   
   /**
    * Ruta para cerrar sesión, invalidando el refresh token y el access token.
-   * POST: /api/auth/logout
+   * @POST /api/v1/core/auth/logout
    * @param req - FastifyRequest - La solicitud HTTP entrante, que contiene la cookie de refresh token y el encabezado de autorización con el access token.
    * @param res - FastifyReply - La respuesta HTTP que se enviará al cliente, utilizada para limpiar la cookie de refresh token.
    * @returns - Un objeto con un mensaje de éxito indicando que la sesión ha sido finalizada y los tokens han sido invalidados.
@@ -193,7 +193,7 @@ export class AuthController {
 
   /**
    * Ruta para restablecer la contraseña de un usuario.
-   * @POST /api/auth/restablecer-password
+   * @POST /api/v1/core/auth/restablecer-password
    * @roles - No requiere roles específicos, accesible para cualquier usuario que tenga un token de restablecimiento válido.
    * @param payload - RestablecerPasswordDTO - Objeto que contiene la información necesaria para restablecer la contraseña, validado mediante ZodValidationPipe.
    * RestablecerPasswordDTO : {
@@ -207,7 +207,6 @@ export class AuthController {
   @Post('restablecer-password')
   @HttpCode(HttpStatus.OK)
   @ApiSwaggerRestablecerPassword()
-  
   restablecerPassword(@Body(new ZodValidationPipe(RestablecerPasswordSchema)) payload: RestablecerPasswordDTO) {
     return this.recuperacionPasswordUseCase.restablecer(payload);
   }

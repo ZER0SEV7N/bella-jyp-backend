@@ -29,16 +29,21 @@ export class JwtAccessGuard extends AuthGuard('jwt') {
     //Verificar si el Access Token actual está en la lista negra de Redis
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
+      const jti = this.extraerJtiSinVerificar(token);
 
-      //Consulta en Redis si el token está en la lista negra (blacklist)
-      const isBlacklisted = await this.redis.get(`blacklist:jwt:${token}`);
+      const [revocadoPorJti, revocadoPorToken] = await Promise.all([
+        jti ? this.redis.get(`blacklist:jti:${jti}`) : Promise.resolve(null),
+        this.redis.get(`blacklist:jwt:${token}`),
+      ]);
 
-      if (isBlacklisted) throw new UnauthorizedException({
-        type: 'https://api.jyp.com/errors/unauthorized',
-        title: 'Sesión Revocada',
-        status: 401,
-        detail: 'El token ha sido invalidado por cierre de sesión. Inicie sesión nuevamente.'
-      });
+      if (revocadoPorJti || revocadoPorToken) {
+        throw new UnauthorizedException({
+          type: 'https://api.jyp.com/errors/unauthorized',
+          title: 'Sesión Revocada',
+          status: 401,
+          detail: 'El token ha sido invalidado por cierre de sesión. Inicie sesión nuevamente.',
+        });
+      }
     }
 
     return (await super.canActivate(context)) as boolean;
@@ -61,5 +66,19 @@ export class JwtAccessGuard extends AuthGuard('jwt') {
       }));
     
     return user;
+  }
+
+  /**
+   * Extrae el `jti` del segmento payload de un JWT para consultar la lista negra compacta en Redis (AUTH-M1).
+   */
+  private extraerJtiSinVerificar(token: string): string | null {
+    const partes = token.split('.');
+    if (partes.length !== 3) return null;
+    try {
+      const payload = JSON.parse(Buffer.from(partes[1], 'base64url').toString('utf8')) as { jti?: unknown };
+      return typeof payload?.jti === 'string' ? payload.jti : null;
+    } catch {
+      return null;
+    }
   }
 }

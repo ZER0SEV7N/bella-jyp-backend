@@ -4,6 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import * as crypto from 'node:crypto';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { construirPayloadJwt, obtenerSecretoJwt } from '../helpers/auth-token.helper';
+import { IdentityGenerator } from '@/common/utils/uuid.util';
 
 /**
  * Interfaz que define la estructura del resultado devuelto por el caso de uso RefrescarTokenUseCase.
@@ -42,7 +44,9 @@ export class RefrescarTokenUseCase {
     let payload: any; //Variable para almacenar el payload decodificado del Refresh Token
     try {
       //Decodificar y verificar el Refresh Token usando la clave secreta correspondiente
-      payload = this.jwtService.verify(refreshToken, { secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234' });
+      payload = this.jwtService.verify(refreshToken, {
+        secret: obtenerSecretoJwt('REFRESH'),
+      });
     } catch {
       throw new UnauthorizedException('Refresh token inválido o expirado.');
     }
@@ -59,62 +63,43 @@ export class RefrescarTokenUseCase {
             nombre: true,
             apellido: true,
             nro_documento: true,
+            activo: true,
+            deleted_at: true
           },
         },
       },
     });
 
     // Validar que el usuario exista y esté activo
-    if (!user?.activo || user.deleted_at !== null) throw new UnauthorizedException('Usuario no encontrado o inactivo.');
+    if ( !user?.activo || user.deleted_at !== null ||(user.empleados && (user.empleados.activo === false || user.empleados.deleted_at !== null))) 
+      throw new UnauthorizedException('Usuario no encontrado o inactivo.');
+    
+    // Localizar el Refresh Token activo en la base de datos para verificar que no haya sido revocado o usado
+    const tokenActivo = await this.localizarTokenActivo(user.id, payload.jti, refreshToken);
+    if (!tokenActivo) 
+      throw new UnauthorizedException('Sesión cerrada o token revocado.');
+    
 
-    //Validar que el Refresh Token no haya sido revocado o usado previamente
-    const tokensActivos = await this.prisma.tokens_seguridad.findMany({
-      where: {
-        usuario_id: user.id,
-        proposito: 'REFRESH_TOKEN',
-        usado: false,
-        expira_en: { gt: new Date() },
-      },
-    });
+    // Construir el nuevo payload para los tokens JWT
+    const nuevoPayload = construirPayloadJwt(user);
+    const nuevoAccessJti = IdentityGenerator.generateId() || crypto.randomUUID();
+    const nuevoRefreshJti = IdentityGenerator.generateId() || crypto.randomUUID();
 
-    let tokenActivo: (typeof tokensActivos)[number] | undefined;
-    for (const candidato of tokensActivos) {
-      if (await argon2.verify(candidato.token_hash, refreshToken)) {
-        tokenActivo = candidato;
-        break;
-      }
-    }
-
-    //Si no se encuentra un token activo, significa que el Refresh Token ha sido revocado o usado previamente
-    if (!tokenActivo) throw new UnauthorizedException('Sesión cerrada o token revocado.');
-
-    //Obtener el nombre completo del usuario a partir de los datos del empleado, si están disponibles
-    const nombreCompleto = user.empleados ? `${user.empleados.nombre ?? ''} ${user.empleados.apellido ?? ''}`.trim() : 'Usuario del Sistema';
-
-    const nuevoPayload = {
-      sub: user.id,
-      email: user.email,
-      rol: user.rol,
-      doc: payload.doc || user.empleado_id,
-      empId: user.empleado_id,
-      nombre: nombreCompleto,
-    };
-
-    // 3. Emisión dual de tokens
+    // Generar nuevos tokens JWT (Access y Refresh) de forma concurrente para optimizar el tiempo de respuesta
     const [newAccessToken, newRefreshToken] = await Promise.all([
       this.jwtService.signAsync(nuevoPayload, {
-        jwtid: crypto.randomUUID(),
-        secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234',
+        jwtid: nuevoAccessJti,
+        secret: obtenerSecretoJwt('ACCESS'),
         expiresIn: '15m',
       }),
+
       this.jwtService.signAsync(nuevoPayload, {
-        jwtid: crypto.randomUUID(),
-        secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234',
+        jwtid: nuevoRefreshJti,
+        secret: obtenerSecretoJwt('REFRESH'),
         expiresIn: '7d',
       }),
     ]);
 
-    //Rotar el Refresh Token: marcar el token actual como usado y crear un nuevo registro de token en la base de datos
     const hashedRT = await argon2.hash(newRefreshToken, { type: argon2.argon2id });
 
     await this.prisma.$transaction(async (tx) => {
@@ -122,11 +107,14 @@ export class RefrescarTokenUseCase {
         where: { id: tokenActivo.id, usado: false, expira_en: { gt: new Date() } },
         data: { usado: true },
       });
-      if (consumido.count !== 1) throw new UnauthorizedException('El refresh token ya fue utilizado.');
+
+      if (consumido.count !== 1) 
+        throw new UnauthorizedException('El refresh token ya fue utilizado.');
+      
 
       await tx.tokens_seguridad.create({
         data: {
-          id: crypto.randomUUID(),
+          id: nuevoRefreshJti,
           usuario_id: user.id,
           token_hash: hashedRT,
           proposito: 'REFRESH_TOKEN',
@@ -140,5 +128,45 @@ export class RefrescarTokenUseCase {
       accessToken: newAccessToken,
       newRefreshToken,
     };
+  }
+
+  /**
+   * Metodo privado que localiza un Refresh Token activo en la base de datos.
+   * @param usuarioId El ID del usuario asociado al token.
+   * @param jti El JWT ID del Refresh Token, si está disponible.
+   * @param refreshToken El Refresh Token proporcionado por el cliente.
+   * @returns El token activo encontrado o undefined si no se encuentra ninguno válido.
+   */
+  private async localizarTokenActivo( usuarioId: string, jti: string | undefined, refreshToken: string ): Promise<{ id: string; token_hash: string } | undefined> {
+    // Si se proporciona un `jti` y la función `findUnique` está disponible, buscar directamente por `jti`
+    if (jti && typeof (this.prisma.tokens_seguridad as any)?.findUnique === 'function') {
+      const directo = await this.prisma.tokens_seguridad.findUnique({where: { id: jti } });
+      
+      // Validar que el token encontrado coincida con el usuario, propósito y hash del refresh token
+      if ( directo?.usuario_id === usuarioId && directo.proposito === 'REFRESH_TOKEN' && !directo.usado && directo.expira_en > new Date() &&
+       (await argon2.verify(directo.token_hash, refreshToken))) 
+        return directo;
+      
+    }
+
+    // Si no se encuentra por `jti`, buscar todos los tokens activos del usuario y verificar el hash
+    if (typeof (this.prisma.tokens_seguridad as any)?.findMany === 'function') {
+      const tokensActivos = await this.prisma.tokens_seguridad.findMany({
+        where: {
+          usuario_id: usuarioId,
+          proposito: 'REFRESH_TOKEN',
+          usado: false,
+          expira_en: { gt: new Date() }
+        },
+      });
+
+      // Verificar cada token activo para encontrar uno que coincida con el hash del refresh token proporcionado
+      for (const candidato of tokensActivos) {
+        if (await argon2.verify(candidato.token_hash, refreshToken)) 
+          return candidato;
+      }
+    }
+
+    return undefined;
   }
 }

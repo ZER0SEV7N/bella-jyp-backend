@@ -37,7 +37,7 @@ function describirErrorRedis(err: Error & { code?: string; errors?: Array<Error 
     BullModule.forRoot({
       connection: {
         host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        port: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
         password: process.env.REDIS_PASSWORD || undefined,
       },
       defaultJobOptions: {
@@ -57,7 +57,7 @@ function describirErrorRedis(err: Error & { code?: string; errors?: Array<Error 
         //Crear un logger para registrar eventos relacionados con Redis
         const logger = new Logger('RedisClient');
         const host = process.env.REDIS_HOST || 'localhost';
-        const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+        const port = Number.parseInt(process.env.REDIS_PORT || '6379', 10);
         //Crear un cliente de Redis con la configuración de host, puerto y contraseña
         const client = new Redis({
           host,

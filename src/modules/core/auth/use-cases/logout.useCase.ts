@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '@/common/cls/redis.constants';
+import { obtenerSecretoJwt } from '../helpers/auth-token.helper';
 
 /**
  * Caso de uso para el logout de usuarios internos.
@@ -30,14 +31,14 @@ export class LogoutUseCase {
    * @returns - Promesa que se resuelve cuando ambos tokens han sido procesados.
    * @throws - Lanza un error si ocurre un problema al interactuar con la base de datos o Redis.
    */
-  async execute(refreshToken?: string, accessToken?: string): Promise<void> {
+  async execute(refreshToken?: string, accessToken?: string, cerrarTodasLasSesiones = false): Promise<void> {
     //Si se proporciona un refresh token, intentar invalidarlo en la base de datos
     if (refreshToken) {
       try {
         //Decodificar el refresh token para obtener el userId del payload
         const payload = this.jwtService.verify(refreshToken, {
-          secret: process.env.JWT_REFRESH_SECRET || 'jyp-dev-refresh-secret-1234',
-        }) as { sub?: string };
+          secret: obtenerSecretoJwt('REFRESH'),
+        }) as { sub?: string; jti?: string; }; // El payload del refresh token contiene el userId (sub) y el jti (identificador único del token)
 
         //Extraer el userId del payload
         const userId = payload?.sub;
@@ -49,6 +50,7 @@ export class LogoutUseCase {
               usuario_id: userId,
               proposito: 'REFRESH_TOKEN',
               usado: false,
+               ...(!cerrarTodasLasSesiones && payload.jti ? { id: payload.jti } : {}),
             },
             data: { usado: true },
           });
@@ -61,14 +63,20 @@ export class LogoutUseCase {
     if (accessToken) {
       try {
         //Decodificar el access token para obtener su tiempo de expiración
-        const decoded = this.jwtService.verify(accessToken, { secret: process.env.JWT_ACCESS_SECRET || 'jyp-dev-secret-key-1234' }) as { exp?: number; };
+        const decoded = this.jwtService.verify(accessToken, { secret: obtenerSecretoJwt('ACCESS') }) as { exp?: number; jti?: string; };
 
         //Si el token tiene un tiempo de expiración, calcular el TTL restante y agregarlo a la lista negra en Redis
         if (decoded?.exp) {
           const ahoraSegundos = Math.floor(Date.now() / 1000);
           const ttlRestante = decoded.exp - ahoraSegundos;
 
-          if (ttlRestante > 0) await this.redis.set(`blacklist:jwt:${accessToken}`, 'revoked', 'EX', ttlRestante);
+          // Si el TTL restante es mayor a 0, agregar el access token y su jti a la lista negra en Redis con el tiempo de expiración correspondiente
+          if (ttlRestante > 0) {
+            if (decoded.jti) 
+              await this.redis.set(`blacklist:jti:${decoded.jti}`, 'revoked', 'EX', ttlRestante);
+            
+            await this.redis.set(`blacklist:jwt:${accessToken}`, 'revoked', 'EX', ttlRestante);
+          }
         }
       } catch (err: any) {
         this.logger.warn(`No se pudo agregar token a lista negra: ${err.message}`);
