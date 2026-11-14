@@ -82,10 +82,12 @@ export class LoginUseCase {
     }
     await this.controlIntentos?.limpiarIntentos('login:doc', claveDocumento);
 
+    // Construir el payload del JWT y generar los tokens de acceso y refresh
     const payload = construirPayloadJwt(usuario);
     const accessJti = IdentityGenerator.generateId() || crypto.randomUUID();
     const refreshJti = IdentityGenerator.generateId() || crypto.randomUUID();
 
+    // Generar tokens JWT (access y refresh) de manera concurrente para optimizar el tiempo de respuesta
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         jwtid: accessJti,
@@ -99,6 +101,7 @@ export class LoginUseCase {
       }),
     ]);
 
+    // Guardar el refresh token en la base de datos con un hash seguro para futuras validaciones
     const hashedRT = await argon2.hash(refreshToken, { type: argon2.argon2id });
 
     // AUTH-F3: Se guarda `id: refreshJti` para que RefrescarTokenUseCase busque directamente por PK en O(1)

@@ -2,9 +2,10 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayInit, OnGatewayConnection } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { AutenticacionWsService } from '../autenticacion-ws.service';
 import { NotificacionesService, type Notificacion } from '../notificaciones.service';
+import { TransmitirAlertaWsUseCase } from '../use-cases/transmitirAlertaWs.useCase';
 
 /**
  * Gateway de notificaciones que maneja las conexiones WebSocket para la transmisión de alertas globales a los usuarios autenticados.
@@ -23,19 +24,28 @@ interface Identidad {
 
 type SocketAutenticado = Socket & { data: { usuario: Identidad } }; //Tipo de socket que incluye información del usuario autenticado, como su ID, rol y tiempo de expiración del token.
 
-
 @Injectable()
 @WebSocketGateway({
     namespace: '/ws/notificaciones',
-    cors: { origin: (process.env.FRONTEND_ORIGINS ?? 'http://localhost:5173').split(',') },
+    cors: {
+        origin: (process.env.FRONTEND_ORIGINS ?? 'http://localhost:5173')
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter(Boolean),
+    },
 })
 export class NotificacionesGateway implements OnGatewayInit, OnGatewayConnection {
+    //Define una propiedad para almacenar la instancia del servidor WebSocket, que se utilizará para emitir eventos a los clientes conectados.
     @WebSocketServer() server: Server;
+    private readonly transmitirUseCase: TransmitirAlertaWsUseCase;
+
     constructor(
         private readonly autenticacion: AutenticacionWsService,
-        private readonly notificaciones: NotificacionesService
-    ) {}
-
+        private readonly notificaciones: NotificacionesService,
+        @Optional() transmitirUseCase?: TransmitirAlertaWsUseCase,
+    ) {
+        this.transmitirUseCase = transmitirUseCase ?? new TransmitirAlertaWsUseCase(this.autenticacion);
+    }
     /**
      * Método que se ejecuta después de la inicialización del gateway WebSocket.
      * Configura un middleware para autenticar a los usuarios que intentan conectarse al gateway mediante tokens JWT.
@@ -90,9 +100,26 @@ export class NotificacionesGateway implements OnGatewayInit, OnGatewayConnection
             else 
                 client.disconnect(true);
         } catch (error) {
-            new Logger(NotificacionesGateway.name).warn('No se pudo iniciar la suscripción de alertas.');
+            new Logger(NotificacionesGateway.name).error(
+                'No se pudo iniciar la suscripción de alertas.',
+                error instanceof Error ? error.stack : JSON.stringify(error) ?? 'Error desconocido',
+            );
             client.disconnect(true);
         }
+    }
+
+    /**
+     * Maneja el evento 'ping' enviado por un cliente WebSocket autenticado para verificar la vigencia de su sesión.
+     * @param cliente - El objeto Socket que representa la conexión WebSocket del cliente autenticado.
+     * @returns - Un objeto que indica que la sesión sigue activa y proporciona un timestamp actual.
+     */
+    @SubscribeMessage('ping')
+    manejarPing(cliente: SocketAutenticado) {
+        if (cliente.data.usuario.exp <= Math.floor(Date.now() / 1000)) {
+            cliente.disconnect(true);
+            return;
+        }
+        return { event: 'pong', data: { timestamp: new Date().toISOString() } };
     }
 
     /**
@@ -110,24 +137,10 @@ export class NotificacionesGateway implements OnGatewayInit, OnGatewayConnection
      * Maneja el evento 'alerta.publicada' emitido por el servicio de notificaciones para transmitir una nueva alerta a los clientes WebSocket suscritos.
      * Recupera los clientes conectados a la sala correspondiente al rol de destino de la alerta y emite la notificación a cada cliente.
      * Si un cliente tiene un token de autenticación expirado o ya no es válido, se desconecta del gateway.
-     * @param param0 - Un objeto que contiene el rol de destino y la notificación que se va a transmitir a los clientes suscritos.
      * @returns - Una promesa que se resuelve cuando la alerta ha sido transmitida a todos los clientes suscritos.
-     */
+     */   
     @OnEvent('alerta.publicada', { async: true })
-    async transmitir({ rol, notificacion }: { rol: string; notificacion: Notificacion }): Promise<void> {
-        //Recupera los clientes conectados a la sala correspondiente al rol de destino de la alerta y emite la notificación a cada cliente.
-        const clientes = await this.server.in(`sala-${rol}`).fetchSockets();
-        
-        //Si un cliente tiene un token de autenticación expirado o ya no es válido, se desconecta del gateway; de lo contrario, se emite la notificación al cliente.
-        for (const client of clientes) {
-            const usuario = client.data.usuario as Identidad;
-            //Verifica si el token de autenticación del cliente ha expirado o no es válido.
-            if (usuario.exp * 1000 <= Date.now() || !(await this.autenticacion.sigueVigente(usuario.id, usuario.rol))) 
-                client.disconnect(true);
-            
-            //Si el cliente sigue siendo válido, se emite la notificación al cliente.
-            else 
-                client.emit('nuevaNotificacion', notificacion);
-        }
+    async transmitir(payload: { rol: string; notificacion: Notificacion }): Promise<void> {
+        await this.transmitirUseCase.execute(this.server, payload);
     }
 }

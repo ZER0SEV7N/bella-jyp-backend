@@ -10,7 +10,7 @@ import { IdentityGenerator } from '../utils/uuid.util';
 import { crearSnapshotAuditoria } from '../utils/audit-snaphot.util';
 
 /** 
- * Tablas excluidas de la extensión de auditoría para evitar recursión o ruido técnico. 
+ * Tablas excluidas de la extensión de auditoría para evitar recursión o ruido técnico.
  */
 const TABLAS_EXCLUIDAS_AUDITORIA = new Set([
   'audit_log',
