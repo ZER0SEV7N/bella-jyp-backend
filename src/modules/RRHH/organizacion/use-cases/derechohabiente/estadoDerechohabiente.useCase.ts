@@ -1,4 +1,4 @@
-//src/modules/RRHH/organizacion/use-cases/derechohabiente/estadoDerechoHabiente.useCase.ts
+//src/modules/RRHH/organizacion/use-cases/derechohabiente/estadoDerechohabiente.useCase.ts
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 

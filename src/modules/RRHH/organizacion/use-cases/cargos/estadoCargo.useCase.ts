@@ -1,4 +1,4 @@
-//src/modules/RRHH/use-cases/organizacion/cargos/estadoCargo.UseCase.ts
+//src/modules/RRHH/organizacion/use-cases/cargos/estadoCargo.useCase.ts
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { obtenerCargo, validarNombreCargoUnico, verificarNombreUnicoCargoActivo } from './helpers/validaciones.helper';

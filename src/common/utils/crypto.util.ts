@@ -1,4 +1,4 @@
-//src/common/utils/crypto.Util.ts
+//src/common/utils/crypto.util.ts
 import * as crypto from 'node:crypto';
 import { InternalServerErrorException } from '@nestjs/common';
 

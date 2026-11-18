@@ -1,4 +1,4 @@
-//src/modules/RRHH/use-cases/cargos/crearCargo.UseCase.ts
+//src/modules/RRHH/organizacion/use-cases/cargos/crearCargo.useCase.ts
 //Caso de uso para crear un cargo en el módulo de RRHH
 import {Injectable, BadRequestException,NotFoundException, InternalServerErrorException} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
