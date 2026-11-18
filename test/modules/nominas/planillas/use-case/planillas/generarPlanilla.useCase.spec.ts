@@ -4,7 +4,7 @@ jest.mock('@/common/utils/transaccion-auditada.util', () => ({
     transaccionAuditada: jest.fn((p, _a, fn) => fn(p)),
     bloquearEmpleado: jest.fn(),
 }));
-jest.mock('@/modules/payroll/planillas/helpers/preparar-planilla.helper');
+jest.mock('@/modules/nomina/planillas/helpers/preparar-planilla.helper');
 describe('GenerarPlanillaUseCase', () => {
     const prisma = {
             historial_planillas: { findUnique: jest.fn(), upsert: jest.fn() },
