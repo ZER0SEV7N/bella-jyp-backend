@@ -8,45 +8,71 @@ import { validateEnv } from '@/common/config/env.validation';
  * Se incluyen casos de prueba para escenarios felices y excepciones.
  */
 describe('EnvValidation - Pruebas Unitarias de Variables de Entorno', () => {
-    //Configuración base válida para pruebas
-    const validConfig = {
-        NODE_ENV: 'test',
-        PORT: '3000',
-        DATABASE_URL: 'postgresql://postgres:pass@localhost:5432/db_test',
-        JWT_ACCESS_SECRET: 'super_secret_access_key_minimum_32_bytes_2026',
-        JWT_REFRESH_SECRET: 'super_secret_refresh_key_minimum_32_bytes_2026'
+  //Configuración base válida para pruebas
+  const validConfig = {
+    NODE_ENV: 'test',
+    PORT: '3000',
+    DATABASE_URL: 'postgresql://postgres:pass@localhost:5432/db_test',
+    JWT_ACCESS_SECRET: 'super_secret_access_key_minimum_32_bytes_2026',
+    JWT_REFRESH_SECRET: 'super_secret_refresh_key_minimum_32_bytes_2026',
+  };
+
+  beforeEach(() => {
+    //Mock para console.error para evitar que los errores se impriman en la consola durante las pruebas
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('Debe validar configuración base y generar valores dinámicos opcionales', () => {
+    const result = validateEnv(validConfig);
+
+    expect(result.NODE_ENV).toBe('test');
+    expect(result.DATABASE_URL).toBe(validConfig.DATABASE_URL);
+    expect(result.RENIEC_API_URL).toBeUndefined();
+    expect(result.FINANCIAL_DATA_ENCRYPTION_KEY).toBeDefined();
+    expect(result.FINANCIAL_DATA_ENCRYPTION_KEY.length).toBeGreaterThanOrEqual(
+      32
+    );
+  });
+
+  it('Debe lanzar un error si falta una variable estrictamente requerida como JWT_ACCESS_SECRET', () => {
+    const invalidConfig = { ...validConfig, JWT_ACCESS_SECRET: undefined };
+
+    expect(() => validateEnv(invalidConfig as any)).toThrow(
+      'Variables de entorno inválidas'
+    );
+  });
+
+  it('Debe rechazar llaves JWT_ACCESS_SECRET de menos de 32 caracteres por seguridad', () => {
+    const invalidConfig = {
+      ...validConfig,
+      JWT_ACCESS_SECRET: 'clave_corta_123',
     };
 
-    beforeEach(() => {
-        //Mock para console.error para evitar que los errores se impriman en la consola durante las pruebas
-        jest.spyOn(console, 'error').mockImplementation(() => {});
-    });
+    expect(() => validateEnv(invalidConfig)).toThrow(
+      'Variables de entorno inválidas'
+    );
+  });
 
-    it('Debe validar configuración base y generar valores dinámicos opcionales', () => {
-        const result = validateEnv(validConfig);
+  it('Debe rechazar NODE_ENV con valores fuera del enumerado permitido', () => {
+    const invalidConfig = { ...validConfig, NODE_ENV: 'invalid_env' };
 
-        expect(result.NODE_ENV).toBe('test');
-        expect(result.DATABASE_URL).toBe(validConfig.DATABASE_URL);
-        expect(result.RENIEC_API_URL).toBeUndefined();
-        expect(result.FINANCIAL_DATA_ENCRYPTION_KEY).toBeDefined();
-        expect(result.FINANCIAL_DATA_ENCRYPTION_KEY.length).toBeGreaterThanOrEqual(32);
-    });
+    expect(() => validateEnv(invalidConfig)).toThrow(
+      'Variables de entorno inválidas'
+    );
+  });
 
-    it('Debe lanzar un error si falta una variable estrictamente requerida como JWT_ACCESS_SECRET', () => {
-        const invalidConfig = { ...validConfig, JWT_ACCESS_SECRET: undefined };
-
-        expect(() => validateEnv(invalidConfig as any)).toThrow('Variables de entorno inválidas');
-    });
-
-    it('Debe rechazar llaves JWT_ACCESS_SECRET de menos de 32 caracteres por seguridad', () => {
-        const invalidConfig = { ...validConfig, JWT_ACCESS_SECRET: 'clave_corta_123' };
-
-        expect(() => validateEnv(invalidConfig)).toThrow('Variables de entorno inválidas');
-    });
-
-    it('Debe rechazar NODE_ENV con valores fuera del enumerado permitido', () => {
-        const invalidConfig = { ...validConfig, NODE_ENV: 'invalid_env' };
-
-        expect(() => validateEnv(invalidConfig)).toThrow('Variables de entorno inválidas');
-    });
+  it('Debe aceptar AUDITORIA_HUELLA_SECRETO ausente o vacío y rechazar uno corto', () => {
+    expect(validateEnv(validConfig).AUDITORIA_HUELLA_SECRETO).toBeUndefined();
+    expect(
+      validateEnv({ ...validConfig, AUDITORIA_HUELLA_SECRETO: '' })
+        .AUDITORIA_HUELLA_SECRETO
+    ).toBe('');
+    expect(
+      validateEnv({ ...validConfig, AUDITORIA_HUELLA_SECRETO: 'a'.repeat(32) })
+        .AUDITORIA_HUELLA_SECRETO
+    ).toHaveLength(32);
+    expect(() =>
+      validateEnv({ ...validConfig, AUDITORIA_HUELLA_SECRETO: 'corto' })
+    ).toThrow('Variables de entorno inválidas');
+  });
 });
