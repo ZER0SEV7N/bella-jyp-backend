@@ -25,7 +25,7 @@
     "test:unit": "npm test -- --runInBand --coverage=false",
     "test:common": "npm test -- --runInBand --coverage=false --testPathPatterns=test/common",
     "test:asistencia": "npm test -- --runInBand --coverage=false --testPathPatterns=test/modules/asistencia",
-    "test:payroll": "npm test -- --runInBand --coverage=false --testPathPatterns=test/modules/payroll",
+    "test:nomina": "npm test -- --runInBand --coverage=false --testPathPatterns=test/modules/nominas",
     "test:integraciones": "npm test -- --runInBand --coverage=false --testPathPatterns=test/modules/integraciones",
     "test:n8n": "npm run build && node --test test/n8n/*.test.cjs",
     "db:crear": "node scripts/aplicar-sql.cjs crear",
