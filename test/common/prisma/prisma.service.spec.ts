@@ -23,7 +23,30 @@ jest.mock('@prisma/client', () => {
       });
     });
   }
-  return { PrismaClient: MockPrismaClient };
+  //Modelo de datos mínimo: `empleados` tiene las relaciones `area` y `cargo`.
+  const dmmf = {
+    datamodel: {
+      models: [
+        {
+          name: 'empleados',
+          fields: [
+            { name: 'id', kind: 'scalar' },
+            { name: 'estado_laboral', kind: 'enum' },
+            { name: 'area', kind: 'object' },
+            { name: 'cargo', kind: 'object' },
+          ],
+        },
+        {
+          name: 'jornada_area',
+          fields: [
+            { name: 'area_id', kind: 'scalar' },
+            { name: 'area', kind: 'object' },
+          ],
+        },
+      ],
+    },
+  };
+  return { PrismaClient: MockPrismaClient, Prisma: { dmmf } };
 });
 
 //Mockear 'pg' y '@prisma/adapter-pg' simplemente para que no hagan nada al importarlos
@@ -187,6 +210,95 @@ describe('PrismaService', () => {
           }),
         }),
       );
+    });
+
+    it('Debería guardar el empleado afectado tomado de empleado_id de la fila', async () => {
+      const mockQuery = jest
+        .fn()
+        .mockResolvedValue({ id: 'contrato-1', empleado_id: 'emp-1', estado: 'VIGENTE' });
+
+      await mockAuditMiddleware({
+        model: 'contratos',
+        operation: 'create',
+        args: { data: { empleado_id: 'emp-1' } },
+        query: mockQuery,
+      });
+
+      expect(service.audit_log.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            afectado_tipo: 'empleado',
+            afectado_id: 'emp-1',
+          }),
+        }),
+      );
+    });
+
+    it('Debería resolver con una consulta extra el empleado de un documento de derechohabiente', async () => {
+      const mockQuery = jest
+        .fn()
+        .mockResolvedValue({ id: 'doc-1', derechohabiente_id: 'dh-1' });
+      service.derechohabientes = {
+        findUnique: jest.fn().mockResolvedValue({ empleado_id: 'emp-9' }),
+      };
+
+      await mockAuditMiddleware({
+        model: 'derechohabiente_documentos',
+        operation: 'create',
+        args: { data: { derechohabiente_id: 'dh-1' } },
+        query: mockQuery,
+      });
+
+      expect(service.derechohabientes.findUnique).toHaveBeenCalledWith({
+        where: { id: 'dh-1' },
+        select: { empleado_id: true },
+      });
+      expect(service.audit_log.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            afectado_tipo: 'empleado',
+            afectado_id: 'emp-9',
+          }),
+        }),
+      );
+    });
+
+    it('No debería auditar las relaciones de un include, pero sí devolverlas al caso de uso', async () => {
+      const filaConRelaciones = {
+        id: 'emp-1',
+        estado_laboral: 'LICENCIA',
+        area: { id: 'a1', nombre: 'Contabilidad' },
+        cargo: { id: 'c1', nombre: 'Contador' },
+      };
+      const mockQuery = jest.fn().mockResolvedValue(filaConRelaciones);
+      service.dummy_table.findUnique.mockResolvedValue({ id: 'emp-1', estado_laboral: 'ACTIVO' });
+
+      const resultado = await mockAuditMiddleware({
+        model: 'empleados',
+        operation: 'update',
+        args: { where: { id: 'emp-1' }, data: { estado_laboral: 'LICENCIA' }, include: { area: true, cargo: true } },
+        query: mockQuery,
+      });
+
+      expect(resultado).toBe(filaConRelaciones);
+      expect(filaConRelaciones.area).toBeDefined();
+      const datos = service.audit_log.create.mock.calls[0][0].data;
+      expect(datos.valores_despues).toEqual({ id: 'emp-1', estado_laboral: 'LICENCIA' });
+    });
+
+    it('Debería dejar solo columnas propias en los datos de una operación masiva', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({ count: 2 });
+
+      await mockAuditMiddleware({
+        model: 'jornada_area',
+        operation: 'createMany',
+        args: { data: [{ jornada_id: 'j1', area_id: 'a1', area: { connect: { id: 'a1' } } }, { jornada_id: 'j1', area_id: 'a2' }] },
+        query: mockQuery,
+      });
+
+      const datos = service.audit_log.create.mock.calls[0][0].data;
+      expect(datos.valores_despues.datos).toEqual([{ jornada_id: 'j1', area_id: 'a1' }, { jornada_id: 'j1', area_id: 'a2' }]);
+      expect(datos.valores_despues.registros_afectados).toBe(2);
     });
 
     it('Debería intentar capturar el estado previo antes de un UPDATE', async () => {

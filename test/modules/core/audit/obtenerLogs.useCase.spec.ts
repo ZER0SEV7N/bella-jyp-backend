@@ -14,6 +14,7 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
         audit_log: {
         count: jest.fn(),
         findMany: jest.fn(),
+        findUnique: jest.fn(),
         },
         $transaction: jest.fn((promises) => Promise.all(promises)),
     };
@@ -127,7 +128,7 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
         const query: ObtenerAuditQueryDto = {
             page: 1,
             limit: 10,
-            tabla_afectada: 'historial_planillas',
+            tabla_afectada: 'contratos',
         };
         const userJyp = { id: 'rrhh-uuid-1', rol: 'RRHH' };
 
@@ -137,7 +138,7 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
         await useCase.execute(query, userJyp);
 
         expect(prismaService.audit_log.count).toHaveBeenCalledWith({
-            where: { tabla_afectada: 'historial_planillas' },
+            where: { tabla_afectada: 'contratos' },
         });
         });
 
@@ -233,6 +234,27 @@ describe('ObtenerLogsUseCase - Pruebas Unitarias de Query Params y Privacidad', 
         const userEmpleado = { id: 'emp-uuid-1', rol: 'EMPLEADO' };
 
         await expect(useCase.execute(query, userEmpleado)).rejects.toThrow(ForbiddenException);
+        });
+    });
+
+    describe('obtenerPorId() - Huellas de campos protegidos', () => {
+        it('Debe reemplazar la huella por [OCULTO] en los valores crudos y seguir detectando el cambio', async () => {
+        mockPrismaService.audit_log.findUnique.mockResolvedValue({
+            id: 'log-1',
+            accion: 'UPDATE',
+            tabla_afectada: 'dato_financiero',
+            valores_antes: { nro_cuenta_sueldo: '[OCULTO:1111111111]' },
+            valores_despues: { nro_cuenta_sueldo: '[OCULTO:2222222222]' },
+        });
+
+        const result = await useCase.obtenerPorId('log-1', { id: 'admin-uuid-1', rol: 'ADMIN' });
+
+        expect(result.valores_antes).toEqual({ nro_cuenta_sueldo: '[OCULTO]' });
+        expect(result.valores_despues).toEqual({ nro_cuenta_sueldo: '[OCULTO]' });
+        expect(result.cambios).toEqual([
+            expect.objectContaining({ campo: 'nro_cuenta_sueldo', protegido: true }),
+        ]);
+        expect(JSON.stringify(result)).not.toMatch(/1111111111|2222222222/);
         });
     });
 });
