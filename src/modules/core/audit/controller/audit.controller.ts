@@ -11,7 +11,22 @@ import { ObtenerLogsUseCase } from '../use-cases/obtenerLogs.useCase';
 import { ObtenerHistorialUseCase } from '../use-cases/obtenerHistorial.useCase';
 import { RegistroAuditoriaUseCase } from '../use-cases/registroAuditoria.useCase';
 import type { FastifyRequest } from 'fastify';
-import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria, ApiSwaggerObtenerAuditoriaPorId } from '../decorators/audit-swagger.decorator';
+import { ListarActividadUseCase } from '../use-cases/listarActividad.useCase';
+import { ObtenerActividadPorIdUseCase } from '../use-cases/obtenerActividadPorId.useCase';
+import { ListarLineaTiempoAfectadoUseCase } from '../use-cases/listarLineaTiempoAfectado.useCase';
+import {
+  ActividadAuditoriaQuerySchema,
+  ActividadIdParamsSchema,
+  AfectadoParamsSchema,
+  LineaTiempoAfectadoQuerySchema,
+} from '../contracts/actividad-auditoria.schema';
+import type {
+  ActividadAuditoriaQueryDto,
+  ActividadIdParamsDto,
+  AfectadoParamsDto,
+  LineaTiempoAfectadoQueryDto,
+} from '../contracts/actividad-auditoria.schema';
+import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria, ApiSwaggerObtenerAuditoriaPorId, ApiSwaggerListarActividad, ApiSwaggerObtenerActividadPorId, ApiSwaggerLineaTiempoAfectado } from '../decorators/audit-swagger.decorator';
 
 /**
  * Controlador para manejar las solicitudes relacionadas con la auditoría.
@@ -29,6 +44,9 @@ export class AuditController {
     private readonly obtenerLogsUseCase: ObtenerLogsUseCase,
     private readonly registroAuditoriaUseCase: RegistroAuditoriaUseCase,
     private readonly obtenerHistorialUseCase: ObtenerHistorialUseCase,
+    private readonly listarActividadUseCase: ListarActividadUseCase,
+    private readonly obtenerActividadPorIdUseCase: ObtenerActividadPorIdUseCase,
+    private readonly listarLineaTiempoAfectadoUseCase: ListarLineaTiempoAfectadoUseCase,
   ) {}
 
   /**
@@ -124,5 +142,68 @@ export class AuditController {
       Math.max(1, Number(page) || 1),
       Math.min(100, Math.max(1, Number(limit) || 20)),
     );
+  }
+
+  /**
+   * `GET /api/v1/core/audit/actividad`
+   *
+   * Lista la actividad auditada en lenguaje de negocio: qué pasó, quién lo hizo, a quién afectó,
+   * un resumen y los campos modificados. Acepta los filtros de `/logs` más `afectado_tipo`,
+   * `afectado_id`, `desde` y `hasta`.
+   *
+   * @param query - Filtros y paginación validados con Zod.
+   * @param req - Solicitud con el usuario autenticado.
+   * @returns La página de actividad y sus metadatos.
+   */
+  @ApiSwaggerListarActividad()
+  @Get('actividad')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  async listarActividad(
+    @Query(new ZodValidationPipe(ActividadAuditoriaQuerySchema)) query: ActividadAuditoriaQueryDto,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+  ) {
+    return this.listarActividadUseCase.execute(query, req.user);
+  }
+
+  /**
+   * `GET /api/v1/core/audit/actividad/:id`
+   *
+   * Devuelve una fila de actividad con sus cambios: IDs reemplazados por nombres, enums con
+   * etiqueta, fechas normalizadas y listas (como el horario) comparadas por elemento.
+   *
+   * @param params - Parámetros de ruta validados con Zod.
+   * @param req - Solicitud con el usuario autenticado.
+   * @returns El detalle de la actividad.
+   */
+  @ApiSwaggerObtenerActividadPorId()
+  @Get('actividad/:id')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  async obtenerActividadPorId(
+    @Param(new ZodValidationPipe(ActividadIdParamsSchema, false, true)) params: ActividadIdParamsDto,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+  ) {
+    return this.obtenerActividadPorIdUseCase.execute(params.id, req.user);
+  }
+
+  /**
+   * `GET /api/v1/core/audit/afectados/:tipo/:id`
+   *
+   * Línea de tiempo paginada de un empleado, área, cargo o jornada, con el mismo formato de fila
+   * que `/actividad`.
+   *
+   * @param params - Tipo e ID del afectado, validados con Zod.
+   * @param query - Paginación y rango de fechas validados con Zod.
+   * @param req - Solicitud con el usuario autenticado.
+   * @returns La página de actividad y sus metadatos.
+   */
+  @ApiSwaggerLineaTiempoAfectado()
+  @Get('afectados/:tipo/:id')
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  async listarLineaTiempoAfectado(
+    @Param(new ZodValidationPipe(AfectadoParamsSchema, false, true)) params: AfectadoParamsDto,
+    @Query(new ZodValidationPipe(LineaTiempoAfectadoQuerySchema)) query: LineaTiempoAfectadoQueryDto,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+  ) {
+    return this.listarLineaTiempoAfectadoUseCase.execute(params, query, req.user);
   }
 }
