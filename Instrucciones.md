@@ -129,6 +129,13 @@ docker compose ps
 | `n8n` | `jyp-n8n-local:2.44.6` | `http://localhost:5678` | Motor de automatización para generación de boletas/TXT y envío de correos |
 | `mailpit` | `axllent/mailpit:v1.32.0` | `http://localhost:8025` | Bandeja web SMTP local para inspeccionar correos enviados |
 
+### 4.3 Linux con Podman sin root
+Si ejecuta los contenedores en Linux con Podman *rootless* (Docker Desktop en Windows/macOS no lo necesita):
+
+- Copie `docker-compose.podman.example.yml` como `docker-compose.override.yml` antes de levantar los servicios.
+- Ejecute los comandos de Compose con `DOCKER_BUILDKIT=0` (por ejemplo, `DOCKER_BUILDKIT=0 docker compose up -d --build ...`).
+- Tenga en cuenta que la carpeta `./archivos/integraciones` quedará con un dueño dentro del rango de `subuid` de Podman, por lo que el usuario del host no podrá abrirla directamente (los contenedores sí tendrán acceso normal).
+
 ## 5. Creación del Esquema de Base de Datos, Objetos SQL y Seed Base
 
 El contenedor `postgres` inicia con una base de datos vacía (`planillas_db`). Ejecute los siguientes comandos en orden para construir las tablas, instalar los triggers/vistas/funciones SQL y poblar los catálogos iniciales:
