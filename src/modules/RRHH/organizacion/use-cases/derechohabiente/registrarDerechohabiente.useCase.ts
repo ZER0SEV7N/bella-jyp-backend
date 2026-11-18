@@ -1,4 +1,4 @@
-//src/modules/RRHH/organizacion/use-cases/derechohabiente/registrarDerechoHabiente.useCase.ts
+//src/modules/RRHH/organizacion/use-cases/derechohabiente/registrarDerechohabiente.useCase.ts
 import { Injectable, BadRequestException, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';

@@ -1,4 +1,4 @@
-//src/modules/RRHH/use-cases/empleado/crearEmpleado.UseCase.ts
+//src/modules/RRHH/organizacion/use-cases/empleado/crearEmpleado.useCase.ts
 //Caso de uso para crear un empleado en el módulo de RRHH
 import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
