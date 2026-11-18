@@ -20,11 +20,11 @@ RUN npm run build && npm prune --omit=dev
 
 
 
-FROM docker.n8n.io/n8nio/n8n:2.44.6
+FROM n8nio/n8n:2.44.6
 USER root
 COPY --from=tareas /opt/jyp/node_modules /opt/jyp/node_modules
 COPY --from=tareas /opt/jyp/dist /opt/jyp/dist
-COPY --from=tareas /opt/jyp/src/modules/payroll/planillas/fonts /opt/jyp/dist/modules/payroll/planillas/fonts
+COPY --from=tareas /opt/jyp/src/modules/nomina/planillas/fonts /opt/jyp/dist/modules/nomina/planillas/fonts
 COPY n8n/tareas /opt/jyp/n8n/tareas
 RUN mkdir -p /files && chown -R node:node /files /opt/jyp
 USER node

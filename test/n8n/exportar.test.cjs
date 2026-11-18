@@ -6,7 +6,7 @@ const { join } = require('node:path');
 const { exportar } = require('../../n8n/tareas/exportar.cjs');
 const {
     calcularPlanilla,
-} = require('../../dist/modules/payroll/planillas/domain/calcular-planilla');
+} = require('../../dist/modules/nomina/planillas/domain/calcular-planilla');
 const demo = require('../../pruebas-demo/datos-demo.json');
 const { fila } = require('../fixtures/exportacion-n8n.fixture.cjs');
 async function* filas() {

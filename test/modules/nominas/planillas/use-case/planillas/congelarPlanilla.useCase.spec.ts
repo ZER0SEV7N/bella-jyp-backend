@@ -1,4 +1,4 @@
-//test/modules/payroll/planillas/use-case/planillas/congelarPlanilla.useCase.spec.ts
+//test/modules/nomina/planillas/use-case/planillas/congelarPlanilla.useCase.spec.ts
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { CongelarPlanillaUseCase } from '@/modules/nomina/planillas/use-case/planillas/congelarPlanilla.useCase';
 import { prepararPlanilla } from '@/modules/nomina/planillas/helpers/preparar-planilla.helper';
@@ -7,7 +7,7 @@ jest.mock('@/common/utils/transaccion-auditada.util', () => ({
   transaccionAuditada: jest.fn((p, _a, fn) => fn(p)),
   bloquearEmpleado: jest.fn(),
 }));
-jest.mock('@/modules/payroll/planillas/helpers/preparar-planilla.helper');
+jest.mock('@/modules/nomina/planillas/helpers/preparar-planilla.helper');
 
 /**
  * Pruebas unitarias para CongelarPlanillaUseCase siguiendo el patrón AAA (Arrange, Act, Assert).
