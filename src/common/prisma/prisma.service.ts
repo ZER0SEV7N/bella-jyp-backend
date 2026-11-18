@@ -8,6 +8,8 @@ import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
 import { crearSnapshotAuditoria } from '../utils/audit-snaphot.util';
+import { quitarCamposRelacion, quitarCamposRelacionDatos } from '../utils/campos-relacion.util';
+import { resolverAfectadoAuditoria, type AfectadoAuditoria } from '@/modules/core/audit/helpers/resolver-afectado-auditoria.helper';
 
 /** 
  * Tablas excluidas de la extensión de auditoría para evitar recursión o ruido técnico.
@@ -78,6 +80,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const localLogger = this.logger; //Referencia al logger para uso dentro del middleware
     const getModelClient = (model: string) => (this as any)[model];
     const createAuditLog = (data: any) => (this as any).audit_log.create({ data });
+    const buscarEmpleadoDeDerechohabiente = async (derechohabienteId: string): Promise<string | null> => {
+      const derechohabiente = await getModelClient('derechohabientes').findUnique({ where: { id: derechohabienteId }, select: { empleado_id: true } });
+      return derechohabiente?.empleado_id ?? null;
+    };
 
     const extendedClient = this.$extends({
       query: {
@@ -127,6 +133,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
             const ipAddress = clsService.get(CLS_IP_ADDRESS) || '127.0.0.1';
             const registroId = getId(resultado) || getWhereId(args) || IdentityGenerator.generateId();
 
+            //El afectado es informativo: si no se puede resolver, la auditoría se guarda igual.
+            let afectado: AfectadoAuditoria | null = null;
+            try {
+              afectado = await resolverAfectadoAuditoria(model, registroId, valoresAntes, valoresDespues, buscarEmpleadoDeDerechohabiente);
+            } catch (error) {
+              localLogger.warn(`Auditoría: No se pudo determinar el afectado de ${model}`, error);
+            }
+
             //Registrar la operación en la tabla de auditoría
             try {
               await createAuditLog({
@@ -135,9 +149,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                 accion: operation.toUpperCase(),
                 tabla_afectada: model,
                 registro_id: registroId,
-                valores_antes: valoresAntes ? crearSnapshotAuditoria(valoresAntes) : null,
-                valores_despues: valoresDespues ? crearSnapshotAuditoria(valoresDespues) : null,
+                valores_antes: valoresAntes ? crearSnapshotAuditoria(quitarCamposRelacion(model, valoresAntes)) : null,
+                valores_despues: valoresDespues ? crearSnapshotAuditoria(esMasiva ? quitarCamposRelacionMasiva(model, valoresDespues) : quitarCamposRelacion(model, valoresDespues)) : null,
                 direccion_ip: ipAddress,
+                afectado_tipo: afectado?.tipo ?? null,
+                afectado_id: afectado?.id ?? null,
               });
             } catch (error) {
               localLogger.error(`Auditoría: No se pudo registrar la operación de ${operation} en ${model}`, error);
@@ -176,6 +192,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$disconnect();
     this.logger.log('Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).');
   }
+}
+
+/**
+ * Quita las relaciones anidadas (`connect`, `create`...) de los `datos` de una operación masiva
+ * antes de guardarla en la auditoría, para que solo queden columnas propias del modelo.
+ * @param modelo - Nombre del modelo de Prisma.
+ * @param valores - Descripción de la operación masiva (`operacion_masiva`, `filtro`, `datos`...).
+ * @returns La descripción con `datos` solo con columnas propias.
+ */
+function quitarCamposRelacionMasiva(modelo: string, valores: Record<string, unknown>): Record<string, unknown> {
+  return { ...valores, datos: quitarCamposRelacionDatos(modelo, valores.datos) };
 }
 
 /**

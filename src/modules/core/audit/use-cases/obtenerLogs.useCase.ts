@@ -3,7 +3,9 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ObtenerAuditQueryDto } from '@jyp/shared-contracts';
-import { calcularCambiosAuditoria, TABLAS_PERMITIDAS_RRHH } from '../helpers/calcular-cambios-auditoria.helper';
+import { calcularCambiosAuditoria } from '../helpers/calcular-cambios-auditoria.helper';
+import { TABLAS_PERMITIDAS_RRHH } from '../config/auditoria-tablas.config';
+import { ocultarHuellasAuditoria } from '../helpers/ocultar-huellas-auditoria.helper';
 import { construirFiltroBase } from '../helpers/construir-filtro-base-auditoria.helper';
 
 /**
@@ -82,8 +84,11 @@ export class ObtenerLogsUseCase {
     }
 
     const cambios = calcularCambiosAuditoria(registro.valores_antes, registro.valores_despues);
+    //La huella de los campos protegidos solo sirve para comparar; la vista técnica no la muestra.
     return {
       ...registro,
+      valores_antes: ocultarHuellasAuditoria(registro.valores_antes),
+      valores_despues: ocultarHuellasAuditoria(registro.valores_despues),
       cambios,
       campos_modificados: cambios.map((c) => c.etiqueta),
     };
