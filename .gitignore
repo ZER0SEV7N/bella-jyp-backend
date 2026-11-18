@@ -64,3 +64,16 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .postman
 .postman_collection.json
 /.postman/resources.yaml
+
+# SonarQube (salida local del scanner)
+.scannerwork/
+
+# Override local de Docker/Podman (cada integrante tiene el suyo)
+docker-compose.override.yml
+
+# Agentes de IA (configuración personal, no se versiona)
+AGENTS.md
+CLAUDE.md
+CLAUDE.local.md
+.claudeignore
+.claude/settings.local.json
