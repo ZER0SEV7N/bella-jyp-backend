@@ -45,6 +45,14 @@ export const EnvSchema = z.object({
     .string({ error: 'FINANCIAL_DATA_ENCRYPTION_KEY es requerida' })
     .min(32, 'FINANCIAL_DATA_ENCRYPTION_KEY debe tener al menos 32 caracteres'),
 
+  // Secreto de la huella con que la auditoría detecta cambios en cuentas, CCI y CUSPP sin guardarlos.
+  // Opcional: sin él se guarda `[OCULTO]` y esos cambios no se distinguen en la vista.
+  AUDITORIA_HUELLA_SECRETO: z
+    .string()
+    .min(32, 'AUDITORIA_HUELLA_SECRETO debe tener al menos 32 caracteres')
+    .optional()
+    .or(z.literal('')),
+
   // Datos empresariales del MVP
   EMPRESA_NOMBRE: z.string().default('J&P PERIFERICOS SAC'),
   EMPRESA_RUC: z.string().default('20545122520'),

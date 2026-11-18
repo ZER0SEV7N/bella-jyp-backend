@@ -1,27 +1,7 @@
 //src/modules/core/audit/helpers/calcular-cambios-auditoria.helper.ts
 import { CAMPOS_SENSIBLES_AUDITORIA } from '@/common/utils/audit-snaphot.util';
-
-/**
- * Tablas de auditoría visibles para el rol RRHH (AUD-F4).
- * Excluye explícitamente tablas de seguridad/sistema como `usuarios` y `tokens_seguridad`.
- */
-export const TABLAS_PERMITIDAS_RRHH = [
-  'area',
-  'cargo',
-  'jornada',
-  'jornada_area',
-  'empleados',
-  'contratos',
-  'derechohabientes',
-  'derechohabiente_documentos',
-  'dato_financiero',
-  'solicitud',
-  'asistencia_marcacion',
-  'asistencia_jornada',
-  'asistencia_decision',
-  'asistencia_calendario',
-  'incidencias_mes',
-] as const;
+import { obtenerCamposRelacion } from '@/common/utils/campos-relacion.util';
+import { obtenerEtiquetaCampoAuditoria } from '../config/auditoria-tablas.config';
 
 /** Campos técnicos internos que se omiten al calcular las diferencias legibles para el usuario (AUD-M2). */
 const CAMPOS_TECNICOS_IGNORADOS = new Set([
@@ -46,56 +26,6 @@ const CAMPOS_PROTEGIDOS_VISTA = new Set([
   'cuspp',
 ]);
 
-/** Diccionario de etiquetas legibles en español para los campos auditados (AUD-M2). */
-export const ETIQUETAS_CAMPOS_AUDITORIA: Record<string, string> = {
-  nombre: 'Nombre',
-  apellido: 'Apellido',
-  nro_documento: 'Número de documento',
-  documento_id: 'Tipo de documento',
-  email: 'Correo electrónico',
-  telefono: 'Teléfono',
-  sexo: 'Sexo',
-  estado_civil: 'Estado civil',
-  fecha_nacimiento: 'Fecha de nacimiento',
-  direccion: 'Dirección',
-  referencia_direccion: 'Referencia de dirección',
-  distrito: 'Distrito',
-  provincia: 'Provincia',
-  departamento: 'Departamento',
-  area_id: 'Área',
-  id_area: 'Área',
-  cargo_id: 'Cargo',
-  jornada_id: 'Jornada laboral',
-  fecha_inicio: 'Fecha de inicio',
-  fecha_fin: 'Fecha de fin',
-  fecha_cese: 'Fecha de cese',
-  estado_laboral: 'Estado laboral',
-  motivo_baja: 'Motivo de baja',
-  asig_familiar: 'Asignación familiar',
-  sueldo_basico: 'Sueldo básico',
-  id_regimen: 'Régimen pensionario',
-  id_tipo_afp: 'AFP',
-  tipo_comision: 'Tipo de comisión AFP',
-  afp_fecha_filiacion: 'Fecha de afiliación AFP',
-  id_banco_sueldo: 'Banco de haberes',
-  nro_cuenta_sueldo: 'Cuenta de sueldo',
-  cci_sueldo: 'CCI de sueldo',
-  id_banco_cts: 'Banco de CTS',
-  nro_cuenta_cts: 'Cuenta de CTS',
-  cci_cts: 'CCI de CTS',
-  cuspp: 'CUSPP',
-  regimen_salud: 'Régimen de salud',
-  eps_costo_adicional: 'Costo adicional EPS',
-  tipo_modalidad: 'Modalidad de contrato',
-  estado: 'Estado',
-  observacion: 'Observación',
-  vinculo: 'Vínculo familiar',
-  acreditado_essalud: 'Acreditado en EsSalud',
-  activo: 'Activo',
-  deleted_at: 'Baja lógica',
-  rol: 'Rol del sistema',
-};
-
 export interface CambioCampoAuditoria {
   campo: string;
   etiqueta: string;
@@ -119,12 +49,36 @@ function normalizarValorAuditoria(valor: unknown): unknown {
 }
 
 /**
+ * Compara dos valores protegidos sin conocerlos. Los que llevan huella (`[OCULTO:<huella>]`) son
+ * distintos si las huellas difieren. `[OCULTO]` sin huella no permite distinguir un valor de otro,
+ * así que contra otro `[OCULTO]` o contra uno con huella se considera igual: es preferible no
+ * mostrar un cambio dudoso que inventarlo. Un valor frente a su ausencia sí es un cambio.
+ */
+function sonIgualesProtegidos(antes: unknown, despues: unknown): boolean {
+  if (antes === despues) return true;
+  const ambosOcultos =
+    typeof antes === 'string' &&
+    typeof despues === 'string' &&
+    antes.startsWith('[OCULTO') &&
+    despues.startsWith('[OCULTO');
+  return ambosOcultos && (antes === '[OCULTO]' || despues === '[OCULTO]');
+}
+
+/**
  * Calcula la lista de campos modificados entre `valores_antes` y `valores_despues` (AUD-M2).
  * - Oculta `password_hash` y `token_hash`.
  * - Marca cuentas bancarias, CCI y CUSPP con `protegido: true` y valores `null`.
  * - Traduce IDs de catálogos si se provee el diccionario `nombresCatalogos`.
+ * - Si se indica `tabla`, usa las etiquetas de esa tabla en `TABLAS_AUDITORIA` e ignora los
+ *   campos de relación del modelo (filas guardadas con `include`).
+ *
+ * @param antesRaw - Valores previos de la fila.
+ * @param despuesRaw - Valores posteriores de la fila.
+ * @param nombresCatalogos - Nombre legible de cada ID de catálogo ya resuelto.
+ * @param tabla - Tabla de la fila, para usar la etiqueta exacta de cada campo.
+ * @returns Los campos que cambiaron, ya normalizados y con su etiqueta.
  */
-export function calcularCambiosAuditoria(antesRaw: unknown, despuesRaw: unknown, nombresCatalogos: Record<string, string> = {} ): CambioCampoAuditoria[] {
+export function calcularCambiosAuditoria(antesRaw: unknown, despuesRaw: unknown, nombresCatalogos: Record<string, string> = {}, tabla?: string ): CambioCampoAuditoria[] {
   const antes = antesRaw && typeof antesRaw === 'object' && !Array.isArray(antesRaw)
       ? (antesRaw as Record<string, unknown>)
       : {};
@@ -132,19 +86,24 @@ export function calcularCambiosAuditoria(antesRaw: unknown, despuesRaw: unknown,
       ? (despuesRaw as Record<string, unknown>)
       : {};
 
+  //Las relaciones traídas por `include` (por ejemplo `area` y `cargo`) no son columnas de la
+  //fila: solo aparecían en un lado y se mostraban como un cambio inexistente.
+  const relaciones = tabla ? obtenerCamposRelacion(tabla) : new Set<string>();
   const claves = new Set([...Object.keys(antes), ...Object.keys(despues)]);
   const cambios: CambioCampoAuditoria[] = [];
 
   for (const campo of claves) {
-    if (CAMPOS_TECNICOS_IGNORADOS.has(campo)) continue;
+    if (CAMPOS_TECNICOS_IGNORADOS.has(campo) || relaciones.has(campo)) continue;
     if (campo === 'password' || campo === 'password_hash' || campo === 'token_hash') continue;
 
     const valAntes = normalizarValorAuditoria(antes[campo]);
     const valDespues = normalizarValorAuditoria(despues[campo]);
 
-    if (valAntes === valDespues) continue;
+    const esProtegido =
+      CAMPOS_PROTEGIDOS_VISTA.has(campo) || CAMPOS_SENSIBLES_AUDITORIA.has(campo);
+    if (esProtegido ? sonIgualesProtegidos(valAntes, valDespues) : valAntes === valDespues) continue;
 
-    const etiqueta = ETIQUETAS_CAMPOS_AUDITORIA[campo] ?? campo;
+    const etiqueta = obtenerEtiquetaCampoAuditoria(tabla, campo);
 
     if (CAMPOS_PROTEGIDOS_VISTA.has(campo) || CAMPOS_SENSIBLES_AUDITORIA.has(campo)) {
       cambios.push({
