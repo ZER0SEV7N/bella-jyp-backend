@@ -2,7 +2,7 @@
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ReniecAdapter } from '../../../services/reniec.adapter';
-import { verificarAreaActiva, verificarCargoActivo, verificarJornadaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
+import { verificarAreaActiva, verificarCargoActivo, verificarCargoArea, verificarJornadaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 
 /**
  * Interfaz que define los IDs de las referencias de un empleado.
@@ -34,6 +34,7 @@ export async function validarEntidadesEmpleado(
     verificarAreaActiva(prisma, ids.area_id, idsActuales?.area_id),
     verificarCargoActivo(prisma, ids.cargo_id, idsActuales?.cargo_id),
     verificarJornadaActiva(prisma, ids.jornada_id, idsActuales?.jornada_id),
+    verificarCargoArea(prisma, ids.cargo_id, ids.area_id)
   ];
 
   //Validación de tipo de documento y estado del empleado directamente con consultas a la base de datos.

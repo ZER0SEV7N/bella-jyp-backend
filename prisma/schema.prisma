@@ -316,7 +316,7 @@ model derechohabientes {
   nombres            String                @db.VarChar(100)
   apellidos          String                @db.VarChar(100)
   vinculo            vinculo_familiar_enum
-  estado_civil       estado_civil_enum     @default(SOLTERO)
+  estado_civil       estado_civil_enum      @default(SOLTERO)
   sexo               sexo_enum
   fecha_nacimiento   DateTime              @db.Date
   acreditado_essalud Boolean               @default(false)

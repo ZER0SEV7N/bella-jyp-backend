@@ -25,7 +25,7 @@ import { ApiSwaggerEmpleadosController, ApiSwaggerCrearEmpleado, ApiSwaggerActua
  * - GET /api/v1/rrhh/empleado: Listar empleados con paginación y filtros.
  * - DELETE /api/v1/rrhh/empleado/:id/desactivar: Desactivar un empleado (soft delete).
  * - PATCH /api/v1/rrhh/empleado/:id/reactivar: Reactivar un empleado previamente desactivado.
- */
+*/
 @ApiSwaggerEmpleadosController()
 @Controller('api/v1/rrhh/empleado')
 @UseGuards(JwtAccessGuard, RolesGuard)
