@@ -24,11 +24,17 @@ export class ZodValidationPipe implements PipeTransform {
    * Recibe cualquier esquema Zod mediante la interfaz estructural ZodSchemaLike,
    * garantizando compatibilidad con esquemas complejos de @jyp/shared-contracts.
    */
-  constructor(private readonly schema: ZodSchemaLike, private readonly preservarCamposParciales = false) {}
+  constructor(
+    private readonly schema: ZodSchemaLike,
+    private readonly preservarCamposParciales = false,
+    //Con `@Param()` (el objeto completo) permite validar los parámetros de ruta con el mismo esquema.
+    private readonly validarParametrosRuta = false,
+  ) {}
 
   transform(value: unknown, metadata: ArgumentMetadata) {
-    // Excluir parámetros de ruta (solo validamos Body y Query)
-    if (metadata.type !== 'body' && metadata.type !== 'query') {
+    // Los parámetros de ruta solo se validan si el pipe lo pide expresamente; Body y Query siempre
+    const validaRuta = this.validarParametrosRuta && metadata.type === 'param';
+    if (metadata.type !== 'body' && metadata.type !== 'query' && !validaRuta) {
       return value;
     }
 
