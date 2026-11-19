@@ -75,11 +75,20 @@ function estaVacio(valor: unknown): boolean {
   return valor === undefined || valor === null || valor === '';
 }
 
+/** Separa de a tres cifras desde la derecha (`1234567` → `1,234,567`) sin expresiones regulares. */
+function agruparMiles(entero: string): string {
+  const grupos: string[] = [];
+  for (let fin = entero.length; fin > 0; fin -= 3) {
+    grupos.unshift(entero.slice(Math.max(0, fin - 3), fin));
+  }
+  return grupos.join(',');
+}
+
 function formatearMoneda(valor: unknown): string {
   const numero = Number(valor);
   if (!Number.isFinite(numero)) return aTexto(valor);
   const [entero, decimales] = Math.abs(numero).toFixed(2).split('.');
-  const miles = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const miles = agruparMiles(entero);
   return `${numero < 0 ? '-' : ''}S/ ${miles}.${decimales}`;
 }
 

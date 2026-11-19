@@ -1,6 +1,7 @@
 //test/modules/core/audit/helpers/presentar-actividad.helper.spec.ts
 import {
   clasificarAccionAuditoria,
+  rellenarPlantilla,
   presentarActividad,
   presentarDetalleActividad,
   type FilaAuditoriaActividad,
@@ -1132,6 +1133,110 @@ describe('presentarActividad', () => {
         protegido: true,
         antes: null,
         despues: null,
+      });
+    });
+  });
+  describe('plantillas de resumen', () => {
+    it.each([
+      [
+        'Subió un documento de {a} ({b}), familiar de {c}',
+        { a: 'Carlos', b: 'hijo menor', c: 'Luis' },
+        'Subió un documento de Carlos (hijo menor), familiar de Luis',
+      ],
+      [
+        'Subió un documento de {a} ({b}), familiar de {c}',
+        { a: 'Carlos', b: '', c: 'Luis' },
+        'Subió un documento de Carlos, familiar de Luis',
+      ],
+      [
+        'Agregó el día {a} ({b}) al calendario',
+        { a: 'Navidad', b: '' },
+        'Agregó el día Navidad al calendario',
+      ],
+      [
+        'Agregó el día {a} ( {b} ) al calendario',
+        { a: 'Navidad', b: '' },
+        'Agregó el día Navidad al calendario',
+      ],
+      ['() Registró a {a}', { a: 'Luis' }, 'Registró a Luis'],
+      [
+        'Editó a {a} {b}: {c}',
+        { a: 'Luis', b: '', c: 'Cargo' },
+        'Editó a Luis: Cargo',
+      ],
+      ['Editó a {a} , {b} .', { a: 'Luis', b: 'Ana' }, 'Editó a Luis, Ana.'],
+      ['  Registró   a   {a}  ', { a: 'Luis' }, 'Registró a Luis'],
+      ['Sin variables', {}, 'Sin variables'],
+    ])('Debe limpiar la plantilla %j', (plantilla, valores, esperado) => {
+      // Arrange y Act
+      const resultado = rellenarPlantilla(plantilla, valores);
+
+      // Assert
+      expect(resultado).toBe(esperado);
+    });
+
+    it('Debe mantener tiempo lineal con espacios y paréntesis repetidos', () => {
+      // Arrange
+      const plantilla = `Edición ${' '.repeat(20000)}(${' '.repeat(20000)}`;
+
+      // Act
+      const inicio = Date.now();
+      const resultado = rellenarPlantilla(plantilla, {});
+
+      // Assert
+      expect(resultado).toBe('Edición (');
+      expect(Date.now() - inicio).toBeLessThan(500);
+    });
+
+    it('Debe quitar los dos puntos y {campos} cuando una edición no tiene campos modificados', async () => {
+      // Arrange
+      const { cliente } = crearPrismaSimulado();
+      const fila = crearFila({
+        tabla_afectada: 'cargo',
+        afectado_tipo: 'cargo',
+        valores_antes: { id: 'c', nombre: 'Contador', sueldo_minimo: '1130.5' },
+        valores_despues: { id: 'c', nombre: 'Contador', sueldo_minimo: 1130.5 },
+      });
+
+      // Act
+      const [resultado] = await presentarActividad(cliente, [fila]);
+
+      // Assert
+      expect(resultado.campos_modificados).toEqual([]);
+      expect(resultado.resumen).toBe('Editó el cargo Cargo no disponible');
+    });
+  });
+
+  describe('montos en soles', () => {
+    it.each([
+      ['0', 'S/ 0.00'],
+      ['12.5', 'S/ 12.50'],
+      ['999', 'S/ 999.00'],
+      ['1000', 'S/ 1,000.00'],
+      ['1234.5', 'S/ 1,234.50'],
+      ['2500.5', 'S/ 2,500.50'],
+      ['1234567.891', 'S/ 1,234,567.89'],
+      ['123456789012.3', 'S/ 123,456,789,012.30'],
+      ['-1234.5', '-S/ 1,234.50'],
+      ['-0.5', '-S/ 0.50'],
+    ])('Debe formatear el sueldo %s como %s', async (valor, esperado) => {
+      // Arrange
+      const { cliente } = crearPrismaSimulado();
+      const fila = crearFila({
+        tabla_afectada: 'cargo',
+        afectado_tipo: 'cargo',
+        accion: 'CREATE',
+        valores_despues: { id: 'c', sueldo_minimo: valor },
+      });
+
+      // Act
+      const detalle = await presentarDetalleActividad(cliente, fila);
+
+      // Assert
+      expect(detalle.cambios[0]).toMatchObject({
+        campo: 'sueldo_minimo',
+        tipo: 'moneda',
+        despues: esperado,
       });
     });
   });

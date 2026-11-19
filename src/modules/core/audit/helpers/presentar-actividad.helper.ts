@@ -289,16 +289,47 @@ function construirCambios(
   return cambios;
 }
 
-function rellenarPlantilla(
+/** Paréntesis vacíos que deja una variable sin valor, del más largo al más corto. */
+const PARENTESIS_VACIOS = [' ( )', ' ()', '( )', '()'];
+
+/** Puntuación que no debe quedar precedida de un espacio. */
+const PUNTUACION_SIN_ESPACIO_PREVIO = [',', '.', ':'];
+
+/**
+ * Rellena una plantilla de resumen con sus valores y deja el texto limpio: sin paréntesis vacíos,
+ * con un solo espacio entre palabras y sin espacio antes de `,`, `.` o `:`. La limpieza se hace
+ * con cadenas de longitud fija (no con expresiones con cuantificadores encadenados, que pueden
+ * retroceder de forma super-lineal).
+ *
+ * @param plantilla - Texto con variables `{campo}` o `{campo.detalle}`.
+ * @param valores - Valor de cada variable; una variable sin valor se reemplaza por texto vacío.
+ * @returns El resumen limpio.
+ */
+export function rellenarPlantilla(
   plantilla: string,
   valores: Record<string, string>
 ): string {
-  return plantilla
-    .replace(/\{([\w.]+)\}/g, (_, nombre: string) => valores[nombre] ?? '')
-    .replace(/\s*\(\s*\)/g, '')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([,.:])/g, '$1')
-    .trim();
+  const relleno = plantilla.replace(
+    /\{([\w.]+)\}/g,
+    (_, nombre: string) => valores[nombre] ?? ''
+  );
+  let texto = relleno.split(/\s+/).filter(Boolean).join(' ');
+  for (const vacio of PARENTESIS_VACIOS) texto = texto.split(vacio).join('');
+  for (const signo of PUNTUACION_SIN_ESPACIO_PREVIO) {
+    texto = texto.split(` ${signo}`).join(signo);
+  }
+  return texto.trim();
+}
+
+/** Quita `{campos}` de una plantilla junto con el espacio y los dos puntos que lo anteceden. */
+function quitarMarcadorCampos(plantilla: string): string {
+  const marcador = '{campos}';
+  const posicion = plantilla.indexOf(marcador);
+  if (posicion === -1) return plantilla;
+
+  const antes = plantilla.slice(0, posicion).trimEnd();
+  const sinDosPuntos = antes.endsWith(':') ? antes.slice(0, -1) : antes;
+  return sinDosPuntos + plantilla.slice(posicion + marcador.length);
 }
 
 function construirResumen(
@@ -326,7 +357,7 @@ function construirResumen(
 
   const tabla = TABLAS_AUDITORIA[fila.tabla_afectada];
   let plantilla = tabla?.resumen[accion] ?? RESUMEN_GENERICO_AUDITORIA[accion];
-  if (campos.length === 0) plantilla = plantilla.replace(/:?\s*\{campos\}/, '');
+  if (campos.length === 0) plantilla = quitarMarcadorCampos(plantilla);
 
   const valores: Record<string, string> = {
     afectado: afectado?.nombre ?? 'un registro',
