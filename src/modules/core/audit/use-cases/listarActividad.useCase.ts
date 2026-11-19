@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import type {
   ActividadAuditoriaQueryDto,
   ListaActividadAuditoria,
-} from '../contracts/actividad-auditoria.schema';
+} from '@jyp/shared-contracts';
 import { consultarActividadAuditoria } from '../helpers/consultar-actividad-auditoria.helper';
 import {
   construirFiltroBase,

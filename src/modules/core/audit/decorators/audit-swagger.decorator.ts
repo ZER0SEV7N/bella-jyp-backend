@@ -1,9 +1,8 @@
 //src/modules/core/audit/decorators/audit-swagger.decorator.ts
 import { ApiOperacionDocumentada, esquemaContrato, ApiContratoBody, ApiContratoQuery } from '@/common/decorators/api-contrato.decorator';
-import { CreateAuditSchema, AuditResumenSchema, ObtenerAuditQuerySchema  } from '@jyp/shared-contracts';
+import { CreateAuditSchema, AuditResumenSchema, ObtenerAuditQuerySchema, TIPOS_AFECTADO_AUDITORIA, TIPOS_AFECTADO_CON_ID_AUDITORIA } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
-import { TIPOS_AFECTADO_AUDITORIA, TIPOS_AFECTADO_CON_ID_AUDITORIA } from '../contracts/actividad-auditoria.schema';
 
 /**
  * Decorador personalizado para documentar los endpoints de auditoría en Swagger.

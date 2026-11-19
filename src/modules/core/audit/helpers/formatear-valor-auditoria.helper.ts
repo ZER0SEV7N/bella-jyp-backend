@@ -7,7 +7,7 @@ import type {
 import type {
   DetalleElementoAuditoria,
   ValorCambioAuditoria,
-} from '../contracts/actividad-auditoria.schema';
+} from '@jyp/shared-contracts';
 
 /** Nombre legible de un registro referenciado y un dato corto que ayuda a reconocerlo. */
 export interface NombreResueltoAuditoria {

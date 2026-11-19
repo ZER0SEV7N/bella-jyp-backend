@@ -5,8 +5,6 @@ import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { ObtenerAuditQuerySchema } from '@jyp/shared-contracts';
-import type { ObtenerAuditQueryDto, AuditLogDto } from '@jyp/shared-contracts';
 import { ObtenerLogsUseCase } from '../use-cases/obtenerLogs.useCase';
 import { ObtenerHistorialUseCase } from '../use-cases/obtenerHistorial.useCase';
 import { RegistroAuditoriaUseCase } from '../use-cases/registroAuditoria.useCase';
@@ -15,17 +13,20 @@ import { ListarActividadUseCase } from '../use-cases/listarActividad.useCase';
 import { ObtenerActividadPorIdUseCase } from '../use-cases/obtenerActividadPorId.useCase';
 import { ListarLineaTiempoAfectadoUseCase } from '../use-cases/listarLineaTiempoAfectado.useCase';
 import {
+  ObtenerAuditQuerySchema,
   ActividadAuditoriaQuerySchema,
   ActividadIdParamsSchema,
   AfectadoParamsSchema,
   LineaTiempoAfectadoQuerySchema,
-} from '../contracts/actividad-auditoria.schema';
+} from '@jyp/shared-contracts';
 import type {
+  ObtenerAuditQueryDto,
+  AuditLogDto,
   ActividadAuditoriaQueryDto,
   ActividadIdParamsDto,
   AfectadoParamsDto,
   LineaTiempoAfectadoQueryDto,
-} from '../contracts/actividad-auditoria.schema';
+} from '@jyp/shared-contracts';
 import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria, ApiSwaggerObtenerAuditoriaPorId, ApiSwaggerListarActividad, ApiSwaggerObtenerActividadPorId, ApiSwaggerLineaTiempoAfectado } from '../decorators/audit-swagger.decorator';
 
 /**

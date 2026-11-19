@@ -4,7 +4,7 @@ import type {
   AccionVistaAuditoria,
   TipoAfectadoAuditoria,
   TipoCampoAuditoria,
-} from '../contracts/actividad-auditoria.schema';
+} from '@jyp/shared-contracts';
 
 export type { AccionVistaAuditoria, TipoAfectadoAuditoria, TipoCampoAuditoria };
 
