@@ -1,7 +1,7 @@
 //src/modules/core/audit/helpers/consultar-actividad-auditoria.helper.ts
 import type { Prisma } from '@prisma/client';
 import type { PrismaService } from '@/common/prisma/prisma.service';
-import type { ListaActividadAuditoria } from '../contracts/actividad-auditoria.schema';
+import type { ListaActividadAuditoria } from '@jyp/shared-contracts';
 import {
   INCLUIR_ACTOR_AUDITORIA,
   presentarActividad,

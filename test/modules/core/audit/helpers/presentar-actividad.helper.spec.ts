@@ -5,7 +5,7 @@ import {
   presentarDetalleActividad,
   type FilaAuditoriaActividad,
 } from '@/modules/core/audit/helpers/presentar-actividad.helper';
-import { FilaActividadAuditoriaSchema } from '@/modules/core/audit/contracts/actividad-auditoria.schema';
+import { FilaActividadAuditoriaSchema } from '@jyp/shared-contracts';
 import type { ClienteNombresAuditoria } from '@/modules/core/audit/helpers/resolver-nombres-auditoria.helper';
 
 const ID_EMPLEADO = '0192a000-0000-7000-8000-000000000001';

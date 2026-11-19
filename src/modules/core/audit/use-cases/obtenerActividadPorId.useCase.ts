@@ -1,7 +1,7 @@
 //src/modules/core/audit/use-cases/obtenerActividadPorId.useCase.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import type { DetalleActividadAuditoria } from '../contracts/actividad-auditoria.schema';
+import type { DetalleActividadAuditoria } from '@jyp/shared-contracts';
 import {
   construirFiltroBase,
   type UsuarioSolicitanteAuditoria,

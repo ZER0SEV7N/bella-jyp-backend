@@ -12,7 +12,7 @@ import type {
   CambioActividadAuditoria,
   DetalleActividadAuditoria,
   FilaActividadAuditoria,
-} from '../contracts/actividad-auditoria.schema';
+} from '@jyp/shared-contracts';
 import { calcularCambiosAuditoria } from './calcular-cambios-auditoria.helper';
 import {
   compararListaAuditoria,

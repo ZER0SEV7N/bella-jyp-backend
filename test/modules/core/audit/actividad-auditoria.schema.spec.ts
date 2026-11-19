@@ -3,7 +3,7 @@ import {
   ActividadAuditoriaQuerySchema,
   AfectadoParamsSchema,
   LineaTiempoAfectadoQuerySchema,
-} from '@/modules/core/audit/contracts/actividad-auditoria.schema';
+} from '@jyp/shared-contracts';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { BadRequestException } from '@nestjs/common';
 
@@ -114,9 +114,9 @@ describe('Parámetros de ruta de la línea de tiempo', () => {
 
     // Act y Assert
     expect(pipeNormal.transform(invalido, { type: 'param' })).toBe(invalido);
-    expect(() => pipeRuta.transform(invalido, { type: 'param' })).toThrow(
-      BadRequestException
-    );
+    expect(() => {
+      pipeRuta.transform(invalido, { type: 'param' });
+    }).toThrow(BadRequestException);
     expect(
       pipeRuta.transform({ tipo: 'area', id: UUID }, { type: 'param' })
     ).toEqual({ tipo: 'area', id: UUID });
