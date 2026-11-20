@@ -8,6 +8,10 @@ import {
 } from '@/modules/core/audit/helpers/presentar-actividad.helper';
 import { FilaActividadAuditoriaSchema } from '@jyp/shared-contracts';
 import type { ClienteNombresAuditoria } from '@/modules/core/audit/helpers/resolver-nombres-auditoria.helper';
+import {
+  crearNombresResueltosVacios,
+  formatearValorAuditoria,
+} from '@/modules/core/audit/helpers/formatear-valor-auditoria.helper';
 
 const ID_EMPLEADO = '0192a000-0000-7000-8000-000000000001';
 const ID_EMPLEADO_2 = '0192a000-0000-7000-8000-000000000002';
@@ -899,6 +903,70 @@ describe('presentarActividad', () => {
       expect(detalle.cambios.map((c) => c.campo)).not.toContain('empleado_id');
     });
 
+    it('Debe ordenar los campos principales y el horario según la configuración y no según el jsonb', async () => {
+      // Arrange: un jsonb ordena sus claves por longitud y alfabéticamente.
+      const diaJsonb = (nombre: string) => ({
+        dia: nombre,
+        salida: '17:00',
+        entrada: '08:00',
+        laborable: true,
+        modalidad: 'PRESENCIAL',
+        fin_descanso: '14:00',
+        inicio_descanso: '13:00',
+      });
+      const { cliente } = crearPrismaSimulado();
+      const fila = crearFila({
+        accion: 'CREATE',
+        tabla_afectada: 'asistencia_jornada',
+        valores_antes: null,
+        valores_despues: {
+          desde: '2026-11-01T00:00:00.000Z',
+          motivo: 'Nueva jornada',
+          horario: [
+            'DOMINGO',
+            'LUNES',
+            'MARTES',
+            'MIERCOLES',
+            'JUEVES',
+            'VIERNES',
+            'SABADO',
+          ].map(diaJsonb),
+        },
+      });
+
+      // Act
+      const detalle = await presentarDetalleActividad(cliente, fila);
+
+      // Assert
+      expect(detalle.cambios.map((cambio) => cambio.etiqueta)).toEqual([
+        'Vigente desde',
+        'Horario semanal',
+        'Motivo',
+      ]);
+      const horario = detalle.cambios.find(
+        (cambio) => cambio.campo === 'horario'
+      );
+      expect(horario?.detalle?.map((elemento) => elemento.etiqueta)).toEqual([
+        'Lunes',
+        'Martes',
+        'Miércoles',
+        'Jueves',
+        'Viernes',
+        'Sábado',
+        'Domingo',
+      ]);
+      expect(
+        horario?.detalle?.[0].cambios.map((cambio) => cambio.etiqueta)
+      ).toEqual([
+        'Día laborable',
+        'Modalidad',
+        'Hora de entrada',
+        'Hora de salida',
+        'Inicio del descanso',
+        'Fin del descanso',
+      ]);
+    });
+
     it('No debe mostrar el horario si el JSON solo cambió de orden de claves', async () => {
       // Arrange
       const { cliente } = crearPrismaSimulado();
@@ -1238,6 +1306,269 @@ describe('presentarActividad', () => {
         tipo: 'moneda',
         despues: esperado,
       });
+    });
+  });
+
+  describe('detalle diario del resumen de asistencia', () => {
+    const diaResultado = (
+      fecha: string,
+      estado: string,
+      extra: Record<string, unknown> = {}
+    ) => ({
+      fecha,
+      estado,
+      modalidad: null,
+      marcas: [{ tipo: 'ENTRADA', hora: '08:00' }],
+      solicitudes: [],
+      minutos_programados: 480,
+      minutos_trabajados: 480,
+      minutos_tardanza: 0,
+      minutos_salida_anticipada: 0,
+      minutos_sin_goce: 0,
+      minutos_extra_observados: 0,
+      minutos_extra_25: 0,
+      minutos_extra_35: 0,
+      falta: 0,
+      sin_goce: 0,
+      alertas: [],
+      ...extra,
+    });
+
+    const diasBase = [
+      diaResultado('2026-11-01', 'FERIADO_O_DESCANSO_ACORDADO', {
+        minutos_trabajados: 0,
+      }),
+      diaResultado('2026-11-02', 'ASISTENCIA_REGISTRADA'),
+    ];
+
+    const filaIncidencias = (
+      antes: unknown,
+      despues: unknown
+    ): FilaAuditoriaActividad =>
+      crearFila({
+        accion: antes ? 'UPDATE' : 'CREATE',
+        tabla_afectada: 'incidencias_mes',
+        valores_antes: antes,
+        valores_despues: despues,
+      });
+
+    it('Debe mostrar los días de una creación con su fecha y estado legibles, sin campos ocultos', async () => {
+      // Arrange
+      const { cliente } = crearPrismaSimulado();
+      const fila = filaIncidencias(null, {
+        id: 'i1',
+        empleado_id: ID_EMPLEADO,
+        periodo: '2026-11',
+        detalle: { version_motor: 'v1', dias: diasBase },
+      });
+
+      // Act
+      const detalle = await presentarDetalleActividad(cliente, fila);
+
+      // Assert
+      const cambio = detalle.cambios.find((c) => c.campo === 'detalle');
+      expect(cambio).toMatchObject({
+        etiqueta: 'Detalle diario',
+        tipo: 'lista',
+        antes: null,
+        despues: null,
+      });
+      const elementos = cambio?.detalle ?? [];
+      expect(elementos.map((elemento) => elemento.etiqueta)).toEqual([
+        '01/11 dom',
+        '02/11 lun',
+      ]);
+      const estados = elementos.map(
+        (elemento) =>
+          elemento.cambios.find((cambioDia) => cambioDia.campo === 'estado')
+            ?.despues
+      );
+      expect(estados).toEqual(['Feriado o descanso', 'Asistió']);
+      for (const elemento of elementos) {
+        const campos = elemento.cambios.map((cambioDia) => cambioDia.campo);
+        expect(campos).not.toContain('marcas');
+        expect(campos).not.toContain('solicitudes');
+        expect(campos).not.toContain('minutos_programados');
+        expect(campos).not.toContain('minutos_extra_observados');
+      }
+      expect(detalle.campos_modificados).toContain('Detalle diario');
+    });
+
+    it('Debe mostrar un solo día cuando solo cambian su estado y sus minutos', async () => {
+      // Arrange
+      const { cliente } = crearPrismaSimulado();
+      const fila = filaIncidencias(
+        {
+          periodo: '2026-11',
+          detalle: { version_motor: 'v1', dias: diasBase },
+        },
+        {
+          periodo: '2026-11',
+          detalle: {
+            version_motor: 'v1',
+            dias: [
+              diasBase[0],
+              diaResultado('2026-11-02', 'MARCACION_INCOMPLETA', {
+                minutos_trabajados: 420,
+              }),
+            ],
+          },
+        }
+      );
+
+      // Act
+      const detalle = await presentarDetalleActividad(cliente, fila);
+
+      // Assert
+      const cambio = detalle.cambios.find((c) => c.campo === 'detalle');
+      const elementos = cambio?.detalle ?? [];
+      expect(elementos).toHaveLength(1);
+      expect(elementos[0].etiqueta).toBe('02/11 lun');
+      expect(elementos[0].cambios).toEqual([
+        {
+          campo: 'estado',
+          etiqueta: 'Estado',
+          tipo: 'enum',
+          antes: 'Asistió',
+          despues: 'Marcación incompleta',
+        },
+        {
+          campo: 'minutos_trabajados',
+          etiqueta: 'Min. trabajados',
+          tipo: 'numero',
+          antes: 480,
+          despues: 420,
+        },
+      ]);
+    });
+
+    it('No debe mostrar el detalle si solo cambió el version_motor del resumen', async () => {
+      // Arrange
+      const { cliente } = crearPrismaSimulado();
+      const fila = filaIncidencias(
+        {
+          periodo: '2026-11',
+          detalle: { version_motor: 'v1', dias: diasBase },
+        },
+        {
+          periodo: '2026-11',
+          detalle: { version_motor: 'v2', dias: diasBase },
+        }
+      );
+
+      // Act
+      const detalle = await presentarDetalleActividad(cliente, fila);
+
+      // Assert
+      expect(detalle.cambios).toEqual([]);
+      expect(detalle.campos_modificados).toEqual([]);
+    });
+
+    it('No debe dejar JSON en ningún antes ni después de la respuesta', async () => {
+      // Arrange
+      const { cliente } = crearPrismaSimulado();
+      const fila = filaIncidencias(
+        {
+          periodo: '2026-11',
+          detalle: { version_motor: 'v1', dias: diasBase },
+        },
+        {
+          periodo: '2026-11',
+          detalle: {
+            version_motor: 'v2',
+            dias: [
+              diasBase[0],
+              diaResultado('2026-11-02', 'MARCACION_INCOMPLETA', {
+                minutos_trabajados: 420,
+                alertas: ['AUSENCIA_REQUIERE_VERIFICACION'],
+              }),
+            ],
+          },
+        }
+      );
+
+      // Act
+      const detalle = await presentarDetalleActividad(cliente, fila);
+
+      // Assert
+      const valores: (string | number | boolean | null)[] = [];
+      for (const cambio of detalle.cambios) {
+        valores.push(cambio.antes, cambio.despues);
+        for (const elemento of cambio.detalle ?? []) {
+          for (const cambioDia of elemento.cambios) {
+            valores.push(cambioDia.antes, cambioDia.despues);
+          }
+        }
+      }
+      expect(valores.length).toBeGreaterThan(0);
+      for (const valor of valores) {
+        if (valor === null) continue;
+        expect(String(valor)).not.toContain('{');
+        expect(String(valor)).not.toContain('[');
+        expect(String(valor)).not.toContain(']');
+        expect(String(valor)).not.toContain('}');
+      }
+    });
+  });
+
+  describe('formato de respaldo de valores compuestos', () => {
+    const nombres = crearNombresResueltosVacios();
+    const lista = { etiqueta: 'Valores', tipo: 'lista' } as const;
+
+    it('Debe unir un array de textos y humanizar las claves técnicas', () => {
+      // Arrange y Act
+      const resultado = formatearValorAuditoria(
+        lista,
+        ['AUSENCIA_REQUIERE_VERIFICACION', 'SIN_GOCE'],
+        nombres
+      );
+
+      // Assert
+      expect(resultado).toBe('Ausencia requiere verificacion, Sin goce');
+    });
+
+    it('Debe contar un array de objetos como registros', () => {
+      // Arrange y Act
+      const dos = formatearValorAuditoria(lista, [{ a: 1 }, { b: 2 }], nombres);
+      const uno = formatearValorAuditoria(lista, [{ a: 1 }], nombres);
+
+      // Assert
+      expect(dos).toBe('2 registros');
+      expect(uno).toBe('1 registro');
+    });
+
+    it('Debe describir un objeto con sus valores simples y omitir los anidados', () => {
+      // Arrange y Act
+      const resultado = formatearValorAuditoria(
+        lista,
+        { estado: 'APROBADO', dias: 2, marcas: [{ a: 1 }] },
+        nombres
+      );
+
+      // Assert
+      expect(resultado).toBe('Estado: APROBADO · Dias: 2');
+    });
+
+    it('Debe usar un texto neutro cuando el objeto solo tiene valores anidados', () => {
+      // Arrange y Act
+      const resultado = formatearValorAuditoria(
+        undefined,
+        { marcas: [{ a: 1 }] },
+        nombres
+      );
+
+      // Assert
+      expect(resultado).toBe('Datos actualizados');
+    });
+
+    it('Debe devolver null para un array o un objeto vacío', () => {
+      // Arrange y Act
+      const arreglo = formatearValorAuditoria(lista, [], nombres);
+      const objeto = formatearValorAuditoria(lista, {}, nombres);
+
+      // Assert
+      expect(arreglo).toBeNull();
+      expect(objeto).toBeNull();
     });
   });
 });

@@ -55,10 +55,17 @@ export interface CampoAuditoriaConfig {
   opciones?: Record<string, string>;
   /** El campo no se muestra al usuario (IDs de contexto sin entidad, rutas de archivos). */
   oculto?: boolean;
+  /**
+   * Solo en `lista`: propiedad del objeto guardado donde está la lista (por ejemplo `dias`).
+   * Cuando existe, la comparación mira `valor[ruta]` en vez del valor completo.
+   */
+  ruta?: string;
   /** Solo en `lista`: cómo identificar y describir cada elemento. */
   elemento?: {
     /** Propiedad que identifica al elemento (por ejemplo `dia`). Sin ella se usa la posición. */
     clave?: string;
+    /** Cómo mostrar la clave: `fecha` la muestra como `01/11 dom`. */
+    formatoClave?: 'fecha';
     /** Etiquetas de los valores de la clave (por ejemplo `LUNES` → `Lunes`). */
     etiquetas?: Record<string, string>;
     /** Campos conocidos del elemento; los demás se muestran con su nombre humanizado. */
@@ -602,7 +609,59 @@ export const TABLAS_AUDITORIA: Record<string, TablaAuditoriaConfig> = {
         APROBADO: 'Aprobado',
         RECHAZADO: 'Rechazado',
       }),
-      detalle: { etiqueta: 'Detalle del resumen', tipo: 'lista' },
+      detalle: {
+        etiqueta: 'Detalle diario',
+        tipo: 'lista',
+        ruta: 'dias',
+        elemento: {
+          clave: 'fecha',
+          formatoClave: 'fecha',
+          campos: {
+            estado: opcion('Estado', {
+              ASISTENCIA_REGISTRADA: 'Asistió',
+              MARCACION_INCOMPLETA: 'Marcación incompleta',
+              FALTA_INJUSTIFICADA: 'Falta injustificada',
+              AUSENCIA_SIN_GOCE: 'Ausencia sin goce',
+              AUSENCIA_PENDIENTE: 'Ausencia por verificar',
+              JUSTIFICADA: 'Justificada',
+              PENDIENTE: 'Pendiente',
+              NO_EVALUADO: 'Sin evaluar',
+              DESCANSO_SEMANAL: 'Descanso semanal',
+              FERIADO_O_DESCANSO_ACORDADO: 'Feriado o descanso',
+              FUERA_DE_VINCULO: 'Fuera del vínculo',
+            }),
+            modalidad: opcion('Modalidad', {
+              PRESENCIAL: 'Presencial',
+              REMOTO: 'Remoto',
+              HIBRIDO: 'Híbrido',
+            }),
+            minutos_trabajados: numero('Min. trabajados'),
+            minutos_tardanza: numero('Min. tardanza'),
+            minutos_salida_anticipada: numero('Min. salida anticipada'),
+            minutos_extra_25: numero('Min. extra 25 %'),
+            minutos_extra_35: numero('Min. extra 35 %'),
+            falta: numero('Falta'),
+            sin_goce: numero('Sin goce'),
+            alertas: { etiqueta: 'Alertas', tipo: 'lista' },
+            marcas: { etiqueta: 'Marcas', tipo: 'lista', oculto: true },
+            solicitudes: {
+              etiqueta: 'Solicitudes',
+              tipo: 'lista',
+              oculto: true,
+            },
+            minutos_programados: {
+              etiqueta: 'Minutos programados',
+              tipo: 'numero',
+              oculto: true,
+            },
+            minutos_extra_observados: {
+              etiqueta: 'Minutos extra observados',
+              tipo: 'numero',
+              oculto: true,
+            },
+          },
+        },
+      },
     },
     resumen: {
       CREACION:
