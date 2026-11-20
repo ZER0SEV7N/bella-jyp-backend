@@ -57,10 +57,14 @@ export function humanizarAuditoria(valor: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** Convierte cualquier valor a texto sin caer en `[object Object]`. */
-function aTexto(valor: unknown): string {
-  if (typeof valor === 'string') return valor;
-  if (typeof valor === 'object' && valor !== null) return JSON.stringify(valor);
+/** Patrón de un valor técnico en mayúsculas con guiones bajos (`AUSENCIA_SIN_GOCE`). */
+const PATRON_CLAVE_TECNICA = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/;
+
+/** Convierte un valor simple a texto, humanizando las claves técnicas. */
+function aTextoSimple(valor: unknown): string {
+  if (typeof valor === 'string') {
+    return PATRON_CLAVE_TECNICA.test(valor) ? humanizarAuditoria(valor) : valor;
+  }
   if (
     typeof valor === 'number' ||
     typeof valor === 'boolean' ||
@@ -68,6 +72,51 @@ function aTexto(valor: unknown): string {
   ) {
     return String(valor);
   }
+  return '';
+}
+
+/** Convierte cualquier valor a texto sin caer en `[object Object]` ni en JSON. */
+function aTexto(valor: unknown): string {
+  if (typeof valor === 'string') return valor;
+  if (
+    typeof valor === 'number' ||
+    typeof valor === 'boolean' ||
+    typeof valor === 'bigint'
+  ) {
+    return String(valor);
+  }
+  if (Array.isArray(valor) || esObjeto(valor)) {
+    return describirValorCompuesto(valor);
+  }
+  return '';
+}
+
+/** Describe una lista sin JSON: valores simples unidos o la cantidad de registros. */
+function describirLista(valor: unknown[]): string {
+  const utiles = valor.filter((item) => !estaVacio(item));
+  if (utiles.length === 0) return '';
+  if (utiles.every((item) => aTextoSimple(item) !== '')) {
+    return utiles.map((item) => aTextoSimple(item)).join(', ');
+  }
+  return utiles.length === 1 ? '1 registro' : `${utiles.length} registros`;
+}
+
+/** Describe un objeto sin JSON: cada valor simple como `Etiqueta: valor`; los anidados se omiten. */
+function describirObjeto(valor: ElementoLista): string {
+  const partes: string[] = [];
+  for (const [campo, item] of Object.entries(valor)) {
+    const texto = aTextoSimple(item);
+    if (texto === '') continue;
+    partes.push(`${humanizarAuditoria(campo)}: ${texto}`);
+  }
+  if (partes.length > 0) return partes.join(' · ');
+  return Object.keys(valor).length > 0 ? 'Datos actualizados' : '';
+}
+
+/** Último recurso de un valor compuesto: nunca devuelve JSON. */
+function describirValorCompuesto(valor: unknown): string {
+  if (Array.isArray(valor)) return describirLista(valor);
+  if (esObjeto(valor)) return describirObjeto(valor);
   return '';
 }
 
@@ -173,10 +222,14 @@ export function formatearValorAuditoria(
       return formatearFechaHora(valor);
     case 'hora':
       return aTexto(valor).slice(0, 5);
-    case 'lista':
-      return JSON.stringify(valor);
-    default:
-      return typeof valor === 'object' ? JSON.stringify(valor) : aTexto(valor);
+    case 'lista': {
+      const texto = describirValorCompuesto(valor);
+      return texto || null;
+    }
+    default: {
+      const texto = aTexto(valor);
+      return texto || null;
+    }
   }
 }
 
@@ -211,6 +264,34 @@ function indexarElementos(
 }
 
 /**
+ * Ordena un conjunto de claves según el orden de la configuración. Las claves que no están en la
+ * configuración quedan después, en el orden en que llegaron. El orden es estable: un `jsonb` de
+ * Postgres ordena sus claves por longitud y alfabéticamente, no como las define la vista.
+ *
+ * @param claves - Claves que se quieren ordenar.
+ * @param ordenConfig - Claves de la configuración, en el orden en que deben mostrarse.
+ * @returns Una lista nueva con las claves ordenadas.
+ */
+export function ordenarSegunConfig(
+  claves: readonly string[],
+  ordenConfig: readonly string[]
+): string[] {
+  const posicion = new Map<string, number>();
+  ordenConfig.forEach((clave, indice) => posicion.set(clave, indice));
+  const desconocida = ordenConfig.length;
+
+  return claves
+    .map((clave, indice) => ({ clave, indice }))
+    .sort((a, b) => {
+      const diferencia =
+        (posicion.get(a.clave) ?? desconocida) -
+        (posicion.get(b.clave) ?? desconocida);
+      return diferencia !== 0 ? diferencia : a.indice - b.indice;
+    })
+    .map(({ clave }) => clave);
+}
+
+/**
  * Compara dos listas (o JSON anidados) elemento por elemento y devuelve solo los elementos que
  * cambiaron. En una creación no hay valor anterior, así que devuelve todos los elementos que
  * tengan algún valor.
@@ -229,44 +310,53 @@ export function compararListaAuditoria(
 ): DetalleElementoAuditoria[] {
   const clave = config.elemento?.clave;
   const camposConocidos = config.elemento?.campos ?? {};
+  const etiquetasConocidas = config.elemento?.etiquetas ?? {};
   const elementosAntes = indexarElementos(antes, clave);
   const elementosDespues = indexarElementos(despues, clave);
-  const identificadores = [
-    ...new Set([...elementosDespues.keys(), ...elementosAntes.keys()]),
-  ];
+  const identificadores = ordenarSegunConfig(
+    [...new Set([...elementosDespues.keys(), ...elementosAntes.keys()])],
+    Object.keys(etiquetasConocidas)
+  );
 
   const detalle: DetalleElementoAuditoria[] = [];
   for (const identificador of identificadores) {
     const previo = elementosAntes.get(identificador);
     const posterior = elementosDespues.get(identificador);
-    const campos = new Set([
-      ...Object.keys(posterior ?? {}),
-      ...Object.keys(previo ?? {}),
-    ]);
+    const campos = ordenarSegunConfig(
+      [
+        ...new Set([
+          ...Object.keys(posterior ?? {}),
+          ...Object.keys(previo ?? {}),
+        ]),
+      ],
+      Object.keys(camposConocidos)
+    );
 
     const cambios: DetalleElementoAuditoria['cambios'] = [];
     for (const campo of campos) {
       if (campo === clave) continue;
+      const configCampo = camposConocidos[campo];
+      if (configCampo?.oculto) continue;
       const valorAntes = previo?.[campo];
       const valorDespues = posterior?.[campo];
-      const configCampo =
-        camposConocidos[campo] ??
+      const configFormato =
+        configCampo ??
         inferirConfigCampoAuditoria(campo, valorDespues ?? valorAntes);
       const textoAntes = formatearValorAuditoria(
-        configCampo,
+        configFormato,
         valorAntes,
         nombres
       );
       const textoDespues = formatearValorAuditoria(
-        configCampo,
+        configFormato,
         valorDespues,
         nombres
       );
       if (textoAntes === textoDespues) continue;
       cambios.push({
         campo,
-        etiqueta: configCampo.etiqueta,
-        tipo: configCampo.tipo,
+        etiqueta: configFormato.etiqueta,
+        tipo: configFormato.tipo,
         antes: textoAntes,
         despues: textoDespues,
       });
@@ -282,6 +372,23 @@ export function compararListaAuditoria(
   return detalle;
 }
 
+/** Día de la semana abreviado en español, según `Date.getUTCDay()` (0 = domingo). */
+const DIAS_SEMANA_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const PATRON_CLAVE_FECHA = /^(\d{4})-(\d{2})-(\d{2})/;
+
+/**
+ * Convierte una clave ISO (`2026-11-01`) en `01/11 dom`. Usa UTC para que la fecha no se corra por
+ * la zona horaria.
+ */
+function formatearClaveFecha(identificador: string): string | null {
+  const coincidencia = PATRON_CLAVE_FECHA.exec(identificador);
+  if (!coincidencia) return null;
+  const [, anio, mes, dia] = coincidencia;
+  const fecha = new Date(Date.UTC(Number(anio), Number(mes) - 1, Number(dia)));
+  if (Number.isNaN(fecha.getTime())) return null;
+  return `${dia}/${mes} ${DIAS_SEMANA_CORTOS[fecha.getUTCDay()]}`;
+}
+
 function describirElemento(
   config: CampoAuditoriaConfig,
   identificador: string
@@ -289,6 +396,10 @@ function describirElemento(
   if (identificador === '') return config.etiqueta;
   const etiqueta = config.elemento?.etiquetas?.[identificador];
   if (etiqueta) return etiqueta;
+  if (config.elemento?.formatoClave === 'fecha') {
+    const fecha = formatearClaveFecha(identificador);
+    if (fecha) return fecha;
+  }
   if (identificador.startsWith('#'))
     return `Elemento ${identificador.slice(1)}`;
   return humanizarAuditoria(identificador);

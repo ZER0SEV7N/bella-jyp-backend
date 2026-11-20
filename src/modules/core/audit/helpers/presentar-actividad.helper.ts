@@ -19,6 +19,7 @@ import {
   formatearValorAuditoria,
   humanizarAuditoria,
   inferirConfigCampoAuditoria,
+  ordenarSegunConfig,
   type NombresResueltosAuditoria,
 } from './formatear-valor-auditoria.helper';
 import {
@@ -257,10 +258,16 @@ function construirCambios(
       inferirConfigCampoAuditoria(cambio.campo, valorDespues ?? valorAntes);
 
     if (campo.tipo === 'lista') {
+      const antesLista = campo.ruta
+        ? comoValores(valorAntes)?.[campo.ruta]
+        : valorAntes;
+      const despuesLista = campo.ruta
+        ? comoValores(valorDespues)?.[campo.ruta]
+        : valorDespues;
       const detalle = compararListaAuditoria(
         campo,
-        valorAntes,
-        valorDespues,
+        antesLista,
+        despuesLista,
         nombres
       );
       if (detalle.length === 0) continue;
@@ -286,7 +293,18 @@ function construirCambios(
       despues: textoDespues,
     });
   }
-  return cambios;
+
+  //El jsonb de Postgres devuelve las claves por longitud y alfabéticamente; la vista las muestra
+  //en el orden en que las define la configuración de la tabla.
+  const ordenados = ordenarSegunConfig(
+    cambios.map((cambio) => cambio.campo),
+    Object.keys(TABLAS_AUDITORIA[tabla]?.campos ?? {})
+  );
+  const porCampo = new Map(cambios.map((cambio) => [cambio.campo, cambio]));
+  return ordenados.flatMap((campo) => {
+    const cambio = porCampo.get(campo);
+    return cambio ? [cambio] : [];
+  });
 }
 
 /** Paréntesis vacíos que deja una variable sin valor, del más largo al más corto. */
