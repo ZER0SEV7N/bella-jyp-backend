@@ -4,8 +4,9 @@ import { ServerTime } from '@/common/utils/server-time';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { DiaAdicionalCalendarioDto } from '@jyp/shared-contracts';
 import { Injectable } from '@nestjs/common';
-import { transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
+import { bloquearPeriodo, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
+import { validarFechaSinPeriodoCerrado } from '../../helpers/periodo-editable.helper';
 
 /**
  * Caso de uso para guardar un día adicional de descanso en el calendario de asistencia.
@@ -21,7 +22,7 @@ export class GuardarDescansoAsistenciaUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Ejecuta el caso de uso para guardar un día adicional de descanso en el calendario de asistencia.
+   * Ejecuta el caso de uso para guardar un día adicional de descanso en el calendario de asistencia (ASI-F1, ASI-F3).
    * La operación se realiza dentro de una transacción para asegurar la atomicidad y consistencia de los cambios.
    * @param dto - Objeto que contiene la fecha del descanso, el nombre, el motivo y el estado activo del registro.
    * @param actor - Objeto que representa al actor que realiza la operación, incluyendo su identificador y rol.
@@ -29,9 +30,13 @@ export class GuardarDescansoAsistenciaUseCase {
    * @throws - Error genérico si ocurre un error inesperado durante la operación.
    */
   async execute(dto: DiaAdicionalCalendarioDto, actor: ActorOperacion) {
+    const periodo = dto.fecha.slice(0, 7);
     //Se ejecuta la operación dentro de una transacción para asegurar la atomicidad y consistencia de los cambios,
-    return transaccionAuditada(this.prisma, actor, (tx) =>
-      tx.asistencia_calendario.upsert({
+    return transaccionAuditada(this.prisma, actor, async (tx) => {
+      await bloquearPeriodo(tx, periodo);
+      await validarFechaSinPeriodoCerrado(tx, dto.fecha);
+
+      const registro = await tx.asistencia_calendario.upsert({
         where: { fecha: ServerTime.desdeFechaSimple(dto.fecha) },
         create: {
           id: IdentityGenerator.generateId(),
@@ -42,7 +47,15 @@ export class GuardarDescansoAsistenciaUseCase {
           usuario_id: actor.id,
         },
         update: { nombre: dto.nombre, motivo: dto.motivo, activo: dto.activo, usuario_id: actor.id },
-      })
-    );
+      });
+
+      // Solo se invalidan resúmenes pendientes para mostrarlos desactualizados y exigir regeneración antes de aprobar; los aprobados están bloqueados y los rechazados no se aprueban.
+      await tx.incidencias_mes.updateMany({
+        where: { periodo, estado: 'PENDIENTE', vigente: true },
+        data: { vigente: false, version: { increment: 1 } },
+      });
+
+      return registro;
+    });
   }
 }

@@ -1,10 +1,8 @@
+import { ConflictException } from '@nestjs/common';
 import { AsignarJornadaAsistenciaUseCase } from '@/modules/asistencia/use-cases/asistencias/asignarJornadaAsistencia.useCase';
 jest.mock('@/common/utils/transaccion-auditada.util', () => ({
   transaccionAuditada: jest.fn((_p, _a, fn) => fn(_p)),
   bloquearEmpleado: jest.fn(),
-}));
-jest.mock('@/modules/asistencia/helpers/periodo-editable.helper', () => ({
-  validarPeriodoEditable: jest.fn(),
 }));
 import { HorarioAsistenciaSchema } from '@jyp/shared-contracts';
 import { horario } from '../../../../fixtures/motores.fixture';
@@ -19,6 +17,8 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
     empleados: { findUnique: jest.fn() },
     jornada: { findUnique: jest.fn() },
     asistencia_jornada: { findUnique: jest.fn(), create: jest.fn() },
+    incidencias_mes: { findFirst: jest.fn(), updateMany: jest.fn() },
+    historial_planillas: { findFirst: jest.fn() },
   };
   const caso = new AsignarJornadaAsistenciaUseCase(prisma as never);
   const dto = {
@@ -28,7 +28,12 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
     politica_tolerancia: 'COMPLETA',
     motivo: 'Asignación de prueba',
   };
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.incidencias_mes.findFirst.mockResolvedValue(null);
+    prisma.incidencias_mes.updateMany.mockResolvedValue({ count: 0 });
+    prisma.historial_planillas.findFirst.mockResolvedValue(null);
+  });
   it('registra una sola vigencia inicial con copia del horario', async () => {
     // Arrange: preparar el escenario y los datos ficticios.
     prisma.empleados.findUnique.mockResolvedValue({
@@ -56,6 +61,15 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
         horario: HorarioAsistenciaSchema.parse(horario),
       }),
     });
+    expect(prisma.incidencias_mes.updateMany).toHaveBeenCalledWith({
+      where: {
+        empleado_id: dto.empleado_id,
+        periodo: { gte: '2026-09' },
+        estado: 'PENDIENTE',
+        vigente: true,
+      },
+      data: { vigente: false, version: { increment: 1 } },
+    });
   });
   it('impide dos asignaciones desde la misma fecha', async () => {
     // Arrange: preparar el escenario y los datos ficticios.
@@ -77,6 +91,28 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
     await expect(r).rejects.toThrow('Ya existe');
     expect(prisma.asistencia_jornada.create).not.toHaveBeenCalled();
   });
+  it('rechaza asignar jornada si existe un mes posterior a desde aprobado o con planilla cerrada', async () => {
+    // Arrange: el colaborador tiene un resumen aprobado en un período posterior a desde.
+    prisma.empleados.findUnique.mockResolvedValue({
+      fecha_inicio: new Date('2026-09-01'),
+    });
+    prisma.jornada.findUnique.mockResolvedValue({
+      horario_semanal: horario,
+      turno: 'MANANA',
+      total_horas_semana: new Prisma.Decimal(40),
+      tolerancia_minutos: 5,
+    });
+    prisma.asistencia_jornada.findUnique.mockResolvedValue(null);
+    prisma.incidencias_mes.findFirst.mockResolvedValue({ periodo: '2026-10' });
+
+    // Act: intentar asignar la jornada desde septiembre.
+    const r = caso.execute(dto as never, actor);
+
+    // Assert: lanza ConflictException y no crea la asignación.
+    await expect(r).rejects.toThrow(ConflictException);
+    expect(prisma.asistencia_jornada.create).not.toHaveBeenCalled();
+    expect(prisma.incidencias_mes.updateMany).not.toHaveBeenCalled();
+  });
 });
 
 describe('Asignación de jornada: validaciones antes de persistir', () => {
@@ -84,6 +120,8 @@ describe('Asignación de jornada: validaciones antes de persistir', () => {
     empleados: { findUnique: jest.fn() },
     jornada: { findUnique: jest.fn() },
     asistencia_jornada: { findUnique: jest.fn(), create: jest.fn() },
+    incidencias_mes: { findFirst: jest.fn(), updateMany: jest.fn() },
+    historial_planillas: { findFirst: jest.fn() },
   };
   const caso = new AsignarJornadaAsistenciaUseCase(prisma as never);
   const dto = {
@@ -111,6 +149,9 @@ describe('Asignación de jornada: validaciones antes de persistir', () => {
       tolerancia_minutos: 5,
     });
     prisma.asistencia_jornada.findUnique.mockResolvedValue(null);
+    prisma.incidencias_mes.findFirst.mockResolvedValue(null);
+    prisma.incidencias_mes.updateMany.mockResolvedValue({ count: 0 });
+    prisma.historial_planillas.findFirst.mockResolvedValue(null);
   });
   it.each([null, { fecha_inicio: null }])(
     'requiere empleado y fecha de ingreso',

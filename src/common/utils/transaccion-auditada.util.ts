@@ -18,6 +18,18 @@ export async function bloquearEmpleado(tx: Prisma.TransactionClient, empleadoId:
 }
 
 /**
+ * Bloquea un período de asistencia para serializar cambios globales de calendario y aprobaciones del mismo mes (ASI-F3).
+ *
+ * @param tx - La transacción de Prisma en la que se ejecuta el bloqueo.
+ * @param periodo - El período de asistencia en formato 'YYYY-MM'.
+ * @returns Una promesa que se resuelve cuando el período ha sido bloqueado exitosamente.
+ */
+export async function bloquearPeriodo(tx: Prisma.TransactionClient, periodo: string): Promise<void> {
+  const clave = 'asistencia-periodo:' + periodo;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${clave}, 0))`;
+}
+
+/**
  * Ejecuta una operación de asistencia dentro de una transacción de Prisma, asegurando la atomicidad y consistencia de los cambios.
  * Se establecen configuraciones de contexto para el actor que realiza la operación y se manejan reintentos en caso de conflictos de concurrencia.
  * @param prisma - La instancia de PrismaService utilizada para acceder a la base de datos.
