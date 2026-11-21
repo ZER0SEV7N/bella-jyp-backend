@@ -4,6 +4,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import type { DesactivarEmpleadoDto, CambiarEstadoLaboralDto } from '@jyp/shared-contracts';
 import { ServerTime } from '@/common/utils/server-time';
 import { estado_empleado_enum } from '@prisma/client';
+import { IdentityGenerator } from '@/common/utils/uuid.util';
 
 /**
  * Caso de uso para gestionar el estado de un empleado, incluyendo la baja laboral (soft delete) y la reactivación del legajo.
@@ -76,7 +77,11 @@ export class EstadoEmpleadoUseCase {
   async reactivar(id: string) {
     try {
       //Buscar el empleado por ID, asegurándose de que exista
-      const empleado = await this.prisma.empleados.findUnique({ where: { id } });
+      const empleado = await this.prisma.empleados.findUnique({ where: { id },
+        select:{
+          area_id: true, cargo_id: true,activo:true, deleted_at:true, nro_documento:true,  
+        }
+      });
 
       if (!empleado)
         throw new NotFoundException({
@@ -90,18 +95,12 @@ export class EstadoEmpleadoUseCase {
           detail: `El colaborador con documento ${empleado.nro_documento} ya se encuentra activo.`,
         });
 
-      const empleadoReactivado = await this.prisma.empleados.update({
-        where: { id },
+      const empleadoReactivado = await this.prisma.vinculo_laboral.create({
         data: {
-          activo: true,
-          estado_laboral: estado_empleado_enum.ACTIVO,
-          fecha_cese: null,
-          deleted_at: null,
-        },
-        include: {
-          area: { select: { id: true, nombre: true } },
-          cargo: { select: { id: true, nombre: true } },
-        },
+          id: IdentityGenerator.generateId(),
+          empleado_id: id,
+          fecha_inicio: ServerTime.obtenerFechaSimpleActual,           
+        }
       });
 
       return {
