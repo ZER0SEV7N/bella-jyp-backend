@@ -16,6 +16,7 @@ import { ResolverIncidenciaUseCase } from './use-cases/Incidencias/resolverIncid
 import { AsignarJornadaAsistenciaUseCase } from './use-cases/asistencias/asignarJornadaAsistencia.useCase';
 import { GuardarDescansoAsistenciaUseCase } from './use-cases/asistencias/guardarDescansoAsistencia.useCase';
 import { ImportarMarcacionesUseCase } from './use-cases/asistencias/importarMarcaciones.useCase';
+import { ListarCalendarioAsistenciaUseCase } from './use-cases/asistencias/listarCalendarioAsistencia.useCase';
 import { ObtenerDetalleAsistenciaUseCase } from './use-cases/asistencias/obtenerDetalleAsistencia.useCase';
 import { ResolverDiaAsistenciaUseCase } from './use-cases/asistencias/resolverDiaAsistencia.useCase';
 import { ValidarImportacionMarcacionesUseCase } from './use-cases/asistencias/validarImportacionMarcaciones.useCase';
@@ -48,7 +49,8 @@ import { ImportarMarcacionesService } from './services/importar-marcaciones.serv
         CrearMarcacionManualUseCase,
         AprobarIncidenciaMesUseCase,
         ListarIncidenciasMesUseCase,
-        ListarMarcacionesUseCase
+        ListarMarcacionesUseCase,
+        ListarCalendarioAsistenciaUseCase
     ],
     exports: []
 })

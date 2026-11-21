@@ -3,12 +3,13 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import type { AsignarJornadaAsistenciaDto, DetalleAsistenciaQueryDto, DiaAdicionalCalendarioDto, ResolverDiaAsistenciaDto, ResolverIncidenciaDto } from '@jyp/shared-contracts';
-import { AsignarJornadaAsistenciaSchema, DetalleAsistenciaQuerySchema, DiaAdicionalCalendarioSchema, ResolverDiaAsistenciaSchema, ResolverIncidenciaSchema } from '@jyp/shared-contracts';
+import type { AsignarJornadaAsistenciaDto, DetalleAsistenciaQueryDto, DiaAdicionalCalendarioDto, ListarCalendarioAsistenciaQueryDto, ResolverDiaAsistenciaDto, ResolverIncidenciaDto } from '@jyp/shared-contracts';
+import { AsignarJornadaAsistenciaSchema, DetalleAsistenciaQuerySchema, DiaAdicionalCalendarioSchema, ListarCalendarioAsistenciaQuerySchema, ResolverDiaAsistenciaSchema, ResolverIncidenciaSchema } from '@jyp/shared-contracts';
 import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiSwaggerAsignarJornadaAsistencia, ApiSwaggerDetalleAsistencia, ApiSwaggerGestionAsistenciaController, ApiSwaggerGuardarDescansoAsistencia, ApiSwaggerResolverDiaAsistencia, ApiSwaggerResolverIncidencia } from '../decorator/gestion-asistencia-swagger.decorator';
+import { ApiSwaggerAsignarJornadaAsistencia, ApiSwaggerDetalleAsistencia, ApiSwaggerGestionAsistenciaController, ApiSwaggerGuardarDescansoAsistencia, ApiSwaggerListarCalendarioAsistencia, ApiSwaggerResolverDiaAsistencia, ApiSwaggerResolverIncidencia } from '../decorator/gestion-asistencia-swagger.decorator';
 import { AsignarJornadaAsistenciaUseCase } from '../use-cases/asistencias/asignarJornadaAsistencia.useCase';
 import { GuardarDescansoAsistenciaUseCase } from '../use-cases/asistencias/guardarDescansoAsistencia.useCase';
+import { ListarCalendarioAsistenciaUseCase } from '../use-cases/asistencias/listarCalendarioAsistencia.useCase';
 import { ObtenerDetalleAsistenciaUseCase } from '../use-cases/asistencias/obtenerDetalleAsistencia.useCase';
 import { ResolverDiaAsistenciaUseCase } from '../use-cases/asistencias/resolverDiaAsistencia.useCase';
 import { ResolverIncidenciaUseCase } from '../use-cases/Incidencias/resolverIncidencia.useCase';
@@ -34,7 +35,8 @@ export class GestionAsistenciaController {
         private readonly resolverDiaAsistencia: ResolverDiaAsistenciaUseCase, 
         private readonly asignarJornadaAsistencia: AsignarJornadaAsistenciaUseCase, 
         private readonly guardarDescansoAsistencia: GuardarDescansoAsistenciaUseCase, 
-        private readonly resolverIncidencia: ResolverIncidenciaUseCase
+        private readonly resolverIncidencia: ResolverIncidenciaUseCase,
+        private readonly listarCalendarioAsistencia: ListarCalendarioAsistenciaUseCase
     ) {}
 
     /**
@@ -138,6 +140,19 @@ export class GestionAsistenciaController {
     @Roles('ADMIN', 'RRHH')
     calendario(@Body(new ZodValidationPipe(DiaAdicionalCalendarioSchema)) dto: DiaAdicionalCalendarioDto, @Req() req: SolicitudAutenticada) {
         return this.guardarDescansoAsistencia.execute(dto, actorSolicitud(req));
+    }
+
+    /**
+     * `GET /api/v1/asistencia/calendario` - Lista los feriados nacionales y descansos adicionales de un año (ASI-M5).
+     *
+     * @param query - Parámetros de consulta con el año a listar.
+     * @returns Calendario anual con meses cerrados y días ordenados cronológicamente.
+     */
+    @Get('calendario')
+    @ApiSwaggerListarCalendarioAsistencia()
+    @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
+    listarCalendario(@Query(new ZodValidationPipe(ListarCalendarioAsistenciaQuerySchema)) query: ListarCalendarioAsistenciaQueryDto) {
+        return this.listarCalendarioAsistencia.execute(query.anio);
     }
 
     /**

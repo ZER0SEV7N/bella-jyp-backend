@@ -1,5 +1,5 @@
 import { ApiContratoBody, ApiContratoQuery, ApiErroresOperacion, ApiOperacionDocumentada } from '@/common/decorators/api-contrato.decorator';
-import { AsignarJornadaAsistenciaSchema, DetalleAsistenciaQuerySchema, DiaAdicionalCalendarioSchema, ListarMarcacionesQuerySchema, marcarAsistenciaSchema, ResolverDiaAsistenciaSchema, ResolverIncidenciaSchema } from '@jyp/shared-contracts';
+import { AsignarJornadaAsistenciaSchema, DetalleAsistenciaQuerySchema, DiaAdicionalCalendarioSchema, ListarCalendarioAsistenciaQuerySchema, ListarMarcacionesQuerySchema, marcarAsistenciaSchema, ResolverDiaAsistenciaSchema, ResolverIncidenciaSchema } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { respuestaIncidencia, respuestaMarcacion } from './asistencia-respuestas.swagger';
@@ -79,7 +79,8 @@ export function ApiSwaggerGuardarDescansoAsistencia() {
         ApiContratoBody(DiaAdicionalCalendarioSchema),
         ApiOperacionDocumentada({
             summary: 'Guardar descanso adicional de calendario',
-            description: 'Registra o actualiza un descanso adicional acordado. Los feriados nacionales se obtienen del calendario del motor.',
+            description:
+                'Registra o actualiza un descanso adicional acordado. Los feriados nacionales se obtienen del calendario del motor. Rechaza con conflicto (409) si el período correspondiente ya tiene resúmenes aprobados o una planilla cerrada.',
             roles: rrhh,
             status: 201,
             respuesta: {
@@ -91,6 +92,46 @@ export function ApiSwaggerGuardarDescansoAsistencia() {
                     motivo: { type: 'string' },
                     activo: { type: 'boolean' },
                     usuario_id: { type: 'string', format: 'uuid' }
+                }
+            }
+        })
+    );
+}
+
+/**
+ * Documentación Swagger para consultar el calendario anual de asistencia.
+ *
+ * @returns Decoradores Swagger aplicados al endpoint de listado de calendario.
+ */
+export function ApiSwaggerListarCalendarioAsistencia() {
+    return applyDecorators(
+        ApiContratoQuery(ListarCalendarioAsistenciaQuerySchema),
+        ApiOperacionDocumentada({
+            summary: 'Listar calendario anual de asistencia',
+            description:
+                'Devuelve los feriados nacionales calculados por el motor junto con los descansos adicionales registrados para el año e indica qué meses están cerrados.',
+            roles: consulta,
+            respuesta: {
+                type: 'object',
+                properties: {
+                    anio: { type: 'integer', example: 2026 },
+                    meses_cerrados: { type: 'array', items: { type: 'string', example: '2026-09' } },
+                    dias: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                fecha: { type: 'string', format: 'date' },
+                                nombre: { type: 'string' },
+                                origen: { type: 'string', enum: ['NACIONAL', 'ADICIONAL'] },
+                                id: { type: 'string', format: 'uuid', nullable: true },
+                                motivo: { type: 'string', nullable: true },
+                                activo: { type: 'boolean' },
+                                periodo_cerrado: { type: 'boolean' },
+                                actualizado_en: { type: 'string', format: 'date-time', nullable: true }
+                            }
+                        }
+                    }
                 }
             }
         })
