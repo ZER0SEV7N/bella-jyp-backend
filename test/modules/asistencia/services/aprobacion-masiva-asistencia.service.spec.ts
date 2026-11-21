@@ -1,7 +1,12 @@
 import { AprobacionMasivaAsistenciaService } from '@/modules/asistencia/services/aprobacion-masiva-asistencia.service';
 jest.mock('@/common/utils/transaccion-auditada.util', () => ({
-  transaccionAuditada: jest.fn((_p, _a, fn) => fn(_p)),
+  transaccionAuditada: jest.fn(
+    (_p: unknown, _a: unknown, fn: (tx: unknown) => unknown) => fn(_p)
+  ),
   bloquearEmpleado: jest.fn(),
+  bloquearPeriodo: jest.requireActual<
+    typeof import('@/common/utils/transaccion-auditada.util')
+  >('@/common/utils/transaccion-auditada.util').bloquearPeriodo,
 }));
 jest.mock('@/modules/asistencia/helpers/periodo-editable.helper', () => ({
   validarPeriodoEditable: jest.fn(),
@@ -13,10 +18,14 @@ describe('AprobacionMasivaAsistenciaService', () => {
     ip: '127.0.0.1',
   };
   const prisma = {
+    $executeRaw: jest.fn(),
     incidencias_mes: { findMany: jest.fn(), update: jest.fn() },
   };
   const caso = new AprobacionMasivaAsistenciaService(prisma as never);
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.$executeRaw.mockResolvedValue(1);
+  });
   it('no aprueba un resumen con asuntos pendientes', async () => {
     // Arrange: preparar el escenario y los datos ficticios.
     prisma.incidencias_mes.findMany.mockResolvedValue([
@@ -26,6 +35,7 @@ describe('AprobacionMasivaAsistenciaService', () => {
     const r = caso.aprobarLote('2026-09', undefined, actor);
     // Assert: comprobar resultado, efectos y reglas de negocio.
     await expect(r).rejects.toThrow('pendientes');
+    expect(prisma.$executeRaw).toHaveBeenCalled();
     expect(prisma.incidencias_mes.update).not.toHaveBeenCalled();
   });
   it('rechaza lotes de más de cien resúmenes', async () => {

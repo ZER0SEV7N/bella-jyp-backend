@@ -3,7 +3,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { ServerTime } from '@/common/utils/server-time';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { cargarContextoAsistencia, huellaAsistencia } from '../helpers/asistencia-contexto.helper';
-import { bloquearEmpleado, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
+import { bloquearEmpleado, bloquearPeriodo, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
 import { validarPeriodoEditable } from '@/modules/asistencia/helpers/periodo-editable.helper';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 
@@ -35,6 +35,8 @@ export class AprobacionMasivaAsistenciaService {
   async aprobarLote(periodo: string, empleadoId: string | undefined, actor: ActorOperacion) {
     //Se ejecuta la operación de aprobación masiva dentro de una transacción de Prisma, asegurando la atomicidad y consistencia de los cambios.
     return transaccionAuditada(this.prisma, actor, async (tx) => {
+      await bloquearPeriodo(tx, periodo);
+
       //Se buscan las incidencias pendientes para el período especificado, opcionalmente filtradas por empleado, y se ordenan por empleado_id.
       const filas = await tx.incidencias_mes.findMany({
         where: { periodo, estado: 'PENDIENTE', ...(empleadoId ? { empleado_id: empleadoId } : {}) },

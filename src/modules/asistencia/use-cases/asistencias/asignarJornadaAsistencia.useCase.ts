@@ -8,6 +8,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { bloquearEmpleado, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { validarJornadaRegular } from '../../domain/validar-jornada';
+import { validarJornadaSinPeriodosCerrados } from '../../helpers/periodo-editable.helper';
 
 /**
  * Caso de uso para asignar una jornada de asistencia a un empleado.
@@ -24,7 +25,7 @@ export class AsignarJornadaAsistenciaUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Ejecuta el caso de uso para asignar una jornada de asistencia a un empleado.
+   * Ejecuta el caso de uso para asignar una jornada de asistencia a un empleado (ASI-F1, ASI-F2).
    * Valida que el empleado exista y tenga fecha de ingreso, que la jornada exista y esté activa,
    * y que el horario de la jornada cumpla con las restricciones del motor actual.
    * La operación se realiza dentro de una transacción para asegurar la atomicidad y consistencia de los cambios.
@@ -84,9 +85,11 @@ export class AsignarJornadaAsistenciaUseCase {
       if (existente) 
         throw new ConflictException('Ya existe una jornada asignada desde esa fecha.');
 
+      await validarJornadaSinPeriodosCerrados(tx, dto.empleado_id, dto.desde);
+
       //Retorna la asignación de jornada creada en la base de datos,
       //incluyendo el identificador del empleado, el identificador de la jornada, la fecha desde la cual se asigna la jornada,
-      return tx.asistencia_jornada.create({
+      const asignacion = await tx.asistencia_jornada.create({
         data: {
           id: IdentityGenerator.generateId(),
           empleado_id: dto.empleado_id,
@@ -100,6 +103,19 @@ export class AsignarJornadaAsistenciaUseCase {
           usuario_id: actor.id,
         },
       });
+
+      // Solo se invalidan resúmenes pendientes desde la vigencia de la jornada para marcarlos desactualizados hasta regenerar; los aprobados están protegidos y los rechazados no se aprueban.
+      await tx.incidencias_mes.updateMany({
+        where: {
+          empleado_id: dto.empleado_id,
+          periodo: { gte: dto.desde.slice(0, 7) },
+          estado: 'PENDIENTE',
+          vigente: true,
+        },
+        data: { vigente: false, version: { increment: 1 } },
+      });
+
+      return asignacion;
     });
   }
 }
