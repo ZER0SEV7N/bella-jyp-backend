@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { AsistenciaController } from './controller/asistencias.controller';
 import { IncidenciasController } from './controller/incidencias.controller';
 import { AprobarIncidenciaMesUseCase } from './use-cases/Incidencias/aprobarIncidenciaMes.useCase';
+import { ContarIncidenciasMesUseCase } from './use-cases/Incidencias/contarIncidenciasMes.useCase';
 import { GenerarIncidenciasMesUseCase } from './use-cases/Incidencias/generarIncidenciasMes.useCase';
 import { ListarIncidenciasMesUseCase } from './use-cases/Incidencias/listarIncidenciasMes.useCase';
 import { CrearMarcacionManualUseCase } from './use-cases/asistencias/crearMarcacionManual.useCase';
@@ -30,28 +31,34 @@ import { ImportarMarcacionesService } from './services/importar-marcaciones.serv
  * Incluye controladores, servicios y casos de uso necesarios para procesar y generar incidencias de asistencia
  */
 @Module({
-    imports: [],
-    controllers: [IncidenciasController, AsistenciaController, GestionAsistenciaController, ImportacionAsistenciaController],
-    providers: [
-        ValidarImportacionMarcacionesUseCase,
-        ImportarMarcacionesUseCase,
-        EsquemaAsistenciaService,
-        AprobacionMasivaAsistenciaService,
-        GeneracionMasivaAsistenciaService,
-        AsignarJornadaAsistenciaUseCase,
-        ObtenerDetalleAsistenciaUseCase,
-        ResolverDiaAsistenciaUseCase,
-        GuardarDescansoAsistenciaUseCase,
-        GenerarIncidenciaEmpleadoUseCase,
-        ResolverIncidenciaUseCase,
-        ImportarMarcacionesService,
-        GenerarIncidenciasMesUseCase,
-        CrearMarcacionManualUseCase,
-        AprobarIncidenciaMesUseCase,
-        ListarIncidenciasMesUseCase,
-        ListarMarcacionesUseCase,
-        ListarCalendarioAsistenciaUseCase
-    ],
-    exports: []
+  imports: [],
+  controllers: [
+    IncidenciasController,
+    AsistenciaController,
+    GestionAsistenciaController,
+    ImportacionAsistenciaController,
+  ],
+  providers: [
+    ValidarImportacionMarcacionesUseCase,
+    ImportarMarcacionesUseCase,
+    EsquemaAsistenciaService,
+    AprobacionMasivaAsistenciaService,
+    GeneracionMasivaAsistenciaService,
+    AsignarJornadaAsistenciaUseCase,
+    ObtenerDetalleAsistenciaUseCase,
+    ResolverDiaAsistenciaUseCase,
+    GuardarDescansoAsistenciaUseCase,
+    GenerarIncidenciaEmpleadoUseCase,
+    ResolverIncidenciaUseCase,
+    ImportarMarcacionesService,
+    GenerarIncidenciasMesUseCase,
+    CrearMarcacionManualUseCase,
+    AprobarIncidenciaMesUseCase,
+    ContarIncidenciasMesUseCase,
+    ListarIncidenciasMesUseCase,
+    ListarMarcacionesUseCase,
+    ListarCalendarioAsistenciaUseCase,
+  ],
+  exports: [],
 })
 export class AsistenciaModule {}
