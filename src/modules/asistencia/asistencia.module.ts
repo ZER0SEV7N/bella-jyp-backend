@@ -59,6 +59,6 @@ import { ImportarMarcacionesService } from './services/importar-marcaciones.serv
     ListarMarcacionesUseCase,
     ListarCalendarioAsistenciaUseCase,
   ],
-  exports: [],
+  exports: [ContarIncidenciasMesUseCase],
 })
 export class AsistenciaModule {}

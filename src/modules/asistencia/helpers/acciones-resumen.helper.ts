@@ -4,7 +4,7 @@ import type { estado_incidencia_enum } from '@prisma/client';
 
 const MENSAJE_PLANILLA_NO_ABIERTA =
   'La planilla de este mes ya no está abierta: no se puede cambiar su asistencia.';
-const ALERTA_SIN_JORNADA = 'JORNADA_HISTORICA_NO_ASIGNADA';
+export const ALERTA_SIN_JORNADA = 'JORNADA_HISTORICA_NO_ASIGNADA';
 
 /**
  * Motivos por los cuales cada acción del resumen mensual está bloqueada, o `null` si está permitida.
