@@ -1,6 +1,8 @@
 //src/modules/RRHH/organizacion/use-cases/area/estadoArea.useCase.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { validarNombreCargoUnico } from '../cargos/helpers/validaciones.helper';
+import { varificarNombreUnicoArea } from './helper/validaciones.helper';
 
 /**
  * Caso de uso para gestionar el estado de un área (activar o desactivar).
@@ -96,7 +98,8 @@ export class EstadoAreaUseCase {
           title: 'Área ya activa',
           detail: `El área '${area.nombre}' ya se encuentra activa en el sistema.`,
         });
-
+        //verificar si el nombre es unico y no si no se encunetra activo
+        await varificarNombreUnicoArea(this.prisma, area.nombre, area.id);
       //Actualizar el área en la base de datos utilizando Prisma
       return await this.prisma.area.update({
         where: { id: areaId },
