@@ -1,5 +1,29 @@
 //src/modules/asistencia/helpers/filtro-incidencias.helper.ts
+import { ListarIncidenciasQuerySchema } from '@jyp/shared-contracts';
+import type { ListarIncidenciasQueryDto } from '@jyp/shared-contracts';
 import type { Prisma, estado_incidencia_enum } from '@prisma/client';
+import type { ZodSchemaLike } from '@/common/pipes/zod-validation.pipe';
+
+/**
+ * Esquema de consulta para obtener los totales por estado del cierre mensual de asistencia (ASI-M3).
+ *
+ * @remarks
+ * El tipo va anotado porque el inferido viene del zod interno de shared-contracts y no se puede
+ * nombrar en la declaración (TS2742). Basta con lo que usan `ZodValidationPipe` y Swagger.
+ */
+export const TotalesIncidenciasQuerySchema: ZodSchemaLike & { _def: unknown } =
+  ListarIncidenciasQuerySchema.pick({
+    periodo: true,
+    area_id: true,
+  });
+
+/**
+ * Parámetros de consulta validados para el endpoint de totales de incidencias mensuales.
+ */
+export type TotalesIncidenciasQueryDto = Pick<
+  ListarIncidenciasQueryDto,
+  'periodo' | 'area_id'
+>;
 
 /**
  * Parámetros admitidos para construir el filtro de incidencias mensuales.

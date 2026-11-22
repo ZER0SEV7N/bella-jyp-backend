@@ -37,19 +37,13 @@ import {
   ApiSwaggerGenerarCierre,
   ApiSwaggerAprobarIncidencias,
   ApiSwaggerListarIncidencias,
+  ApiSwaggerTotalesIncidencias,
   ApiSwaggerListarIncidenciaPorId,
 } from '../decorator/incidencias-swagger.decorator';
 import { actorSolicitud } from '@/common/utils/actor-operacion.util';
 import type { SolicitudAutenticada } from '@/common/utils/actor-operacion.util';
-
-const TotalesIncidenciasQuerySchema = ListarIncidenciasQuerySchema.pick({
-  periodo: true,
-  area_id: true,
-});
-type TotalesIncidenciasQueryDto = Pick<
-  ListarIncidenciasQueryDto,
-  'periodo' | 'area_id'
->;
+import { TotalesIncidenciasQuerySchema } from '../helpers/filtro-incidencias.helper';
+import type { TotalesIncidenciasQueryDto } from '../helpers/filtro-incidencias.helper';
 
 /**
  * Controlador para la gestión de incidencias de asistencia.
@@ -160,6 +154,7 @@ export class IncidenciasController {
    * @returns Objeto con los conteos `{ PENDIENTE, APROBADO, RECHAZADO }`.
    */
   @Get('totales')
+  @ApiSwaggerTotalesIncidencias()
   @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
   totales(
     @Query(new ZodValidationPipe(TotalesIncidenciasQuerySchema))
