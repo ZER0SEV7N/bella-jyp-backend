@@ -1,5 +1,5 @@
 //src/modules/RRHH/organizacion/use-cases/cargos/helpers/validaciones.helper.ts
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**
@@ -49,6 +49,23 @@ export async function validarNombreCargoUnico(prisma: PrismaService, nombre: str
   });
 }
 
+export async function verificarNombreUnicoCargoActivo(prisma: PrismaService, nombre: string,idCargoExcluir?: string) {
+  const colision = await prisma.cargo.findFirst({
+    where: {
+      nombre: { equals: nombre.trim(), mode: 'insensitive' },
+      activo:true,
+      ...(idCargoExcluir ? { id: { not: idCargoExcluir } } : {}),
+      deleted_at: null
+    },
+    select: { id: true }
+  });
+  if (colision) {
+    throw new ConflictException({
+         title: 'Nombre de cargo duplicado, activo',
+         detail: `Ya existe otro cargo llamado '${nombre.trim()}' en el área de destino.`
+    })  
+  }
+}
 /**
  * Valida que la banda salarial de un cargo sea consistente, es decir, que el sueldo máximo no sea inferior al sueldo mínimo.
  * @param minimo - Sueldo mínimo del cargo.
