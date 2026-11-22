@@ -31,6 +31,7 @@
     "db:crear": "node scripts/aplicar-sql.cjs crear",
     "db:instalar-objetos": "node scripts/aplicar-sql.cjs objetos",
     "db:demo": "node scripts/aplicar-sql.cjs demo",
+    "db:demo-seed": "node scripts/aplicar-sql.cjs demo-seed",
     "db:seed": "prisma db seed",
     "demo:archivos": "npm run build && node scripts/generar-ejemplos-locales.cjs",
     "verificar:postman": "node scripts/verificar-postman.cjs",

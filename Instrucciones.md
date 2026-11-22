@@ -154,7 +154,7 @@ pnpm db:seed
 
 ## 6. Carga Opcional de Datos de Prueba (Demo)
 
-Si desea poblar la base de datos con áreas, cargos, colaboradores, contratos, horarios, marcaciones de asistencia y planillas de ejemplo para probar todos los módulos inmediatamente, elija **una** de las siguientes opciones:
+Si desea poblar la base de datos con áreas, cargos, colaboradores, contratos, horarios, marcaciones de asistencia y planillas de ejemplo para probar todos los módulos inmediatamente, elija **una** de las siguientes opciones (la opción C ya incluye las otras dos):
 
 ### Opción A: Dataset de Prueba Estándar
 Carga el conjunto de datos de prueba principal (`scripts/datosprueba.sql`) junto con los objetos SQL:
@@ -168,6 +168,21 @@ Carga el escenario extendido ubicado en `scripts/pruebas-demo/datosprueba.sql`:
 
 ```bash
 node scripts/aplicar-sql.cjs demo-10
+```
+
+### Opción C: Todas las Demos Juntas (incluye el Dashboard de RRHH)
+Carga en un solo paso la opción A (3 colaboradores), la opción B (10 colaboradores) y 30 colaboradores más para el dashboard de RRHH (`scripts/pruebas-demo/dashboard-rrhh-demo.sql`): ingresos y ceses de octubre y noviembre de 2026, cumpleaños, contratos por vencer, solicitudes en trámite y marcaciones de octubre y del 1 al 21 de noviembre de 2026. Se puede volver a ejecutar sin duplicar datos.
+
+```bash
+pnpm db:demo-seed
+```
+
+Después, con el backend levantado, genere los resúmenes de asistencia desde **Cierre mensual → Generar** para octubre y noviembre de 2026; el dashboard los lee de ahí.
+
+Para quitar solo los 30 colaboradores del dashboard:
+
+```bash
+docker exec -i planillas_db psql -v ON_ERROR_STOP=1 -U postgres -d planillas_db < scripts/pruebas-demo/dashboard-rrhh-demo-limpiar.sql
 ```
 
 ## 7. Configuración del Flujo de Integración en n8n (Opcional para Boletas y Haberes)
