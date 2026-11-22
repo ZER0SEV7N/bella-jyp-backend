@@ -42,6 +42,9 @@ import { EstadoDerechohabienteUseCase } from './use-cases/derechohabiente/estado
 // --- SERVICIOS Y WORKERS ---
 import { ReniecAdapter } from './services/reniec.adapter';
 import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.processor';
+import { ValidarDniUseCase } from './use-cases/empleado/validarDni.useCase';
+import { CrearEmpladoCompletoUseCase } from './use-cases/empleado/crearEmpleadoCompleto.useCase';
+import { ObtenerDatosReniecUseCase } from './use-cases/empleado/obtenerDatosReniec.useCase';
 
 @Module({
   imports: [
@@ -73,6 +76,9 @@ import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.proces
     ListarEmpleadosUseCase,
     EditarEmpleadoUseCase,
     EstadoEmpleadoUseCase,
+    ValidarDniUseCase,
+    ObtenerDatosReniecUseCase,
+    CrearEmpladoCompletoUseCase,
     //Carga Masiva
     ConsultarEstadoCargaMasivaUseCase,
     ProcesarFilaEmpleadoUseCase,
