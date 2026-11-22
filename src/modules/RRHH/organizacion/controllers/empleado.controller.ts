@@ -20,15 +20,18 @@ import { CrearEmpladoCompletoUseCase } from '../use-cases/empleado/crearEmpleado
 
 /**
  * Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH.
- * Este controlador expone endpoints para crear, actualizar, listar, desactivar y reactivar empleados.
- * Se aplican guardias de autenticación y autorización para proteger los endpoints según los roles definidos.
+ * Se aplican guards de autenticación (JwtAccessGuard) y autorización por roles (RolesGuard).
  * Endpoints disponibles:
- * - POST /api/v1/rrhh/empleado: Crear un nuevo empleado.
- * - PATCH /api/v1/rrhh/empleado/:id/actualizar: Actualizar un empleado existente.
- * - GET /api/v1/rrhh/empleado: Listar empleados con paginación y filtros.
- * - DELETE /api/v1/rrhh/empleado/:id/desactivar: Desactivar un empleado (soft delete).
- * - PATCH /api/v1/rrhh/empleado/:id/reactivar: Reactivar un empleado previamente desactivado.
-*/
+ * - POST   /api/v1/rrhh/empleado                                   : Registrar un empleado completo (legajo, datos financieros y derechohabientes).
+ * - GET    /api/v1/rrhh/empleado                                   : Listar empleados con paginación y filtros.
+ * - GET    /api/v1/rrhh/empleado/:id                               : Obtener el detalle de un empleado.
+ * - PUT    /api/v1/rrhh/empleado/:id                               : Actualizar un empleado existente.
+ * - DELETE /api/v1/rrhh/empleado/:id/desactivar                    : Desactivar un empleado (soft delete).
+ * - PATCH  /api/v1/rrhh/empleado/:id/reactivar                     : Reactivar un empleado desactivado.
+ * - PATCH  /api/v1/rrhh/empleado/:id/estado-laboral                : Cambiar el estado laboral de un empleado activo.
+ * - GET    /api/v1/rrhh/empleado/dni/disponible/:nro_documento     : Verificar si un documento está disponible para registrar.
+ * - GET    /api/v1/rrhh/empleado/dni/datos-reniec/:nro_documento   : Autocompletar nombre y apellidos desde RENIEC.
+ */
 @ApiSwaggerEmpleadosController()
 @Controller('api/v1/rrhh/empleado')
 @UseGuards(JwtAccessGuard, RolesGuard)
@@ -43,21 +46,25 @@ export class EmpleadoController {
     private readonly crearEmpleadoCompletoUseCase: CrearEmpladoCompletoUseCase,
   ) {}
 
-    /**
+     /**
    * Endpoint para registrar un empleado completo en una sola operación atómica:
    * datos del empleado, datos financieros (cuentas y CCI se guardan encriptados) y derechohabientes.
    * Si no se envían nombre y apellido para un DNI de 8 dígitos, se autocompletan vía RENIEC.
    * Si algún derechohabiente es hijo menor o hijo mayor estudiante, se activa la asignación familiar.
    * @POST - /api/v1/rrhh/empleado
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
-   * @body CrearSchemaEmpleadoCompletoDto - { datosEmpleado, datosFinanciero, derechosHabientes? }
+   * @body CrearSchemaEmpleadoCompletoDto {
+   *   - datosEmpleado: datos personales, de contacto, domicilio, ubigeo, cargo, área y jornada,
+   *   - datosFinanciero: régimen de pensión, AFP, sueldo, bancos, cuentas, CCI y régimen de salud/EPS,
+   *   - derechosHabientes: lista opcional de derechohabientes
+   * }
    * @returns 201 Created - Empleado creado con sus relaciones (área, cargo, jornada).
-   *         400 Bad Request - Datos inválidos, documento duplicado o AFP sin la información requerida.
-   *         401 Unauthorized - El usuario no tiene un token válido.
-   *         403 Forbidden - El usuario no tiene los permisos necesarios.
-   *         404 Not Found - Área, cargo, jornada, tipo de documento, régimen, AFP o banco no encontrado.
-   *         409 Conflict - Ya existe un empleado con ese número de documento.
-   *         500 Internal Server Error - Fallo interno al crear el legajo.
+   *          400 Bad Request - Datos inválidos o AFP sin la información requerida.
+   *          401 Unauthorized - El usuario no tiene un token válido.
+   *          403 Forbidden - El usuario no tiene los permisos necesarios.
+   *          404 Not Found - Área, cargo, jornada, tipo de documento, régimen, AFP o banco no encontrado.
+   *          409 Conflict - Ya existe un empleado con ese número de documento.
+   *          500 Internal Server Error - Fallo interno al crear el legajo.
    */
   @Post()
   @Roles('ADMIN', 'RRHH')
@@ -68,38 +75,40 @@ export class EmpleadoController {
   }
 
   /**
-   * Endpoint para crear un nuevo empleado en el sistema.
-   * Requiere que el usuario tenga los roles de ADMIN o RRHH para acceder a este endpoint.
-   * @POST /api/v1/rrhh/empleado
+   * Endpoint para crear un nuevo empleado (solo datos del legajo, sin datos financieros ni derechohabientes).
+   * Si no se envían nombre y apellido para un DNI de 8 dígitos, se autocompletan vía RENIEC.
+   * @POST - /api/v1/rrhh/empleado
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
-   * @param payload : CrearEmpleadoDto {
+   * @body CrearEmpleadoDto {
    *   - cargo_id: string (UUID del cargo),
    *   - area_id: string (UUID del área),
    *   - documento_id: string (UUID del tipo de documento),
    *   - jornada_id: string (UUID de la jornada, opcional),
-   *   - nro_documento: string (8-20 carácteres, único),
-   *   - estado_laboral: string (opcional, valores permitidos: ACTIVO, VACACIONES, LICENCIA, SUSPENDIDO),
-   *   - nombre: string (3-100 carácteres),
-   *   - apellido: string (3-100 carácteres),
+   *   - nro_documento: string (8-20 caracteres, único),
+   *   - nombre: string (3-100 caracteres, opcional para DNI: se autocompleta con RENIEC),
+   *   - apellido: string (3-100 caracteres, opcional para DNI: se autocompleta con RENIEC),
    *   - email: string (formato válido),
-   *   - telefono: string (máximo 20 carácteres),
-   *   - sexo: string (valores permitidos: MASCULINO, FEMENINO),
-   *   - estado_civil: string (valores permitidos: SOLTERO, CASADO, CONVIVIENTE, DIVORCIADO, VIUDO),
-   *   - nacionalidad: string (máximo 50 carácteres),
-   *   - direccion: string (máximo 255 carácteres),
-   *   - referencia_direccion: string (máximo 255 carácteres),
-   *   - ubigeo: string (6 carácteres, código de ubigeo),
-   *   - distrito: string (máximo 100 carácteres),
-   *   - provincia: string (máximo 100 carácteres),
+   *   - telefono: string (máximo 20 caracteres),
+   *   - sexo: string (MASCULINO, FEMENINO),
+   *   - estado_civil: string (SOLTERO, CASADO, CONVIVIENTE, DIVORCIADO, VIUDO; por defecto SOLTERO),
+   *   - nacionalidad: string (máximo 50 caracteres; por defecto PERUANA),
+   *   - direccion: string (máximo 255 caracteres),
+   *   - referencia_direccion: string (máximo 255 caracteres),
+   *   - ubigeo: string (6 caracteres, código de ubigeo),
+   *   - distrito: string (máximo 100 caracteres),
+   *   - provincia: string (máximo 100 caracteres),
+   *   - departamento: string (máximo 100 caracteres),
    *   - fecha_nacimiento: string (formato YYYY-MM-DD),
-   *   - fecha_ingreso: string (formato YYYY-MM-DD),
-   *   - afp_fecha_filiacion: string (formato YYYY-MM-DD)
-   *   - asign_familiar: boolean (opcional, por defecto false)
+   *   - fecha_inicio: string (formato YYYY-MM-DD),
+   *   - afp_fecha_filiacion: string (formato YYYY-MM-DD, opcional),
+   *   - asig_familiar: boolean (opcional, por defecto false)
    * }
+   * El estado laboral inicial siempre es ACTIVO.
    * @returns 201 Created - El empleado ha sido creado exitosamente.
-   *          400 Bad Request - Los datos proporcionados son inválidos.
+   *          400 Bad Request - Los datos proporcionados son inválidos o el documento ya existe.
    *          401 Unauthorized - El usuario no tiene un token válido.
    *          403 Forbidden - El usuario no tiene los permisos necesarios.
+   *          404 Not Found - Área, cargo, jornada o tipo de documento no encontrado.
    */
   @ApiSwaggerCrearEmpleado()
   @Post()
@@ -272,9 +281,9 @@ export class EmpleadoController {
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param nro_documento : string - Número de documento a verificar.
    * @returns 200 OK - { disponible: true } si no existe un empleado con ese documento.
-   *                   { disponible: false, empleadoExiste: { id, activo, estado_laboral } } si ya existe.
-   *         401 Unauthorized - El usuario no tiene un token válido.
-   *         403 Forbidden - El usuario no tiene los permisos necesarios.
+   *                   { disponible: false, empleado: { id, activo, estado_laboral } } si ya existe.
+   *          401 Unauthorized - El usuario no tiene un token válido.
+   *          403 Forbidden - El usuario no tiene los permisos necesarios.
    */
   @Get('dni/disponible/:nro_documento')
   @Roles('ADMIN', 'RRHH')
