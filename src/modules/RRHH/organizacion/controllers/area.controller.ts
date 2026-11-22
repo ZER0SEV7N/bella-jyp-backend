@@ -1,6 +1,20 @@
-import { ApiContratoBody, ApiContratoQuery } from '@/common/decorators/api-contrato.decorator';
 //src/modules/RRHH/controller/Area.controller.ts
-import { Controller, Post, Body, HttpCode, HttpStatus, Param, Patch, Delete, UseGuards, UsePipes, ParseUUIDPipe, Get, Query, Put } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Delete,
+  UseGuards,
+  UsePipes,
+  ParseUUIDPipe,
+  Get,
+  Query,
+  Put,
+} from '@nestjs/common';
 //Casos de uso para las operaciones de area
 import { CrearAreaUseCase } from '../use-cases/area/crearArea.useCase';
 import { EditarAreaUseCase } from '../use-cases/area/editarArea.useCase';
@@ -12,10 +26,25 @@ import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 //Importar esquemas y DTOs para validación y tipado
-import { CrearAreaSchema, ActualizarAreaSchema, ListarAreasQuerySchema } from '@jyp/shared-contracts';
-import type { CrearAreaDto, ActualizarAreaDto, ListarAreasQueryDto } from '@jyp/shared-contracts';
-import { ApiSwaggerAreasController, ApiSwaggerCrearArea, ApiSwaggerActualizarArea, ApiSwaggerDesactivarArea, ApiSwaggerReactivarArea, ApiSwaggerListarAreas, ApiDetalleArea } from '../decorators/area-swagger.decorator';
-
+import {
+  CrearAreaSchema,
+  ActualizarAreaSchema,
+  ListarAreasQuerySchema,
+} from '@jyp/shared-contracts';
+import type {
+  CrearAreaDto,
+  ActualizarAreaDto,
+  ListarAreasQueryDto,
+} from '@jyp/shared-contracts';
+import {
+  ApiSwaggerAreasController,
+  ApiSwaggerCrearArea,
+  ApiSwaggerActualizarArea,
+  ApiSwaggerDesactivarArea,
+  ApiSwaggerReactivarArea,
+  ApiSwaggerListarAreas,
+  ApiDetalleArea,
+} from '../decorators/area-swagger.decorator';
 
 /**
  * Controlador para gestionar las áreas en el módulo de RRHH.
@@ -53,12 +82,11 @@ export class AreaController {
    * }
    * @Returns
    */
-  
+
   @ApiSwaggerCrearArea()
   @Post('crear')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(CrearAreaSchema))
-  @ApiContratoBody(CrearAreaSchema)
   async crear(@Body() payload: CrearAreaDto) {
     return await this.crearAreaUseCase.execute(payload);
   }
@@ -75,13 +103,15 @@ export class AreaController {
    *          404 Not Found - El area con el ID proporcionado no existe.
    *          400 Bad Request - Los datos proporcionados son inválidos.
    */
-  
+
   @ApiSwaggerActualizarArea()
   @Put(':id')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ActualizarAreaSchema, true))
-  @ApiContratoBody(ActualizarAreaSchema)
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ActualizarAreaDto ) {
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() payload: ActualizarAreaDto
+  ) {
     return await this.editarAreaUseCase.execute(id, payload);
   }
 
@@ -128,12 +158,11 @@ export class AreaController {
    * }
    * @returns Un objeto con las areas encontradas y metadatos de paginación.
    */
-  
+
   @ApiSwaggerListarAreas()
   @Get()
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ListarAreasQuerySchema))
-  @ApiContratoQuery(ListarAreasQuerySchema)
   async listarAreas(@Query() queryParams: ListarAreasQueryDto) {
     return await this.listarAreasUseCase.listar(queryParams);
   }
