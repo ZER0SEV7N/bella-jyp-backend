@@ -3,7 +3,7 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { PrismaService } from '@/common/prisma/prisma.service';
 import * as argon2 from 'argon2';
 import type { ActualizarDatoFinancieroDto } from '@jyp/shared-contracts';
-import { validarEntidadesFinancieras } from './helper/validacionesDatoFinanciero.helper';
+import { validarEntidadesFinancieras, validarSueldoCargo } from './helper/validacionesDatoFinanciero.helper';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 import { CryptoUtil } from '@/common/utils/crypto.util';
 
@@ -27,7 +27,12 @@ export class EditarDatoFinancieroUseCase {
     const datoFinanciero = await this.prisma.dato_financiero.findUnique({
       where: { empleado_id: idEmpleado },
     });
-
+    const cargoEmpleado = await this.prisma.empleados.findUnique({
+      where:{ id: idEmpleado},
+      select:{
+        cargo_id:true,
+      }
+    });
     if (datoFinanciero?.deleted_at !== null)
       throw new NotFoundException('El dato financiero del colaborador no existe o ha sido desactivado.');
 
@@ -56,7 +61,7 @@ export class EditarDatoFinancieroUseCase {
       cuspp: dto.cuspp === undefined ? datoFinanciero.cuspp : dto.cuspp,
       tipo_comision: dto.tipo_comision === undefined ? datoFinanciero.tipo_comision : dto.tipo_comision,
     });
-
+    await validarSueldoCargo(this.prisma,cargoEmpleado.cargo_id,dto.sueldo_basico);
     try {
       const actualizado = await this.prisma.dato_financiero.update({
         where: { empleado_id: idEmpleado },

@@ -5,6 +5,7 @@ import type { CrearDatoFinancieroDto } from '@jyp/shared-contracts';
 import { CryptoUtil } from '@/common/utils/crypto.util';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
+import { validarSueldoCargo } from './helper/validacionesDatoFinanciero.helper';
 
 /**
  * Caso de uso para registar los datos financieros de un empleado.
@@ -50,7 +51,7 @@ export class AgregarDatoFinancieroUseCase {
       const cciSueldoEncrypted = CryptoUtil.encryptOptional(dto.cci_sueldo);
       const nroCuentaCtsEncrypted = CryptoUtil.encryptOptional(dto.nro_cuenta_cts);
       const cciCtsEncrypted = CryptoUtil.encryptOptional(dto.cci_cts);
-
+      await validarSueldoCargo(this.prisma,empleado.cargo_id,dto.sueldo_basico);
       const nuevoDatoFinanciero = await this.prisma.dato_financiero.create({
         data: {
           id: IdentityGenerator.generateId(),

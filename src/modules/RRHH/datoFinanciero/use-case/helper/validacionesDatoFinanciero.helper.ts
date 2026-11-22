@@ -1,6 +1,7 @@
 //src/modules/RRHH/datoFinanciero/use-case/helper/validacionesDatoFinanciero.helper.ts
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 /**
  * Helper para validar la existencia de entidades financieras en la base de datos utilizando Prisma.
@@ -52,4 +53,27 @@ export async function validarEntidadesFinancieras(prisma: PrismaService, ids: {
     }));
 
     await Promise.all(promesas);
+}
+export async function validarSueldoCargo(prisma:PrismaService, idCargo:string, sueldoBasico:number) {
+    if (!Number.isFinite(sueldoBasico) || sueldoBasico<= 0) {
+        throw new BadRequestException('El sueldo básico debe ser un número mayor a 0.');
+    }
+    //transformar el sueldo de number a decimal
+    const sueldo = new Prisma.Decimal(sueldoBasico);
+    const CargoSueldo = await prisma.cargo.findFirst({
+        where:{
+         id:idCargo,
+         deleted_at:null,
+         activo:true, 
+        },
+        select:{
+            sueldo_maximo:true,
+            sueldo_minimo:true,
+        }
+    });
+    if(!CargoSueldo) throw new  NotFoundException(`El cargo de ${idCargo} no existe`)
+    //iniciar comparativa
+    if (sueldo.lte(CargoSueldo.sueldo_minimo) || sueldo.gt(CargoSueldo.sueldo_minimo)) {
+        throw new BadRequestException('El sueldo ingresado esta fuera de rango permitido por el cargo')
+    }
 }
