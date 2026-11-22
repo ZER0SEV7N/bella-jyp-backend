@@ -1002,7 +1002,7 @@ packages:
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
   '@jyp/shared-contracts@git+https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git#68e9156e5df786cd46a4f4fe289085aa0ed8d5fc':
-    resolution: {commit: fe6d3066676ec33495bb289226c36dcdc288f50e, repo: https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git, type: git}
+    resolution: {commit: 68e9156e5df786cd46a4f4fe289085aa0ed8d5fc, repo: https://github.com/ZER0SEV7N/bella-jyp-shared-contracts.git, type: git}
     version: 1.2.0
 
   '@lukeed/csprng@1.1.0':
