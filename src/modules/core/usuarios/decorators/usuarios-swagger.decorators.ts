@@ -1,6 +1,18 @@
-// src/modules/core/usuarios/decorators/usuarios-swagger.decorator.ts
+//src/modules/core/usuarios/decorators/usuarios-swagger.decorators.ts
+import {
+  ApiIdentificador,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
+import { MiPerfilSchema, usuarioRolEnum } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 /**
  * Decorador para agrupar operaciones del módulo de usuarios.
@@ -10,38 +22,16 @@ export function ApiSwaggerUsuariosController() {
 }
 
 /**
- * Documentación del endpoint GET /api/v1/core/usuarios/me
+ * Documentación del endpoint GET /api/v1/core/usuarios/me.
  */
 export function ApiSwaggerObtenerMiPerfil() {
   return applyDecorators(
-    ApiOperation({
+    ApiOperacionDocumentada({
       summary: 'Obtener información del perfil en sesión',
-      description: `Devuelve los metadatos de identidad, credenciales y vínculo laboral del usuario conectado.
-- **Fuente de Identidad**: Extrae el identificador de usuario (\`req.user.id\`) verificado por el \`JwtAccessGuard\`.
-- **Uso en Frontend**: Permite poblar el store global (Zustand/Redux) para autorizaciones en la UI, menús laterales y renderizado condicional de componentes según rol.`,
-    }),
-    ApiBearerAuth('JWT-auth'),
-    ApiResponse({
-      status: 200,
-      description: 'Perfil de usuario obtenido con éxito.',
-      schema: {
-        example: {
-          id: 'c2eebc11-9c0b-4ef8-bb6d-6bb9bd380aaa',
-          tipo_documento: 'DNI',
-          nro_documento: '72345678',
-          email: 'admin.planillas@empresa.com',
-          rol: 'ADMIN',
-          estado: 'ACTIVO',
-          ultimo_acceso: '2026-09-24T18:30:00.000Z',
-          empleado: {
-            id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            nombres: 'Daniel Enrique',
-            apellidos: 'Singer Rojas',
-            cargo: 'Arquitecto de Software',
-            area: 'Tecnología de la Información',
-          },
-        },
-      },
+      description:
+        'Devuelve la identidad, correo, rol, último acceso y vínculo laboral básico (nro_documento, nombre_completo, cargo, area) del usuario autenticado (`req.user.id`).',
+      roles: [],
+      respuesta: esquemaContrato(MiPerfilSchema),
     }),
     ApiResponse({
       status: 401,
@@ -49,172 +39,285 @@ export function ApiSwaggerObtenerMiPerfil() {
     }),
     ApiResponse({
       status: 404,
-      description: 'El usuario autenticado ya no existe o fue dado de baja.',
-    })
-  );
-}
-
-export function ApiSwaggerListarUsuarios() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Listar cuentas de usuario',
-      description: 'Permite listar las cuentas de usuario con filtros y paginación. Solo los usuarios con roles ADMIN o RRHH pueden acceder a este endpoint.',
-    }),
-    ApiBearerAuth('JWT-auth'),
-    ApiParam({
-      name: 'page',
-      required: false,
-      description: 'Número de página para la paginación (opcional)',
-    }), 
-    ApiParam({
-      name: 'limit',
-      required: false,
-      description: 'Número de resultados por página para la paginación (opcional)',
-    }),
-    ApiParam({
-      name: 'rol',
-      required: false,
-      description: 'Filtra los usuarios por rol (opcional)',
-    }),
-    ApiParam({
-      name: 'activo',
-      required: false,
-      description: 'Filtra los usuarios por estado activo/inactivo (opcional)',
-    }),
-    ApiParam({
-      name: 'search',
-      required: false,
-      description: 'Filtra los usuarios por búsqueda de texto en nombre, correo o documento (opcional)',
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Lista de usuarios obtenida con éxito.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'Token de acceso ausente, vencido o con firma no válida.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'No se encontraron usuarios que coincidan con los filtros proporcionados.',
+      description: 'El usuario autenticado ya no existe.',
     })
   );
 }
 
 /**
- * Decorador para documentar el endpoint Patch /api/v1/core/usuarios/:id/estado
- * que permite cambiar el estado activo/inactivo de un usuario.
+ * Documentación del endpoint GET /api/v1/core/usuarios.
+ */
+export function ApiSwaggerListarUsuarios() {
+  return applyDecorators(
+    ApiQuery({
+      name: 'page',
+      required: false,
+      description:
+        'Número de página en texto crudo (se convierte con Number; mínimo efectivo 1, por defecto 1).',
+      schema: { type: 'string' },
+    }),
+    ApiQuery({
+      name: 'limit',
+      required: false,
+      description:
+        'Resultados por página en texto crudo (se convierte con Number y se acota entre 1 y 100; por defecto 20).',
+      schema: { type: 'string' },
+    }),
+    ApiQuery({
+      name: 'rol',
+      required: false,
+      description:
+        'Filtra las cuentas por rol en texto crudo, sin validación previa (un valor fuera del enum provoca error 500).',
+      schema: { type: 'string' },
+    }),
+    ApiQuery({
+      name: 'activo',
+      required: false,
+      description:
+        "Filtra por estado activo en texto crudo: solo el texto exacto 'true' equivale a true; cualquier otro valor enviado equivale a false.",
+      schema: { type: 'string' },
+    }),
+    ApiQuery({
+      name: 'search',
+      required: false,
+      description:
+        'Búsqueda por términos en correo, número de documento, nombre o apellido del colaborador.',
+      schema: { type: 'string' },
+    }),
+    ApiOperacionDocumentada({
+      summary: 'Listar cuentas de usuario',
+      description:
+        "Lista paginada de cuentas no eliminadas. Los parámetros de consulta se reciben como texto crudo sin ZodValidationPipe: un rol inválido no se valida y termina en error 500, y activo solo es true cuando coincide exactamente con el texto 'true' (cualquier otro texto filtra como false).",
+      roles: ['ADMIN', 'RRHH'],
+      paginada: true,
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string' },
+            rol: { type: 'string', enum: [...usuarioRolEnum.options] },
+            activo: { type: 'boolean' },
+            ultimo_acceso: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+            },
+            created_at: { type: 'string', format: 'date-time' },
+            empleados: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: { type: 'string', format: 'uuid' },
+                nro_documento: { type: 'string' },
+                nombre: { type: 'string' },
+                apellido: { type: 'string' },
+                estado_laboral: { type: 'string' },
+                area: {
+                  type: 'object',
+                  nullable: true,
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    nombre: { type: 'string' },
+                  },
+                },
+                cargo: {
+                  type: 'object',
+                  nullable: true,
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    nombre: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Token de acceso ausente, vencido o con firma no válida.',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'El rol no tiene permisos para listar cuentas de usuario.',
+    }),
+    ApiResponse({
+      status: 500,
+      description:
+        'Error interno si se envía un valor de rol inválido para el enum de Prisma.',
+    })
+  );
+}
+
+/**
+ * Documentación del endpoint PATCH /api/v1/core/usuarios/:id/estado.
  */
 export function ApiSwaggerCambiarEstado() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Cambiar el estado de un usuario',
-      description: 'Permite cambiar el estado activo/inactivo de un usuario específico. Los roles ADMIN y RRHH pueden realizar esta acción.',
-    }),
-    ApiBearerAuth('JWT-auth'),
-    //Colocar el Body en la documentación de Swagger
+    ApiIdentificador('id', true),
     ApiBody({
-      description: 'El nuevo estado del usuario',
+      description: 'Nuevo estado activo de la cuenta de usuario.',
       required: true,
       schema: {
         type: 'object',
+        required: ['activo'],
         properties: {
           activo: {
             type: 'boolean',
-            description: 'El nuevo estado del usuario (true para activo, false para inactivo)',
+            description:
+              'Nuevo estado (true para activar, false para desactivar).',
           },
         },
       },
     }),
-    ApiResponse({
-      status: 200,
-      description: 'Estado del usuario actualizado con éxito.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'Token de acceso ausente, vencido o con firma no válida.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'El usuario no existe o fue dado de baja.',
-    })
-  );
-}
-
-export function ApiSwaggerCambiarRol() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Cambiar el rol de un usuario',
-      description: 'Permite cambiar el rol de un usuario específico. Solo los usuarios con rol ADMIN pueden realizar esta acción.',
-    }),
-    ApiBearerAuth('JWT-auth'),
-    ApiBody({
-      description: 'El nuevo rol del usuario',
-      required: true,
-      schema: {
+    ApiOperacionDocumentada({
+      summary: 'Cambiar el estado de un usuario',
+      description:
+        'Activa o desactiva una cuenta respetando la jerarquía de privilegios (RRHH solo modifica ASISTENTE o EMPLEADO; nadie modifica JYP). Impide desactivar la propia cuenta o reactivar un colaborador inactivo/cesado (400), y al desactivar invalida todos sus tokens de sesión.',
+      roles: ['ADMIN', 'RRHH'],
+      respuesta: {
         type: 'object',
         properties: {
-          rol: {
-            type: 'string',
-            description: 'El nuevo rol del usuario',
-          },
+          id: { type: 'string', format: 'uuid' },
+          email: { type: 'string' },
+          rol: { type: 'string' },
+          activo: { type: 'boolean' },
         },
       },
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Rol del usuario actualizado con éxito.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'Token de acceso ausente, vencido o con firma no válida.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'El usuario no existe o fue dado de baja.',
-    })
-  );
-}
-
-export function ApiSwaggerCambiarMiPassword() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Cambiar mi contraseña',
-      description: 'Permite al usuario autenticado cambiar su propia contraseña. Se requiere la contraseña actual y la nueva contraseña.',
-    }),
-    ApiBearerAuth('JWT-auth'),
-    ApiBody({
-      description: 'Contraseña actual y nueva contraseña',
-      required: true,
-      schema: {
-        type: 'object',
-        properties: {
-          password_actual: {
-            type: 'string',
-            description: 'La contraseña actual del usuario',
-          },
-          nueva_password: {
-            type: 'string',
-            description: 'La nueva contraseña que el usuario desea establecer',
-          },
-        },
-      },
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Contraseña actualizada con éxito.',
     }),
     ApiResponse({
       status: 400,
-      description: 'La nueva contraseña no cumple con los requisitos de seguridad o es idéntica a la actual.',
+      description:
+        'UUID inválido, intento de desactivar la propia cuenta o colaborador con vínculo inactivo.',
     }),
     ApiResponse({
       status: 401,
       description: 'Token de acceso ausente, vencido o con firma no válida.',
     }),
     ApiResponse({
+      status: 403,
+      description: 'El rol del actor no permite modificar al usuario objetivo.',
+    }),
+    ApiResponse({
       status: 404,
-      description: 'El usuario no existe o fue dado de baja.',
+      description: 'El usuario no existe o fue eliminado.',
+    })
+  );
+}
+
+/**
+ * Documentación del endpoint PATCH /api/v1/core/usuarios/:id/rol.
+ */
+export function ApiSwaggerCambiarRol() {
+  return applyDecorators(
+    ApiIdentificador('id', true),
+    ApiBody({
+      description: 'Nuevo rol a asignar al usuario.',
+      required: true,
+      schema: {
+        type: 'object',
+        required: ['rol'],
+        properties: {
+          rol: {
+            type: 'string',
+            enum: ['ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE', 'EMPLEADO'],
+            description: 'Nuevo rol del usuario (no se permite asignar JYP).',
+          },
+        },
+      },
+    }),
+    ApiOperacionDocumentada({
+      summary: 'Cambiar el rol de un usuario',
+      description:
+        'Actualiza el rol de una cuenta (solo ADMIN; prohíbe modificar el propio rol y asignar o modificar cuentas JYP) e invalida todos los tokens activos del usuario objetivo.',
+      roles: ['ADMIN'],
+      respuesta: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          email: { type: 'string' },
+          rol: { type: 'string' },
+          activo: { type: 'boolean' },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Identificador UUID inválido.',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Token de acceso ausente, vencido o con firma no válida.',
+    }),
+    ApiResponse({
+      status: 403,
+      description:
+        'Rol sin permiso, intento de cambiar el propio rol o jerarquía no permitida.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'El usuario no existe o fue eliminado.',
+    })
+  );
+}
+
+/**
+ * Documentación del endpoint PATCH /api/v1/core/usuarios/me/password.
+ */
+export function ApiSwaggerCambiarMiPassword() {
+  return applyDecorators(
+    ApiBody({
+      description:
+        'Contraseña actual y nueva contraseña (mínimo 8 caracteres).',
+      required: true,
+      schema: {
+        type: 'object',
+        required: ['password_actual', 'nueva_password'],
+        properties: {
+          password_actual: {
+            type: 'string',
+            description: 'Contraseña actual del usuario autenticado.',
+          },
+          nueva_password: {
+            type: 'string',
+            minLength: 8,
+            description:
+              'Nueva contraseña (mínimo 8 caracteres y distinta a la actual).',
+          },
+        },
+      },
+    }),
+    ApiOperacionDocumentada({
+      summary: 'Cambiar mi contraseña',
+      description:
+        'Verifica la contraseña actual (401 si no coincide), exige al menos 8 caracteres y que sea distinta a la actual (400), actualiza el hash Argon2id e invalida todos los refresh tokens activos de la cuenta.',
+      roles: [],
+      respuesta: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Contraseña actualizada exitosamente.',
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description:
+        'La nueva contraseña tiene menos de 8 caracteres o es idéntica a la actual.',
+    }),
+    ApiResponse({
+      status: 401,
+      description:
+        'Token de acceso inválido o la contraseña actual ingresada es incorrecta.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'El usuario no existe o está inactivo.',
     })
   );
 }

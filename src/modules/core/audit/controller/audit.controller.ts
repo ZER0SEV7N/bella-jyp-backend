@@ -1,6 +1,17 @@
 //src/modules/core/audit/controller/audit.controller.ts
 //Controlador para manejar las solicitudes relacionadas con la auditoría, como obtener logs de auditoría y registrar auditorías manuales.
-import { Controller, Get, Query, Post, Body, UseGuards, Req, UsePipes, Param, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  UsePipes,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -27,7 +38,16 @@ import type {
   AfectadoParamsDto,
   LineaTiempoAfectadoQueryDto,
 } from '@jyp/shared-contracts';
-import { ApiSwaggerAuditoriaController, ApiSwaggerCrearAuditoria, ApiSwaggerListarAuditoria, ApiSwaggerObtenerAuditoriaPorId, ApiSwaggerListarActividad, ApiSwaggerObtenerActividadPorId, ApiSwaggerLineaTiempoAfectado } from '../decorators/audit-swagger.decorator';
+import {
+  ApiSwaggerAuditoriaController,
+  ApiSwaggerCrearAuditoria,
+  ApiSwaggerListarAuditoria,
+  ApiSwaggerObtenerAuditoriaPorId,
+  ApiSwaggerObtenerHistorialRegistro,
+  ApiSwaggerListarActividad,
+  ApiSwaggerObtenerActividadPorId,
+  ApiSwaggerLineaTiempoAfectado,
+} from '../decorators/audit-swagger.decorator';
 
 /**
  * Controlador para manejar las solicitudes relacionadas con la auditoría.
@@ -47,7 +67,7 @@ export class AuditController {
     private readonly obtenerHistorialUseCase: ObtenerHistorialUseCase,
     private readonly listarActividadUseCase: ListarActividadUseCase,
     private readonly obtenerActividadPorIdUseCase: ObtenerActividadPorIdUseCase,
-    private readonly listarLineaTiempoAfectadoUseCase: ListarLineaTiempoAfectadoUseCase,
+    private readonly listarLineaTiempoAfectadoUseCase: ListarLineaTiempoAfectadoUseCase
   ) {}
 
   /**
@@ -70,7 +90,7 @@ export class AuditController {
   @UsePipes(new ZodValidationPipe(ObtenerAuditQuerySchema))
   async obtenerLogs(
     @Query() queryParams: ObtenerAuditQueryDto,
-    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
   ) {
     return await this.obtenerLogsUseCase.execute(queryParams, req.user);
   }
@@ -84,7 +104,7 @@ export class AuditController {
    *    - id: string (UUID) - Identificador único del log de auditoría (opcional).
    *    - usuario_id: string (UUID) - Identificador del usuario que realiza la acción (opcional).
    *    - accion: string - Acción realizada (obligatorio).
-   *    - tabla_afectada: string - Nombre de la tabla afectada (obligatorio). 
+   *    - tabla_afectada: string - Nombre de la tabla afectada (obligatorio).
    *    - registro_id: string (UUID) - Identificador del registro afectado (obligatorio).
    *    - valores_antes: Record<string, unknown> (opcional) - Valores antes de la acción.
    *    - valores_despues: Record<string, unknown> (opcional) - Valores después de la acción.
@@ -114,7 +134,10 @@ export class AuditController {
   @Get('logs/:id')
   @Roles('ADMIN', 'RRHH', 'CONTADOR')
   @ApiSwaggerObtenerAuditoriaPorId()
-  async obtenerPorId(@Param('id', ParseUUIDPipe) id: string, @Req() req: FastifyRequest & { user: { id: string; rol: string } }) {
+  async obtenerPorId(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
+  ) {
     return this.obtenerLogsUseCase.obtenerPorId(id, req.user);
   }
 
@@ -131,17 +154,22 @@ export class AuditController {
    * @param limit - Cantidad de registros por página para la paginación (opcional, por defecto 20).
    * @returns Un objeto con el historial de auditoría del registro, incluyendo los cambios realizados en sus campos.
    */
+  @ApiSwaggerObtenerHistorialRegistro()
   @Get('historial/:tabla/:registroId')
   @Roles('ADMIN', 'RRHH', 'CONTADOR')
-  async obtenerHistorialRegistro(@Param('tabla') tabla: string, @Param('registroId', ParseUUIDPipe) registroId: string,
-    @Req() req: FastifyRequest & { user: { id: string; rol: string } }, @Query('page') page = '1', @Query('limit') limit = '20',
+  async obtenerHistorialRegistro(
+    @Param('tabla') tabla: string,
+    @Param('registroId', ParseUUIDPipe) registroId: string,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+    @Query('page') page = '1',
+    @Query('limit') limit = '20'
   ) {
     return this.obtenerHistorialUseCase.obtenerHistorialRegistro(
       tabla,
       registroId,
       req.user,
       Math.max(1, Number(page) || 1),
-      Math.min(100, Math.max(1, Number(limit) || 20)),
+      Math.min(100, Math.max(1, Number(limit) || 20))
     );
   }
 
@@ -160,8 +188,9 @@ export class AuditController {
   @Get('actividad')
   @Roles('ADMIN', 'RRHH', 'CONTADOR')
   async listarActividad(
-    @Query(new ZodValidationPipe(ActividadAuditoriaQuerySchema)) query: ActividadAuditoriaQueryDto,
-    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+    @Query(new ZodValidationPipe(ActividadAuditoriaQuerySchema))
+    query: ActividadAuditoriaQueryDto,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
   ) {
     return this.listarActividadUseCase.execute(query, req.user);
   }
@@ -180,8 +209,9 @@ export class AuditController {
   @Get('actividad/:id')
   @Roles('ADMIN', 'RRHH', 'CONTADOR')
   async obtenerActividadPorId(
-    @Param(new ZodValidationPipe(ActividadIdParamsSchema, false, true)) params: ActividadIdParamsDto,
-    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+    @Param(new ZodValidationPipe(ActividadIdParamsSchema, false, true))
+    params: ActividadIdParamsDto,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
   ) {
     return this.obtenerActividadPorIdUseCase.execute(params.id, req.user);
   }
@@ -201,10 +231,16 @@ export class AuditController {
   @Get('afectados/:tipo/:id')
   @Roles('ADMIN', 'RRHH', 'CONTADOR')
   async listarLineaTiempoAfectado(
-    @Param(new ZodValidationPipe(AfectadoParamsSchema, false, true)) params: AfectadoParamsDto,
-    @Query(new ZodValidationPipe(LineaTiempoAfectadoQuerySchema)) query: LineaTiempoAfectadoQueryDto,
-    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+    @Param(new ZodValidationPipe(AfectadoParamsSchema, false, true))
+    params: AfectadoParamsDto,
+    @Query(new ZodValidationPipe(LineaTiempoAfectadoQuerySchema))
+    query: LineaTiempoAfectadoQueryDto,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
   ) {
-    return this.listarLineaTiempoAfectadoUseCase.execute(params, query, req.user);
+    return this.listarLineaTiempoAfectadoUseCase.execute(
+      params,
+      query,
+      req.user
+    );
   }
 }

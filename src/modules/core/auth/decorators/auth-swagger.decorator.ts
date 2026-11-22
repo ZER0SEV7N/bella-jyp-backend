@@ -1,9 +1,21 @@
-
-// src/modules/core/auth/decorators/auth.decorator.ts
+//src/modules/core/auth/decorators/auth-swagger.decorator.ts
+import {
+  ApiContratoBody,
+  ApiOperacionDocumentada,
+} from '@/common/decorators/api-contrato.decorator';
+import {
+  LoginSchema,
+  ProvisionarUsuarioSchema,
+  RestablecerPasswordSchema,
+  SolicitudRecuperacionSchema,
+} from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
-import { LoginSchema, ProvisionarUsuarioSchema, RestablecerPasswordSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
-import { ApiContratoBody } from '@/common/decorators/api-contrato.decorator';
+import {
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 export function ApiSwaggerController() {
   return applyDecorators(ApiTags('Core - Autenticación'));
@@ -11,65 +23,65 @@ export function ApiSwaggerController() {
 
 export function ApiSwaggerLogin() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Iniciar Sesión (Estrategia Dual Token)',
-      description: `Valida credenciales contra hash Argon2id y establece la sesión:
-        1. Emite un **Access Token** (JWT de 15 min) en el cuerpo JSON para uso en memoria.
-        2. Inyecta un **Refresh Token** (7 días) en una cookie \`HttpOnly\`, protegida contra ataques XSS.
-        3. Registra el token hash en Redis para permitir revocación centralizada.`,
-    }),
     ApiContratoBody(LoginSchema),
-    ApiResponse({
+    ApiOperacionDocumentada({
+      summary: 'Iniciar sesión (estrategia dual token)',
+      description:
+        'Valida documento y contraseña contra Argon2id, aplica límite de intentos por documento e IP (429) y registra ultimo_acceso. Devuelve accessToken (15 min) y datos del usuario en JSON, guarda el refresh token (7 días) en PostgreSQL y envía la cookie HttpOnly `jyp_rt` (`Path=/`, `SameSite=Lax`).',
+      roles: [],
       status: 200,
-      description: 'Login exitoso. Devuelve Access Token en JSON y configura cookie HttpOnly con Refresh Token.',
-      headers: {
-        'Set-Cookie': {
-          description: 'refreshToken=eyJhbG...; Path=/api/auth; HttpOnly; Secure; SameSite=Strict',
-          schema: { type: 'string' },
-        },
-      },
-      schema: {
-        example: {
-          access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          expires_in: 900,
+      respuesta: {
+        type: 'object',
+        properties: {
+          accessToken: { type: 'string' },
           usuario: {
-            id: 'c2eebc11-9c0b-4ef8-bb6d-6bb9bd380aaa',
-            rol: 'ADMIN',
-            nombres: 'Daniel Singer',
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              nombre: { type: 'string' },
+              email: { type: 'string' },
+              nro_documento: { type: 'string', nullable: true },
+              rol: { type: 'string' },
+            },
           },
         },
       },
     }),
     ApiResponse({
+      status: 400,
+      description: 'Credenciales con formato inválido según contrato Zod.',
+    }),
+    ApiResponse({
       status: 401,
-      description: 'Credenciales inválidas o cuenta de usuario inactiva.',
+      description: 'Documento o contraseña incorrectos, o cuenta inactiva.',
+    }),
+    ApiResponse({
+      status: 429,
+      description: 'Demasiados intentos de inicio de sesión.',
     })
   );
 }
 
 export function ApiSwaggerRefresh() {
   return applyDecorators(
-    ApiCookieAuth('refreshToken'),
-    ApiOperation({
+    ApiCookieAuth('jyp_rt'),
+    ApiOperacionDocumentada({
       summary: 'Refrescar Access Token',
-      description: `Genera un nuevo Access Token sin requerir que el usuario vuelva a ingresar su contraseña:
-        - Lee automáticamente la cookie segura \`refreshToken\`.
-        - Valida la firma del token y comprueba en Redis que la sesión no haya sido revocada.
-        - Retorna un nuevo JWT para reactivar las llamadas a la API.`,
-    }),
-    ApiResponse({
+      description:
+        'Lee la cookie HttpOnly `jyp_rt`, verifica la firma JWT y que el token siga vigente y sin usar en PostgreSQL, rota el refresh token (marca el anterior como usado y actualiza `jyp_rt`) y devuelve un nuevo accessToken.',
+      roles: [],
       status: 200,
-      description: 'Token refrescado exitosamente.',
-      schema: {
-        example: {
-          access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.nuevoToken...',
-          expires_in: 900,
+      respuesta: {
+        type: 'object',
+        properties: {
+          accessToken: { type: 'string' },
         },
       },
     }),
     ApiResponse({
       status: 401,
-      description: 'Cookie ausente, token revocado en Redis o expirado.',
+      description:
+        'Cookie `jyp_rt` ausente, usuario inactivo, token expirado, revocado o ya utilizado.',
     })
   );
 }
@@ -77,86 +89,129 @@ export function ApiSwaggerRefresh() {
 export function ApiSwaggerLogout() {
   return applyDecorators(
     ApiBearerAuth('JWT-auth'),
-    ApiCookieAuth('refreshToken'),
-    ApiOperation({
-      summary: 'Cerrar Sesión e Invalidar Tokens',
-      description: `Finaliza de forma determinista la sesión del usuario:
-        1. Elimina la clave de sesión en Redis vinculada al usuario autenticado.
-        2. Limpia la cookie del navegador seteando \`Max-Age=0\`.
-        3. Cualquier intento posterior de usar el Refresh Token expirará con 401 Unauthorized.`,
-    }),
-    ApiResponse({
+    ApiCookieAuth('jyp_rt'),
+    ApiOperacionDocumentada({
+      summary: 'Cerrar sesión e invalidar tokens',
+      description:
+        'Marca como usado el refresh token de la cookie `jyp_rt` en PostgreSQL, agrega el access token Bearer a la lista negra en Redis por su TTL restante y limpia la cookie `jyp_rt` (`Max-Age=0`).',
+      roles: [],
       status: 200,
-      description: 'Sesión cerrada con éxito y cookie eliminada.',
-      schema: {
-        example: {
-          success: true,
-          message: 'Sesión cerrada exitosamente.',
+      respuesta: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', example: 'Sesión Finalizada' },
+          detail: {
+            type: 'string',
+            example: 'Tokens invalidados exitosamente.',
+          },
         },
       },
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'Token de acceso no válido o sesión ya expirada.',
     })
   );
 }
 
 export function ApiSwaggerProvisionar() {
   return applyDecorators(
-    ApiBearerAuth('JWT-auth'),
-    ApiOperation({
-      summary: 'Provisionar Usuario Interno',
-      description: 'Crea credenciales iniciales para un nuevo trabajador. Exclusivo para ADMIN o RRHH.',
-    }),
     ApiContratoBody(ProvisionarUsuarioSchema),
-    ApiResponse({
+    ApiOperacionDocumentada({
+      summary: 'Provisionar usuario interno',
+      description:
+        'Crea credenciales en PostgreSQL con hash Argon2id para un colaborador activo existente. La verificación de sesión y rol está desactivada temporalmente (AUTH-F1), por lo que hoy es público y no exige token. Exige correo corporativo (400), rechaza crear una cuenta destino con rol JYP (403, reservado a administración del software), valida que el colaborador exista y esté activo (404) y que no tenga usuario previo (409).',
+      roles: [],
       status: 201,
-      description: 'Usuario provisionado con éxito en PostgreSQL con hash Argon2id.',
+      respuesta: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          rol: { type: 'string' },
+          nro_documento: { type: 'string', nullable: true },
+        },
+      },
     }),
     ApiResponse({
       status: 400,
-      description: 'Datos inválidos o documento duplicado.',
+      description: 'Datos inválidos o falta el correo corporativo obligatorio.',
     }),
     ApiResponse({
       status: 403,
-      description: 'Acceso denegado: Se requiere rol ADMIN o RRHH.',
+      description:
+        'La cuenta destino solicita rol JYP, que solo se provisiona desde administración del software.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'El colaborador no existe, fue eliminado o está inactivo.',
+    }),
+    ApiResponse({
+      status: 409,
+      description:
+        'El colaborador ya posee credenciales de acceso registradas.',
     })
   );
 }
 
 export function ApiSwaggerRecuperarPassword() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Solicitar Recuperación de Contraseña',
-      description: 'Genera un token efímero firmado y remite un enlace de recuperación al correo registrado.',
-    }),
     ApiContratoBody(SolicitudRecuperacionSchema),
-    ApiResponse({
+    ApiOperacionDocumentada({
+      summary: 'Solicitar recuperación de contraseña',
+      description:
+        'Aplica control de intentos por documento e IP (429), genera un token de 15 minutos en PostgreSQL invalidando solicitudes previas y encola el envío por n8n si el usuario activo tiene correo. Responde de forma uniforme para evitar enumeración de usuarios.',
+      roles: [],
       status: 200,
-      description: 'Solicitud procesada (retorna 200 genérico para prevenir enumeración de usuarios).',
+      respuesta: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example:
+              'Si el documento es válido, se enviarán las instrucciones.',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: 400,
-      description: 'Documento con formato inválido.',
+      description: 'Número de documento con formato inválido.',
+    }),
+    ApiResponse({
+      status: 429,
+      description: 'Demasiadas solicitudes de recuperación.',
+    }),
+    ApiResponse({
+      status: 503,
+      description:
+        'La recuperación por correo no está configurada en el entorno.',
     })
   );
 }
 
 export function ApiSwaggerRestablecerPassword() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Restablecer Contraseña',
-      description: 'Valida el token de recuperación y actualiza la contraseña del usuario en la base de datos.',
-    }),
     ApiContratoBody(RestablecerPasswordSchema),
-    ApiResponse({
+    ApiOperacionDocumentada({
+      summary: 'Restablecer contraseña',
+      description:
+        'Aplica control de intentos por IP (429), verifica el token compuesto (15 min, un solo uso), exige una contraseña distinta a la actual (mínimo 12 caracteres), actualiza el hash Argon2id e invalida todos los refresh tokens activos del usuario.',
+      roles: [],
       status: 200,
-      description: 'Contraseña restablecida exitosamente.',
+      respuesta: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Contraseña actualizada correctamente.',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: 400,
-      description: 'Token inválido, expirado o contraseña no cumple con la política de seguridad.',
+      description:
+        'Token inválido, expirado o usado, o contraseña igual a la anterior / fuera de contrato.',
+    }),
+    ApiResponse({
+      status: 429,
+      description: 'Demasiados intentos de restablecimiento.',
     })
   );
 }
