@@ -31,7 +31,7 @@ export class DatosExportacionService {
         const trabajo = await this.prisma.integracionTrabajo.findUnique({ where: { id: trabajoId } });
         
         // Se valida que el trabajo exista, esté en estado 'PROCESANDO' y que la ejecución coincida con la proporcionada.
-        if (!trabajo || trabajo.estado !== 'PROCESANDO' || trabajo.ejecucion_id !== ejecucionId)
+        if (trabajo?.estado !== 'PROCESANDO' || trabajo?.ejecucion_id !== ejecucionId)
             throw new ConflictException('El ejecutor no tiene una concesión activa para este trabajo.');
 
         // Se valida que la página solicitada sea un número entero seguro y no negativo.
@@ -40,11 +40,10 @@ export class DatosExportacionService {
 
         // Se obtiene un subconjunto de IDs de planillas correspondientes a la página solicitada (25 planillas por página).
         const ids = trabajo.planilla_ids.slice(pagina * 25, (pagina + 1) * 25);
-        const filas = [];
-
-        // Se itera sobre los IDs de planillas y se obtiene la fila de datos correspondiente a cada planilla.
-        for (const id of ids)
-            filas.push(await this.fila(id, trabajo.creado_en));
+        // Se obtienen en paralelo las filas de datos correspondientes a las planillas de la página.
+        const filas = await Promise.all(
+            ids.map((id) => this.fila(id, trabajo.creado_en)),
+        );
         
         // Se retorna un objeto que contiene las filas de datos de la página solicitada y el número de la siguiente página si existe.
         return {
@@ -102,7 +101,7 @@ export class DatosExportacionService {
         });
 
         // Se valida que la incidencia exista y que su versión coincida con la versión de incidencia de la planilla.
-        if (!incidencia || incidencia.version !== planilla.incidencia_version)
+        if (incidencia?.version !== planilla.incidencia_version)
             throw new ConflictException('El detalle de jornada no coincide con la versión cerrada.');
 
         // Se obtiene el detalle de la incidencia y se valida que contenga un arreglo de días con la información diaria de jornada.

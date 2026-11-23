@@ -42,7 +42,7 @@ export function cuentaAbono(fila: FilaExportacionDto, configuracion: Configuraci
     else if (tipo === 'A') longitud = 14;
 
     // Valida que la cuenta exista y cumpla con la longitud requerida, lanzando un error si no es así.
-    if (!cuenta || !new RegExp(`^\\d{${longitud}}$`).test(cuenta))
+    if (!cuenta || !new RegExp(String.raw`^\d{${longitud}}$`).test(cuenta))
         throw new RangeError(`La cuenta ${tipo} debe contener exactamente ${longitud} dígitos.`);
     return { tipo, cuenta };
 }
@@ -85,7 +85,7 @@ export function cabeceraBanco(configuracion: ConfiguracionExportacionDto, cantid
     const linea =
         '1' +
         numeroFijo(String(cantidad), 6) +
-        fecha.replace(/-/g, '') +
+        fecha.replaceAll('-', '') +
         'X' +
         tipo +
         '0001' +

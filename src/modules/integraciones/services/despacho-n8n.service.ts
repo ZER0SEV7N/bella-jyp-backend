@@ -49,8 +49,8 @@ export class DespachoN8nService {
             take: 20,
         });
 
-        // Se itera sobre los trabajos pendientes y se intenta despacharlos al servicio externo de N8N.
-        for (const trabajo of trabajos) {
+        // Se procesan los trabajos pendientes en paralelo para evitar awaits dentro de un bucle.
+        await Promise.all(trabajos.map(async (trabajo) => {
             // La actualización condicional impide que dos réplicas despachen el mismo registro a la vez.
             const tomado = await this.prisma.integracionTrabajo.updateMany({
                 where: {
@@ -62,7 +62,7 @@ export class DespachoN8nService {
             });
 
             // Si no se actualizó ningún registro, significa que otra réplica ya despachó el trabajo, por lo que se omite este trabajo.
-            if (tomado.count !== 1) continue;
+            if (tomado.count !== 1) return;
 
             // Se intenta despachar el trabajo al servicio externo de N8N mediante una solicitud HTTP POST.
             try {
@@ -93,6 +93,6 @@ export class DespachoN8nService {
                 // No se registra el cuerpo, la firma ni los tokens de recuperación en los logs.
                 this.logger.warn(`No se pudo despachar el trabajo ${trabajo.id}; permanece en la bandeja de salida.`);
             }
-        }
+        }));
     }
 }
