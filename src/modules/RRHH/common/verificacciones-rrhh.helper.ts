@@ -1,6 +1,7 @@
 //src/modules/RRHH/common/verificacciones-rrhh.helper.ts
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 /**
  * Función para verificar si un área está activa en la base de datos.
@@ -76,7 +77,25 @@ export async function verificarJornadaActiva( prisma: PrismaService, jornadaId?:
         detail: 'La jornada de trabajo no existe o se encuentra inactiva.',
     });
 }
-
+export async function verificarAreaJornada(prisma: Prisma.TransactionClient, jornadaId: string, idArea:string) {
+    const areasPermitidas = await prisma.jornada_area.findMany({
+        where:{
+            jornada_id: jornadaId,
+             
+        },
+        select:{
+            area_id:true,      
+        }
+    });
+    if (areasPermitidas.length === 0) {
+        return;
+    }
+    const estaPermitida = areasPermitidas.some((item)=>item.area_id === idArea);
+    if(!estaPermitida) throw new BadRequestException({
+        title: 'Jornada incompatible con el area',
+        detail:`La jornada no esta relacionada con el area seleccionada`,
+    })
+}
 /**
  * Verifica si un número de documento es único en la base de datos.
  * @param prisma - Instancia del servicio Prisma para acceder a la base de datos.

@@ -8,6 +8,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { bloquearEmpleado, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { validarJornadaRegular } from '../../domain/validar-jornada';
+import { verificarAreaJornada } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 
 /**
  * Caso de uso para asignar una jornada de asistencia a un empleado.
@@ -43,13 +44,14 @@ export class AsignarJornadaAsistenciaUseCase {
       await bloquearEmpleado(tx, dto.empleado_id);
 
       //Se valida que el empleado exista y tenga fecha de ingreso.
-      const empleado = await tx.empleados.findUnique({ where: { id: dto.empleado_id, deleted_at: null }, select: { fecha_inicio: true } });
+      const empleado = await tx.empleados.findUnique({ where: { id: dto.empleado_id, deleted_at: null }, select: { fecha_inicio: true, area_id:true } });
       if (!empleado?.fecha_inicio) throw new BadRequestException('El colaborador debe existir y tener fecha de ingreso.');
 
       //Se valida que la jornada exista, esté activa y cumpla con las restricciones del motor actual.
       const jornada = await tx.jornada.findUnique({ where: { id: dto.jornada_id, activo: true, deleted_at: null } });
       if (!jornada) throw new NotFoundException('La jornada no existe o está inactiva.');
-
+      //validar las jornadas dsi pertenece al are del empleado
+      await verificarAreaJornada(tx,jornada.id, empleado.area_id);
       //Se valida que el horario de la jornada cumpla con las restricciones del motor actual.
       const validado = HorarioAsistenciaSchema.safeParse(jornada.horario_semanal);
       if (!validado.success) 
