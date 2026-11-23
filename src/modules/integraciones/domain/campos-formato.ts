@@ -36,7 +36,7 @@ export function importeDos(valor: unknown): string {
  */
 export function textoFijo(valor: string, longitud: number): string {
     //Validación de caracteres no representables
-    if (/[\r\n|\x00-\x1f]/.test(valor) || [...valor].some((c) => c.charCodeAt(0) > 255))
+    if (/[|\x00-\x1f]/.test(valor) || [...valor].some((c) => c.codePointAt(0)! > 255))
         throw new RangeError('El texto contiene caracteres no representables en el archivo.');
     
     //Validación de la longitud del texto

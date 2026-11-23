@@ -32,9 +32,10 @@ export class CrearTrabajoIntegracionUseCase {
     async execute(dto: SolicitarExportacionDto, actor: ActorOperacion) {
         ServerTime.validarPeriodo(dto.periodo);
         
-        // Validaciones específicas según el tipo de integración
-        // TODO: BBVA_HABERES e INTERBANK_HABERES requieren homologación de diseño de registros, no se permite sustituir por el formato BCP.
-        if (['BBVA_HABERES', 'INTERBANK_HABERES'].includes(dto.tipo))
+        // Estos canales no pueden exportarse hasta que su diseño de registros haya sido homologado.
+        // Se rechazan explícitamente para evitar generar archivos BCP con un canal incorrecto.
+        const canalesPendientesDeHomologacion = ['BBVA_HABERES', 'INTERBANK_HABERES'];
+        if (canalesPendientesDeHomologacion.includes(dto.tipo))
             throw new UnprocessableEntityException('El diseño de registros de este canal bancario requiere homologación. No se sustituye por el formato BCP.');
 
         // Validaciones específicas para BCP_HABERES

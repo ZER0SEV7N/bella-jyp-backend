@@ -22,7 +22,7 @@ export class EstadoDerechohabienteUseCase {
         try {
             const familiar = await this.prisma.derechohabientes.findUnique({ where: { id, deleted_at: null } });
 
-            if (!familiar || !familiar.activo) throw new NotFoundException({
+            if (!familiar?.activo) throw new NotFoundException({
                 title: 'Derechohabiente no encontrado',
                 detail: 'El derechohabiente no existe o ya ha sido dado de baja.'
             });

@@ -1,0 +1,16 @@
+title = "Configuración Gitleaks - Bella J&P Planillas Backend"
+
+[extend]
+# Hereda todas las reglas oficiales de Gitleaks (API keys, JWT, AWS, DB, tokens, etc.)
+useDefault = true
+
+[allowlist]
+description = "Exclusiones controladas para archivos de ejemplo, pruebas y lockfiles"
+paths = [
+  '''^\.env\.example$''',
+  '''^\.env\.test$''',
+  '''^pnpm-lock\.yaml$''',
+  '''^package-lock\.json$''',
+  '''^openapi\.yml$''',
+  '''^test/''',
+]

@@ -1,0 +1,152 @@
+name: CI - Calidad, Seguridad y Cobertura
+
+on:
+  push:
+    branches:
+      - master
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - master
+  workflow_call:
+
+# Cancela ejecuciones anteriores en ramas feature/PR para ahorrar minutos,
+# pero nunca interrumpe una ejecución en master.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+# Principio de menor privilegio: solo lectura por defecto.
+permissions:
+  contents: read
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # 1. Verificación de credenciales y secretos en código e historial Git
+  # ----------------------------------------------------------------------------
+  secret-scan:
+    name: Escaneo de secretos (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout con historial completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ejecutar Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  # ----------------------------------------------------------------------------
+  # 2. Compilación, Lint, Complejidad y Quality Gate de Cobertura >= 80%
+  # ----------------------------------------------------------------------------
+  build-and-test:
+    name: Build, Calidad y Pruebas (Cobertura >= 80%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Configurar Node.js 22 con caché de pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Autenticar acceso a @jyp/shared-contracts (si es repositorio privado)
+        if: ${{ secrets.SHARED_CONTRACTS_TOKEN != '' }}
+        env:
+          GH_PAT: ${{ secrets.SHARED_CONTRACTS_TOKEN }}
+        run: |
+          git config --global url."https://${GH_PAT}@github.com/".insteadOf "https://github.com/"
+
+      - name: Instalar dependencias (lockfile estricto)
+        run: pnpm install --frozen-lockfile
+
+      - name: Generar cliente de Prisma
+        env:
+          # URL sintética solo para generación de tipos/cliente en CI (no conecta a BD)
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/planillas_ci
+        run: pnpm exec prisma generate
+
+      - name: Compilar proyecto NestJS (TypeScript)
+        run: pnpm run build
+
+      - name: Verificar estilo y reglas ESLint (sin modificar archivos)
+        run: pnpm exec eslint "{src,apps,libs,test}/**/*.ts"
+
+      - name: Verificar complejidad ciclomática (SonarQube pre-check)
+        run: pnpm run check:complejidad
+
+      - name: Ejecutar pruebas unitarias y Quality Gate de cobertura (>= 80%)
+        run: pnpm run test:cov
+
+      - name: Ejecutar pruebas de contratos n8n
+        run: pnpm run test:n8n
+
+      - name: Publicar reporte de cobertura (LCOV y HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-jest-lcov
+          path: coverage/
+          retention-days: 14
+
+  # ----------------------------------------------------------------------------
+  # 3. Auditoría de dependencias vulnerables (SCA)
+  # ----------------------------------------------------------------------------
+  dependency-audit:
+    name: Auditoría de dependencias (SCA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Auditar vulnerabilidades High/Critical en dependencias de producción
+        run: pnpm audit --prod --audit-level=high
+
+  # ----------------------------------------------------------------------------
+  # 4. Análisis estático de seguridad (SAST con CodeQL nativo de GitHub)
+  # ----------------------------------------------------------------------------
+  codeql-sast:
+    name: Análisis SAST (CodeQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Inicializar CodeQL para TypeScript/JavaScript
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Analizar código con CodeQL
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript

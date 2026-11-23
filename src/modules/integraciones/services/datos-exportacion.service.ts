@@ -31,7 +31,7 @@ export class DatosExportacionService {
         const trabajo = await this.prisma.integracionTrabajo.findUnique({ where: { id: trabajoId } });
         
         // Se valida que el trabajo exista, esté en estado 'PROCESANDO' y que la ejecución coincida con la proporcionada.
-        if (!trabajo || trabajo.estado !== 'PROCESANDO' || trabajo.ejecucion_id !== ejecucionId)
+        if (trabajo?.estado !== 'PROCESANDO' || trabajo?.ejecucion_id !== ejecucionId)
             throw new ConflictException('El ejecutor no tiene una concesión activa para este trabajo.');
 
         // Se valida que la página solicitada sea un número entero seguro y no negativo.
@@ -102,7 +102,7 @@ export class DatosExportacionService {
         });
 
         // Se valida que la incidencia exista y que su versión coincida con la versión de incidencia de la planilla.
-        if (!incidencia || incidencia.version !== planilla.incidencia_version)
+        if (incidencia?.version !== planilla.incidencia_version)
             throw new ConflictException('El detalle de jornada no coincide con la versión cerrada.');
 
         // Se obtiene el detalle de la incidencia y se valida que contenga un arreglo de días con la información diaria de jornada.

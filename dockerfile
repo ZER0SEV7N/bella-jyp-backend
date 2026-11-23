@@ -13,24 +13,24 @@ RUN apt-get update -y && \
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@11 --activate
 
-COPY package.json package-lock.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 COPY vendor ./vendor
 COPY prisma ./prisma
 
-# Soporta instalación mediante paquete local en vendor/ o con secret github_token
+# Soporta clonación autenticada con secret github_token (si shared-contracts es privado)
 RUN --mount=type=secret,id=github_token,required=false \
     if [ -f /run/secrets/github_token ] && [ -s /run/secrets/github_token ]; then \
-      git config --global url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
-      pnpm install && \
-      git config --global --unset-all url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf; \
+    git config --global url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
+    pnpm install --frozen-lockfile && \
+    git config --global --unset-all url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf; \
     else \
-      npm ci; \
+    pnpm install --frozen-lockfile; \
     fi
 
 # Generar el cliente de Prisma para Linux
-RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" pnpm exec prisma generate
 
 # ==============================================================================
 # 2. Compilación (Builder Stage)
@@ -41,14 +41,14 @@ WORKDIR /app
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@11 --activate
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY . .
 
-# Compilar NestJS y podar dependencias de desarrollo
-RUN npm run build && npm prune --omit=dev
+# Compilar NestJS y podar dependencias de desarrollo con pnpm
+RUN pnpm run build && pnpm prune --prod
 
 # ==============================================================================
 # 3. Entorno de Producción (Runner Stage)

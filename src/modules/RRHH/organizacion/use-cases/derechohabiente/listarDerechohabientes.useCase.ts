@@ -1,6 +1,5 @@
-import { NotFoundException } from '@nestjs/common';
 //src/modules/RRHH/organizacion/use-cases/derechohabiente/listarDerechohabientes.useCase.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
 /**

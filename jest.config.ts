@@ -41,22 +41,30 @@ const config: Config = {
   coveragePathIgnorePatterns: [
     '/node_modules/',
     '/src/.*/decorators/',
-    '\\.decorator\\.ts$',
+    String.raw`\.decorator\.ts$`,
   ],
 
   // Indicates which provider should be used to instrument code for coverage
   coverageProvider: "v8",
 
   // A list of reporter names that Jest uses when writing coverage reports
-  // coverageReporters: [
-  //   "json",
-  //   "text",
-  //   "lcov",
-  //   "clover"
-  // ],
+  coverageReporters: [
+    "text",
+    "text-summary",
+    "lcov",
+    "json-summary"
+  ],
 
   // An object that configures minimum threshold enforcement for coverage results
-  // coverageThreshold: undefined,
+  // Quality Gate: exige al menos 80% de cobertura global para aprobar el pipeline de CI/CD
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
 
   // A path to a custom dependency extractor
   // dependencyExtractor: undefined,
