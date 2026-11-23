@@ -15,9 +15,10 @@ import {
   EmpleadoDetalleSchema,
   EmpleadoResumenSchema,
   ListarEmpleadosQuerySchema,
+  SchemaEmpleadoCompletoCrear,
 } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import type { SchemaObject } from '@nestjs/swagger';
 
 const ROLES_ESCRITURA = ['ADMIN', 'RRHH'];
@@ -237,6 +238,92 @@ export function ApiDetalleEmpleado() {
         'Recupera el legajo completo del colaborador (incluidos CESADO y DESPEDIDO) con su jornada vigente resuelta desde asistencia, tipo de documento, derechohabientes y contratos no eliminados.',
       roles: ROLES_ESCRITURA,
       respuesta: esquemaContrato(EmpleadoDetalleSchema),
+    })
+  );
+}
+
+/**
+ * Documenta `POST /api/v1/rrhh/empleado/completo`.
+ */
+export function ApiSwaggerCrearEmpleadoCompleto() {
+  return applyDecorators(
+    ApiContratoBody(SchemaEmpleadoCompletoCrear),
+    ApiOperacionDocumentada({
+      summary: 'Crear colaborador completo',
+      description:
+        'Registra en una sola operación atómica el legajo, los datos financieros (cuentas y CCI encriptados) y los derechohabientes. Si no se envían nombre y apellido para un DNI de 8 dígitos, se autocompletan vía RENIEC. Responde 404 si no existe el área, cargo, jornada, tipo de documento, régimen, AFP o banco, y 409 si ya hay un colaborador con ese documento.',
+      roles: ROLES_ESCRITURA,
+      status: 201,
+      respuesta: respuestaEmpleadoMutacion,
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/rrhh/empleado/dni/disponible/:nro_documento`.
+ */
+export function ApiSwaggerConfirmarDniDisponible() {
+  return applyDecorators(
+    ApiParam({
+      name: 'nro_documento',
+      required: true,
+      description: 'Número de documento a verificar.',
+      schema: { type: 'string', example: '70112233' },
+    }),
+    ApiOperacionDocumentada({
+      summary: 'Verificar disponibilidad de documento',
+      description:
+        'Indica si ya existe un colaborador con ese número de documento. Si existe, devuelve su id, si está activo y su estado laboral, para ofrecer la reactivación en lugar de crear un duplicado.',
+      roles: ROLES_ESCRITURA,
+      respuesta: {
+        type: 'object',
+        properties: {
+          disponible: { type: 'boolean' },
+          empleado: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              activo: { type: 'boolean' },
+              estado_laboral: { type: 'string' },
+            },
+          },
+        },
+      },
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/rrhh/empleado/dni/datos-reniec/:nro_documento`.
+ */
+export function ApiSwaggerObtenerDatosReniec() {
+  return applyDecorators(
+    ApiParam({
+      name: 'nro_documento',
+      required: true,
+      description: 'DNI de 8 dígitos numéricos.',
+      schema: {
+        type: 'string',
+        pattern: '^\\d{8}$',
+        minLength: 8,
+        maxLength: 8,
+        example: '70112233',
+      },
+    }),
+    ApiOperacionDocumentada({
+      summary: 'Autocompletar datos desde RENIEC',
+      description:
+        'Consulta RENIEC por DNI y devuelve nombre y apellidos para rellenar el formulario antes de guardar; no se almacena nada. Responde 400 si el DNI no tiene 8 dígitos, 404 si RENIEC no lo encuentra, 408 si tarda más de 5 s, 429 por exceso de consultas y 502 si el servicio no está disponible.',
+      roles: ROLES_ESCRITURA,
+      respuesta: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string', example: 'Carlos Alberto' },
+          apellido_paterno: { type: 'string', example: 'Mendoza' },
+          apellido_materno: { type: 'string', example: 'Pérez' },
+        },
+      },
     })
   );
 }

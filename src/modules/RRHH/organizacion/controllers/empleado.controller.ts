@@ -23,6 +23,7 @@ import {
   ListarEmpleadosQuerySchema,
   DesactivarEmpleadoSchema,
   CambiarEstadoLaboralSchema,
+  SchemaEmpleadoCompletoCrear,
 } from '@jyp/shared-contracts';
 import type {
   CrearEmpleadoDto,
@@ -30,6 +31,7 @@ import type {
   ListarEmpleadosQueryDto,
   DesactivarEmpleadoDto,
   CambiarEstadoLaboralDto,
+  CrearSchemaEmpleadoCompletoDto,
 } from '@jyp/shared-contracts';
 //casos de uso
 import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
@@ -49,13 +51,20 @@ import {
   ApiSwaggerListarEmpleados,
   ApiDetalleEmpleado,
   ApiSwaggerCambiarEstadoLaboral,
+  ApiSwaggerConfirmarDniDisponible,
+  ApiSwaggerObtenerDatosReniec,
+  ApiSwaggerCrearEmpleadoCompleto,
 } from '../decorators/empleado-swagger.decorator';
+import { ValidarDniUseCase } from '../use-cases/empleado/validarDni.useCase';
+import { ObtenerDatosReniecUseCase } from '../use-cases/empleado/obtenerDatosReniec.useCase';
+import { CrearEmpladoCompletoUseCase } from '../use-cases/empleado/crearEmpleadoCompleto.useCase';
 
 /**
  * Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH.
  * Se aplican guards de autenticación (JwtAccessGuard) y autorización por roles (RolesGuard).
  * Endpoints disponibles:
- * - POST   /api/v1/rrhh/empleado                                   : Registrar un empleado completo (legajo, datos financieros y derechohabientes).
+ * - POST   /api/v1/rrhh/empleado                                   : Registrar un empleado (solo el legajo).
+ * - POST   /api/v1/rrhh/empleado/completo                          : Registrar un empleado completo (legajo, datos financieros y derechohabientes).
  * - GET    /api/v1/rrhh/empleado                                   : Listar empleados con paginación y filtros.
  * - GET    /api/v1/rrhh/empleado/:id                               : Obtener el detalle de un empleado.
  * - PUT    /api/v1/rrhh/empleado/:id                               : Actualizar un empleado existente.
@@ -73,15 +82,19 @@ export class EmpleadoController {
     private readonly crearEmpleadoUseCase: CrearEmpleadoUseCase,
     private readonly editarEmpleadoUseCase: EditarEmpleadoUseCase,
     private readonly estadoEmpleadoUseCase: EstadoEmpleadoUseCase,
-    private readonly listarEmpleadosUseCase: ListarEmpleadosUseCase
+    private readonly listarEmpleadosUseCase: ListarEmpleadosUseCase,
+    private readonly validarDniUseCase: ValidarDniUseCase,
+    private readonly obtenerDatosReniecUseCase: ObtenerDatosReniecUseCase,
+    private readonly crearEmpleadoCompletoUseCase: CrearEmpladoCompletoUseCase
   ) {}
 
-     /**
+  /**
    * Endpoint para registrar un empleado completo en una sola operación atómica:
    * datos del empleado, datos financieros (cuentas y CCI se guardan encriptados) y derechohabientes.
    * Si no se envían nombre y apellido para un DNI de 8 dígitos, se autocompletan vía RENIEC.
    * Si algún derechohabiente es hijo menor o hijo mayor estudiante, se activa la asignación familiar.
-   * @POST - /api/v1/rrhh/empleado
+   * Va en `completo` porque `POST /api/v1/rrhh/empleado` ya registra solo el legajo y Fastify no admite dos rutas iguales.
+   * @POST - /api/v1/rrhh/empleado/completo
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @body CrearSchemaEmpleadoCompletoDto {
    *   - datosEmpleado: datos personales, de contacto, domicilio, ubigeo, cargo, área y jornada,
@@ -96,9 +109,10 @@ export class EmpleadoController {
    *          409 Conflict - Ya existe un empleado con ese número de documento.
    *          500 Internal Server Error - Fallo interno al crear el legajo.
    */
-  @Post()
+  @Post('completo')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ZodValidationPipe(SchemaEmpleadoCompletoCrear))
   @ApiSwaggerCrearEmpleadoCompleto()
   async crearEmpleadoCompleto(@Body() dto: CrearSchemaEmpleadoCompletoDto) {
     return this.crearEmpleadoCompletoUseCase.execute(dto);
@@ -312,5 +326,46 @@ export class EmpleadoController {
   @ApiDetalleEmpleado()
   async obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
     return this.listarEmpleadosUseCase.obtenerPorId(id);
+  }
+
+  /**
+   * Endpoint para verificar si un número de documento está disponible para registrar un nuevo empleado.
+   * Si ya existe un empleado con ese documento, devuelve sus datos básicos para que el frontend
+   * pueda ofrecer la reactivación en lugar de crear un duplicado.
+   * @GET - /api/v1/rrhh/empleado/dni/disponible/:nro_documento
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @param nro_documento : string - Número de documento a verificar.
+   * @returns 200 OK - { disponible: true } si no existe un empleado con ese documento.
+   *                   { disponible: false, empleado: { id, activo, estado_laboral } } si ya existe.
+   *          401 Unauthorized - El usuario no tiene un token válido.
+   *          403 Forbidden - El usuario no tiene los permisos necesarios.
+   */
+  @Get('dni/disponible/:nro_documento')
+  @Roles('ADMIN', 'RRHH')
+  @ApiSwaggerConfirmarDniDisponible()
+  async confirmarDniDisponible(@Param('nro_documento') nro_documento: string) {
+    return this.validarDniUseCase.execute(nro_documento);
+  }
+
+  /**
+   * Endpoint para autocompletar nombre y apellidos de un empleado consultando RENIEC por DNI.
+   * Los datos no se almacenan: solo se devuelven para rellenar el formulario antes de guardar.
+   * Si RENIEC falla, el frontend debe permitir el ingreso manual de los datos.
+   * @GET - /api/v1/rrhh/empleado/dni/datos-reniec/:nro_documento
+   * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @param nro_documento : string - DNI de 8 dígitos numéricos.
+   * @returns 200 OK - { nombre, apellido_paterno, apellido_materno } obtenidos de RENIEC.
+   *         400 Bad Request - El DNI no tiene exactamente 8 dígitos numéricos.
+   *         401 Unauthorized - El usuario no tiene un token válido.
+   *         403 Forbidden - El usuario no tiene los permisos necesarios.
+   *         404 Not Found - El DNI no fue encontrado en RENIEC.
+   *         408 Request Timeout - RENIEC tardó más de 5 segundos en responder.
+   *         502 Bad Gateway - El servicio de RENIEC no está disponible.
+   */
+  @Get('dni/datos-reniec/:nro_documento')
+  @Roles('ADMIN', 'RRHH')
+  @ApiSwaggerObtenerDatosReniec()
+  async obtenerDatosDni(@Param('nro_documento') nro_documento: string) {
+    return this.obtenerDatosReniecUseCase.execute(nro_documento);
   }
 }

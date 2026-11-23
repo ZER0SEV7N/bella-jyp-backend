@@ -9,6 +9,7 @@ import { bloquearEmpleado, transaccionAuditada } from '@/common/utils/transaccio
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { validarJornadaRegular } from '../../domain/validar-jornada';
 import { validarJornadaSinPeriodosCerrados } from '../../helpers/periodo-editable.helper';
+import { verificarAreaJornada } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 
 /**
  * Caso de uso para asignar una jornada de asistencia a un empleado.
