@@ -54,7 +54,7 @@ export class ZodValidationPipe implements PipeTransform {
 
     // Retorna la data purificada y tipada por Zod
     if (this.preservarCamposParciales && metadata.type === 'body' && value && typeof value === 'object' && !Array.isArray(value))
-      return Object.fromEntries(Object.keys(value).filter((key) => Object.prototype.hasOwnProperty.call(parsedValue.data, key)).map((key) => [key, parsedValue.data[key]]));
+      return Object.fromEntries(Object.keys(value).filter((key) => Object.hasOwn(parsedValue.data, key)).map((key) => [key, parsedValue.data[key]]));
 
     return parsedValue.data;
   }

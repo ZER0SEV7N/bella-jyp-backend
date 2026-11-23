@@ -8,7 +8,7 @@ import { BadRequestException, Logger, PayloadTooLargeException } from '@nestjs/c
 import { IdentityGenerator } from './uuid.util';
 
 // Definición de tamaño máximo de archivo permitido (5 MB)
-const MAX_ARCHIVO_BYTES = 5 * 1024 * 1024;
+export const MAX_ARCHIVO_BYTES = 5 * 1024 * 1024;
 
 // Definición de extensiones permitidas para cada tipo MIME
 const EXTENSIONES_PERMITIDAS: Record<string, string[]> = {
@@ -71,7 +71,7 @@ export class FileStorageUtil {
         // Transform stream para limitar el tamaño del archivo a 5 MB y lanzar una excepción si se excede este límite
         let bytes = 0;
         const limite = new Transform({
-            transform(chunk, encoding, callback) {
+            transform(chunk, _encoding, callback) {
                 bytes += chunk.length;
                 callback(bytes > MAX_ARCHIVO_BYTES ? new PayloadTooLargeException('El archivo no puede superar los 5 MB.') : null, chunk);
             },

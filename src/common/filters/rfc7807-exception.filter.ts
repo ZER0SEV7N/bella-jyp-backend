@@ -1,6 +1,6 @@
 //src/common/filters/rfc7807-exception.filter.ts
 //Filtro para manejar las excepciones y formatearlas según el estándar RFC 7807
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -13,6 +13,13 @@ import { FastifyReply, FastifyRequest } from 'fastify';
  */
 @Catch()
 export class Rfc7807ExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(Rfc7807ExceptionFilter.name);
+
+  /**
+   * Maneja la excepción capturada y envía una respuesta formateada según RFC 7807.
+   * @param exception - La excepción capturada que puede ser de cualquier tipo.
+   * @param host - El contexto de ejecución que contiene la solicitud y la respuesta.
+   */
   catch(exception: unknown, host: ArgumentsHost) {
     //Obtener el contexto de la solicitud y la respuesta de Fastify
     const ctx = host.switchToHttp();
@@ -24,38 +31,25 @@ export class Rfc7807ExceptionFilter implements ExceptionFilter {
     let title = 'Error Interno del Servidor';
     let detail = 'Ocurrió un error inesperado en el servidor.';
     let type = 'https://api.jyp.com/errors/internal-server-error';
-    let errores: unknown;
+    let errores: Record<string, string[]> | undefined;
 
     //Si la excepción es una instancia de HttpException, se obtiene el status y el mensaje de la excepción
     if (exception instanceof HttpException) {
       ({ status, title, detail, type, errores } = this.describirHttp(exception));
-      
-      //Atrapar errores del Prisma
-    } else if (exception instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2003', 'P2025'].includes(exception.code)) {
-      //Mapear los códigos de error de Prisma a códigos de estado HTTP y mensajes de error específicos
-      status = exception.code === 'P2025' ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
-      title = status === HttpStatus.NOT_FOUND ? 'Recurso no encontrado' : 'Conflicto de datos';
-      
-      //Determinar el mensaje de detalle según el código de error
-      if (exception.code === 'P2002') {
-        detail = 'Ya existe un registro con estos datos únicos.';
-      
-      //Si el código de error es P2025, significa que el recurso no existe o cambió durante la operación.
-      } else if (exception.code === 'P2003') {
-        detail = 'La operación referencia datos inexistentes o todavía relacionados.';
-      
-      //Si el código de error es P2003, significa que la operación referencia datos inexistentes o todavía relacionados.
-      } else {
-        detail = 'El recurso ya no existe o cambió durante la operación.';
-      }
 
-      //Establecer el tipo de error según el código de estado HTTP
-      type = `https://api.jyp.com/errors/${status}`;
+      //Si el código de estado es 500 o superior, se registra un error en el log con la información de la solicitud y la traza de la excepción.
+      if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+        this.logger.error(`[${req.method} ${req.url}] HttpException ${status}: ${detail}`, exception.stack );
+      }
+    //Si la excepción es un error conocido de Prisma (P2002, P2003, P2025), se traduce a una respuesta RFC 7807 con campos asociados.
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2003', 'P2025'].includes(exception.code)) {
+      ({ status, title, detail, type, errores } = this.describirErrorPrisma(exception));
+      
+    //Si la excepción no es una HttpException ni un error conocido de Prisma, se registra un error en el log con la información de la solicitud y la traza de la excepción.
     } else {
-      console.error('Error no manejado:', exception);
+      this.logger.error(`[${req.method} ${req.url}] Error no manejado:`, exception instanceof Error ? exception.stack : JSON.stringify(exception));
     }
 
-    //Estructura estandar del RFC 7807
     res.status(status).send({
       type,
       title,
@@ -66,43 +60,131 @@ export class Rfc7807ExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
     });
   }
-  
+
   /**
-   * Método privado que describe una excepción HTTP y devuelve un objeto con información estandarizada según el RFC 7807.
-   * Este método extrae la información relevante de la excepción y la formatea en un objeto que cumple con el estándar RFC 7807.
-   * Esto permite que los clientes de la API comprendan y manejen los errores de manera consistente.
-   * @param exception - La excepción HTTP que se desea describir.
-   * @returns - Un objeto que contiene el código de estado, título, detalle, tipo y errores adicionales de la excepción.
+   * Describe una excepción de tipo HttpException y extrae la información relevante para formatearla según RFC 7807.
+   * Si la excepción contiene un campo `campo` explícito y no tiene `errores`, se construye automáticamente un mapa de errores.
+   * @param exception - La excepción de tipo HttpException que se desea describir.
+   * @returns - Un objeto con la estructura RFC 7807 que describe la excepción, incluyendo el código de estado HTTP, título, detalle, tipo y errores adicionales si los hay.
    */
   private describirHttp(exception: HttpException) {
-    //Obtener el código de estado y la respuesta de la excepción
     const status = exception.getStatus();
     const respuesta = exception.getResponse();
-    
-    //Si la respuesta es una cadena de texto, se devuelve un objeto con la información básica.
-    if (typeof respuesta === 'string')
-      return { status, title: exception.name, detail: respuesta, type: `https://api.jyp.com/errors/${status}`, errores: undefined };
-    
-    //Si la respuesta es un objeto, se extraen los datos relevantes y se devuelven en un formato estandarizado.
+
+    // Si la respuesta es un string, se construye un objeto RFC 7807 con el mensaje de detalle y el título de la excepción.
+    if (typeof respuesta === 'string') {
+      return {
+        status,
+        title: exception.name,
+        detail: this.sanitizarDetalle(status, respuesta),
+        type: `https://api.jyp.com/errors/${status}`,
+        errores: undefined,
+      };
+    }
+
+    // Si la respuesta es un objeto, se extraen los campos relevantes para construir un objeto RFC 7807 con el título, detalle, tipo y errores adicionales si los hay.
     const datos = respuesta as {
       title?: string;
       detail?: string;
       message?: string | string[];
       type?: string;
       error?: string;
-      errores?: unknown;
+      errores?: Record<string, string[]>;
+      campo?: string;
     };
 
-    //Si el mensaje de detalle es un arreglo, se une en una cadena de texto separada por punto y coma; de lo contrario, se utiliza el mensaje tal cual.
-    const mensaje = datos.detail ?? datos.message ?? exception.message;
+    // Se obtiene el mensaje de detalle de la respuesta, ya sea del campo `detail`, `message` o del mensaje de la excepción.
+    const mensajeBruto = datos.detail ?? datos.message ?? exception.message;
+    const texto = Array.isArray(mensajeBruto) ? mensajeBruto.join('; ') : mensajeBruto;
+    const detail = this.sanitizarDetalle(status, texto);
 
-    //Devolver un objeto con la información estandarizada según el RFC 7807, incluyendo el código de estado, título, detalle, tipo y errores adicionales.
+    // Si la excepción de negocio indica un `campo` explícito y no trae `errores`, se arma el mapa automáticamente (COM-M1)
+    const errores = datos.errores ?? (datos.campo && status < 500 ? { [datos.campo]: [detail] } : undefined);
+
     return {
       status,
       title: datos.title ?? datos.error ?? exception.name,
-      detail: Array.isArray(mensaje) ? mensaje.join('; ') : mensaje,
+      detail,
       type: datos.type ?? `https://api.jyp.com/errors/${status}`,
-      errores: datos.errores,
+      errores,
     };
+  }
+
+  /**
+   * Extrae la estructura RFC 7807 de un error conocido de Prisma (P2002, P2003, P2025).
+   * Si es un error 500 y el mensaje contiene trazas técnicas de Prisma o SQL, lo sanitiza para no filtrar esquema (COM-F2).
+   * @param exception - La excepción de Prisma que se desea describir.
+   * @returns - Un objeto con la estructura RFC 7807 que describe el error de Prisma, incluyendo el código de estado HTTP, título, detalle, tipo y errores adicionales si los hay.
+   */
+  private describirErrorPrisma(exception: Prisma.PrismaClientKnownRequestError) {
+    if (exception.code === 'P2025') {
+      return {
+        status: HttpStatus.NOT_FOUND,
+        title: 'Recurso no encontrado',
+        detail: 'El recurso ya no existe o cambió durante la operación.',
+        type: `https://api.jyp.com/errors/${HttpStatus.NOT_FOUND}`,
+        errores: undefined,
+      };
+    }
+
+    //P2002: Unique constraint failed
+    if (exception.code === 'P2002') {
+      //Extrae los campos únicos involucrados en la violación de la restricción única desde el objeto `meta` de la excepción.
+      const target = exception.meta?.target;
+      let campos: string[];
+
+      //Si `target` es un array, se mapean los campos a strings; si es un string, se coloca en un array; si no hay campos, se deja vacío.
+      if (Array.isArray(target)) {
+        campos = target.map(String);
+      } else if (typeof target === 'string') {
+        campos = [target];
+      } else {
+        campos = [];
+      }
+
+      //Si hay campos únicos involucrados, se construye un objeto de errores con los campos y mensajes correspondientes.
+      const errores = campos.length > 0
+          ? Object.fromEntries(campos.map((c) => [c, ['Ya existe un registro con este valor.']]))
+          : undefined;
+
+      //Si no hay campos únicos involucrados, se devuelve un error genérico de conflicto de datos.
+      return {
+        status: HttpStatus.CONFLICT,
+        title: 'Conflicto de datos',
+        detail: 'Ya existe un registro con estos datos únicos.',
+        type: `https://api.jyp.com/errors/${HttpStatus.CONFLICT}`,
+        errores,
+      };
+    }
+
+    //P2003: Foreign key constraint failed
+    return {
+      status: HttpStatus.CONFLICT,
+      title: 'Conflicto de datos',
+      detail: 'La operación referencia datos inexistentes o todavía relacionados.',
+      type: `https://api.jyp.com/errors/${HttpStatus.CONFLICT}`,
+      errores: undefined,
+    };
+  }
+
+  /**
+   * Sanitiza el detalle del error para evitar filtrar información sensible o técnica en errores internos del servidor (500+).
+   * Si el detalle contiene trazas técnicas de Prisma o SQL, se reemplaza por un mensaje genérico.
+   * Esto ayuda a proteger la información del esquema de la base de datos y evita exponer detalles internos a los clientes.
+   * @param status - Código de estado HTTP del error.
+   * @param detalle - Mensaje de detalle del error que puede contener información sensible o técnica.
+   * @returns - Mensaje de detalle sanitizado, o el mensaje original si no es un error interno del servidor.
+   */
+  private sanitizarDetalle(status: number, detalle: string): string {
+    //Si el código de estado es menor a 500, se devuelve el detalle original.
+    if (status < HttpStatus.INTERNAL_SERVER_ERROR) {
+      return detalle;
+    }
+
+    //Si el detalle contiene trazas técnicas de Prisma o SQL, se reemplaza por un mensaje genérico para evitar filtrar información sensible.
+    if (/Invalid `.*prisma|Unique constraint failed|Foreign key constraint|SELECT |INSERT INTO |UPDATE /i.test(detalle)) {
+      return 'Ocurrió un error interno al procesar la operación.';
+    }
+    return detalle;
   }
 }

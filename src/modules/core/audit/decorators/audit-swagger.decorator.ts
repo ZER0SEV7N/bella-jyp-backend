@@ -132,3 +132,66 @@ export function ApiSwaggerObtenerAuditoriaPorId() {
     })
   );
 }
+
+/**
+ * Decorador para documentar el endpoint de obtención del historial de auditoría de un registro específico en Swagger.
+ * @param summary - Resumen de la operación para mostrar en Swagger.
+ * @param querySchema - Esquema de validación para los parámetros de consulta.
+ * @Query - tabla: string - Nombre de la tabla afectada para filtrar los registros.
+ * @Query - registroId: string - ID del registro afectado para filtrar los registros.
+ * @Query - page: number - Número de página para la paginación.
+ * @Query - limit: number - Cantidad de registros por página para la paginación.
+ * @returns Un objeto con el historial de auditoría del registro específico, incluyendo los cambios realizados en sus campos.
+ */
+export function ApiSwaggerObtenerHistorialRegistro() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Obtener Historial de Auditoría de un Registro',
+      description: 'Obtiene el historial de auditoría de un registro específico, incluyendo los cambios realizados en sus campos. Requiere rol ADMIN, RRHH o CONTADOR.',
+    }),
+    ApiQuery({
+      name: 'tabla',
+      required: true,
+      description: 'Nombre de la tabla afectada para filtrar los registros.',
+      schema: { type: 'string' },
+    }),
+    ApiQuery({
+      name: 'registroId',
+      required: true,
+      description: 'ID del registro afectado para filtrar los registros.',
+      schema: { type: 'string' },
+    }),
+    ApiQuery({
+      name: 'page',
+      required: false,
+      description: 'Número de página para la paginación (opcional, por defecto 1).',
+      schema: { type: 'number', default: 1 },
+    }),
+    ApiQuery({
+      name: 'limit',
+      required: false,
+      description: 'Cantidad de registros por página para la paginación (opcional, por defecto 20).',
+      schema: { type: 'number', default: 20 },
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Retorna un objeto con el historial de auditoría del registro específico, incluyendo los cambios realizados en sus campos.',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Solicitud inválida. Devuelve un mensaje de error si los parámetros de consulta no son válidos.',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No autorizado. El usuario no tiene un token válido.',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'No encontrado. No existe un historial de auditoría para el registro especificado.',
+    })
+  );
+}

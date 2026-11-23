@@ -1,7 +1,7 @@
 //src/modules/RRHH/use-cases/organizacion/cargos/estadoCargo.UseCase.ts
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { obtenerCargo } from './helpers/validaciones.helper';
+import { obtenerCargo, validarNombreCargoUnico, verificarNombreUnicoCargoActivo } from './helpers/validaciones.helper';
 import { verificarAreaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 
 /**
@@ -81,7 +81,7 @@ export class EstadoCargoUseCase {
         });
 
       await verificarAreaActiva(this.prisma, cargo.id_area);
-
+      await verificarNombreUnicoCargoActivo(this.prisma, cargo.nombre,cargo.id);
       return await this.prisma.cargo.update({
         where: { id },
         data: { activo: true, deleted_at: null },

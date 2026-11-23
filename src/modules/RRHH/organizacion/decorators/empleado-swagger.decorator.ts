@@ -142,3 +142,170 @@ export function ApiDetalleEmpleado() {
     ApiResponse({ status: 404, description: 'Colaborador no encontrado.' })
   );
 }
+export function ApiSwaggerConfirmarDniDisponible() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Verificar disponibilidad de DNI',
+      description:
+        'Indica si ya existe un colaborador registrado con el número de documento. Si existe, devuelve su id, si está activo y su estado laboral, para que el frontend pueda ofrecer reactivarlo en lugar de crear un duplicado.'
+    }),
+    ApiParam({
+      name: 'nro_documento',
+      description: 'Número de documento a verificar.',
+      required: true,
+      schema: { type: 'string', example: '70112233' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Resultado de la verificación.',
+      content: {
+        'application/json': {
+          examples: {
+            disponible: {
+              summary: 'No existe colaborador con ese documento',
+              value: { disponible: true }
+            },
+            noDisponible: {
+              summary: 'Ya existe un colaborador con ese documento',
+              value: {
+                disponible: false,
+                empleadoExiste: {
+                  id: '018f4a7c-1111-7000-aaaa-000000000001',
+                  activo: true,
+                  estado_laboral: 'VIGENTE'
+                }
+              }
+            }
+          }
+        }
+      }
+    }),
+    ApiResponse({ status: 401, description: 'No autenticado.' }),
+    ApiResponse({ status: 403, description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.' })
+  );
+}
+
+export function ApiSwaggerObtenerDatosReniec() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Autocompletar datos desde RENIEC',
+      description:
+        'Consulta RENIEC por DNI (8 dígitos) y devuelve nombre y apellidos para autocompletar el formulario de registro antes de guardar. Los datos no se almacenan. Si RENIEC falla, el frontend debe permitir el ingreso manual.'
+    }),
+    ApiParam({
+      name: 'nro_documento',
+      description: 'DNI de 8 dígitos numéricos.',
+      required: true,
+      schema: { type: 'string', pattern: '^\\d{8}$', minLength: 8, maxLength: 8, example: '70112233' }
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Datos obtenidos desde RENIEC.',
+      schema: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string', example: 'Carlos Alberto' },
+          apellido_paterno: { type: 'string', example: 'Mendoza' },
+          apellido_materno: { type: 'string', example: 'Pérez' }
+        }
+      }
+    }),
+    ApiResponse({ status: 400, description: 'El DNI debe tener exactamente 8 dígitos numéricos.' }),
+    ApiResponse({ status: 401, description: 'No autenticado.' }),
+    ApiResponse({ status: 403, description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.' }),
+    ApiResponse({ status: 404, description: 'El DNI no fue encontrado en RENIEC.' }),
+    ApiResponse({ status: 408, description: 'RENIEC tardó demasiado en responder (timeout de 5 s).' }),
+    ApiResponse({ status: 429, description: 'Demasiadas consultas. Intente nuevamente en unos minutos.' }),
+    ApiResponse({ status: 502, description: 'Servicio de RENIEC no disponible temporalmente.' })
+  );
+}
+export function ApiSwaggerCrearEmpleadoCompleto() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Crear Colaborador Completo',
+      description:
+        'Registra en una sola operación atómica el legajo, los datos financieros (cuentas y CCI encriptados) y los derechohabientes. Si no se envía nombre y apellido para un DNI de 8 dígitos, se autocompleta vía RENIEC. Para ver los datos antes de guardar, use GET dni/datos-reniec/:nro_documento.'
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        required: ['datosEmpleado', 'datosFinanciero'],
+        properties: {
+          datosEmpleado: {
+            type: 'object',
+            required: ['cargo_id', 'area_id', 'documento_id', 'nro_documento', 'fecha_inicio'],
+            properties: {
+              cargo_id: { type: 'string', format: 'uuid' },
+              area_id: { type: 'string', format: 'uuid' },
+              documento_id: { type: 'string', format: 'uuid' },
+              jornada_id: { type: 'string', format: 'uuid', nullable: true },
+              nro_documento: { type: 'string', example: '70112233' },
+              nombre: { type: 'string', nullable: true, example: 'Carlos' },
+              apellido: { type: 'string', nullable: true, example: 'Mendoza Pérez' },
+              email: { type: 'string', format: 'email', example: 'cmendoza@empresa.pe' },
+              telefono: { type: 'string', example: '998877665' },
+              sexo: { type: 'string', enum: ['MASCULINO', 'FEMENINO'] },
+              estado_civil: { type: 'string', enum: ['SOLTERO', 'CASADO', 'CONVIVIENTE', 'DIVORCIADO', 'VIUDO'], default: 'SOLTERO' },
+              nacionalidad: { type: 'string', default: 'PERUANA' },
+              direccion: { type: 'string', example: 'Av. Nicolás Arriola 1234' },
+              referencia_direccion: { type: 'string', example: 'Frente al parque' },
+              ubigeo: { type: 'string', example: '150115', description: 'Código de 6 dígitos' },
+              distrito: { type: 'string', example: 'La Victoria' },
+              provincia: { type: 'string', example: 'Lima' },
+              departamento: { type: 'string', example: 'Lima' },
+              fecha_nacimiento: { type: 'string', format: 'date-time', example: '1995-05-15T00:00:00.000Z' },
+              fecha_inicio: { type: 'string', format: 'date-time', example: '2026-09-01T00:00:00.000Z' },
+              afp_fecha_filiacion: { type: 'string', format: 'date-time', nullable: true },
+              asig_familiar: { type: 'boolean', default: false }
+            }
+          },
+          datosFinanciero: {
+            type: 'object',
+            required: ['id_regimen', 'sueldo_basico', 'regimen_salud'],
+            properties: {
+              id_regimen: { type: 'string', format: 'uuid' },
+              id_tipo_afp: { type: 'string', format: 'uuid', nullable: true },
+              sueldo_basico: { type: 'number', example: 2500 },
+              cuspp: { type: 'string', nullable: true },
+              tipo_comision: { type: 'string', nullable: true },
+              id_banco_sueldo: { type: 'string', format: 'uuid', nullable: true },
+              tipo_cuenta_sueldo: { type: 'string', nullable: true },
+              nro_cuenta_sueldo: { type: 'string', nullable: true },
+              cci_sueldo: { type: 'string', nullable: true },
+              id_banco_cts: { type: 'string', format: 'uuid', nullable: true },
+              tipo_cuenta_cts: { type: 'string', nullable: true },
+              nro_cuenta_cts: { type: 'string', nullable: true },
+              cci_cts: { type: 'string', nullable: true },
+              regimen_salud: { type: 'string' },
+              eps_nombre: { type: 'string', nullable: true },
+              eps_plan: { type: 'string', nullable: true },
+              eps_costo_adicional: { type: 'number', default: 0 }
+            }
+          },
+          derechosHabientes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                documento_id: { type: 'string', format: 'uuid' },
+                nro_documento: { type: 'string' },
+                nombres: { type: 'string' },
+                apellidos: { type: 'string' },
+                vinculo: { type: 'string', example: 'HIJO_MENOR' },
+                estado_civil: { type: 'string' },
+                sexo: { type: 'string', enum: ['MASCULINO', 'FEMENINO'] },
+                fecha_nacimiento: { type: 'string', format: 'date-time' }
+              }
+            }
+          }
+        }
+      }
+    }),
+    ApiResponse({ status: 201, description: 'Empleado registrado exitosamente.' }),
+    ApiResponse({ status: 400, description: 'Datos inválidos o AFP sin la información requerida.' }),
+    ApiResponse({ status: 401, description: 'No autenticado.' }),
+    ApiResponse({ status: 403, description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.' }),
+    ApiResponse({ status: 404, description: 'Área, cargo, jornada, documento, régimen, AFP o banco no encontrado.' }),
+    ApiResponse({ status: 409, description: 'Ya existe un empleado con ese número de documento.' })
+  );
+}

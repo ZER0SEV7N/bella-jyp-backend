@@ -8,30 +8,72 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { DiaHorarioDto } from '@jyp/shared-contracts';
 
+const MINUTOS_POR_DIA = 24 * 60;
+
 /**
- * Calcula la cantidad de horas trabajadas en un día específico, considerando la entrada, salida y los periodos de descanso.
- * @param dia - Objeto que representa el horario de un día, incluyendo si es laborable, la hora de entrada, salida y los periodos de descanso.
- * @returns La cantidad de horas trabajadas en el día, redondeada a dos decimales. Retorna 0 si el día no es laborable o si faltan datos de entrada/salida.
- * @throws {BadRequestException} Si hay un error en la validación de los datos del día.
+ * Convierte una hora en formato 'HH:mm' al total de minutos desde la medianoche.
+ */
+function convertirHoraAMinutos(hora: string): number {
+  const [horas, minutos] = hora.split(':').map(Number);
+  return horas * 60 + minutos;
+}
+
+/**
+ * Valida y calcula los minutos de descanso asegurándose de que esté completo
+ * y estrictamente contenido dentro del rango [entrada, salida] del turno.
+ */
+function calcularMinutosDescanso(
+  dia: DiaHorarioDto,
+  entradaMin: number,
+  duracionTurnoMin: number,
+): number {
+  const tieneInicio = Boolean(dia.inicio_descanso);
+  const tieneFin = Boolean(dia.fin_descanso);
+
+  if (tieneInicio !== tieneFin) {
+    throw new BadRequestException(
+      `Debe indicar tanto el inicio como el fin del descanso en ${dia.dia}.`,
+    );
+  }
+
+  if (!dia.inicio_descanso || !dia.fin_descanso) return 0;
+
+  const inicio = convertirHoraAMinutos(dia.inicio_descanso);
+  const fin = convertirHoraAMinutos(dia.fin_descanso);
+
+  // Normaliza respecto a la entrada para soportar turnos nocturnos que cruzan medianoche
+  const offsetInicio = inicio >= entradaMin ? inicio - entradaMin : inicio - entradaMin + MINUTOS_POR_DIA;
+  const offsetFin = fin >= entradaMin ? fin - entradaMin : fin - entradaMin + MINUTOS_POR_DIA;
+
+  if (offsetInicio < 0 || offsetFin > duracionTurnoMin || offsetFin <= offsetInicio) {
+    throw new BadRequestException(
+      `El descanso de ${dia.dia} (${dia.inicio_descanso}-${dia.fin_descanso}) debe estar contenido dentro del horario (${dia.entrada}-${dia.salida}).`,
+    );
+  }
+
+  return offsetFin - offsetInicio;
+}
+
+/**
+ * Calcula la cantidad de horas efectivas trabajadas en un día específico,
+ * considerando la entrada, salida y validando que el periodo de descanso esté dentro del horario.
+ * @param dia - Objeto que representa el horario de un día (laborable, entrada, salida y descanso).
+ * @returns Horas efectivas trabajadas redondeadas a dos decimales, o 0 si no es laborable / faltan horas.
+ * @throws {BadRequestException} Si el descanso está incompleto o cae fuera del rango [entrada, salida].
  */
 export function calcularHorasDia(dia: DiaHorarioDto): number {
   if (!dia.laborable || !dia.entrada || !dia.salida) return 0;
 
-  const [hEnt, mEnt] = dia.entrada.split(':').map(Number);
-  const [hSal, mSal] = dia.salida.split(':').map(Number);
+  const entradaMin = convertirHoraAMinutos(dia.entrada);
+  const salidaMin = convertirHoraAMinutos(dia.salida);
 
-  let minutosTotales = hSal * 60 + mSal - (hEnt * 60 + mEnt);
-  if (minutosTotales <= 0) minutosTotales += 24 * 60; // Cruce de medianoche
+  let duracionTurnoMin = salidaMin - entradaMin;
+  if (duracionTurnoMin <= 0) duracionTurnoMin += MINUTOS_POR_DIA; // Cruce de medianoche
 
-  if (dia.inicio_descanso && dia.fin_descanso) {
-    const [hDescIni, mDescIni] = dia.inicio_descanso.split(':').map(Number);
-    const [hDescFin, mDescFin] = dia.fin_descanso.split(':').map(Number);
-    let descansoMinutos = hDescFin * 60 + mDescFin - (hDescIni * 60 + mDescIni);
-    if (descansoMinutos <= 0) descansoMinutos += 24 * 60;
-    minutosTotales -= descansoMinutos;
-  }
+  const descansoMin = calcularMinutosDescanso(dia, entradaMin, duracionTurnoMin);
+  const minutosEfectivos = Math.max(0, duracionTurnoMin - descansoMin);
 
-  return Math.max(0, Number((minutosTotales / 60).toFixed(2)));
+  return Number((minutosEfectivos / 60).toFixed(2));
 }
 
 /**

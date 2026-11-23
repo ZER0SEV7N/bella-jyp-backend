@@ -1,72 +1,48 @@
-//src/modules/core/audit/use-cases/ObtenerLogs.useCase.ts
-//Caso de uso para obtener logs de auditoría con filtros y paginación
+//src/modules/core/audit/use-cases/obtenerLogs.useCase.ts
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ObtenerAuditQueryDto } from '@jyp/shared-contracts';
+import { calcularCambiosAuditoria, TABLAS_PERMITIDAS_RRHH } from '../helpers/calcular-cambios-auditoria.helper';
+import { construirFiltroBase } from '../helpers/construir-filtro-base-auditoria.helper';
 
 /**
- * Caso de uso para obtener logs de auditoría con filtros y paginación.
- * Este caso de uso permite a los usuarios con roles específicos (ADMIN, JYP, CONTADOR)
- * consultar los logs de auditoría del sistema, aplicando filtros por tabla afectada,
- * acción, usuario y registro.
+ * Caso de uso para consulta de bitácoras e historial de auditoría:
+ * - Restringe las tablas visibles por `RRHH` a su ámbito funcional (excluyendo `usuarios`) (`AUD-F4`).
+ * - Soporta filtrado por rango de fechas (`desde`, `hasta`) (`AUD-M1`).
+ * - Calcula diferencias campo por campo (`cambios` y `campos_modificados`) y expone el historial
+ *   por registro o por colaborador (`AUD-M2`).
  */
 @Injectable()
 export class ObtenerLogsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Ejecuta la consulta de logs de auditoría según los filtros proporcionados.
-   * @param query - DTO que contiene los parámetros de consulta para filtrar los logs.
-   * @param userRequesting - Información del usuario que realiza la solicitud, incluyendo su ID y rol.
-   * @returns Un objeto que contiene los logs filtrados y la información de paginación.
-   * @throws ForbiddenException si el usuario no tiene los privilegios necesarios para auditar el sistema.
-   */
-  async execute(query: ObtenerAuditQueryDto, userRequesting: { id: string; rol: string }) {
-    const { page, limit, tabla_afectada, accion, usuario_id, registro_id } = query; //Parametros de consulta para filtrar los logs de auditoría
-    const skip = (page - 1) * limit; //Calcular el número de registros a omitir para la paginación
+  async execute( query: ObtenerAuditQueryDto & { desde?: string; hasta?: string }, userRequesting: { id: string; rol: string } ) {
+    const { page = 1, limit = 50, tabla_afectada, accion, usuario_id, registro_id, desde, hasta } = query;
+    const skip = (page - 1) * limit;
 
-    const where: Prisma.audit_logWhereInput = {}; //Objeto para almacenar los filtros de consulta
+    const where = construirFiltroBase(userRequesting, {
+      tabla_afectada,
+      accion,
+      usuario_id,
+      registro_id,
+      desde,
+      hasta,
+    });
 
-    if (tabla_afectada) where.tabla_afectada = tabla_afectada; //Agregar filtro por tabla afectada si se proporciona
-    if (accion) where.accion = accion; //Agregar filtro por acción si se proporciona
-    if (usuario_id) where.usuario_id = usuario_id; //Agregar filtro por ID de usuario si se proporciona
-    if (registro_id) where.registro_id = registro_id; //Agregar filtro por ID de registro si se proporciona
-
-    //REGLA DE NEGOCIO: Privacidad de Auditoría
-    if (userRequesting.rol === 'ADMIN' || userRequesting.rol === 'RRHH') {
-      //El administrador puede filtrar libremente por cualquier usuario_id si lo desea
-      if (usuario_id) where.usuario_id = usuario_id;
-    } else if (userRequesting.rol === 'CONTADOR') {
-      //El contador solo puede ver sus propias acciones o las de los asistentes
-      where.usuarios = {
-        OR: [
-          { id: userRequesting.id }, // Lo suyo
-          { rol: 'ASISTENTE' }, // Lo de los asistentes
-        ],
-      };
-
-      //Si el contador intentó buscar un ID específico en los filtros,
-      //validamos que no esté intentando espiar a otro Contador o al Admin.
-      if (usuario_id) where.usuario_id = usuario_id; // Prisma unirá este AND con el OR de arriba
-    } else throw new ForbiddenException('No tiene los privilegios para auditar el sistema.'); //Si por algún motivo otro rol llega aquí (RRHH), le denegamos la vista global
-
-    //Ejecutar la consulta
     const [total, logs] = await this.prisma.$transaction([
-      this.prisma.audit_log.count({ where: where }),
+      this.prisma.audit_log.count({ where }),
       this.prisma.audit_log.findMany({
-        where: where,
-        skip: skip,
+        where,
+        skip,
         take: limit,
         orderBy: { created_at: 'desc' },
-        omit: { valores_antes: true, valores_despues: true }, //Ordenar los resultados por fecha de creación en orden descendente
-        //Traer información del usuario que realizó la acción
+        omit: { valores_antes: true, valores_despues: true },
         include: {
           usuarios: {
             select: {
               email: true,
               rol: true,
-              //Traer información del empleado asociado al usuario
               empleados: {
                 select: {
                   nro_documento: true,
@@ -79,36 +55,38 @@ export class ObtenerLogsUseCase {
         },
       }),
     ]);
+
     return {
       data: logs,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
-  /**
-   * Ejecucion de la consulta para obtener un log de auditoría por su ID.
-   * Sirve para obtener un registro específico de auditoría, asegurando que el usuario que realiza la solicitud tenga los privilegios necesarios.
-   * @param id - ID del log de auditoría a obtener.
-   * @param usuario - Información del usuario que realiza la solicitud, incluyendo su ID y rol.
-   * @returns El registro de auditoría correspondiente al ID proporcionado.
-   */
   async obtenerPorId(id: string, usuario: { id: string; rol: string }) {
-    //Regla de negocio: Solo los roles ADMIN, RRHH y CONTADOR pueden acceder a los logs de auditoría
-    if (!['ADMIN', 'RRHH', 'CONTADOR'].includes(usuario.rol)) 
+    if (!['ADMIN', 'RRHH', 'CONTADOR'].includes(usuario.rol)) {
       throw new ForbiddenException('No tiene privilegios para auditar el sistema.');
+    }
 
-    //Construir la condición de búsqueda según el rol del usuario
     const where: Prisma.audit_logWhereUniqueInput = { id };
-
-    //Regla de negocio: Si el usuario es CONTADOR, solo puede ver sus propios logs o los de los asistentes
-    if (usuario.rol === 'CONTADOR') 
+    if (usuario.rol === 'CONTADOR') {
       where.usuarios = { OR: [{ id: usuario.id }, { rol: 'ASISTENTE' }] };
-    
-    //Ejecutar la consulta para obtener el registro de auditoría
+    }
+
     const registro = await this.prisma.audit_log.findUnique({ where });
-    if (!registro) 
+    if (!registro) {
       throw new NotFoundException('Registro de auditoría no encontrado.');
-    
-    return registro;
+    }
+
+    if ( usuario.rol === 'RRHH' && !(TABLAS_PERMITIDAS_RRHH as readonly string[]).includes(registro.tabla_afectada)) {
+      throw new ForbiddenException('No tiene privilegios para consultar la auditoría de esta tabla.');
+    }
+
+    const cambios = calcularCambiosAuditoria(registro.valores_antes, registro.valores_despues);
+    return {
+      ...registro,
+      cambios,
+      campos_modificados: cambios.map((c) => c.etiqueta),
+    };
   }
+
 }

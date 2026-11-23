@@ -21,7 +21,17 @@ export class VerificarExpiracionContratosUseCase {
     const hoy = new Date();
     const fechaLimite = new Date();
     fechaLimite.setUTCDate(hoy.getUTCDate() + this.DIAS_ANTICIPACION);
-
+    
+    await this.prisma.contratos.updateMany({
+      where:{
+        estado: estado_contrato_enum.VIGENTE,
+        fecha_fin: { lt: hoy },
+        deleted_at: null,
+      },
+      data:{
+        estado: estado_contrato_enum.VENCIDO
+      }
+    });
     //Realizar la consulta a la base de datos para contar los contratos que expiran entre hoy y la fecha límite
     const cantidad = await this.prisma.contratos.count({
       where: {

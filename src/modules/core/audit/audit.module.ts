@@ -3,13 +3,14 @@
 import { Module } from '@nestjs/common';
 import { AuditController } from './controller/audit.controller';
 import { ObtenerLogsUseCase } from './use-cases/obtenerLogs.useCase';
+import { ObtenerHistorialUseCase } from './use-cases/obtenerHistorial.useCase';
 import { RegistroAuditoriaUseCase } from './use-cases/registroAuditoria.useCase';
 import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [ClsModule],
   controllers: [AuditController],
-  providers: [ObtenerLogsUseCase, RegistroAuditoriaUseCase],
-  exports: [ObtenerLogsUseCase, RegistroAuditoriaUseCase],
+  providers: [ObtenerLogsUseCase, ObtenerHistorialUseCase, RegistroAuditoriaUseCase],
+  exports: [ObtenerLogsUseCase, ObtenerHistorialUseCase, RegistroAuditoriaUseCase],
 })
 export class AuditModule {}

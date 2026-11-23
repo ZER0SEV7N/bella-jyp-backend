@@ -29,7 +29,7 @@ export class ProvisionarUsuarioUseCase {
     const empleado = await this.prisma.empleados.findUnique({where: { nro_documento: dto.nro_documento }});
 
     //Validación: Si el empleado no existe, lanzar una excepción NotFoundException
-    if (!empleado || !empleado.activo || empleado.deleted_at !== null)
+    if (!empleado?.activo || empleado?.deleted_at !== null)
       throw new NotFoundException({
         type: 'https://api.jyp.com/errors/not-found',
         title: 'Empleado Inexistente',

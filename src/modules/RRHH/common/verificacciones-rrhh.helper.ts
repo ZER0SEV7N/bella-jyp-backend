@@ -1,6 +1,7 @@
 //src/modules/RRHH/common/verificacciones-rrhh.helper.ts
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 /**
  * Función para verificar si un área está activa en la base de datos.
@@ -76,14 +77,32 @@ export async function verificarJornadaActiva( prisma: PrismaService, jornadaId?:
         detail: 'La jornada de trabajo no existe o se encuentra inactiva.',
     });
 }
-
+export async function verificarAreaJornada(prisma: Prisma.TransactionClient, jornadaId: string, idArea:string) {
+    const areasPermitidas = await prisma.jornada_area.findMany({
+        where:{
+            jornada_id: jornadaId,
+             
+        },
+        select:{
+            area_id:true,      
+        }
+    });
+    if (areasPermitidas.length === 0) {
+        return;
+    }
+    const estaPermitida = areasPermitidas.some((item)=>item.area_id === idArea);
+    if(!estaPermitida) throw new BadRequestException({
+        title: 'Jornada incompatible con el area',
+        detail:`La jornada no esta relacionada con el area seleccionada`,
+    })
+}
 /**
  * Verifica si un número de documento es único en la base de datos.
  * @param prisma - Instancia del servicio Prisma para acceder a la base de datos.
  * @param nroDocumento - Número de documento a verificar.
  * @param empleadoIdExcluir - ID del empleado a excluir de la verificación (opcional).
- * @throws BadRequestException si el número de documento ya pertenece a otro colaborador.
- */
+ * @throws ConflictException si el número de documento ya pertenece a otro colaborador.
+*/
 export async function verificarDocumentoUnico(prisma: PrismaService, nroDocumento?: string, empleadoIdExcluir?: string): Promise<void> {
     //Si no se proporciona un número de documento, no se realiza ninguna verificación.
     if (!nroDocumento) return;
@@ -93,13 +112,22 @@ export async function verificarDocumentoUnico(prisma: PrismaService, nroDocument
         where: {
             nro_documento: nroDocumento.trim(),
             ...(empleadoIdExcluir ? { id: { not: empleadoIdExcluir } } : {}),
-            deleted_at: null,
         },
-        select: { id: true },
+        select: { id: true, deleted_at:true, activo: true },
     });
 
+    //respuesta si no existe duplicado
+    if (!duplicado) return;
+
+    //Si el documento le pertenece a un empleado ya activo
+    if(duplicado.deleted_at === null && duplicado.activo){
+        throw new ConflictException({
+            title: 'Documento Duplicado',
+            detail: `El documento '${nroDocumento.trim()}' - le pertenece a un empleado ya activo.`,
+        })
+    }
     //Si se encuentra un empleado con el mismo número de documento, lanza una excepción indicando que el documento es duplicado.
-    if (duplicado) throw new BadRequestException({
+    throw new ConflictException({
         title: 'Documento Duplicado',
         detail: `El documento '${nroDocumento.trim()}' ya pertenece a otro colaborador.`,
     });
@@ -127,8 +155,32 @@ export async function verificarNombreAreaUnico(prisma: PrismaService, nombre?: s
     });
 
     //Si se encuentra un área con el mismo nombre, lanza una excepción indicando que el nombre del área es duplicado.
-    if (colision) throw new BadRequestException({
+    if (colision) throw new ConflictException({
         title: 'Área Duplicada',
         detail: `Ya existe un área registrada con el nombre '${limpio}'.`,
     });
+}
+
+export async function verificarCargoArea(prisma:PrismaService, idCargo?:string | null, idArea?:string | null ) {
+    //verioficar entrada de los datos necesarios
+    if (!idCargo || !idArea) {
+        return
+    }
+    // encontrar cargo con relacion al area
+    const valido = await prisma.cargo.findFirst({
+        where:{
+            id: idCargo,
+            id_area:idArea,
+            deleted_at:null,
+        }
+    });
+    
+    // si existe relacion entre el cargo y el area
+    if (valido) return
+    
+    //excepcion sin no exsite relacion entre cargo y area
+    throw new BadRequestException({
+        title: 'Área y Cargo Imcompatibles',
+        detail: `El cargo seleccionado no pertenece al área indicada.`,
+    })
 }

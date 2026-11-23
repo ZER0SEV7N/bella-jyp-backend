@@ -14,6 +14,12 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
+  /**
+   * Verifica si el usuario tiene acceso a la ruta protegida según los roles requeridos.
+   * @param context - Contexto de ejecución que contiene la solicitud HTTP y el usuario autenticado.
+   * @returns boolean - Retorna true si el usuario tiene acceso, de lo contrario lanza una excepción ForbiddenException.
+   * @throws ForbiddenException - Si el usuario no tiene los roles necesarios para acceder a la ruta.
+   */
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
       ROLES_KEY,

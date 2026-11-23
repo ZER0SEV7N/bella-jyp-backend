@@ -21,7 +21,6 @@ export class ServerTime {
     static get obtenerMesActual(): number { return dayjs().tz(TIMEZONE_PERU).month() + 1; }
     static get obtenerFechaSimpleActual(): Date { return this.desdeFechaSimple(dayjs().tz(TIMEZONE_PERU).format('YYYY-MM-DD')); }
     static get obtenerRangoMesActual() { return this.obtenerRangoMes(this.obtenerPeriodoActual); }
-
     /**
      * Convierte un objeto Date a una cadena de fecha en formato "YYYY-MM-DD" en la zona horaria de Perú.
      * @param instante - El objeto Date a convertir.

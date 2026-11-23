@@ -74,7 +74,7 @@ export class CryptoUtil {
         } catch (error) {
             throw new InternalServerErrorException(
                 'Fallo de encriptación al intentar proteger datos financieros sensibles.',
-                error instanceof Error ? error.message : String(error)
+                error instanceof Error ? error.message : JSON.stringify(error)
             );  
         }
     }
@@ -126,7 +126,7 @@ export class CryptoUtil {
         } catch (error) {
             throw new InternalServerErrorException(
                 'Fallo al desencriptar dato financiero. La clave de cifrado o los datos fueron alterados.',
-                error instanceof Error ? error.message : String(error)
+                error instanceof Error ? error.message : JSON.stringify(error)
             );
         }
     }

@@ -42,7 +42,7 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<T, Respo
         const statusCode = response.statusCode; //Código de estado HTTP de la respuesta
         if (response.sent) return data;
         //En caso de que la data tenga la estructura {data: [], meta: {}} se respeta esa estructura
-        if (data?.meta && Object.prototype.hasOwnProperty.call(data, 'data')) 
+        if (data?.meta && Object.hasOwn(data, 'data')) 
           return {
             statusCode,
             data: data.data,

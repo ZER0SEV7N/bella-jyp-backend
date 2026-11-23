@@ -3,7 +3,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 import Piscina from 'piscina';
-import type { EntradaPlanilla, SalidaPlanilla } from '@/modules/payroll/planillas/domain/planilla.types';
+import type { EntradaPlanilla, SalidaPlanilla } from '@/modules/nomina/planillas/domain/planilla.types';
 
 /**
  * Clase que representa un worker de Piscina para el cálculo masivo de planillas.
