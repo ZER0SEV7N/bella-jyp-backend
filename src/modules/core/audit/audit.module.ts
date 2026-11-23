@@ -13,7 +13,18 @@ import { ClsModule } from 'nestjs-cls';
 @Module({
   imports: [ClsModule],
   controllers: [AuditController],
-  providers: [ObtenerLogsUseCase, ObtenerHistorialUseCase, RegistroAuditoriaUseCase, ListarActividadUseCase, ObtenerActividadPorIdUseCase, ListarLineaTiempoAfectadoUseCase],
-  exports: [ObtenerLogsUseCase, ObtenerHistorialUseCase, RegistroAuditoriaUseCase],
+  providers: [
+    ObtenerLogsUseCase,
+    ObtenerHistorialUseCase,
+    RegistroAuditoriaUseCase,
+    ListarActividadUseCase,
+    ObtenerActividadPorIdUseCase,
+    ListarLineaTiempoAfectadoUseCase,
+  ],
+  exports: [
+    ObtenerLogsUseCase,
+    ObtenerHistorialUseCase,
+    RegistroAuditoriaUseCase,
+  ],
 })
 export class AuditModule {}

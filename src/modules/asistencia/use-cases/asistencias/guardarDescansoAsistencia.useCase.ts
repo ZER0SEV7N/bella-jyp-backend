@@ -4,7 +4,10 @@ import { ServerTime } from '@/common/utils/server-time';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { DiaAdicionalCalendarioDto } from '@jyp/shared-contracts';
 import { Injectable } from '@nestjs/common';
-import { bloquearPeriodo, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
+import {
+  bloquearPeriodo,
+  transaccionAuditada,
+} from '@/common/utils/transaccion-auditada.util';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { validarFechaSinPeriodoCerrado } from '../../helpers/periodo-editable.helper';
 
@@ -46,7 +49,12 @@ export class GuardarDescansoAsistenciaUseCase {
           activo: dto.activo,
           usuario_id: actor.id,
         },
-        update: { nombre: dto.nombre, motivo: dto.motivo, activo: dto.activo, usuario_id: actor.id },
+        update: {
+          nombre: dto.nombre,
+          motivo: dto.motivo,
+          activo: dto.activo,
+          usuario_id: actor.id,
+        },
       });
 
       // Solo se invalidan resúmenes pendientes para mostrarlos desactualizados y exigir regeneración antes de aprobar; los aprobados están bloqueados y los rechazados no se aprueban.

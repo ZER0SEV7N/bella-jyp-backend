@@ -61,7 +61,10 @@ function obtenerTextoProtegido(valor: unknown): string {
  * @param valor - Valor protegido.
  * @returns La huella, o `null` si el secreto no está configurado.
  */
-export function calcularHuellaAuditoria(campo: string, valor: unknown): string | null {
+export function calcularHuellaAuditoria(
+  campo: string,
+  valor: unknown
+): string | null {
   const secreto = process.env.AUDITORIA_HUELLA_SECRETO;
   if (!secreto) return null;
   return createHmac('sha256', secreto)
@@ -86,8 +89,12 @@ export function crearSnapshotAuditoria(valor: unknown): unknown {
   }
 
   return JSON.parse(
-    JSON.stringify(valor, (key, value) => {
-      if (CAMPOS_SENSIBLES_AUDITORIA.has(key) && value !== null && value !== undefined) {
+    JSON.stringify(valor, (key, value: unknown): unknown => {
+      if (
+        CAMPOS_SENSIBLES_AUDITORIA.has(key) &&
+        value !== null &&
+        value !== undefined
+      ) {
         if (CAMPOS_CON_HUELLA_AUDITORIA.has(key)) {
           const huella = calcularHuellaAuditoria(key, value);
           return huella ? `[OCULTO:${huella}]` : '[OCULTO]';
@@ -98,6 +105,6 @@ export function crearSnapshotAuditoria(valor: unknown): unknown {
         return value.toString();
       }
       return value;
-    }),
+    })
   );
 }

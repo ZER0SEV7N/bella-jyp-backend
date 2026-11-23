@@ -1,5 +1,12 @@
 //src/modules/RRHH/datoFinanciero/use-case/agregarDatoFinanciero.useCase.ts
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CrearDatoFinancieroDto } from '@jyp/shared-contracts';
 import { CryptoUtil } from '@/common/utils/crypto.util';
@@ -18,15 +25,19 @@ export class AgregarDatoFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Ejecuta el caso de uso para agregar datos financieros de un empleado.
-   * @param dto Objeto que contiene los datos financieros a registrar.
+   * Ejecuta el caso de uso para agregar datos financieros de un empleado (COM-F3).
+   * @param dto - Objeto que contiene los datos financieros a registrar.
    * @returns El registro de datos financieros creado.
-   * @throws NotFoundException si el empleado, banco o régimen no existen o no son válidos.
-   * @throws InternalServerErrorException si ocurre un error al intentar crear el registro.
+   * @throws {NotFoundException} Si el empleado, cargo, banco o régimen no existen o no son válidos.
+   * @throws {ConflictException} Si el empleado ya cuenta con datos financieros activos.
+   * @throws {BadRequestException} Si el sueldo está fuera del rango del cargo o faltan datos de AFP.
+   * @throws {InternalServerErrorException} Si ocurre un error al intentar crear el registro.
    */
   async execute(dto: CrearDatoFinancieroDto) {
     //Validar existencia de empleado
-    const empleado = await this.prisma.empleados.findUnique({ where: { id: dto.empleado_id, deleted_at: null } });
+    const empleado = await this.prisma.empleados.findUnique({
+      where: { id: dto.empleado_id, deleted_at: null },
+    });
 
     if (!empleado)
       throw new NotFoundException({
@@ -35,7 +46,9 @@ export class AgregarDatoFinancieroUseCase {
       });
 
     // 2. Validar que no exista dato financiero duplicado
-    const datoExistente = await this.prisma.dato_financiero.findFirst({ where: { empleado_id: dto.empleado_id, deleted_at: null } });
+    const datoExistente = await this.prisma.dato_financiero.findFirst({
+      where: { empleado_id: dto.empleado_id, deleted_at: null },
+    });
 
     if (datoExistente)
       throw new ConflictException({
@@ -47,11 +60,19 @@ export class AgregarDatoFinancieroUseCase {
 
     try {
       // 4. Encriptación simétrica AES-256-GCM para cuentas y CCIs
-      const nroCuentaSueldoEncrypted = CryptoUtil.encryptOptional(dto.nro_cuenta_sueldo);
+      const nroCuentaSueldoEncrypted = CryptoUtil.encryptOptional(
+        dto.nro_cuenta_sueldo
+      );
       const cciSueldoEncrypted = CryptoUtil.encryptOptional(dto.cci_sueldo);
-      const nroCuentaCtsEncrypted = CryptoUtil.encryptOptional(dto.nro_cuenta_cts);
+      const nroCuentaCtsEncrypted = CryptoUtil.encryptOptional(
+        dto.nro_cuenta_cts
+      );
       const cciCtsEncrypted = CryptoUtil.encryptOptional(dto.cci_cts);
-      await validarSueldoCargo(this.prisma,empleado.cargo_id,dto.sueldo_basico);
+      await validarSueldoCargo(
+        this.prisma,
+        empleado.cargo_id,
+        dto.sueldo_basico
+      );
       const nuevoDatoFinanciero = await this.prisma.dato_financiero.create({
         data: {
           id: IdentityGenerator.generateId(),
@@ -88,13 +109,17 @@ export class AgregarDatoFinancieroUseCase {
         mensaje: 'Datos financieros del colaborador registrados exitosamente.',
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+
       throw new InternalServerErrorException({
         title: 'Error al Registrar Datos Financieros',
-        detail: error instanceof Error ? error.message : 'Fallo interno al registrar la información financiera.',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Fallo interno al registrar la información financiera.',
       });
     }
   }
-
 
   /**
    * Metodo asincronico privado para validar la existencia de entidades foráneas de previsión y bancarias.
@@ -103,30 +128,49 @@ export class AgregarDatoFinancieroUseCase {
    * @throws NotFoundException si alguna de las entidades no existe en la base de datos.
    * @throws BadRequestException si la AFP requiere información adicional que no se ha proporcionado.
    */
-  private async validarPrevisionYBancos(dto: CrearDatoFinancieroDto, afiliacion: Date | null): Promise<void> {
+  private async validarPrevisionYBancos(
+    dto: CrearDatoFinancieroDto,
+    afiliacion: Date | null
+  ): Promise<void> {
     //Validar existencia de régimen, AFP y bancos de forma concurrente
     const [regimen, tipoAfp, bancoSueldo, bancoCts] = await Promise.all([
       //Validar régimen de pensión
       this.prisma.regimen_pension.findUnique({ where: { id: dto.id_regimen } }),
       //Validar tipo de AFP solo si se proporciona
-      dto.id_tipo_afp ? this.prisma.tipo_afp.findUnique({ where: { id: dto.id_tipo_afp } }) : null,
-      dto.id_banco_sueldo ? this.prisma.bancos.findUnique({ where: { id: dto.id_banco_sueldo } }) : null,
-      dto.id_banco_cts ? this.prisma.bancos.findUnique({ where: { id: dto.id_banco_cts } }) : null,
+      dto.id_tipo_afp
+        ? this.prisma.tipo_afp.findUnique({ where: { id: dto.id_tipo_afp } })
+        : null,
+      dto.id_banco_sueldo
+        ? this.prisma.bancos.findUnique({ where: { id: dto.id_banco_sueldo } })
+        : null,
+      dto.id_banco_cts
+        ? this.prisma.bancos.findUnique({ where: { id: dto.id_banco_cts } })
+        : null,
     ]);
 
     //Validar resultados de las consultas y lanzar excepciones si alguna entidad no existe
-    if (!regimen) throw new NotFoundException('El régimen de pensión especificado no existe.');
-    if (dto.id_tipo_afp && !tipoAfp) throw new NotFoundException('El tipo de AFP especificado no existe.');
-    if (dto.id_banco_sueldo && !bancoSueldo) throw new NotFoundException('El banco para sueldo no existe.');
-    if (dto.id_banco_cts && !bancoCts) throw new NotFoundException('El banco para CTS no existe.');
-    
+    if (!regimen)
+      throw new NotFoundException(
+        'El régimen de pensión especificado no existe.'
+      );
+    if (dto.id_tipo_afp && !tipoAfp)
+      throw new NotFoundException('El tipo de AFP especificado no existe.');
+    if (dto.id_banco_sueldo && !bancoSueldo)
+      throw new NotFoundException('El banco para sueldo no existe.');
+    if (dto.id_banco_cts && !bancoCts)
+      throw new NotFoundException('El banco para CTS no existe.');
+
     //Validar que si el régimen es AFP, se proporcionen todos los datos requeridos
     const esAfp = /AFP|SPP/i.test(regimen.nombre);
     if (esAfp && (!tipoAfp || !dto.cuspp || !dto.tipo_comision || !afiliacion))
-      throw new BadRequestException('AFP requiere administradora, CUSPP, comisión y fecha de afiliación en el legajo.');
-    
+      throw new BadRequestException(
+        'AFP requiere administradora, CUSPP, comisión y fecha de afiliación en el legajo.'
+      );
+
     //Validar que la AFP proporcionada corresponda al régimen de pensión seleccionado
-    if (tipoAfp && tipoAfp.id_regimen !== regimen.id) 
-      throw new BadRequestException('La AFP no corresponde al régimen pensionario.');
+    if (tipoAfp && tipoAfp.id_regimen !== regimen.id)
+      throw new BadRequestException(
+        'La AFP no corresponde al régimen pensionario.'
+      );
   }
 }

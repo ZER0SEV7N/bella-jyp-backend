@@ -1,7 +1,10 @@
 import { ConflictException } from '@nestjs/common';
 import { AsignarJornadaAsistenciaUseCase } from '@/modules/asistencia/use-cases/asistencias/asignarJornadaAsistencia.useCase';
+import { transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
 jest.mock('@/common/utils/transaccion-auditada.util', () => ({
-  transaccionAuditada: jest.fn((_p, _a, fn) => fn(_p)),
+  transaccionAuditada: jest.fn(
+    (p: unknown, _a: unknown, fn: (tx: unknown) => unknown) => fn(p)
+  ),
   bloquearEmpleado: jest.fn(),
 }));
 import { HorarioAsistenciaSchema } from '@jyp/shared-contracts';
@@ -16,6 +19,7 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
   const prisma = {
     empleados: { findUnique: jest.fn() },
     jornada: { findUnique: jest.fn() },
+    jornada_area: { findMany: jest.fn() },
     asistencia_jornada: { findUnique: jest.fn(), create: jest.fn() },
     incidencias_mes: { findFirst: jest.fn(), updateMany: jest.fn() },
     historial_planillas: { findFirst: jest.fn() },
@@ -30,6 +34,7 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
   };
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.jornada_area.findMany.mockResolvedValue([]);
     prisma.incidencias_mes.findFirst.mockResolvedValue(null);
     prisma.incidencias_mes.updateMany.mockResolvedValue({ count: 0 });
     prisma.historial_planillas.findFirst.mockResolvedValue(null);
@@ -59,7 +64,7 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
         minutos_semana: 2400,
         usuario_id: actor.id,
         horario: HorarioAsistenciaSchema.parse(horario),
-      }),
+      }) as unknown,
     });
     expect(prisma.incidencias_mes.updateMany).toHaveBeenCalledWith({
       where: {
@@ -119,6 +124,7 @@ describe('Asignación de jornada: validaciones antes de persistir', () => {
   const prisma = {
     empleados: { findUnique: jest.fn() },
     jornada: { findUnique: jest.fn() },
+    jornada_area: { findMany: jest.fn() },
     asistencia_jornada: { findUnique: jest.fn(), create: jest.fn() },
     incidencias_mes: { findFirst: jest.fn(), updateMany: jest.fn() },
     historial_planillas: { findFirst: jest.fn() },
@@ -134,11 +140,7 @@ describe('Asignación de jornada: validaciones antes de persistir', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     // La transacción está simulada para ejecutar únicamente las reglas del caso de uso.
-    jest
-      .requireMock('@/common/utils/transaccion-auditada.util')
-      .transaccionAuditada.mockImplementation(
-        (p: unknown, _a: unknown, fn: Function) => fn(p)
-      );
+    jest.mocked(transaccionAuditada).mockImplementation((p, _a, fn) => fn(p));
     prisma.empleados.findUnique.mockResolvedValue({
       fecha_inicio: new Date('2026-08-01'),
     });
@@ -148,6 +150,7 @@ describe('Asignación de jornada: validaciones antes de persistir', () => {
       total_horas_semana: new Prisma.Decimal(40),
       tolerancia_minutos: 5,
     });
+    prisma.jornada_area.findMany.mockResolvedValue([]);
     prisma.asistencia_jornada.findUnique.mockResolvedValue(null);
     prisma.incidencias_mes.findFirst.mockResolvedValue(null);
     prisma.incidencias_mes.updateMany.mockResolvedValue({ count: 0 });

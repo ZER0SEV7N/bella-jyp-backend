@@ -4,8 +4,16 @@ import { ServerTime } from '@/common/utils/server-time';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import type { AsignarJornadaAsistenciaDto } from '@jyp/shared-contracts';
 import { HorarioAsistenciaSchema } from '@jyp/shared-contracts';
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { bloquearEmpleado, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  bloquearEmpleado,
+  transaccionAuditada,
+} from '@/common/utils/transaccion-auditada.util';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { validarJornadaRegular } from '../../domain/validar-jornada';
 import { validarJornadaSinPeriodosCerrados } from '../../helpers/periodo-editable.helper';
@@ -45,47 +53,69 @@ export class AsignarJornadaAsistenciaUseCase {
       await bloquearEmpleado(tx, dto.empleado_id);
 
       //Se valida que el empleado exista y tenga fecha de ingreso.
-      const empleado = await tx.empleados.findUnique({ where: { id: dto.empleado_id, deleted_at: null }, select: { fecha_inicio: true, area_id:true } });
-      if (!empleado?.fecha_inicio) throw new BadRequestException('El colaborador debe existir y tener fecha de ingreso.');
+      const empleado = await tx.empleados.findUnique({
+        where: { id: dto.empleado_id, deleted_at: null },
+        select: { fecha_inicio: true, area_id: true },
+      });
+      if (!empleado?.fecha_inicio)
+        throw new BadRequestException(
+          'El colaborador debe existir y tener fecha de ingreso.'
+        );
 
       //Se valida que la jornada exista, esté activa y cumpla con las restricciones del motor actual.
-      const jornada = await tx.jornada.findUnique({ where: { id: dto.jornada_id, activo: true, deleted_at: null } });
-      if (!jornada) throw new NotFoundException('La jornada no existe o está inactiva.');
+      const jornada = await tx.jornada.findUnique({
+        where: { id: dto.jornada_id, activo: true, deleted_at: null },
+      });
+      if (!jornada)
+        throw new NotFoundException('La jornada no existe o está inactiva.');
       //validar las jornadas dsi pertenece al are del empleado
-      await verificarAreaJornada(tx,jornada.id, empleado.area_id);
+      await verificarAreaJornada(tx, jornada.id, empleado.area_id);
       //Se valida que el horario de la jornada cumpla con las restricciones del motor actual.
-      const validado = HorarioAsistenciaSchema.safeParse(jornada.horario_semanal);
-      if (!validado.success) 
+      const validado = HorarioAsistenciaSchema.safeParse(
+        jornada.horario_semanal
+      );
+      if (!validado.success)
         throw new BadRequestException('El horario de la jornada no es válido.');
-      
-      //Se valida el horario de la jornada y 
+
+      //Se valida el horario de la jornada y
       //se calcula los minutos semanales, asegurando que la jornada no comience antes del ingreso del empleado.
       const horario = validado.data;
       if (jornada.turno === 'ROTATIVO' || jornada.turno === 'NOCHE')
-        throw new BadRequestException('El motor mensual admite jornadas fijas diurnas.');
-      
-      //Se valida que la jornada cumpla con las restricciones del motor actual, 
+        throw new BadRequestException(
+          'El motor mensual admite jornadas fijas diurnas.'
+        );
+
+      //Se valida que la jornada cumpla con las restricciones del motor actual,
       //incluyendo el cálculo de los minutos semanales y la verificación de que la jornada no comience antes del ingreso del empleado.
       let minutosSemana: number;
       try {
-        minutosSemana = validarJornadaRegular(horario, jornada.total_horas_semana.toNumber() * 60);
+        minutosSemana = validarJornadaRegular(
+          horario,
+          jornada.total_horas_semana.toNumber() * 60
+        );
       } catch (error) {
-        throw new BadRequestException(error instanceof Error ? error.message : 'Jornada inválida.');
+        throw new BadRequestException(
+          error instanceof Error ? error.message : 'Jornada inválida.'
+        );
       }
 
       //Se valida que la fecha desde la cual se asigna la jornada no sea anterior a la fecha de ingreso del empleado y que no exista una jornada asignada desde esa fecha.
       const desde = ServerTime.desdeFechaSimple(dto.desde);
-      if (desde < empleado.fecha_inicio) 
-        throw new BadRequestException('La jornada no puede comenzar antes del ingreso.');
-      
+      if (desde < empleado.fecha_inicio)
+        throw new BadRequestException(
+          'La jornada no puede comenzar antes del ingreso.'
+        );
+
       //Se verifica si ya existe una jornada asignada desde la fecha especificada para el empleado. Si existe, se lanza una excepción ConflictException indicando que ya existe una jornada asignada desde esa fecha.
       const existente = await tx.asistencia_jornada.findUnique({
         where: { empleado_id_desde: { empleado_id: dto.empleado_id, desde } },
         select: { id: true },
       });
 
-      if (existente) 
-        throw new ConflictException('Ya existe una jornada asignada desde esa fecha.');
+      if (existente)
+        throw new ConflictException(
+          'Ya existe una jornada asignada desde esa fecha.'
+        );
 
       await validarJornadaSinPeriodosCerrados(tx, dto.empleado_id, dto.desde);
 

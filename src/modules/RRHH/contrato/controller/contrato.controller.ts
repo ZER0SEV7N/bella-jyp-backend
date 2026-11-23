@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   Body,
-  Patch,
   Delete,
   Req,
   Res,

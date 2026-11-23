@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ObtenerDetalleSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/obtenerDetalleSolicitud.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
+import { ServerTime } from '@/common/utils/server-time';
 
 /**
  * Pruebas unitarias para el caso de uso ObtenerDetalleSolicitudUseCase.
@@ -12,92 +13,98 @@ import { PrismaService } from '@/common/prisma/prisma.service';
  * Se utilizan mocks para simular la interacción con la base de datos a través de PrismaService.
  */
 describe('ObtenerDetalleSolicitudUseCase - Pruebas Unitarias', () => {
-    let useCase: ObtenerDetalleSolicitudUseCase;
-    let prisma: PrismaService;
+  let useCase: ObtenerDetalleSolicitudUseCase;
 
-    //Mocks de PrismaService para simular la base de datos
-    const mockPrisma = { solicitud: { findFirst: jest.fn() } };
+  //Mocks de PrismaService para simular la base de datos
+  const mockPrisma = { solicitud: { findFirst: jest.fn() } };
 
-    //Datos de prueba para una solicitud ficticia
-    const solicitudBaseMock = {
-        id: 'sol-uuid-1',
-        codigo: 'SOL-2026-001',
-        estado: 'PENDIENTE',
-        fecha_inicio: new Date('2026-12-01'),
-        empleados: {
-            id: 'emp-1',
-            nombre: 'Lucía',
-            apellido: 'Vargas',
-            nro_documento: '71223344',
-            fecha_inicio: new Date('2024-01-15'),
-            area: { id: 'area-1', nombre: 'Contabilidad' },
-            cargo: { id: 'cargo-1', nombre: 'Asistente' }
-        },
-        responsable: null
-    };
+  //Datos de prueba para una solicitud ficticia
+  const fechaFutura = new Date(ServerTime.obtenerFechaSimpleActual);
+  fechaFutura.setUTCDate(fechaFutura.getUTCDate() + 30);
 
-    //Configuración inicial de las pruebas, creando un módulo de prueba y obteniendo instancias de los casos de uso y servicios
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                ObtenerDetalleSolicitudUseCase,
-                { provide: PrismaService, useValue: mockPrisma }
-            ]
-        }).compile();
+  const solicitudBaseMock = {
+    id: 'sol-uuid-1',
+    codigo: 'SOL-2026-001',
+    estado: 'PENDIENTE',
+    fecha_inicio: fechaFutura,
+    fecha_limite: null,
+    empleados: {
+      id: 'emp-1',
+      nombre: 'Lucía',
+      apellido: 'Vargas',
+      nro_documento: '71223344',
+      fecha_inicio: new Date('2024-01-15'),
+      area: { id: 'area-1', nombre: 'Contabilidad' },
+      cargo: { id: 'cargo-1', nombre: 'Asistente' },
+    },
+    responsable: null,
+  };
 
-        useCase = module.get<ObtenerDetalleSolicitudUseCase>(ObtenerDetalleSolicitudUseCase);
-        prisma = module.get<PrismaService>(PrismaService);
+  //Configuración inicial de las pruebas, creando un módulo de prueba y obteniendo instancias de los casos de uso y servicios
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ObtenerDetalleSolicitudUseCase,
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
+    }).compile();
+
+    useCase = module.get<ObtenerDetalleSolicitudUseCase>(
+      ObtenerDetalleSolicitudUseCase
+    );
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('Happy Path: Debe obtener el detalle calculando antigüedad y sin alerta si el periodo es futuro', async () => {
+    //Arrange: Se simula que la solicitud existe y se espera que se devuelva correctamente con los detalles del colaborador y sin alerta de urgencia.
+    mockPrisma.solicitud.findFirst.mockResolvedValue(solicitudBaseMock);
+
+    //Act: Se ejecuta el caso de uso con el código correlativo de la solicitud
+    const resultado = await useCase.execute(
+      'SOL-2026-001',
+      undefined,
+      undefined
+    );
+
+    //Assert: Se verifica que el resultado tenga los datos correctos, incluyendo el código, nombre completo del colaborador, antigüedad calculada y sin alerta de urgencia
+    expect(resultado.codigo).toBe('SOL-2026-001');
+    expect(resultado.colaborador_resumen.nombre_completo).toBe('Lucía Vargas');
+    expect(resultado.colaborador_resumen.antiguedad).toBeDefined();
+    expect(resultado.alerta_urgencia).toBeNull();
+  });
+
+  it('Debe generar alerta_urgencia si el estado es PENDIENTE y la fecha de inicio es hoy o ya pasó', async () => {
+    //Arrange: Se usa fecha UTC de ayer respecto a la fecha simple actual para evitar desfase por zona horaria.
+    const ayer = new Date(ServerTime.obtenerFechaSimpleActual);
+    ayer.setUTCDate(ayer.getUTCDate() - 1);
+
+    //Se simula que la solicitud existe y está en estado PENDIENTE con fecha de inicio en el pasado
+    mockPrisma.solicitud.findFirst.mockResolvedValue({
+      ...solicitudBaseMock,
+      estado: 'PENDIENTE',
+      fecha_inicio: ayer,
     });
 
-    afterEach(() => jest.clearAllMocks());
+    //Act: Se ejecuta el caso de uso con el ID de la solicitud
+    const resultado = await useCase.execute(
+      '018f4a7c-1111-7000-8000-000000000001',
+      undefined,
+      undefined
+    );
 
-    it('Happy Path: Debe obtener el detalle calculando antigüedad y sin alerta si el periodo es futuro', async () => {
-        //Arrange: Se simula que la solicitud existe y se espera que se devuelva correctamente con los detalles del colaborador y sin alerta de urgencia.
-        mockPrisma.solicitud.findFirst.mockResolvedValue(solicitudBaseMock);
+    //Assert: Se verifica que el resultado tenga la alerta de urgencia generada correctamente
+    expect(resultado.alerta_urgencia).not.toBeNull();
+    expect(resultado.alerta_urgencia?.mensaje).toContain('Atención inmediata');
+  });
 
-        //Act: Se ejecuta el caso de uso con el código correlativo de la solicitud
-        const resultado = await useCase.execute(
-            'SOL-2026-001',
-            undefined,
-            undefined
-        );
+  it('Debe lanzar NotFoundException si no coincide ni por UUID ni por código correlativo', async () => {
+    //Arrange: Se simula que no existe ninguna solicitud con el ID o código proporcionado, lo que debería generar una NotFoundException.
+    mockPrisma.solicitud.findFirst.mockResolvedValue(null);
 
-        //Assert: Se verifica que el resultado tenga los datos correctos, incluyendo el código, nombre completo del colaborador, antigüedad calculada y sin alerta de urgencia
-        expect(resultado.codigo).toBe('SOL-2026-001');
-        expect(resultado.colaborador_resumen.nombre_completo).toBe('Lucía Vargas');
-        expect(resultado.colaborador_resumen.antiguedad).toBeDefined();
-        expect(resultado.alerta_urgencia).toBeNull();
-    });
-
-    it('Debe generar alerta_urgencia si el estado es PENDIENTE y la fecha de inicio es hoy o ya pasó', async () => {
-        //Arrange: Se simula que la solicitud existe, está en estado PENDIENTE y la fecha de inicio es ayer, lo que debería generar una alerta de urgencia.
-        const ayer = new Date();
-        ayer.setDate(ayer.getDate() - 1);
-
-        //Se simula que la solicitud existe y está en estado PENDIENTE con fecha de inicio en el pasado
-        mockPrisma.solicitud.findFirst.mockResolvedValue({
-            ...solicitudBaseMock,
-            estado: 'PENDIENTE',
-            fecha_inicio: ayer
-        });
-
-        //Act: Se ejecuta el caso de uso con el ID de la solicitud
-        const resultado = await useCase.execute(
-            '018f4a7c-1111-7000-8000-000000000001',
-            undefined,
-            undefined
-        );
-
-        //Assert: Se verifica que el resultado tenga la alerta de urgencia generada correctamente
-        expect(resultado.alerta_urgencia).not.toBeNull();
-        expect(resultado.alerta_urgencia?.mensaje).toContain('Atención inmediata');
-    });
-
-    it('Debe lanzar NotFoundException si no coincide ni por UUID ni por código correlativo', async () => {
-        //Arrange: Se simula que no existe ninguna solicitud con el ID o código proporcionado, lo que debería generar una NotFoundException.
-        mockPrisma.solicitud.findFirst.mockResolvedValue(null);
-
-        //Act & Assert: Se espera que se lance una NotFoundException al intentar obtener el detalle de una solicitud inexistente
-        await expect(useCase.execute('SOL-9999-999', undefined, undefined)).rejects.toThrow(NotFoundException);
-    });
+    //Act & Assert: Se espera que se lance una NotFoundException al intentar obtener el detalle de una solicitud inexistente
+    await expect(
+      useCase.execute('SOL-9999-999', undefined, undefined)
+    ).rejects.toThrow(NotFoundException);
+  });
 });

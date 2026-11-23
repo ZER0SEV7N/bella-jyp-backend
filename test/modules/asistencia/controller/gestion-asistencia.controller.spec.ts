@@ -34,7 +34,7 @@ describe('GestionAsistenciaController', () => {
     };
     obtenerDetalleAsistencia.execute.mockResolvedValue(esperado);
     // Act: ejecutar únicamente el método público del controlador.
-    const resultado = await controller.detalle(query as never);
+    const resultado = await controller.detalle(query);
     // Assert: verificar el destino, el actor y la respuesta observables.
     expect(obtenerDetalleAsistencia.execute).toHaveBeenCalledWith(
       query.empleado_id,

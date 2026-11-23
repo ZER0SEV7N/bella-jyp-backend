@@ -12,7 +12,10 @@ import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
  * @returns - Una promesa que se resuelve cuando el empleado ha sido bloqueado exitosamente.
  * @throws - Error si ocurre un problema al intentar bloquear al empleado.
  */
-export async function bloquearEmpleado(tx: Prisma.TransactionClient, empleadoId: string): Promise<void> {
+export async function bloquearEmpleado(
+  tx: Prisma.TransactionClient,
+  empleadoId: string
+): Promise<void> {
   const clave = 'asistencia:' + empleadoId;
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${clave}, 0))`;
 }
@@ -24,7 +27,10 @@ export async function bloquearEmpleado(tx: Prisma.TransactionClient, empleadoId:
  * @param periodo - El período de asistencia en formato 'YYYY-MM'.
  * @returns Una promesa que se resuelve cuando el período ha sido bloqueado exitosamente.
  */
-export async function bloquearPeriodo(tx: Prisma.TransactionClient, periodo: string): Promise<void> {
+export async function bloquearPeriodo(
+  tx: Prisma.TransactionClient,
+  periodo: string
+): Promise<void> {
   const clave = 'asistencia-periodo:' + periodo;
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${clave}, 0))`;
 }
@@ -38,7 +44,11 @@ export async function bloquearPeriodo(tx: Prisma.TransactionClient, periodo: str
  * @returns - Una promesa que se resuelve con el resultado de la operación si es exitosa.
  * @throws - ConflictException si ocurre un conflicto de concurrencia durante la operación y no se puede completar después de varios intentos.
  */
-export async function transaccionAuditada<T>(prisma: PrismaService, actor: ActorOperacion, trabajo: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+export async function transaccionAuditada<T>(
+  prisma: PrismaService,
+  actor: ActorOperacion,
+  trabajo: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
   //Se realizan hasta 3 intentos de la operación en caso de conflictos de concurrencia (código de error P2034).
   for (let intento = 0; intento < 3; intento++) {
     try {
@@ -50,14 +60,25 @@ export async function transaccionAuditada<T>(prisma: PrismaService, actor: Actor
           await tx.$executeRaw`SELECT set_config('app.usuario_id', ${actor.id}, true), set_config('app.ip', ${actor.ip}, true)`;
           return trabajo(tx);
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 20000 }
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: 10000,
+          timeout: 20000,
+        }
       );
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034' && intento < 2) continue;
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034' &&
+        intento < 2
+      )
+        continue;
       throw error;
     }
   }
 
   //Si después de 3 intentos la operación no se puede completar debido a conflictos de concurrencia, se lanza una excepción ConflictException.
-  throw new ConflictException('La información cambió durante la operación. Vuelva a consultarla.');
+  throw new ConflictException(
+    'La información cambió durante la operación. Vuelva a consultarla.'
+  );
 }

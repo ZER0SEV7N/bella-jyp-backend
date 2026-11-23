@@ -7,15 +7,16 @@ import { JwtService } from '@nestjs/jwt';
 
 //Mock de Argon2 para simular la verificación de contraseñas
 jest.mock('argon2', () => ({
-  verify: jest.fn(async (hash: string, password: string) => {
-    return hash === `hashed_${password}`;
-  }),
-  hash: jest.fn(async () => 'hashed_rt_mock_123'),
+  verify: jest.fn((hash: string, password: string) =>
+    Promise.resolve(hash === `hashed_${password}`)
+  ),
+  hash: jest.fn(() => Promise.resolve('hashed_rt_mock_123')),
   argon2id: 2, // Constante requerida por tu código real
 }));
 
-//Mock de Crypto para simular la generación de UUID
+//Mock de Crypto para simular la generación de UUID sin perder randomBytes de node:crypto
 jest.mock('crypto', () => ({
+  ...jest.requireActual<typeof import('node:crypto')>('node:crypto'),
   randomUUID: jest.fn(() => 'uuid-mock-1234'),
 }));
 
@@ -95,14 +96,14 @@ describe('LoginUseCase', () => {
         tipo_documento: 'DNI',
         nro_documento: '00000000',
         password: 'Password123!',
-      }),
+      })
     ).rejects.toThrow(UnauthorizedException);
     await expect(
       useCase.execute({
         tipo_documento: 'DNI',
         nro_documento: '00000000',
         password: 'Password123!',
-      }),
+      })
     ).rejects.toThrow('Unauthorized Exception');
   });
 
@@ -123,7 +124,7 @@ describe('LoginUseCase', () => {
         tipo_documento: 'DNI',
         nro_documento: '70112233',
         password: 'ClaveIncorrecta99',
-      }),
+      })
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -137,14 +138,14 @@ describe('LoginUseCase', () => {
         tipo_documento: 'DNI',
         nro_documento: '70112233',
         password: 'Password123!',
-      }),
+      })
     ).rejects.toThrow(UnauthorizedException);
     await expect(
       useCase.execute({
         tipo_documento: 'DNI',
         nro_documento: '70112233',
         password: 'Password123!',
-      }),
+      })
     ).rejects.toThrow('Unauthorized Exception'); // Mensaje genérico por seguridad
   });
 });

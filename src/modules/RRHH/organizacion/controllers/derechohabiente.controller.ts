@@ -123,15 +123,20 @@ export class DerechohabienteController {
       });
 
     //Extracción de campos del formulario multipart y validación con Zod
-    const rawFields: Record<string, any> = {};
-    for (const [key, value] of Object.entries(data.fields))
-      rawFields[key] = (value as any).value;
+    const rawFields: Record<string, unknown> = {};
+    for (const [key, field] of Object.entries(data.fields)) {
+      if (field && typeof field === 'object' && 'value' in field) {
+        rawFields[key] = (field as { value: unknown }).value;
+      }
+    }
 
     let parsedDto: SubirSustentoDerechohabienteDto;
     try {
       parsedDto = new ZodValidationPipe(
         SubirSustentoDerechohabienteSchema
-      ).transform(rawFields, { type: 'body' });
+      ).transform(rawFields, {
+        type: 'body',
+      }) as SubirSustentoDerechohabienteDto;
     } catch (error) {
       data.file.resume();
       throw error;

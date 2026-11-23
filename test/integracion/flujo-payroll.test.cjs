@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFile } = require('node:fs/promises');
 const { entorno } = require('./entorno.fixture.cjs');
 let contexto, app, base, redisCliente, token, ids;
-const demo = require('../../pruebas-demo/datos-demo.json');
+const demo = require('../../scripts/pruebas-demo/datos-demo.json');
 before(
     async () => {
         contexto = await entorno();
@@ -77,7 +77,7 @@ test(
             'archivo',
             new Blob([
                 await readFile(
-                    'pruebas-demo/excel/01-marcaciones-completas.xlsx'
+                    'scripts/pruebas-demo/excel/01-marcaciones-completas.xlsx'
                 ),
             ]),
             'marcaciones.xlsx'

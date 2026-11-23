@@ -262,6 +262,8 @@ export class EmpleadoController {
     @Body(new ZodValidationPipe(DesactivarEmpleadoSchema.optional()))
     dto?: DesactivarEmpleadoDto
   ) {
+    // El esquema valida el cuerpo opcional; la baja usa la fecha del servidor.
+    void dto;
     return await this.estadoEmpleadoUseCase.desactivar(id);
   }
 

@@ -1,10 +1,16 @@
 //test/modules/nomina/planillas/use-case/planillas/congelarPlanilla.useCase.spec.ts
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CongelarPlanillaUseCase } from '@/modules/nomina/planillas/use-case/planillas/congelarPlanilla.useCase';
 import { prepararPlanilla } from '@/modules/nomina/planillas/helpers/preparar-planilla.helper';
 
 jest.mock('@/common/utils/transaccion-auditada.util', () => ({
-  transaccionAuditada: jest.fn((p, _a, fn) => fn(p)),
+  transaccionAuditada: jest.fn(
+    (p: unknown, _a: unknown, fn: (tx: unknown) => unknown) => fn(p)
+  ),
   bloquearEmpleado: jest.fn(),
 }));
 jest.mock('@/modules/nomina/planillas/helpers/preparar-planilla.helper');
@@ -68,8 +74,8 @@ describe('CongelarPlanillaUseCase: validación y cierre contable', () => {
           validado_por: actor.id,
           comentarios: dto.motivo,
           version: { increment: 1 },
-        }),
-      }),
+        }) as unknown,
+      })
     );
     expect(r.estado).toBe('CONGELADO');
   });
@@ -79,7 +85,11 @@ describe('CongelarPlanillaUseCase: validación y cierre contable', () => {
     jest.mocked(prepararPlanilla).mockResolvedValue({ hash: 'otra' } as never);
 
     // Act
-    const r = caso.execute('planilla', { version: 1, motivo: 'Prueba de concurrencia' }, actor);
+    const r = caso.execute(
+      'planilla',
+      { version: 1, motivo: 'Prueba de concurrencia' },
+      actor
+    );
 
     // Assert
     await expect(r).rejects.toThrow(ConflictException);
@@ -91,18 +101,27 @@ describe('CongelarPlanillaUseCase: validación y cierre contable', () => {
     prisma.historial_planillas.findUnique.mockResolvedValueOnce(null);
 
     // Act & Assert
-    await expect(caso.execute('inexistente', { version: 1, motivo: 'Motivo' }, actor)).rejects.toThrow(NotFoundException);
+    await expect(
+      caso.execute('inexistente', { version: 1, motivo: 'Motivo' }, actor)
+    ).rejects.toThrow(NotFoundException);
 
     // Arrange: versión distinta
-    await expect(caso.execute('planilla', { version: 99, motivo: 'Motivo' }, actor)).rejects.toThrow(ConflictException);
+    await expect(
+      caso.execute('planilla', { version: 99, motivo: 'Motivo' }, actor)
+    ).rejects.toThrow(ConflictException);
   });
 
   it('rechaza si los montos recalculados no concilian o faltan datos de la empresa', async () => {
     // Arrange: monto distinto
-    pool.calcular.mockResolvedValueOnce({ version_motor: 'v', neto_a_pagar: '999.99' });
+    pool.calcular.mockResolvedValueOnce({
+      version_motor: 'v',
+      neto_a_pagar: '999.99',
+    });
 
     // Act & Assert
-    await expect(caso.execute('planilla', { version: 1, motivo: 'Motivo' }, actor)).rejects.toThrow(ConflictException);
+    await expect(
+      caso.execute('planilla', { version: 1, motivo: 'Motivo' }, actor)
+    ).rejects.toThrow(ConflictException);
 
     // Arrange: RUC inválido en empresa
     jest.mocked(prepararPlanilla).mockResolvedValueOnce({
@@ -110,6 +129,8 @@ describe('CongelarPlanillaUseCase: validación y cierre contable', () => {
       entrada: {},
       empresa: { nombreEmpresa: 'DEMO', ruc: '123', direccion: 'Dir' },
     } as never);
-    await expect(caso.execute('planilla', { version: 1, motivo: 'Motivo' }, actor)).rejects.toThrow(BadRequestException);
+    await expect(
+      caso.execute('planilla', { version: 1, motivo: 'Motivo' }, actor)
+    ).rejects.toThrow(BadRequestException);
   });
 });

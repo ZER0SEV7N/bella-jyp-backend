@@ -2,6 +2,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsuariosController } from '@/modules/core/usuarios/controller/usuarios.controller';
 import { ObtenerMiPerfilUseCase } from '@/modules/core/usuarios/use-cases/obtenerMiPerfil.useCase';
+import { GestionUsuariosUseCase } from '@/modules/core/usuarios/use-cases/gestionarUsuarios.useCase';
+import { CambiarMiPasswordUseCase } from '@/modules/core/usuarios/use-cases/cambiarMiPassword.useCase';
 
 /**
  * Pruebas unitarias para el controlador UsuariosController
@@ -10,7 +12,7 @@ import { ObtenerMiPerfilUseCase } from '@/modules/core/usuarios/use-cases/obtene
  */
 describe('UsuariosController', () => {
   let controller: UsuariosController;
-  let mockObtenerMiPerfilUC: any;
+  let mockObtenerMiPerfilUC: { obtenerPerfil: jest.Mock };
 
   beforeEach(async () => {
     mockObtenerMiPerfilUC = { obtenerPerfil: jest.fn() };
@@ -19,6 +21,18 @@ describe('UsuariosController', () => {
       controllers: [UsuariosController],
       providers: [
         { provide: ObtenerMiPerfilUseCase, useValue: mockObtenerMiPerfilUC },
+        {
+          provide: GestionUsuariosUseCase,
+          useValue: {
+            listar: jest.fn(),
+            cambiarEstado: jest.fn(),
+            cambiarRol: jest.fn(),
+          },
+        },
+        {
+          provide: CambiarMiPasswordUseCase,
+          useValue: { cambiarMiPassword: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -29,7 +43,9 @@ describe('UsuariosController', () => {
 
   it('obtenerMiPerfil(): Debería extraer el ID del request y retornar el perfil', async () => {
     //Arrange: Simulamos lo que JwtStrategy inyecta en req.user
-    const mockReq = { user: { id: 'user-123' } } as any;
+    const mockReq = {
+      user: { id: 'user-123' },
+    } as unknown as Parameters<UsuariosController['obtenerMiPerfil']>[0];
     const mockProfile = { id: 'user-123', email: 'test@jyp.com' };
     mockObtenerMiPerfilUC.obtenerPerfil.mockResolvedValue(mockProfile);
 
@@ -39,29 +55,33 @@ describe('UsuariosController', () => {
     //Assert
     expect(result).toEqual(mockProfile);
     expect(mockObtenerMiPerfilUC.obtenerPerfil).toHaveBeenCalledWith(
-      'user-123',
+      'user-123'
     );
   });
 
   it('obtenerMiPerfil(): Debería lanzar un error si ObtenerMiPerfilUseCase falla', async () => {
     //Arrange
-    const mockReq = { user: { id: 'user-123' } } as any;
+    const mockReq = {
+      user: { id: 'user-123' },
+    } as unknown as Parameters<UsuariosController['obtenerMiPerfil']>[0];
     mockObtenerMiPerfilUC.obtenerPerfil.mockRejectedValue(
-      new Error('Error inesperado'),
+      new Error('Error inesperado')
     );
 
     //Act & Assert
     await expect(controller.obtenerMiPerfil(mockReq)).rejects.toThrow(
-      'Error inesperado',
+      'Error inesperado'
     );
     expect(mockObtenerMiPerfilUC.obtenerPerfil).toHaveBeenCalledWith(
-      'user-123',
+      'user-123'
     );
   });
 
   it('obtenerMiPerfil(): Debería lanzar un error si req.user.id no está presente', async () => {
     //Arrange: Simulamos un request sin user.id
-    const mockReq = { user: {} } as any;
+    const mockReq = { user: {} } as unknown as Parameters<
+      UsuariosController['obtenerMiPerfil']
+    >[0];
 
     //Act & Assert
     await expect(controller.obtenerMiPerfil(mockReq)).resolves.toBeUndefined();

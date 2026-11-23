@@ -6,7 +6,7 @@
     "deleteOutDir": true,
     "assets": [
       {
-        "include": "modules/payroll/planillas/fonts/**/*",
+        "include": "modules/nomina/planillas/fonts/**/*",
         "outDir": "dist",
         "watchAssets": true
       }

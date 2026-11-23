@@ -40,7 +40,9 @@ function construirRangoFechas(
   if (opciones.diasEnHoraLima) {
     const inicioDia = (fecha: string, sumarDias: number) => {
       const [anio, mes, dia] = fecha.slice(0, 10).split('-').map(Number);
-      return new Date(Date.UTC(anio, mes - 1, dia + sumarDias, DESFASE_LIMA_HORAS));
+      return new Date(
+        Date.UTC(anio, mes - 1, dia + sumarDias, DESFASE_LIMA_HORAS)
+      );
     };
     return {
       created_at: {
@@ -75,17 +77,31 @@ function construirFiltrosConsulta(
   };
 }
 
-function aplicarRestriccionRrhh(where: Prisma.audit_logWhereInput, tablaAfectada?: string): Prisma.audit_logWhereInput {
-  if (tablaAfectada && !(TABLAS_PERMITIDAS_RRHH as readonly string[]).includes(tablaAfectada)) 
-    throw new ForbiddenException('Su rol no tiene permiso para auditar la tabla solicitada.');
-  
+function aplicarRestriccionRrhh(
+  where: Prisma.audit_logWhereInput,
+  tablaAfectada?: string
+): Prisma.audit_logWhereInput {
+  if (
+    tablaAfectada &&
+    !(TABLAS_PERMITIDAS_RRHH as readonly string[]).includes(tablaAfectada)
+  )
+    throw new ForbiddenException(
+      'Su rol no tiene permiso para auditar la tabla solicitada.'
+    );
 
-  return tablaAfectada ? where : { ...where, tabla_afectada: { in: [...TABLAS_PERMITIDAS_RRHH] } };
+  return tablaAfectada
+    ? where
+    : { ...where, tabla_afectada: { in: [...TABLAS_PERMITIDAS_RRHH] } };
 }
 
-function aplicarRestriccionRol( where: Prisma.audit_logWhereInput, usuario: UsuarioSolicitanteAuditoria, tablaAfectada?: string ): Prisma.audit_logWhereInput {
+function aplicarRestriccionRol(
+  where: Prisma.audit_logWhereInput,
+  usuario: UsuarioSolicitanteAuditoria,
+  tablaAfectada?: string
+): Prisma.audit_logWhereInput {
   if (usuario.rol === 'ADMIN') return where;
-  if (usuario.rol === 'RRHH') return aplicarRestriccionRrhh(where, tablaAfectada);
+  if (usuario.rol === 'RRHH')
+    return aplicarRestriccionRrhh(where, tablaAfectada);
   if (usuario.rol === 'CONTADOR') {
     return {
       ...where,
@@ -93,7 +109,9 @@ function aplicarRestriccionRol( where: Prisma.audit_logWhereInput, usuario: Usua
     };
   }
 
-  throw new ForbiddenException('No tiene los privilegios para auditar el sistema.');
+  throw new ForbiddenException(
+    'No tiene los privilegios para auditar el sistema.'
+  );
 }
 
 /**
@@ -105,7 +123,11 @@ function aplicarRestriccionRol( where: Prisma.audit_logWhereInput, usuario: Usua
  * @returns El filtro de Prisma.
  * @throws {ForbiddenException} Si el rol no puede auditar o la tabla pedida.
  */
-export function construirFiltroBase( usuario: UsuarioSolicitanteAuditoria, filtros: FiltrosAuditoria, opciones: OpcionesFiltroAuditoria = {} ): Prisma.audit_logWhereInput {
+export function construirFiltroBase(
+  usuario: UsuarioSolicitanteAuditoria,
+  filtros: FiltrosAuditoria,
+  opciones: OpcionesFiltroAuditoria = {}
+): Prisma.audit_logWhereInput {
   const where = construirFiltrosConsulta(filtros, opciones);
   return aplicarRestriccionRol(where, usuario, filtros.tabla_afectada);
 }

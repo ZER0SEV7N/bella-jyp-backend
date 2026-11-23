@@ -1,7 +1,12 @@
 //src/modules/RRHH/organizacion/use-cases/area/estadoArea.useCase.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
-import { validarNombreCargoUnico } from '../cargos/helpers/validaciones.helper';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { varificarNombreUnicoArea } from './helper/validaciones.helper';
 
 /**
@@ -66,19 +71,26 @@ export class EstadoAreaUseCase {
         data: { activo: false, deleted_at: new Date() },
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
 
-      throw new InternalServerErrorException('Error al intentar desactivar el área.');
+      throw new InternalServerErrorException(
+        'Error al intentar desactivar el área.'
+      );
     }
   }
 
   /**
-   * Ejecuta el caso de uso para reactivar un área previamente desactivada.
+   * Ejecuta el caso de uso para reactivar un área previamente desactivada (ORG-F1, COM-F3).
    * @param areaId - El ID del área que se desea reactivar.
-   * @returns - El área reactivada si la operación es exitosa.
-   * @throws NotFoundException si el área con el ID proporcionado no existe.
-   * @throws BadRequestException si el área ya está activa.
-   * @throws InternalServerErrorException si ocurre un error inesperado durante la reactivación.
+   * @returns El área reactivada si la operación es exitosa.
+   * @throws {NotFoundException} Si el área con el ID proporcionado no existe.
+   * @throws {BadRequestException} Si el área ya está activa.
+   * @throws {ConflictException} Si ya existe otra área activa con el mismo nombre.
+   * @throws {InternalServerErrorException} Si ocurre un error inesperado durante la reactivación.
    */
   async reactivar(areaId: string) {
     try {
@@ -98,17 +110,19 @@ export class EstadoAreaUseCase {
           title: 'Área ya activa',
           detail: `El área '${area.nombre}' ya se encuentra activa en el sistema.`,
         });
-        //verificar si el nombre es unico y no si no se encunetra activo
-        await varificarNombreUnicoArea(this.prisma, area.nombre, area.id);
+      //verificar si el nombre es unico y no si no se encunetra activo
+      await varificarNombreUnicoArea(this.prisma, area.nombre, area.id);
       //Actualizar el área en la base de datos utilizando Prisma
       return await this.prisma.area.update({
         where: { id: areaId },
         data: { activo: true, deleted_at: null },
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (error instanceof HttpException) throw error;
 
-      throw new InternalServerErrorException('Error al intentar reactivar el área.');
+      throw new InternalServerErrorException(
+        'Error al intentar reactivar el área.'
+      );
     }
   }
 }

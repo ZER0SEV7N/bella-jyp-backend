@@ -35,9 +35,12 @@ describe('EnvValidation - Pruebas Unitarias de Variables de Entorno', () => {
   });
 
   it('Debe lanzar un error si falta una variable estrictamente requerida como JWT_ACCESS_SECRET', () => {
-    const invalidConfig = { ...validConfig, JWT_ACCESS_SECRET: undefined };
+    const invalidConfig: Record<string, unknown> = {
+      ...validConfig,
+      JWT_ACCESS_SECRET: undefined,
+    };
 
-    expect(() => validateEnv(invalidConfig as any)).toThrow(
+    expect(() => validateEnv(invalidConfig)).toThrow(
       'Variables de entorno inválidas'
     );
   });

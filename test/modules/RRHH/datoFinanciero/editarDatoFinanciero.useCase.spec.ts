@@ -1,14 +1,20 @@
 //test/modules/payroll/datoFinanciero/editarDatoFinanciero.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { EditarDatoFinancieroUseCase } from '@/modules/RRHH/datoFinanciero/use-case/editarDatoFinanciero.useCase';
 import { CryptoUtil } from '@/common/utils/crypto.util';
 import type { ActualizarDatoFinancieroDto } from '@jyp/shared-contracts';
+import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 //Mock del módulo 'argon2' para controlar la re-confirmación de contraseña (Step-Up Auth)
-jest.mock('argon2', () => ({verify: jest.fn() }));
+jest.mock('argon2', () => ({ verify: jest.fn() }));
 
 /**
  * Pruebas unitarias para el caso de uso EditarDatoFinancieroUseCase.
@@ -17,10 +23,10 @@ jest.mock('argon2', () => ({verify: jest.fn() }));
  */
 describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-encriptación', () => {
   let useCase: EditarDatoFinancieroUseCase;
-  let prismaService: PrismaService;
 
   // Constantes de prueba
-  const TEST_MASTER_KEY = 'jyp_financial_master_key_super_secret_32_bytes_2026!';
+  const TEST_MASTER_KEY =
+    'jyp_financial_master_key_super_secret_32_bytes_2026!';
   const mockEmpleadoId = '018f4a3c-7b2a-7123-8901-0123456789ab';
   const mockUsuarioAutenticadoId = '018f4a3c-7b2a-7123-8901-0123456789zz';
 
@@ -33,10 +39,25 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
 
   // Mock del servicio Prisma para simular la interacción con la base de datos
   const mockPrismaService = {
-    empleados: { findUnique: jest.fn().mockResolvedValue({ afp_fecha_filiacion: null }) },
+    empleados: {
+      findUnique: jest.fn().mockResolvedValue({
+        afp_fecha_filiacion: null,
+        cargo_id: 'cargo-uuid-1',
+      }),
+    },
+    cargo: {
+      findFirst: jest.fn().mockResolvedValue({
+        sueldo_minimo: new Prisma.Decimal(1000),
+        sueldo_maximo: new Prisma.Decimal(5000),
+      }),
+    },
     dato_financiero: { findUnique: jest.fn(), update: jest.fn() },
     usuarios: { findUnique: jest.fn() },
-    regimen_pension: { findUnique: jest.fn().mockResolvedValue({ id: 'regimen-onp', nombre: 'ONP' }) },
+    regimen_pension: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ id: 'regimen-onp', nombre: 'ONP' }),
+    },
     tipo_afp: { findUnique: jest.fn() },
     bancos: { findUnique: jest.fn() },
   };
@@ -53,8 +74,9 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
       ],
     }).compile();
 
-    useCase = module.get<EditarDatoFinancieroUseCase>(EditarDatoFinancieroUseCase);
-    prismaService = module.get<PrismaService>(PrismaService);
+    useCase = module.get<EditarDatoFinancieroUseCase>(
+      EditarDatoFinancieroUseCase
+    );
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -82,30 +104,80 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
       });
 
       // Act: Ejecutar el caso de uso
-      const result = await useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId);
+      const result = await useCase.execute(
+        mockEmpleadoId,
+        dtoEditar,
+        mockUsuarioAutenticadoId
+      );
 
       // Assert: Verificar que los métodos del servicio Prisma y argon2 se llamaron correctamente
-      expect(prismaService.dato_financiero.findUnique).toHaveBeenCalledWith({
-        where: { empleado_id: mockEmpleadoId },
-      });
-      expect(prismaService.usuarios.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaService.dato_financiero.findUnique).toHaveBeenCalledWith(
+        {
+          where: { empleado_id: mockEmpleadoId },
+        }
+      );
+      expect(mockPrismaService.usuarios.findUnique).toHaveBeenCalledWith({
         where: { id: mockUsuarioAutenticadoId, deleted_at: null },
         select: { password_hash: true },
       });
       expect(argon2.verify).toHaveBeenCalledWith(
         '$argon2id$v=19$m=65536,t=3,p=4$hash_seguro',
-        'PasswordSegura123!',
+        'PasswordSegura123!'
       );
 
       // Verificar que los datos sensibles se re-encriptaron antes de la actualización
-      const updateCall = mockPrismaService.dato_financiero.update.mock.calls[0][0];
-      expect(CryptoUtil.decrypt(updateCall.data.nro_cuenta_sueldo)).toBe('191-99998888-0-99');
+      const updateCalls = mockPrismaService.dato_financiero.update.mock
+        .calls as [
+        [{ data: { nro_cuenta_sueldo: string; sueldo_basico: number } }],
+      ];
+      const updateCall = updateCalls[0][0];
+      expect(CryptoUtil.decrypt(updateCall.data.nro_cuenta_sueldo)).toBe(
+        '191-99998888-0-99'
+      );
       expect(updateCall.data.sueldo_basico).toBe(3200.0);
       expect(result).toEqual({
         id: 'df-uuid-1',
         empleado_id: mockEmpleadoId,
-        mensaje: 'Datos financieros actualizados y re-encriptados correctamente.',
+        mensaje:
+          'Datos financieros actualizados y re-encriptados correctamente.',
       });
+    });
+
+    it('Debe actualizar sin validar sueldo ni consultar cargo cuando sueldo_basico es undefined', async () => {
+      // Arrange
+      const dtoSinSueldo: ActualizarDatoFinancieroDto = {
+        nro_cuenta_sueldo: '191-99998888-0-99',
+        password_confirmacion: 'PasswordSegura123!',
+      };
+      mockPrismaService.dato_financiero.findUnique.mockResolvedValue({
+        id: 'df-uuid-1',
+        empleado_id: mockEmpleadoId,
+        id_regimen: 'regimen-onp',
+        id_tipo_afp: null,
+        cuspp: null,
+        tipo_comision: null,
+        deleted_at: null,
+      });
+      mockPrismaService.usuarios.findUnique.mockResolvedValue({
+        id: mockUsuarioAutenticadoId,
+        password_hash: '$argon2id$v=19$hash',
+      });
+      (argon2.verify as jest.Mock).mockResolvedValue(true);
+      mockPrismaService.dato_financiero.update.mockResolvedValue({
+        id: 'df-uuid-1',
+        empleado_id: mockEmpleadoId,
+      });
+
+      // Act
+      const result = await useCase.execute(
+        mockEmpleadoId,
+        dtoSinSueldo,
+        mockUsuarioAutenticadoId
+      );
+
+      // Assert
+      expect(mockPrismaService.cargo.findFirst).not.toHaveBeenCalled();
+      expect(result.id).toBe('df-uuid-1');
     });
   });
 
@@ -123,10 +195,10 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
 
       // Act & Assert: Simular que la verificación de contraseña falla y verificar que se lance UnauthorizedException
       (argon2.verify as jest.Mock).mockResolvedValue(false);
-      await expect(useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      expect(prismaService.dato_financiero.update).not.toHaveBeenCalled();
+      await expect(
+        useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)
+      ).rejects.toThrow(UnauthorizedException);
+      expect(mockPrismaService.dato_financiero.update).not.toHaveBeenCalled();
     });
 
     it('Debe lanzar NotFoundException si el dato financiero del empleado no existe o tiene deleted_at !== null', async () => {
@@ -134,10 +206,10 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
       mockPrismaService.dato_financiero.findUnique.mockResolvedValue(null);
 
       // Act & Assert: Verificar que se lance NotFoundException
-      await expect(useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(prismaService.usuarios.findUnique).not.toHaveBeenCalled();
+      await expect(
+        useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.usuarios.findUnique).not.toHaveBeenCalled();
     });
 
     it('Debe lanzar UnauthorizedException si el usuario autenticado que realiza la acción no existe', async () => {
@@ -149,24 +221,96 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
       mockPrismaService.usuarios.findUnique.mockResolvedValue(null);
 
       // Act & Assert: Simular que el usuario autenticado no existe y verificar que se lance UnauthorizedException
-      await expect(useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('Debe lanzar InternalServerErrorException si la actualización en base de datos falla', async () => {
       // Arrange: Configurar los mocks para simular un error de base de datos durante la actualización
-      mockPrismaService.dato_financiero.findUnique.mockResolvedValue({ id: 'df-uuid-1', deleted_at: null });
-      mockPrismaService.usuarios.findUnique.mockResolvedValue({ password_hash: 'hash' });
+      mockPrismaService.dato_financiero.findUnique.mockResolvedValue({
+        id: 'df-uuid-1',
+        deleted_at: null,
+      });
+      mockPrismaService.usuarios.findUnique.mockResolvedValue({
+        password_hash: 'hash',
+      });
       (argon2.verify as jest.Mock).mockResolvedValue(true);
 
       // Act: Simular un error de base de datos durante la actualización
-      mockPrismaService.dato_financiero.update.mockRejectedValue(new Error('PostgreSQL deadlock'));
+      mockPrismaService.dato_financiero.update.mockRejectedValue(
+        new Error('PostgreSQL deadlock')
+      );
 
       // Assert: Verificar que se lance InternalServerErrorException
-      await expect(useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('Debe lanzar NotFoundException con title y detail si el empleado no existe al validar sueldo_basico', async () => {
+      // Arrange
+      mockPrismaService.dato_financiero.findUnique.mockResolvedValue({
+        id: 'df-uuid-1',
+        id_regimen: 'regimen-onp',
+        id_tipo_afp: null,
+        cuspp: null,
+        tipo_comision: null,
+        deleted_at: null,
+      });
+      mockPrismaService.usuarios.findUnique.mockResolvedValue({
+        password_hash: 'hash',
+      });
+      (argon2.verify as jest.Mock).mockResolvedValue(true);
+      mockPrismaService.empleados.findUnique.mockResolvedValueOnce({
+        afp_fecha_filiacion: null,
+      });
+      mockPrismaService.empleados.findUnique.mockResolvedValueOnce(null);
+
+      // Act & Assert
+      let capturado: unknown;
+      try {
+        await useCase.execute(
+          mockEmpleadoId,
+          dtoEditar,
+          mockUsuarioAutenticadoId
+        );
+      } catch (error) {
+        capturado = error;
+      }
+      expect(capturado).toBeInstanceOf(NotFoundException);
+      expect((capturado as NotFoundException).getResponse()).toEqual({
+        title: 'Empleado o cargo no encontrado',
+        detail:
+          'No se encontró el colaborador o no cuenta con un cargo asignado.',
+      });
+      expect(mockPrismaService.dato_financiero.update).not.toHaveBeenCalled();
+    });
+
+    it('Debe propagar BadRequestException cuando el nuevo sueldo está fuera de rango del cargo', async () => {
+      // Arrange
+      mockPrismaService.dato_financiero.findUnique.mockResolvedValue({
+        id: 'df-uuid-1',
+        id_regimen: 'regimen-onp',
+        id_tipo_afp: null,
+        cuspp: null,
+        tipo_comision: null,
+        deleted_at: null,
+      });
+      mockPrismaService.usuarios.findUnique.mockResolvedValue({
+        password_hash: 'hash',
+      });
+      (argon2.verify as jest.Mock).mockResolvedValue(true);
+      mockPrismaService.cargo.findFirst.mockResolvedValueOnce({
+        sueldo_minimo: new Prisma.Decimal(4000),
+        sueldo_maximo: new Prisma.Decimal(6000),
+      });
+
+      // Act & Assert
+      await expect(
+        useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.dato_financiero.update).not.toHaveBeenCalled();
     });
   });
 });

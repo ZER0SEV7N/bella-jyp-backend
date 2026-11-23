@@ -39,7 +39,10 @@ export interface CambioCampoAuditoria {
  */
 function normalizarValorAuditoria(valor: unknown): unknown {
   if (valor === undefined || valor === null || valor === '') return null;
-  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/.test(valor)) {
+  if (
+    typeof valor === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/.test(valor)
+  ) {
     return valor.slice(0, 10);
   }
   if (typeof valor === 'object') {
@@ -78,11 +81,18 @@ function sonIgualesProtegidos(antes: unknown, despues: unknown): boolean {
  * @param tabla - Tabla de la fila, para usar la etiqueta exacta de cada campo.
  * @returns Los campos que cambiaron, ya normalizados y con su etiqueta.
  */
-export function calcularCambiosAuditoria(antesRaw: unknown, despuesRaw: unknown, nombresCatalogos: Record<string, string> = {}, tabla?: string ): CambioCampoAuditoria[] {
-  const antes = antesRaw && typeof antesRaw === 'object' && !Array.isArray(antesRaw)
+export function calcularCambiosAuditoria(
+  antesRaw: unknown,
+  despuesRaw: unknown,
+  nombresCatalogos: Record<string, string> = {},
+  tabla?: string
+): CambioCampoAuditoria[] {
+  const antes =
+    antesRaw && typeof antesRaw === 'object' && !Array.isArray(antesRaw)
       ? (antesRaw as Record<string, unknown>)
       : {};
-  const despues = despuesRaw && typeof despuesRaw === 'object' && !Array.isArray(despuesRaw)
+  const despues =
+    despuesRaw && typeof despuesRaw === 'object' && !Array.isArray(despuesRaw)
       ? (despuesRaw as Record<string, unknown>)
       : {};
 
@@ -94,18 +104,32 @@ export function calcularCambiosAuditoria(antesRaw: unknown, despuesRaw: unknown,
 
   for (const campo of claves) {
     if (CAMPOS_TECNICOS_IGNORADOS.has(campo) || relaciones.has(campo)) continue;
-    if (campo === 'password' || campo === 'password_hash' || campo === 'token_hash') continue;
+    if (
+      campo === 'password' ||
+      campo === 'password_hash' ||
+      campo === 'token_hash'
+    )
+      continue;
 
     const valAntes = normalizarValorAuditoria(antes[campo]);
     const valDespues = normalizarValorAuditoria(despues[campo]);
 
     const esProtegido =
-      CAMPOS_PROTEGIDOS_VISTA.has(campo) || CAMPOS_SENSIBLES_AUDITORIA.has(campo);
-    if (esProtegido ? sonIgualesProtegidos(valAntes, valDespues) : valAntes === valDespues) continue;
+      CAMPOS_PROTEGIDOS_VISTA.has(campo) ||
+      CAMPOS_SENSIBLES_AUDITORIA.has(campo);
+    if (
+      esProtegido
+        ? sonIgualesProtegidos(valAntes, valDespues)
+        : valAntes === valDespues
+    )
+      continue;
 
     const etiqueta = obtenerEtiquetaCampoAuditoria(tabla, campo);
 
-    if (CAMPOS_PROTEGIDOS_VISTA.has(campo) || CAMPOS_SENSIBLES_AUDITORIA.has(campo)) {
+    if (
+      CAMPOS_PROTEGIDOS_VISTA.has(campo) ||
+      CAMPOS_SENSIBLES_AUDITORIA.has(campo)
+    ) {
       cambios.push({
         campo,
         etiqueta,
@@ -116,7 +140,8 @@ export function calcularCambiosAuditoria(antesRaw: unknown, despuesRaw: unknown,
       continue;
     }
 
-    const traducir = (v: unknown) => typeof v === 'string' && nombresCatalogos[v] ? nombresCatalogos[v] : v;
+    const traducir = (v: unknown) =>
+      typeof v === 'string' && nombresCatalogos[v] ? nombresCatalogos[v] : v;
 
     cambios.push({
       campo,

@@ -1,7 +1,16 @@
 //src/modules/RRHH/organizacion/use-cases/cargos/estadoCargo.useCase.ts
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { obtenerCargo, validarNombreCargoUnico, verificarNombreUnicoCargoActivo } from './helpers/validaciones.helper';
+import {
+  obtenerCargo,
+  verificarNombreUnicoCargoActivo,
+} from './helpers/validaciones.helper';
 import { verificarAreaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 
 /**
@@ -44,25 +53,32 @@ export class EstadoCargoUseCase {
         data: { activo: false, deleted_at: new Date() },
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
 
       throw new InternalServerErrorException({
         title: 'Error al desactivar el cargo',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al desactivar el cargo.',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Fallo inesperado al desactivar el cargo.',
       });
     }
   }
 
   /**
-   * Metodo para reactivar un cargo. Verifica que el cargo exista y que esté desactivado.
+   * Metodo para reactivar un cargo. Verifica que el cargo exista y que esté desactivado (COM-F3).
    * Además, comprueba que el área a la que pertenece el cargo esté activa antes de reactivarlo.
    * @param id - El ID del cargo a reactivar.
    * @returns Una promesa que resuelve con el cargo reactivado.
-   * @throws NotFoundException si el cargo no existe.
-   * @throws BadRequestException si el cargo ya está activo o si el área a la que pertenece está inactiva.
-   * @throws InternalServerErrorException para errores inesperados durante la reactivación.
+   * @throws {NotFoundException} Si el cargo no existe o su área está inactiva.
+   * @throws {BadRequestException} Si el cargo ya está activo.
+   * @throws {ConflictException} Si ya existe otro cargo activo con el mismo nombre.
+   * @throws {InternalServerErrorException} Para errores inesperados durante la reactivación.
    */
   async reactivar(id: string) {
     try {
@@ -81,18 +97,25 @@ export class EstadoCargoUseCase {
         });
 
       await verificarAreaActiva(this.prisma, cargo.id_area);
-      await verificarNombreUnicoCargoActivo(this.prisma, cargo.nombre,cargo.id);
+      await verificarNombreUnicoCargoActivo(
+        this.prisma,
+        cargo.nombre,
+        cargo.id
+      );
       return await this.prisma.cargo.update({
         where: { id },
         data: { activo: true, deleted_at: null },
         include: { area: { select: { id: true, nombre: true } } },
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (error instanceof HttpException) throw error;
 
       throw new InternalServerErrorException({
         title: 'Error al reactivar el cargo',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al restaurar el cargo.',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Fallo inesperado al restaurar el cargo.',
       });
     }
   }
