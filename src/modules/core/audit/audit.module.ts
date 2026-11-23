@@ -5,12 +5,26 @@ import { AuditController } from './controller/audit.controller';
 import { ObtenerLogsUseCase } from './use-cases/obtenerLogs.useCase';
 import { ObtenerHistorialUseCase } from './use-cases/obtenerHistorial.useCase';
 import { RegistroAuditoriaUseCase } from './use-cases/registroAuditoria.useCase';
+import { ListarActividadUseCase } from './use-cases/listarActividad.useCase';
+import { ObtenerActividadPorIdUseCase } from './use-cases/obtenerActividadPorId.useCase';
+import { ListarLineaTiempoAfectadoUseCase } from './use-cases/listarLineaTiempoAfectado.useCase';
 import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [ClsModule],
   controllers: [AuditController],
-  providers: [ObtenerLogsUseCase, ObtenerHistorialUseCase, RegistroAuditoriaUseCase],
-  exports: [ObtenerLogsUseCase, ObtenerHistorialUseCase, RegistroAuditoriaUseCase],
+  providers: [
+    ObtenerLogsUseCase,
+    ObtenerHistorialUseCase,
+    RegistroAuditoriaUseCase,
+    ListarActividadUseCase,
+    ObtenerActividadPorIdUseCase,
+    ListarLineaTiempoAfectadoUseCase,
+  ],
+  exports: [
+    ObtenerLogsUseCase,
+    ObtenerHistorialUseCase,
+    RegistroAuditoriaUseCase,
+  ],
 })
 export class AuditModule {}

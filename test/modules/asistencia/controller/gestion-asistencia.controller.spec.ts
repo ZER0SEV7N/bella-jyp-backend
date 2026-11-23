@@ -9,12 +9,14 @@ describe('GestionAsistenciaController', () => {
   const asignarJornadaAsistencia = { execute: jest.fn() };
   const guardarDescansoAsistencia = { execute: jest.fn() };
   const resolverIncidencia = { execute: jest.fn() };
+  const listarCalendarioAsistencia = { execute: jest.fn() };
   const controller = new GestionAsistenciaController(
     obtenerDetalleAsistencia as never,
     resolverDiaAsistencia as never,
     asignarJornadaAsistencia as never,
     guardarDescansoAsistencia as never,
-    resolverIncidencia as never
+    resolverIncidencia as never,
+    listarCalendarioAsistencia as never
   );
   beforeEach(() => jest.clearAllMocks());
   it('detalle: conserva los parámetros y el resultado del caso de uso', async () => {
@@ -32,7 +34,7 @@ describe('GestionAsistenciaController', () => {
     };
     obtenerDetalleAsistencia.execute.mockResolvedValue(esperado);
     // Act: ejecutar únicamente el método público del controlador.
-    const resultado = await controller.detalle(query as never);
+    const resultado = await controller.detalle(query);
     // Assert: verificar el destino, el actor y la respuesta observables.
     expect(obtenerDetalleAsistencia.execute).toHaveBeenCalledWith(
       query.empleado_id,
@@ -232,6 +234,28 @@ describe('GestionAsistenciaController', () => {
     // Act: solicitar la operación.
     const operacion = Promise.resolve().then(() =>
       controller.revisar(dto as never, req as never)
+    );
+    // Assert: conservar el error para que el filtro HTTP lo traduzca.
+    await expect(operacion).rejects.toBe(error);
+  });
+  it('listarCalendario: conserva los parámetros y el resultado del caso de uso', async () => {
+    // Arrange: preparar dependencias aisladas, sin HTTP ni base de datos.
+    const query = { anio: 2026 };
+    const esperado = { anio: 2026, meses_cerrados: [], dias: [] };
+    listarCalendarioAsistencia.execute.mockResolvedValue(esperado);
+    // Act: ejecutar únicamente el método público del controlador.
+    const resultado = await controller.listarCalendario(query);
+    // Assert: verificar el destino y la respuesta observables.
+    expect(listarCalendarioAsistencia.execute).toHaveBeenCalledWith(2026);
+    expect(resultado).toEqual(esperado);
+  });
+  it('listarCalendario: propaga el error sin informar éxito', async () => {
+    // Arrange: simular una falla del caso de uso.
+    const error = new Error('Operación rechazada');
+    listarCalendarioAsistencia.execute.mockRejectedValue(error);
+    // Act: solicitar la operación.
+    const operacion = Promise.resolve().then(() =>
+      controller.listarCalendario({ anio: 2026 })
     );
     // Assert: conservar el error para que el filtro HTTP lo traduzca.
     await expect(operacion).rejects.toBe(error);

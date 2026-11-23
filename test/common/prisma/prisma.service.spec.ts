@@ -4,15 +4,67 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ClsService } from 'nestjs-cls';
 
+type AuditMiddlewareFn = (params: {
+  model: string;
+  operation: string;
+  args: Record<string, unknown>;
+  query: jest.Mock;
+}) => Promise<unknown>;
+
+interface MockPrismaExtendsConfig {
+  query?: {
+    $allModels?: {
+      $allOperations?: AuditMiddlewareFn;
+    };
+  };
+}
+
+interface MockedPrismaService {
+  onModuleInit: () => Promise<void>;
+  onModuleDestroy: () => Promise<void>;
+  $connect: jest.Mock;
+  $disconnect: jest.Mock;
+  audit_log: {
+    create: jest.Mock;
+  };
+  dummy_table: {
+    findUnique: jest.Mock;
+  };
+  derechohabientes: {
+    findUnique: jest.Mock;
+  };
+}
+
+interface AuditLogCallPayload {
+  data: {
+    valores_despues: {
+      id?: string;
+      estado_laboral?: string;
+      datos?: unknown;
+      registros_afectados?: unknown;
+    };
+  };
+}
+
+function obtenerPrimerPayloadAuditoria(
+  mockCreate: jest.Mock
+): AuditLogCallPayload['data'] {
+  const calls = mockCreate.mock.calls as [[AuditLogCallPayload]];
+  return calls[0][0].data;
+}
+
 //Mock del middleware de auditoría para simular su comportamiento durante las pruebas
-let mockAuditMiddleware: any;
+let mockAuditMiddleware: AuditMiddlewareFn;
 
 //Mockear los modulos externos de conexion antes de ejecutar las pruebas unitarias
 jest.mock('@prisma/client', () => {
   class MockPrismaClient {
     $connect = jest.fn();
     $disconnect = jest.fn();
-    $extends = jest.fn().mockImplementation(function (this: any, config) {
+    $extends = jest.fn().mockImplementation(function (
+      this: Record<string, unknown>,
+      config: MockPrismaExtendsConfig
+    ) {
       if (config?.query?.$allModels?.$allOperations)
         mockAuditMiddleware = config.query.$allModels.$allOperations;
 
@@ -23,7 +75,30 @@ jest.mock('@prisma/client', () => {
       });
     });
   }
-  return { PrismaClient: MockPrismaClient };
+  //Modelo de datos mínimo: `empleados` tiene las relaciones `area` y `cargo`.
+  const dmmf = {
+    datamodel: {
+      models: [
+        {
+          name: 'empleados',
+          fields: [
+            { name: 'id', kind: 'scalar' },
+            { name: 'estado_laboral', kind: 'enum' },
+            { name: 'area', kind: 'object' },
+            { name: 'cargo', kind: 'object' },
+          ],
+        },
+        {
+          name: 'jornada_area',
+          fields: [
+            { name: 'area_id', kind: 'scalar' },
+            { name: 'area', kind: 'object' },
+          ],
+        },
+      ],
+    },
+  };
+  return { PrismaClient: MockPrismaClient, Prisma: { dmmf } };
 });
 
 //Mockear 'pg' y '@prisma/adapter-pg' simplemente para que no hagan nada al importarlos
@@ -32,7 +107,7 @@ jest.mock('@prisma/adapter-pg', () => ({ PrismaPg: jest.fn() }));
 
 //Describir el bloque de pruebas unitarias para el servicio de Prisma
 describe('PrismaService', () => {
-  let service: any;
+  let service: MockedPrismaService;
   let originalEnv: NodeJS.ProcessEnv;
 
   //Crear un Mock del ClsService para inyectarlo en el PrismaService
@@ -57,7 +132,9 @@ describe('PrismaService', () => {
     }).compile();
 
     //Obtener la instancia del servicio de Prisma desde el módulo de pruebas
-    service = module.get<PrismaService>(PrismaService);
+    service = module.get<PrismaService>(
+      PrismaService
+    ) as unknown as MockedPrismaService;
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -76,13 +153,15 @@ describe('PrismaService', () => {
   });
 
   //Prueba para verificar que el servicio lanza una excepción crítica si no existe DATABASE_URL en el entorno
-  it('Deberia Lanzar una excepcion critica si no existe DATABASE_URL en el entorno', async () => {
+  it('Deberia Lanzar una excepcion critica si no existe DATABASE_URL en el entorno', () => {
     //Arrange: Simulamos que DATABASE_URL no está definida
     delete process.env.DATABASE_URL;
 
     //Act & Assert: Esperamos que la instanciación del servicio lance un error crítico
-    expect(() => new PrismaService(mockClsService as any)).toThrow(
-      'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env',
+    expect(
+      () => new PrismaService(mockClsService as unknown as ClsService)
+    ).toThrow(
+      'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env'
     );
   });
 
@@ -116,7 +195,9 @@ describe('PrismaService', () => {
     process.env.NODE_ENV = 'development';
 
     // Act
-    const devService = new PrismaService(mockClsService as any);
+    const devService = new PrismaService(
+      mockClsService as unknown as ClsService
+    );
 
     // Assert: Simplemente validamos que se pudo instanciar correctamente sin errores
     // al pasar por la rama de "development".
@@ -183,10 +264,123 @@ describe('PrismaService', () => {
             valores_despues: expect.objectContaining({
               id: 'nuevo-registro',
               nombre: 'Test',
-            }),
-          }),
-        }),
+            }) as unknown,
+          }) as unknown,
+        })
       );
+    });
+
+    it('Debería guardar el empleado afectado tomado de empleado_id de la fila', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({
+        id: 'contrato-1',
+        empleado_id: 'emp-1',
+        estado: 'VIGENTE',
+      });
+
+      await mockAuditMiddleware({
+        model: 'contratos',
+        operation: 'create',
+        args: { data: { empleado_id: 'emp-1' } },
+        query: mockQuery,
+      });
+
+      expect(service.audit_log.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            afectado_tipo: 'empleado',
+            afectado_id: 'emp-1',
+          }) as unknown,
+        })
+      );
+    });
+
+    it('Debería resolver con una consulta extra el empleado de un documento de derechohabiente', async () => {
+      const mockQuery = jest
+        .fn()
+        .mockResolvedValue({ id: 'doc-1', derechohabiente_id: 'dh-1' });
+      service.derechohabientes = {
+        findUnique: jest.fn().mockResolvedValue({ empleado_id: 'emp-9' }),
+      };
+
+      await mockAuditMiddleware({
+        model: 'derechohabiente_documentos',
+        operation: 'create',
+        args: { data: { derechohabiente_id: 'dh-1' } },
+        query: mockQuery,
+      });
+
+      expect(service.derechohabientes.findUnique).toHaveBeenCalledWith({
+        where: { id: 'dh-1' },
+        select: { empleado_id: true },
+      });
+      expect(service.audit_log.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            afectado_tipo: 'empleado',
+            afectado_id: 'emp-9',
+          }) as unknown,
+        })
+      );
+    });
+
+    it('No debería auditar las relaciones de un include, pero sí devolverlas al caso de uso', async () => {
+      const filaConRelaciones = {
+        id: 'emp-1',
+        estado_laboral: 'LICENCIA',
+        area: { id: 'a1', nombre: 'Contabilidad' },
+        cargo: { id: 'c1', nombre: 'Contador' },
+      };
+      const mockQuery = jest.fn().mockResolvedValue(filaConRelaciones);
+      service.dummy_table.findUnique.mockResolvedValue({
+        id: 'emp-1',
+        estado_laboral: 'ACTIVO',
+      });
+
+      const resultado = await mockAuditMiddleware({
+        model: 'empleados',
+        operation: 'update',
+        args: {
+          where: { id: 'emp-1' },
+          data: { estado_laboral: 'LICENCIA' },
+          include: { area: true, cargo: true },
+        },
+        query: mockQuery,
+      });
+
+      expect(resultado).toBe(filaConRelaciones);
+      expect(filaConRelaciones.area).toBeDefined();
+      const datos = obtenerPrimerPayloadAuditoria(service.audit_log.create);
+      expect(datos.valores_despues).toEqual({
+        id: 'emp-1',
+        estado_laboral: 'LICENCIA',
+      });
+    });
+
+    it('Debería dejar solo columnas propias en los datos de una operación masiva', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({ count: 2 });
+
+      await mockAuditMiddleware({
+        model: 'jornada_area',
+        operation: 'createMany',
+        args: {
+          data: [
+            {
+              jornada_id: 'j1',
+              area_id: 'a1',
+              area: { connect: { id: 'a1' } },
+            },
+            { jornada_id: 'j1', area_id: 'a2' },
+          ],
+        },
+        query: mockQuery,
+      });
+
+      const datos = obtenerPrimerPayloadAuditoria(service.audit_log.create);
+      expect(datos.valores_despues.datos).toEqual([
+        { jornada_id: 'j1', area_id: 'a1' },
+        { jornada_id: 'j1', area_id: 'a2' },
+      ]);
+      expect(datos.valores_despues.registros_afectados).toBe(2);
     });
 
     it('Debería intentar capturar el estado previo antes de un UPDATE', async () => {
@@ -217,13 +411,13 @@ describe('PrismaService', () => {
             valores_antes: expect.objectContaining({
               id: 'reg-1',
               nombre: 'Viejo Nombre',
-            }),
+            }) as unknown,
             valores_despues: expect.objectContaining({
               id: 'reg-1',
               nombre: 'Nuevo Nombre',
-            }),
-          }),
-        }),
+            }) as unknown,
+          }) as unknown,
+        })
       );
     });
 
@@ -231,7 +425,7 @@ describe('PrismaService', () => {
       const mockQuery = jest.fn().mockResolvedValue({ id: 'exito' });
       // Simulamos que la tabla de auditoría se cayó y da error
       service.audit_log.create.mockRejectedValue(
-        new Error('Fallo al guardar log'),
+        new Error('Fallo al guardar log')
       );
 
       // Act: Ejecutamos el middleware

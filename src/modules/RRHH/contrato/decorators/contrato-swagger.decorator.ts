@@ -1,210 +1,220 @@
-//src/modules/RRHH/contrato/decorators/contrato.decorator.ts
+//src/modules/RRHH/contrato/decorators/contrato-swagger.decorator.ts
+import {
+  ApiContratoBody,
+  ApiContratoQuery,
+  ApiErroresOperacion,
+  ApiIdentificador,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
+import {
+  ContratoDetalleSchema,
+  CrearContratoSchema,
+  EditarContratoSchema,
+  ListarContratosQuerySchema,
+  RenovarContratoSchema,
+} from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiConsumes, ApiParam } from '@nestjs/swagger';
-import { CrearContratoSchema, EditarContratoSchema, RenovarContratoSchema, ListarContratosQuerySchema } from '@jyp/shared-contracts';
-import { ApiContratoBody, ApiContratoQuery, ApiIdentificador } from '@/common/decorators/api-contrato.decorator';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiExtension,
+  ApiOperation,
+  ApiProduces,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { SchemaObject } from '@nestjs/swagger';
+
+const ROLES_ESCRITURA = ['ADMIN', 'RRHH'];
+const ROLES_LECTURA = ['ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE'];
+const ROLES_DESCARGA = ['ADMIN', 'RRHH', 'CONTADOR', 'EMPLEADO'];
+
+const estadoContratoEnum = [
+  'VIGENTE',
+  'VENCIDO',
+  'RENOVADO',
+  'ANULADO',
+  'FINALIZADO',
+];
+
+const propiedadesContratoBase: Record<string, SchemaObject> = {
+  id: { type: 'string', format: 'uuid' },
+  empleado_id: { type: 'string', format: 'uuid' },
+  estado: { type: 'string', enum: estadoContratoEnum },
+  contrato_origen_id: { type: 'string', format: 'uuid', nullable: true },
+  tipo_modalidad: { type: 'string', nullable: true },
+  fecha_inicio: { type: 'string', format: 'date-time' },
+  fecha_fin: { type: 'string', format: 'date-time', nullable: true },
+  renovado: { type: 'boolean' },
+  observacion: { type: 'string', nullable: true },
+  deleted_at: { type: 'string', format: 'date-time', nullable: true },
+  created_at: { type: 'string', format: 'date-time' },
+  url: { type: 'string', nullable: true },
+};
+
+const respuestaContratoResumen: SchemaObject = {
+  type: 'object',
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    empleado_id: { type: 'string', format: 'uuid' },
+    colaborador: { type: 'string' },
+    nro_documento: { type: 'string' },
+    area: { type: 'string' },
+    cargo: { type: 'string' },
+    estado: { type: 'string', enum: estadoContratoEnum },
+    tipo_modalidad: { type: 'string' },
+    fecha_inicio: { type: 'string', format: 'date-time' },
+    fecha_fin: { type: 'string', format: 'date-time', nullable: true },
+    dias_restantes: { type: 'integer', nullable: true },
+    alerta_vencimiento: {
+      type: 'string',
+      enum: ['VENCIDO', 'CRITICO', 'PREVENTIVO', 'REGULAR'],
+      nullable: true,
+    },
+    contrato_origen_id: { type: 'string', format: 'uuid', nullable: true },
+    es_prorroga: { type: 'boolean' },
+    tiene_archivo: { type: 'boolean' },
+  },
+};
 
 /**
- * Decorador de nivel controlador para agrupar las operaciones de contratos en Swagger.
+ * Configura la etiqueta Swagger, la autenticación Bearer y los errores comunes para contratos.
  */
 export function ApiSwaggerContratoController() {
-  return applyDecorators(ApiTags('RRHH - Contratos'), ApiBearerAuth('JWT-auth'));
+  return applyDecorators(
+    ApiTags('RRHH - Contratos'),
+    ApiBearerAuth('JWT-auth'),
+    ApiErroresOperacion()
+  );
 }
 
 /**
- * Documentación del endpoint POST /api/contrato
+ * Documenta `POST /api/v1/rrhh/contrato`.
  */
 export function ApiSwaggerCrearContrato() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Crear Contrato en Borrador',
-      description: `Registra un nuevo contrato laboral sin documento PDF adjunto. 
-        - **Estado**: Queda registrado en estado borrador/pendiente y habilitado para modificaciones.
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`.`,
-    }),
     ApiContratoBody(CrearContratoSchema),
-    ApiResponse({ status: 201, description: 'Contrato registrado exitosamente en borrador.' }),
-    ApiResponse({ status: 400, description: 'Error de validación (ZodValidationPipe): Fechas incoherentes o datos inválidos.' }),
-    ApiResponse({ status: 401, description: 'Token de autenticación ausente o expirado.' }),
-    ApiResponse({ status: 403, description: 'Acceso denegado: Se requiere rol ADMIN o RRHH.' }),
-    ApiResponse({ status: 409, description: 'Conflicto: El empleado ya posee un contrato vigente en el mismo rango de fechas.' })
-  );
-}
-
-/**
- * Documentación del endpoint PATCH /api/contrato/:id/actualizar
- */
-export function ApiSwaggerEditarContrato() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Editar Contrato en Borrador',
-      description: `Permite modificar los términos y fechas de un contrato existente.
-        - **Regla de Inmutabilidad**: **Solo editable si aún no se ha subido el PDF firmado**. Una vez cargado el archivo digital, el contrato queda congelado legalmente.
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`.`,
-    }),
-    ApiParam({
-      name: 'id',
-      type: 'string',
-      format: 'uuid',
-      description: 'UUID del contrato a modificar',
-      example: 'c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33',
-    }),
-    ApiContratoBody(EditarContratoSchema),
-    ApiResponse({ status: 200, description: 'Contrato actualizado exitosamente.' }),
-    ApiResponse({ status: 400, description: 'No se puede editar: El contrato ya cuenta con un PDF firmado o datos inválidos.' }),
-    ApiResponse({ status: 404, description: 'El contrato no existe.' })
-  );
-}
-
-/**
- * Documentación del endpoint POST /api/contrato/:id/renovar
- */
-export function ApiSwaggerRenovarContrato() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Renovar Contrato (Adenda / Prórroga)',
-      description: `Cierra el ciclo del contrato actual marcándolo como renovado y genera de manera atómica un nuevo contrato para el siguiente periodo laboral.
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`.`,
-    }),
-    ApiParam({
-      name: 'id',
-      type: 'string',
-      format: 'uuid',
-      description: 'UUID del contrato previo que finaliza',
-      example: 'c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33',
-    }),
-    ApiContratoBody(RenovarContratoSchema),
-    ApiResponse({ status: 201, description: 'Renovación generada con éxito. Devuelve el nuevo contrato activo.' }),
-    ApiResponse({ status: 400, description: 'Error en la secuencia de fechas o estado incompatible para renovación.' }),
-    ApiResponse({ status: 404, description: 'Contrato base no encontrado.' })
-  );
-}
-
-/**
- * Documentación del endpoint DELETE /api/contrato/:id/anular
- */
-export function ApiSwaggerAnularContrato() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Anular Contrato (Baja Lógica)',
-      description: `Realiza la invalidación o soft-delete de un contrato por cancelación de ingreso o anulación administrativa.
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`.`,
-    }),
-    ApiParam({
-      name: 'id',
-      type: 'string',
-      format: 'uuid',
-      description: 'UUID del contrato a anular',
-    }),
-    ApiResponse({ status: 200, description: 'Contrato anulado exitosamente.' }),
-    ApiResponse({ status: 404, description: 'El contrato no existe.' })
-  );
-}
-
-/**
- * Documentación del endpoint GET /api/contrato (Listado global con filtros y alertas de vencimiento)
- */
-export function ApiSwaggerListarContratos() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Listar contratos con paginación y filtros dinámicos',
-      description: `Endpoint multipropósito para la gestión central de contratos de RRHH y alimentación del Dashboard:
-        - **Alerta de Vencimiento para Dashboard**: Parámetro \`por_vencer_dias=30\` (o 15, 60) para obtener los contratos que expirarán próximamente.
-        - **Filtros Operativos**: Filtrado por área departamental, estado de contrato o búsqueda textual por empleado (nombre, apellido, DNI).
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`, \`CONTADOR\`, \`ASISTENTE\`.`,
-    }),
-    ApiContratoQuery(ListarContratosQuerySchema),
-
-    ApiResponse({
-      status: 200,
-      description: 'Listado de contratos obtenido con éxito con metadatos de paginación.',
-      schema: {
-        example: {
-          data: [
-            {
-              id: 'c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33',
-              empleado: {
-                id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-                nombres: 'Daniel Enrique',
-                apellidos: 'Singer Rojas',
-                nro_documento: '72345678',
-                area: 'Tecnología de la Información',
-                cargo: 'Backend Lead',
-              },
-              estado: 'VIGENTE',
-              tipo_modalidad: 'Plazo Fijo',
-              fecha_inicio: '2026-01-01',
-              fecha_fin: '2026-10-31',
-              dias_restantes: 37,
-              tiene_pdf: true,
-              nombre_archivo: 'contrato_firmado_daniel_singer.pdf',
+    ApiOperacionDocumentada({
+      summary: 'Crear contrato',
+      description:
+        'Registra un contrato sin PDF adjunto (`url: null`) para un empleado activo (404 si no existe o está inactivo). Valida que `fecha_inicio` no sea posterior a `fecha_fin` (400).',
+      roles: ROLES_ESCRITURA,
+      status: 201,
+      respuesta: {
+        type: 'object',
+        properties: {
+          ...propiedadesContratoBase,
+          empleados: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              nombre: { type: 'string' },
+              apellido: { type: 'string' },
+              nro_documento: { type: 'string' },
             },
-          ],
-          meta: {
-            total: 45,
-            page: 1,
-            limit: 10,
-            totalPages: 5,
           },
         },
       },
-    }),
-    ApiResponse({ status: 400, description: 'Parámetros de consulta no conformes con ListarContratosQuerySchema.' }),
-    ApiResponse({ status: 401, description: 'No autenticado.' }),
-    ApiResponse({ status: 403, description: 'Acceso denegado.' })
+    })
   );
 }
 
 /**
- * Documentación del endpoint GET /api/contrato/empleado/:empleadoId (Historial de un empleado)
+ * Documenta `PUT /api/v1/rrhh/contrato/:id`.
+ */
+export function ApiSwaggerEditarContrato() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiContratoBody(EditarContratoSchema),
+    ApiOperacionDocumentada({
+      summary: 'Editar contrato sin PDF firmado',
+      description:
+        'Actualiza los datos de un contrato no eliminado sin permitir cambiar `empleado_id`. Bloquea la edición con 400 si el contrato ya tiene un PDF adjunto (`url !== null`).',
+      roles: ROLES_ESCRITURA,
+      respuesta: { type: 'object', properties: propiedadesContratoBase },
+    })
+  );
+}
+
+/**
+ * Documenta `POST /api/v1/rrhh/contrato/:id/renovar`.
+ */
+export function ApiSwaggerRenovarContrato() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiContratoBody(RenovarContratoSchema),
+    ApiOperacionDocumentada({
+      summary: 'Renovar contrato',
+      description:
+        'Marca el contrato previo como `RENOVADO` y crea en transacción un nuevo contrato `VIGENTE` vinculado por `contrato_origen_id`. Rechaza si el empleado está inactivo, si el contrato ya fue renovado o si `fecha_inicio > fecha_fin` (400).',
+      roles: ROLES_ESCRITURA,
+      status: 201,
+      respuesta: { type: 'object', properties: propiedadesContratoBase },
+    })
+  );
+}
+
+/**
+ * Documenta `DELETE /api/v1/rrhh/contrato/:id/anular`.
+ */
+export function ApiSwaggerAnularContrato() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Anular contrato (baja lógica)',
+      description:
+        'Cambia el estado del contrato a `ANULADO` y registra `deleted_at`. Responde 404 si no existe o ya fue eliminado y 400 si ya estaba anulado.',
+      roles: ROLES_ESCRITURA,
+      respuesta: { type: 'object', properties: propiedadesContratoBase },
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/rrhh/contrato`.
+ */
+export function ApiSwaggerListarContratos() {
+  return applyDecorators(
+    ApiContratoQuery(ListarContratosQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Listar contratos',
+      description:
+        'Lista contratos no eliminados con filtros por empleado, estado, área, búsqueda textual y `por_vencer_dias` (contratos vigentes próximos a vencer), calculando `dias_restantes` y `alerta_vencimiento`.',
+      roles: ROLES_LECTURA,
+      respuesta: { type: 'array', items: respuestaContratoResumen },
+      paginada: true,
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/rrhh/contrato/empleado/:empleadoId`.
  */
 export function ApiSwaggerListarContratosEmpleado() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Historial contractual completo de un empleado',
-      description: `Recupera la línea de tiempo completa de contratos, adendas y renovaciones históricas de un trabajador para visualización en su expediente/legajo digital.
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`, \`CONTADOR\`, \`ASISTENTE\`.`,
-    }),
-    ApiParam({
-      name: 'empleadoId',
-      type: 'string',
-      format: 'uuid',
-      description: 'UUID del empleado titular del expediente',
-      example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    }),
+    ApiIdentificador('empleadoId'),
     ApiContratoQuery(ListarContratosQuerySchema),
-
-    ApiResponse({
-      status: 200,
-      description: 'Historial cronológico de contratos obtenido con éxito.',
-    }),
-    ApiResponse({ status: 400, description: 'UUID de empleado inválido.' }),
-    ApiResponse({ status: 404, description: 'Empleado no encontrado o sin contratos registrados.' })
+    ApiOperacionDocumentada({
+      summary: 'Listar contratos de un empleado',
+      description:
+        'Verifica que el empleado exista y no esté eliminado (404) y devuelve su historial paginado de contratos aplicando los filtros opcionales de consulta.',
+      roles: ROLES_LECTURA,
+      respuesta: { type: 'array', items: respuestaContratoResumen },
+      paginada: true,
+    })
   );
 }
 
 /**
- * Documentación del endpoint POST /api/contrato/:id/subir-pdf
+ * Documenta `POST /api/v1/rrhh/contrato/:id/subir-pdf`.
  */
 export function ApiSwaggerSubirPdf() {
   return applyDecorators(
+    ApiIdentificador(),
     ApiConsumes('multipart/form-data'),
-    ApiOperation({
-      summary: 'Cargar PDF firmado del contrato (Bloqueo de Inmutabilidad)',
-      description: `Carga el contrato físico escaneado con las firmas de ley.
-        - **Bloqueo Inmutable**: Al completar la subida, el contrato pasa a ser estrictamente de solo lectura y ya no podrá ser editado ni alterado.
-        - **Almacenamiento**: Se guarda en el volumen seguro persistente del servidor y se registra la ruta relativa.
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`.`,
-    }),
-    ApiParam({
-      name: 'id',
-      type: 'string',
-      format: 'uuid',
-      description: 'UUID del contrato a vincular',
-      example: 'c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33',
-    }),
     ApiBody({
-      description: 'Archivo PDF del contrato firmado por el trabajador y el representante legal',
       schema: {
         type: 'object',
         required: ['file'],
@@ -212,70 +222,73 @@ export function ApiSwaggerSubirPdf() {
           file: {
             type: 'string',
             format: 'binary',
-            description: 'Archivo en formato PDF (application/pdf, máx 10 MB)',
+            description:
+              'Archivo PDF del contrato firmado (`application/pdf`, extensión `.pdf`, máx. 5 MB).',
           },
         },
       },
     }),
-    ApiResponse({ status: 201, description: 'Documento PDF vinculado exitosamente y contrato bloqueado.' }),
-    ApiResponse({ status: 400, description: 'Petición no multipart, formato distinto de PDF o archivo corrupto.' }),
-    ApiResponse({ status: 404, description: 'El contrato no existe.' })
+    ApiOperacionDocumentada({
+      summary: 'Subir PDF firmado de contrato',
+      description:
+        'Guarda el archivo PDF en `archivos/contratos` (máx. 5 MB), vincula `url` y anota la fecha en `observacion`, impidiendo futuras ediciones. Rechaza con 400 si ya tenía PDF o el archivo no es PDF válido.',
+      roles: ROLES_ESCRITURA,
+      status: 201,
+      respuesta: {
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          url: { type: 'string' },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 413,
+      description: 'El archivo PDF supera el tamaño máximo de 5 MB.',
+    })
   );
 }
 
 /**
- * Documentación del endpoint GET /api/contrato/descargar/:filename
+ * Documenta `GET /api/v1/rrhh/contrato/descargar/:filename`.
  */
 export function ApiSwaggerDescargarPdf() {
   return applyDecorators(
+    ApiIdentificador('filename', false),
     ApiOperation({
-      summary: 'Descargar documento PDF del contrato',
-      description: `Descarga el binario PDF en streaming desde el almacenamiento del servidor.
-        - **Seguridad**: Aplica validación estricta de \`path.basename\` para evitar ataques de Path Traversal (\`../../\`).
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`, \`CONTADOR\`, \`EMPLEADO\`.`,
+      summary: 'Descargar PDF de contrato',
+      description:
+        'Envía el binario PDF del contrato validando el nombre con `path.basename` y extensión `.pdf` (400). Verifica en BD que el registro no esté eliminado (`deleted_at: null`) y, si el rol es EMPLEADO, que tenga `empleado_id` (403) y que el contrato le pertenezca (404). Si el archivo no existe en disco responde 400 (`El archivo solicitado no existe.`).',
     }),
-    ApiParam({
-      name: 'filename',
-      type: 'string',
-      description: 'Nombre seguro del archivo físico generado en el servidor',
-      example: 'contrato_a0eebc99_2026.pdf',
-    }),
+    ApiExtension('x-roles', ROLES_DESCARGA),
+    ApiProduces('application/pdf'),
     ApiResponse({
       status: 200,
-      description: 'Archivo binario del contrato retornado con cabecera application/pdf.',
+      description: 'Archivo PDF descargado correctamente.',
       content: {
-        'application/pdf': {
-          schema: {
-            type: 'string',
-            format: 'binary',
-          },
-        },
+        'application/pdf': { schema: { type: 'string', format: 'binary' } },
       },
     }),
-    ApiResponse({ status: 400, description: 'Nombre de archivo inseguro o archivo inexistente en disco.' }),
-    ApiResponse({ status: 401, description: 'No autenticado.' })
+    ApiResponse({
+      status: 400,
+      description:
+        "El nombre del archivo PDF es inválido o responde 'El archivo solicitado no existe.' (400, no 404) cuando no se encuentra en disco.",
+    })
   );
 }
 
+/**
+ * Documenta `GET /api/v1/rrhh/contrato/:id`.
+ */
 export function ApiSwaggerListarContratosPorId() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Obtener contrato por ID',
-      description: `Recupera un contrato específico por su UUID.
-        - **Roles Autorizados**: \`ADMIN\`, \`RRHH\`.`,
-    }),
-    ApiParam({
-      name: 'id',
-      type: 'string',
-      format: 'uuid',
-      description: 'UUID del contrato a consultar',
-      example: 'c2eebc88-9c0b-4ef8-bb6d-8cc9bd380c33',
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Contrato obtenido exitosamente por su ID.',
-    }),
-    ApiResponse({ status: 400, description: 'UUID inválido.' }),
-    ApiResponse({ status: 404, description: 'Contrato no encontrado.' })
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Obtener detalle de contrato',
+      description:
+        'Recupera un contrato no eliminado por su UUID junto con los datos básicos del colaborador y sus prórrogas.',
+      roles: ROLES_ESCRITURA,
+      respuesta: esquemaContrato(ContratoDetalleSchema),
+    })
   );
 }

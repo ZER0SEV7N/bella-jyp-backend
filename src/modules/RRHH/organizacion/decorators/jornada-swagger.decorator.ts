@@ -1,392 +1,171 @@
 //src/modules/RRHH/organizacion/decorators/jornada-swagger.decorator.ts
+import {
+  ApiContratoBody,
+  ApiContratoQuery,
+  ApiErroresOperacion,
+  ApiIdentificador,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
+import {
+  ActualizarJornadaSchema,
+  CrearJornadaSchema,
+  JornadaDetalleSchema,
+  JornadaResumenSchema,
+  ListarJornadasQuerySchema,
+} from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiExtension } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { SchemaObject } from '@nestjs/swagger';
+
+const ROLES_ESCRITURA = ['ADMIN', 'RRHH'];
+const ROLES_LECTURA = ['ADMIN', 'RRHH', 'CONTADOR'];
+
+const respuestaJornadaBase: Record<string, SchemaObject> = {
+  id: { type: 'string', format: 'uuid' },
+  nombre: { type: 'string' },
+  descripcion: { type: 'string', nullable: true },
+  duracion: { type: 'string', enum: ['TIEMPO_COMPLETO', 'TIEMPO_PARCIAL'] },
+  turno: {
+    type: 'string',
+    enum: ['MANANA', 'TARDE', 'NOCHE', 'MIXTO', 'ROTATIVO'],
+  },
+  modalidad: { type: 'string', enum: ['PRESENCIAL', 'REMOTO', 'HIBRIDO'] },
+  tolerancia_minutos: { type: 'integer' },
+  total_horas_semana: { type: 'string' },
+  horario_semanal: {
+    type: 'array',
+    items: { type: 'object', additionalProperties: true },
+  },
+  patron_rotacion: {
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+  },
+  activo: { type: 'boolean' },
+  deleted_at: { type: 'string', format: 'date-time', nullable: true },
+  created_at: { type: 'string', format: 'date-time' },
+  updated_at: { type: 'string', format: 'date-time' },
+};
 
 /**
- * Decorador para documentar el controlador de Jornadas en Swagger.
- * @requires - JWT Bearer token para autenticación.
- * @requires - Roles: ADMIN, RRHH para autorización.
+ * Configura la etiqueta Swagger, la autenticación Bearer y los errores comunes para jornadas.
  */
 export function ApiSwaggerJornadaController() {
   return applyDecorators(
     ApiTags('Módulo RRHH - Jornadas y Horarios Laborales'),
     ApiBearerAuth('JWT-auth'),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH'])
+    ApiErroresOperacion()
   );
 }
 
 /**
- * Decorador para documentar el endpoint de creación de una jornada/turno en Swagger.
+ * Documenta `POST /api/v1/rrhh/jornadas`.
  */
 export function ApiSwaggerCrearJornada() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Crear Jornada / Turno',
-      description: 'Registra una nueva jornada laboral definiendo duración, turno, modalidad general, áreas aplicables, la grilla semanal completa (con refrigerios) y el patrón de rotación si corresponde.'
-    }),
-    ApiBody({
-      schema: {
+    ApiContratoBody(CrearJornadaSchema),
+    ApiOperacionDocumentada({
+      summary: 'Crear jornada laboral',
+      description:
+        'Registra una jornada y la asocia a áreas activas (404 si alguna no existe o está inactiva). Valida nombre único (400), máximo 8h/día, máximo 48h semanales (menos de 30h para TIEMPO_PARCIAL) y patrón de rotación obligatorio si el turno es ROTATIVO.',
+      roles: ROLES_ESCRITURA,
+      status: 201,
+      respuesta: {
         type: 'object',
-        required: [
-          'nombre',
-          'duracion',
-          'turno',
-          'modalidad',
-          'areas_ids',
-          'horario_semanal'
-        ],
         properties: {
-          nombre: {
-            type: 'string',
-            example: 'Jornada Estándar Oficina',
-            description: 'Nombre identificativo de la jornada'
-          },
-          descripcion: {
-            type: 'string',
-            example: 'Horario administrativo de 40h semanales de Lunes a Viernes',
-            description: 'Detalle o notas sobre la jornada'
-          },
-          duracion: {
-            type: 'string',
-            enum: ['TIEMPO_COMPLETO', 'TIEMPO_PARCIAL'],
-            default: 'TIEMPO_COMPLETO',
-            example: 'TIEMPO_COMPLETO'
-          },
-          turno: {
-            type: 'string',
-            enum: ['MANANA', 'TARDE', 'NOCHE', 'MIXTO', 'ROTATIVO'],
-            default: 'MANANA',
-            example: 'MANANA'
-          },
-          modalidad: {
-            type: 'string',
-            enum: ['PRESENCIAL', 'REMOTO', 'HIBRIDO'],
-            default: 'PRESENCIAL',
-            example: 'PRESENCIAL'
-          },
-          tolerancia_minutos: {
-            type: 'number',
-            example: 10,
-            default: 5,
-            description: 'Minutos de gracia al ingreso antes de computar tardanza'
-          },
-          areas_ids: {
+          ...respuestaJornadaBase,
+          areas_aplicables_ids: {
             type: 'array',
             items: { type: 'string', format: 'uuid' },
-            example: ['018f4a7c-7777-7000-1111-000000000001'],
-            description: 'IDs de las áreas habilitadas para utilizar este turno'
           },
-          horario_semanal: {
-            type: 'array',
-            description: 'Configuración detallada de los 7 días de la semana',
-            items: {
-              type: 'object',
-              properties: {
-                dia: {
-                  type: 'string',
-                  enum: ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'],
-                  example: 'LUNES'
-                },
-                laborable: { type: 'boolean', example: true },
-                modalidad: { type: 'string', enum: ['PRESENCIAL', 'REMOTO'], example: 'PRESENCIAL' },
-                entrada: { type: 'string', example: '08:00' },
-                inicio_descanso: { type: 'string', example: '13:00' },
-                fin_descanso: { type: 'string', example: '14:00' },
-                salida: { type: 'string', example: '17:00' }
-              }
-            }
-          },
-          patron_rotacion: {
-            type: 'object',
-            description: 'Parámetros del ciclo rotativo (obligatorio si turno == ROTATIVO)',
-            properties: {
-              tipo_ciclo: { type: 'string', example: '6x1' },
-              dias_trabajo: { type: 'number', example: 6 },
-              dias_descanso: { type: 'number', example: 1 },
-              frecuencia_cambio: {
-                type: 'string',
-                enum: ['SEMANAL', 'QUINCENAL', 'MENSUAL'],
-                example: 'SEMANAL'
-              },
-              turnos_base: {
-                type: 'array',
-                items: { type: 'string' },
-                example: ['MANANA', 'TARDE']
-              }
-            }
-          },
-          activo: { type: 'boolean', default: true, example: true }
-        }
-      }
-    }),
-    ApiResponse({
-      status: 201,
-      description: 'Jornada creada exitosamente.'
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Datos inválidos, nombre duplicado o excede 48 horas semanales.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT ausente o expirado.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. Se requieren privilegios de ADMIN o RRHH.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Una o más áreas seleccionadas no existen o están inactivas.'
-    }),
+        },
+      },
+    })
   );
 }
 
 /**
- * Decorador para documentar el endpoint de consulta paginada de jornadas en Swagger.
+ * Documenta `GET /api/v1/rrhh/jornadas`.
  */
 export function ApiSwaggerListarJornada() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Listar Jornadas y Turnos',
-      description: 'Obtiene una lista paginada de las jornadas laborales registradas con filtros avanzados por estado, modalidad, turno, duración o área.'
-    }),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH', 'CONTADOR']),
-    ApiQuery({
-      name: 'page',
-      description: 'Número de página.',
-      required: false,
-      schema: { type: 'number', default: 1 }
-    }),
-    ApiQuery({
-      name: 'limit',
-      description: 'Cantidad de elementos por página.',
-      required: false,
-      schema: { type: 'number', default: 10 }
-    }),
-    ApiQuery({
-      name: 'search',
-      description: 'Búsqueda por coincidencia en nombre o descripción.',
-      required: false,
-      schema: { type: 'string' }
-    }),
-    ApiQuery({
-      name: 'area_id',
-      description: 'Filtra jornadas aplicables a un área específica.',
-      required: false,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiQuery({
-      name: 'turno',
-      description: 'Filtra por tipo de turno.',
-      required: false,
-      enum: ['MANANA', 'TARDE', 'NOCHE', 'MIXTO', 'ROTATIVO']
-    }),
-    ApiQuery({
-      name: 'modalidad',
-      description: 'Filtra por modalidad laboral general.',
-      required: false,
-      enum: ['PRESENCIAL', 'REMOTO', 'HIBRIDO']
-    }),
-    ApiQuery({
-      name: 'duracion',
-      description: 'Filtra por tipo de duración de jornada.',
-      required: false,
-      enum: ['TIEMPO_COMPLETO', 'TIEMPO_PARCIAL']
-    }),
-    ApiQuery({
-      name: 'activo',
-      description: 'Filtra por jornadas activas o inactivas.',
-      required: false,
-      schema: { type: 'boolean' }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Lista de jornadas obtenida exitosamente.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT inválido.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El rol autenticado no posee privilegios de consulta.'
-    }),
+    ApiContratoQuery(ListarJornadasQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Listar jornadas laborales',
+      description:
+        'Lista jornadas no eliminadas ordenadas por fecha de creación descendente, con filtros por búsqueda, área, turno, modalidad, duración y estado activo, e incluye conteo de empleados activos y áreas vinculadas.',
+      roles: ROLES_LECTURA,
+      respuesta: {
+        type: 'array',
+        items: esquemaContrato(JornadaResumenSchema),
+      },
+      paginada: true,
+    })
   );
 }
 
 /**
- * Decorador para documentar el endpoint de actualización de una jornada en Swagger.
+ * Documenta `PUT /api/v1/rrhh/jornadas/:id`.
  */
 export function ApiSwaggerActualizarJornada() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Actualizar Jornada',
-      description: 'Actualiza los parámetros, áreas aplicables o distribución horaria de una jornada laboral existente.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'UUID de la jornada a actualizar.',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        properties: {
-          nombre: { type: 'string', example: 'Turno Mañana Flexible' },
-          descripcion: { type: 'string', example: 'Actualización de tolerancia y áreas' },
-          duracion: { type: 'string', enum: ['TIEMPO_COMPLETO', 'TIEMPO_PARCIAL'] },
-          turno: { type: 'string', enum: ['MANANA', 'TARDE', 'NOCHE', 'MIXTO', 'ROTATIVO'] },
-          modalidad: { type: 'string', enum: ['PRESENCIAL', 'REMOTO', 'HIBRIDO'] },
-          tolerancia_minutos: { type: 'number', example: 10 },
-          areas_ids: {
-            type: 'array',
-            items: { type: 'string', format: 'uuid' }
-          },
-          horario_semanal: {
-            type: 'array',
-            items: { type: 'object' }
-          },
-          patron_rotacion: { type: 'object' },
-          activo: { type: 'boolean', example: true }
-        }
-      }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Jornada actualizada exitosamente.'
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Datos inválidos o nombre duplicado en otra jornada.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. Permisos insuficientes.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Jornada no encontrada o áreas no válidas.'
+    ApiIdentificador(),
+    ApiContratoBody(ActualizarJornadaSchema),
+    ApiOperacionDocumentada({
+      summary: 'Actualizar jornada laboral',
+      description:
+        'Actualiza una jornada no eliminada. Valida nombre único si cambia (400), áreas activas si se reemplaza `areas_ids` (404) y recalcula horas si se envía `horario_semanal`.',
+      roles: ROLES_ESCRITURA,
+      respuesta: esquemaContrato(JornadaDetalleSchema),
     })
   );
 }
 
 /**
- * Decorador para documentar la desactivación lógica (Soft Delete) de una jornada.
+ * Documenta `DELETE /api/v1/rrhh/jornadas/:id/desactivar`.
  */
 export function ApiSwaggerDesactivarJornada() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Desactivar Jornada (Baja Lógica)',
-      description: 'Desactiva una jornada laboral del catálogo. Bloquea la acción si existen colaboradores activos asignados a ella.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'UUID de la jornada a desactivar.',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Jornada desactivada exitosamente.'
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Operación bloqueada. Existen colaboradores activos usando este turno.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Jornada no encontrada o ya desactivada.'
-    }),
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Desactivar jornada (baja lógica)',
+      description:
+        'Desactiva una jornada registrando `deleted_at`. Bloquea la operación con 400 si existen empleados activos asignados a esta jornada.',
+      roles: ROLES_ESCRITURA,
+      respuesta: { type: 'object', properties: respuestaJornadaBase },
+    })
   );
 }
 
 /**
- * Decorador para documentar la reactivación de una jornada previamente desactivada.
+ * Documenta `PATCH /api/v1/rrhh/jornadas/:id/reactivar`.
  */
 export function ApiSwaggerReactivarJornada() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Reactivar Jornada',
-      description: 'Reactiva una jornada laboral desactivada previamente en el sistema.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'UUID de la jornada a reactivar.',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Jornada reactivada exitosamente.'
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'La jornada ya se encuentra activa.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Jornada no encontrada.'
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Reactivar jornada',
+      description:
+        'Reactiva una jornada desactivada estableciendo `activo: true` y limpiando `deleted_at`. Responde 400 si ya se encuentra activa.',
+      roles: ROLES_ESCRITURA,
+      respuesta: { type: 'object', properties: respuestaJornadaBase },
     })
   );
 }
 
+/**
+ * Documenta `GET /api/v1/rrhh/jornadas/:id`.
+ */
 export function ApiDetalleJornada() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Detalle de Jornada',
-      description: 'Obtiene los detalles completos de una jornada laboral específica, incluyendo su configuración horaria y áreas asociadas.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'UUID de la jornada a consultar.',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Detalle de la jornada obtenido exitosamente.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Jornada no encontrada.'
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Obtener detalle de jornada',
+      description:
+        'Recupera una jornada no eliminada junto con sus áreas asociadas y configuración horaria semanal.',
+      roles: ROLES_ESCRITURA,
+      respuesta: esquemaContrato(JornadaDetalleSchema),
     })
   );
 }
-
-//Aliases de retrocompatibilidad para imports existentes
-export const ApiSwaggerJordanaController = ApiSwaggerJornadaController;
-export const ApiSwaggerCrearJordana = ApiSwaggerCrearJornada;
-export const ApiSwaggerListarJordana = ApiSwaggerListarJornada;
-export const ApiSwaggerActualizarJordana = ApiSwaggerActualizarJornada;
-export const ApiSwaggerDesactivarJordana = ApiSwaggerDesactivarJornada;
-export const ApiSwaggerReactivarJordana = ApiSwaggerReactivarJornada;

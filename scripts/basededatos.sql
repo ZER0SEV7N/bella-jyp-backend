@@ -1336,10 +1336,18 @@ CREATE TABLE "audit_log" (
     -- Origen de la operación; los triggers lo obtienen del contexto transaccional app.ip.
     "direccion_ip" INET NOT NULL,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Entidad de negocio a la que pertenece el cambio: empleado, area, cargo, jornada o empresa.
+    "afectado_tipo" VARCHAR(30),
+    -- ID de esa entidad; NULL cuando el cambio es de la empresa (por ejemplo, el calendario laboral).
+    "afectado_id" UUID,
     CONSTRAINT "audit_log_pkey" PRIMARY KEY ("id")
 );
 
 COMMENT ON TABLE "audit_log" IS 'Registra tabla, fila, usuario, IP y valores antes/después. Las escrituras críticas de asistencia/payroll usan auditoría SQL transaccional.';
+
+COMMENT ON COLUMN "audit_log"."afectado_tipo" IS 'Tipo de entidad de negocio afectada (empleado, area, cargo, jornada, empresa); permite ver el historial de una persona sin conocer la tabla técnica.';
+
+COMMENT ON COLUMN "audit_log"."afectado_id" IS 'ID de la entidad de negocio afectada; NULL para cambios de la empresa.';
 
 COMMENT ON COLUMN "audit_log"."valores_antes" IS 'Fila previa a la mutación, cuando corresponda.';
 
@@ -1354,6 +1362,10 @@ COMMENT ON COLUMN "audit_log"."direccion_ip" IS 'Origen de la operación; los tr
 -- Consulta por (created_at DESC).
 
 CREATE INDEX "idx_audit_log_fecha" ON "audit_log" ("created_at" DESC);
+
+-- Consulta por (afectado_tipo, afectado_id): línea de tiempo de un empleado, área, cargo o jornada.
+
+CREATE INDEX "idx_audit_log_afectado" ON "audit_log" ("afectado_tipo", "afectado_id");
 
 -- Consulta por (tabla_afectada).
 
@@ -2267,19 +2279,26 @@ END $$;
 -- ------------------------------------------------------------------------------------------------
 
 -- Entrada: Fila afectada y contexto local app.usuario_id/app.ip.
--- Efecto: Inserta valores antes/después en audit_log. En planillas evita duplicar la instantánea
--- completa.
+-- Efecto: Inserta valores antes/después en audit_log junto con la entidad de negocio afectada
+-- (empleado por empleado_id; empresa para asistencia_calendario). En planillas evita duplicar la
+-- instantánea completa.
 CREATE OR REPLACE FUNCTION asistencia_auditar() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE antes jsonb; despues jsonb; actor uuid; ip inet;
+DECLARE antes jsonb; despues jsonb; actor uuid; ip inet; v_afectado_tipo text; v_afectado_id uuid;
 BEGIN
     actor := nullif(current_setting('app.usuario_id', true), '')::uuid;
     ip := coalesce(nullif(current_setting('app.ip', true), ''), '127.0.0.1')::inet;
     IF TG_OP = 'UPDATE' THEN antes := to_jsonb(OLD); END IF;
     despues := to_jsonb(NEW);
+    IF TG_TABLE_NAME = 'asistencia_calendario' THEN
+        v_afectado_tipo := 'empresa';
+    ELSE
+        v_afectado_id := nullif(despues->>'empleado_id', '')::uuid;
+        IF v_afectado_id IS NOT NULL THEN v_afectado_tipo := 'empleado'; END IF;
+    END IF;
     --La auditoría del historial conserva metadatos y montos, sin duplicar el documento de cálculo completo.
     IF TG_TABLE_NAME = 'historial_planillas' THEN antes := antes - 'snapshot_calculo'; despues := despues - 'snapshot_calculo'; END IF;
-    INSERT INTO audit_log(id, usuario_id, accion, tabla_afectada, registro_id, valores_antes, valores_despues, direccion_ip)
-        VALUES(asistencia_uuid_v7(), actor, CASE WHEN TG_OP = 'INSERT' THEN 'CREATE' ELSE TG_OP END, TG_TABLE_NAME, NEW.id, antes, despues, ip);
+    INSERT INTO audit_log(id, usuario_id, accion, tabla_afectada, registro_id, valores_antes, valores_despues, direccion_ip, afectado_tipo, afectado_id)
+        VALUES(asistencia_uuid_v7(), actor, CASE WHEN TG_OP = 'INSERT' THEN 'CREATE' ELSE TG_OP END, TG_TABLE_NAME, NEW.id, antes, despues, ip, v_afectado_tipo, v_afectado_id);
     RETURN NEW;
 END $$;
 

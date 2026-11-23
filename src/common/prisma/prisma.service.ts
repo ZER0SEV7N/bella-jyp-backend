@@ -1,5 +1,10 @@
 //src/common/prisma/prisma.service.ts
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -8,8 +13,16 @@ import { ClsService } from 'nestjs-cls';
 import { CLS_USER_ID, CLS_IP_ADDRESS } from '../cls/cls.constants';
 import { IdentityGenerator } from '../utils/uuid.util';
 import { crearSnapshotAuditoria } from '../utils/audit-snaphot.util';
+import {
+  quitarCamposRelacion,
+  quitarCamposRelacionDatos,
+} from '../utils/campos-relacion.util';
+import {
+  resolverAfectadoAuditoria,
+  type AfectadoAuditoria,
+} from '@/modules/core/audit/helpers/resolver-afectado-auditoria.helper';
 
-/** 
+/**
  * Tablas excluidas de la extensión de auditoría para evitar recursión o ruido técnico.
  */
 const TABLAS_EXCLUIDAS_AUDITORIA = new Set([
@@ -20,9 +33,9 @@ const TABLAS_EXCLUIDAS_AUDITORIA = new Set([
   'integracion_trabajo',
 ]);
 
-/** 
- * Tablas cuya auditoría se realiza de forma atómica mediante triggers SQL dentro de `transaccionAuditada`. 
- * 
+/**
+ * Tablas cuya auditoría se realiza de forma atómica mediante triggers SQL dentro de `transaccionAuditada`.
+ *
  */
 const TABLAS_AUDITORIA_SQL_ATOMICA = new Set([
   'asistencia_marcacion',
@@ -36,11 +49,20 @@ const TABLAS_AUDITORIA_SQL_ATOMICA = new Set([
   'solicitud',
 ]);
 
-/** 
- * Operaciones individuales y masivas auditadas por la extensión de Prisma (AUD-F3). 
+/**
+ * Operaciones individuales y masivas auditadas por la extensión de Prisma (AUD-F3).
  */
-const OPERACIONES_DML_INDIVIDUALES = new Set(['create', 'update', 'delete', 'upsert']);
-const OPERACIONES_DML_MASIVAS = new Set(['createMany', 'updateMany', 'deleteMany']);
+const OPERACIONES_DML_INDIVIDUALES = new Set([
+  'create',
+  'update',
+  'delete',
+  'upsert',
+]);
+const OPERACIONES_DML_MASIVAS = new Set([
+  'createMany',
+  'updateMany',
+  'deleteMany',
+]);
 
 /**
  * Servicio de Prisma que extiende el cliente de Prisma para incluir auditoría y manejo de ciclo de vida del módulo.
@@ -52,7 +74,10 @@ const OPERACIONES_DML_MASIVAS = new Set(['createMany', 'updateMany', 'deleteMany
  * - Utilizar ClsService para obtener información del contexto de la solicitud (usuario e IP) para auditoría.
  */
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   //Logger para registrar eventos y errores relacionados con la base de datos
   private readonly logger = new Logger(PrismaService.name);
 
@@ -61,7 +86,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const connectionString = process.env.DATABASE_URL;
 
     //Defensa Perimetral (Fail-Fast)
-    if (!connectionString) throw new Error('CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env');
+    if (!connectionString)
+      throw new Error(
+        'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env'
+      );
 
     //Instanciar el Pool nativo de conexiones de PostgreSQL
     const pool = new Pool({ connectionString });
@@ -70,21 +98,69 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const adapter = new PrismaPg(pool);
 
     //Inicializar el motor nativo con el adaptador inyectado
-    super({ adapter,
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'] });
+    super({
+      adapter,
+      log:
+        process.env.NODE_ENV === 'development'
+          ? ['query', 'error', 'warn']
+          : ['error'],
+    });
 
     //Middleware para inyectar información de auditoría en cada operación de Prisma
     const clsService = this.cls; //Referencia al servicio de ClsService para uso dentro del middleware
     const localLogger = this.logger; //Referencia al logger para uso dentro del middleware
-    const getModelClient = (model: string) => (this as any)[model];
-    const createAuditLog = (data: any) => (this as any).audit_log.create({ data });
+    interface PrismaModelDelegate {
+      findUnique: (args: {
+        where: unknown;
+        select?: Record<string, boolean>;
+      }) => Promise<Record<string, unknown> | null>;
+    }
+    interface AuditLogPayload {
+      id: string;
+      usuario_id: string | null;
+      accion: string;
+      tabla_afectada: string;
+      registro_id: string;
+      valores_antes: unknown;
+      valores_despues: unknown;
+      direccion_ip: string;
+      afectado_tipo: string | null;
+      afectado_id: string | null;
+    }
+    const getModelClient = (model: string): PrismaModelDelegate =>
+      (this as unknown as Record<string, PrismaModelDelegate>)[model];
+    const createAuditLog = (data: AuditLogPayload): Promise<unknown> =>
+      (
+        this as unknown as {
+          audit_log: {
+            create: (args: { data: AuditLogPayload }) => Promise<unknown>;
+          };
+        }
+      ).audit_log.create({ data });
+    const buscarEmpleadoDeDerechohabiente = async (
+      derechohabienteId: string
+    ): Promise<string | null> => {
+      const derechohabiente = await getModelClient(
+        'derechohabientes'
+      ).findUnique({
+        where: { id: derechohabienteId },
+        select: { empleado_id: true },
+      });
+      return typeof derechohabiente?.empleado_id === 'string'
+        ? derechohabiente.empleado_id
+        : null;
+    };
 
     const extendedClient = this.$extends({
       query: {
         $allModels: {
           async $allOperations({ model, operation, args, query }) {
             //Omitir tablas de auditoría para evitar recursión infinita
-            if (!model || TABLAS_EXCLUIDAS_AUDITORIA.has(model) || TABLAS_AUDITORIA_SQL_ATOMICA.has(model)) {
+            if (
+              !model ||
+              TABLAS_EXCLUIDAS_AUDITORIA.has(model) ||
+              TABLAS_AUDITORIA_SQL_ATOMICA.has(model)
+            ) {
               return query(args);
             }
 
@@ -93,39 +169,82 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
             if (!esIndividual && !esMasiva) {
               return query(args);
             }
-            
-            let valoresAntes = null; //Variable para almacenar los valores antes de la operación (para auditoría)
+
+            let valoresAntes: Record<string, unknown> | null = null; //Variable para almacenar los valores antes de la operación (para auditoría)
+            const argsRecord =
+              typeof args === 'object' && args !== null
+                ? (args as Record<string, unknown>)
+                : null;
 
             //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
             if (operation === 'update' || operation === 'delete') {
               try {
-                valoresAntes = await getModelClient(model).findUnique({ where: (args as any).where });
+                valoresAntes = await getModelClient(model).findUnique({
+                  where: argsRecord?.where,
+                });
               } catch (error) {
-                localLogger.warn(`Auditoría: No se pudo obtener el estado previo de ${model}`, error);
+                localLogger.warn(
+                  `Auditoría: No se pudo obtener el estado previo de ${model}`,
+                  error
+                );
               }
             }
 
             //Ejecutar la consulta original de Prisma
-            const resultado = await query(args);
+            const resultado: unknown = await query(args);
 
             //Capturar el estado Exacto después de la operación para operaciones de Create, Update y Upsert
-            let valoresDespues = null;
-            if (operation === 'create' || operation === 'update' || operation === 'upsert') {
+            let valoresDespues: unknown = null;
+            let valoresDespuesMasivos: Record<string, unknown> | null = null;
+            if (
+              operation === 'create' ||
+              operation === 'update' ||
+              operation === 'upsert'
+            ) {
               valoresDespues = resultado;
             } else if (esMasiva) {
-              valoresDespues = {
+              const registrosAfectados =
+                typeof resultado === 'object' &&
+                resultado !== null &&
+                'count' in resultado
+                  ? ((resultado as { count?: unknown }).count ?? null)
+                  : null;
+              valoresDespuesMasivos = {
                 operacion_masiva: operation,
-                filtro: (args as any)?.where ?? null,
-                datos: (args as any)?.data ?? null,
-                registros_afectados: (resultado as any)?.count ?? null,
+                filtro: argsRecord?.where ?? null,
+                datos: argsRecord?.data ?? null,
+                registros_afectados: registrosAfectados,
               };
+              valoresDespues = valoresDespuesMasivos;
             }
 
             //Extraer información de auditoría del contexto de la solicitud usando ClsService
-            let userId = clsService.get(CLS_USER_ID) || 'system';
+            let userId: string | null =
+              clsService.get<string | undefined>(CLS_USER_ID) || 'system';
             if (!userId || userId === 'system') userId = null;
-            const ipAddress = clsService.get(CLS_IP_ADDRESS) || '127.0.0.1';
-            const registroId = getId(resultado) || getWhereId(args) || IdentityGenerator.generateId();
+            const ipAddress =
+              clsService.get<string | undefined>(CLS_IP_ADDRESS) || '127.0.0.1';
+            const registroId =
+              getId(resultado) ||
+              getWhereId(args) ||
+              IdentityGenerator.generateId();
+
+            //El afectado es informativo: si no se puede resolver, la auditoría se guarda igual.
+            let afectado: AfectadoAuditoria | null = null;
+            try {
+              afectado = await resolverAfectadoAuditoria(
+                model,
+                registroId,
+                valoresAntes,
+                valoresDespues,
+                buscarEmpleadoDeDerechohabiente
+              );
+            } catch (error) {
+              localLogger.warn(
+                `Auditoría: No se pudo determinar el afectado de ${model}`,
+                error
+              );
+            }
 
             //Registrar la operación en la tabla de auditoría
             try {
@@ -135,12 +254,30 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                 accion: operation.toUpperCase(),
                 tabla_afectada: model,
                 registro_id: registroId,
-                valores_antes: valoresAntes ? crearSnapshotAuditoria(valoresAntes) : null,
-                valores_despues: valoresDespues ? crearSnapshotAuditoria(valoresDespues) : null,
+                valores_antes: valoresAntes
+                  ? crearSnapshotAuditoria(
+                      quitarCamposRelacion(model, valoresAntes)
+                    )
+                  : null,
+                valores_despues: valoresDespues
+                  ? crearSnapshotAuditoria(
+                      valoresDespuesMasivos
+                        ? quitarCamposRelacionMasiva(
+                            model,
+                            valoresDespuesMasivos
+                          )
+                        : quitarCamposRelacion(model, valoresDespues)
+                    )
+                  : null,
                 direccion_ip: ipAddress,
+                afectado_tipo: afectado?.tipo ?? null,
+                afectado_id: afectado?.id ?? null,
               });
             } catch (error) {
-              localLogger.error(`Auditoría: No se pudo registrar la operación de ${operation} en ${model}`, error);
+              localLogger.error(
+                `Auditoría: No se pudo registrar la operación de ${operation} en ${model}`,
+                error
+              );
             }
 
             return resultado;
@@ -151,31 +288,63 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     //Inyectar los métodos de ciclo de vida de NestJS en el cliente extendido para que se ejecuten correctamente
     Object.assign(extendedClient, {
-      onModuleInit: this.onModuleInit.bind(this),
-      onModuleDestroy: this.onModuleDestroy.bind(this),
+      onModuleInit: () => this.conectarBaseDatos(),
+      onModuleDestroy: () => this.desconectarBaseDatos(),
     });
 
     //Retornar el cliente extendido con auditoría y ciclo de vida integrado
     // Prisma requiere retornar el cliente extendido para conservar los interceptores.
-    return extendedClient as any; // NOSONAR
+    return extendedClient as unknown as this; // NOSONAR
   }
 
   //Implementación del ciclo de vida de NestJS para inicializar la conexión a la base de datos
   async onModuleInit() {
-    try {
-      await this.$connect();
-      this.logger.log('Conexión ACID establecida vía Driver Adapter nativo (pg).');
-    } catch (error) {
-      this.logger.error('Fallo crítico al inicializar la base de datos.',error);
-      throw error;
-    }
+    await this.conectarBaseDatos();
   }
 
   //Cerrar la conexión de forma segura al destruir el módulo
   async onModuleDestroy() {
-    await this.$disconnect();
-    this.logger.log('Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).');
+    await this.desconectarBaseDatos();
   }
+
+  private async conectarBaseDatos(): Promise<void> {
+    try {
+      await this.$connect();
+      this.logger.log(
+        'Conexión ACID establecida vía Driver Adapter nativo (pg).'
+      );
+    } catch (error) {
+      this.logger.error(
+        'Fallo crítico al inicializar la base de datos.',
+        error
+      );
+      throw error;
+    }
+  }
+
+  private async desconectarBaseDatos(): Promise<void> {
+    await this.$disconnect();
+    this.logger.log(
+      'Conexiones de base de datos drenadas de forma segura (Graceful Shutdown).'
+    );
+  }
+}
+
+/**
+ * Quita las relaciones anidadas (`connect`, `create`...) de los `datos` de una operación masiva
+ * antes de guardarla en la auditoría, para que solo queden columnas propias del modelo.
+ * @param modelo - Nombre del modelo de Prisma.
+ * @param valores - Descripción de la operación masiva (`operacion_masiva`, `filtro`, `datos`...).
+ * @returns La descripción con `datos` solo con columnas propias.
+ */
+function quitarCamposRelacionMasiva(
+  modelo: string,
+  valores: Record<string, unknown>
+): Record<string, unknown> {
+  return {
+    ...valores,
+    datos: quitarCamposRelacionDatos(modelo, valores.datos),
+  };
 }
 
 /**

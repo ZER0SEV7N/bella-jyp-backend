@@ -3,7 +3,11 @@
 // Actualización AAA: Arrange prepara mocks del contrato actual; Act ejecuta el caso; Assert verifica su resultado.
 //test/modules/RRHH/organizacion/empleados/estadoEmpleado.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { EstadoEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empleado/estadoEmpleado.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
@@ -15,12 +19,14 @@ import { PrismaService } from '@/common/prisma/prisma.service';
  */
 describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: EstadoEmpleadoUseCase;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     empleados: {
       findUnique: jest.fn(),
       update: jest.fn(),
+    },
+    vinculo_laboral: {
+      create: jest.fn(),
     },
   };
 
@@ -35,7 +41,6 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     }).compile();
 
     useCase = module.get<EstadoEmpleadoUseCase>(EstadoEmpleadoUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -70,11 +75,11 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
           where: { id: idEmpleado },
           data: {
             activo: false,
-          estado_laboral: 'CESADO',
-            fecha_cese: expect.any(Date),
-            deleted_at: expect.any(Date),
+            estado_laboral: 'CESADO',
+            fecha_cese: expect.any(Date) as unknown,
+            deleted_at: expect.any(Date) as unknown,
           },
-          include: expect.any(Object),
+          include: expect.any(Object) as unknown,
         });
       });
     });
@@ -85,17 +90,26 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         mockPrisma.empleados.findUnique.mockResolvedValue(null);
 
         // Act & Assert: Ejecutamos el caso de uso y verificamos que se lance NotFoundException
-        await expect(useCase.desactivar('emp-404')).rejects.toThrow(NotFoundException);
+        await expect(useCase.desactivar('emp-404')).rejects.toThrow(
+          NotFoundException
+        );
         expect(mockPrisma.empleados.update).not.toHaveBeenCalled();
       });
 
       it('Debe capturar errores de BD y lanzar InternalServerErrorException', async () => {
         // Arrange: Simulamos que el empleado existe pero la base de datos falla al actualizar
-        mockPrisma.empleados.findUnique.mockResolvedValue({ id: idEmpleado, deleted_at: null });
-        mockPrisma.empleados.update.mockRejectedValue(new Error('Conexión perdida a PostgreSQL'));
+        mockPrisma.empleados.findUnique.mockResolvedValue({
+          id: idEmpleado,
+          deleted_at: null,
+        });
+        mockPrisma.empleados.update.mockRejectedValue(
+          new Error('Conexión perdida a PostgreSQL')
+        );
 
         // Act & Assert: Ejecutamos el caso de uso y verificamos que se envuelva en InternalServerErrorException
-        await expect(useCase.desactivar(idEmpleado)).rejects.toThrow(InternalServerErrorException);
+        await expect(useCase.desactivar(idEmpleado)).rejects.toThrow(
+          InternalServerErrorException
+        );
       });
     });
   });
@@ -105,39 +119,36 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
   // =========================================================================
   describe('reactivar()', () => {
     describe('Casos de Éxito (Happy Path)', () => {
-      it('Debe reactivar al colaborador limpiando fecha_cese y deleted_at', async () => {
+      it('Debe reactivar al colaborador registrando un nuevo vínculo laboral', async () => {
         // Arrange: Simulamos que el empleado se encuentra cesado (activo=false)
         mockPrisma.empleados.findUnique.mockResolvedValue({
           id: idEmpleado,
+          area_id: 'area-1',
+          cargo_id: 'cargo-1',
+          nro_documento: '70112233',
           activo: false,
-          estado_laboral: 'CESADO',
           deleted_at: new Date('2026-01-01'),
-          fecha_cese: new Date('2026-01-01'),
         });
 
-        mockPrisma.empleados.update.mockResolvedValue({
-          id: idEmpleado,
-          activo: true,
-          estado_laboral: 'ACTIVO',
-          deleted_at: null,
-          fecha_cese: null,
-        });
+        const vinculoCreado = {
+          id: 'vinculo-uuid-1',
+          empleado_id: idEmpleado,
+          fecha_inicio: new Date(),
+        };
+        mockPrisma.vinculo_laboral.create.mockResolvedValue(vinculoCreado);
 
         // Act: Ejecutamos el caso de uso para reactivar al empleado
         const result = await useCase.reactivar(idEmpleado);
 
-        // Assert: Verificamos la reactivación exitosa con mensaje informativo
+        // Assert: Verificamos la creación del vínculo laboral y el mensaje informativo
         expect(result.state).toBe(true);
-        expect(result.data.activo).toBe(true);
-        expect(mockPrisma.empleados.update).toHaveBeenCalledWith({
-          where: { id: idEmpleado },
+        expect(result.data).toEqual(vinculoCreado);
+        expect(mockPrisma.vinculo_laboral.create).toHaveBeenCalledWith({
           data: {
-            activo: true,
-            estado_laboral: 'ACTIVO',
-            fecha_cese: null,
-            deleted_at: null,
+            id: expect.any(String) as unknown,
+            empleado_id: idEmpleado,
+            fecha_inicio: expect.any(Date) as unknown,
           },
-          include: expect.any(Object),
         });
       });
     });
@@ -148,7 +159,9 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         mockPrisma.empleados.findUnique.mockResolvedValue(null);
 
         // Act & Assert: Ejecutamos el caso de uso y verificamos NotFoundException
-        await expect(useCase.reactivar('emp-inexistente')).rejects.toThrow(NotFoundException);
+        await expect(useCase.reactivar('emp-inexistente')).rejects.toThrow(
+          NotFoundException
+        );
         expect(mockPrisma.empleados.update).not.toHaveBeenCalled();
       });
 
@@ -163,22 +176,28 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         });
 
         // Act & Assert: Ejecutamos el caso de uso y verificamos que se bloquee por redundancia
-        await expect(useCase.reactivar(idEmpleado)).rejects.toThrow(BadRequestException);
+        await expect(useCase.reactivar(idEmpleado)).rejects.toThrow(
+          BadRequestException
+        );
         expect(mockPrisma.empleados.update).not.toHaveBeenCalled();
       });
 
       it('Debe capturar fallos inesperados de BD y lanzar InternalServerErrorException', async () => {
-        // Arrange: Simulamos que el empleado está cesado pero update falla
+        // Arrange: Simulamos que el empleado está cesado pero la creación del vínculo falla
         mockPrisma.empleados.findUnique.mockResolvedValue({
           id: idEmpleado,
           activo: false,
-          estado_laboral: 'CESADO',
+          nro_documento: '70112233',
           deleted_at: new Date(),
         });
-        mockPrisma.empleados.update.mockRejectedValue(new Error('Fallo crítico en transacción'));
+        mockPrisma.vinculo_laboral.create.mockRejectedValue(
+          new Error('Fallo crítico en transacción')
+        );
 
         // Act & Assert: Ejecutamos el caso de uso y verificamos la excepción interna
-        await expect(useCase.reactivar(idEmpleado)).rejects.toThrow(InternalServerErrorException);
+        await expect(useCase.reactivar(idEmpleado)).rejects.toThrow(
+          InternalServerErrorException
+        );
       });
     });
   });

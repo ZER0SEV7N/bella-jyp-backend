@@ -1,7 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import type { SystemHealthInfo } from './app.service';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiOperacionDocumentada } from '@/common/decorators/api-contrato.decorator';
 
 @ApiTags('Core System')
 @Controller('/api/v1/health')
@@ -15,7 +16,40 @@ export class AppController {
    * @throws InternalServerErrorException - Si ocurre un error inesperado al obtener la información de salud.
    */
   @Get()
-  @ApiOperation({ summary: 'Estado del Sistema, Health Check y Metadata Backend' })
+  @ApiOperacionDocumentada({
+    summary: 'Estado del sistema, health check y metadata del backend',
+    description:
+      'Endpoint público de verificación de disponibilidad que devuelve estado, nombre del sistema, versión, entorno, timestamp y créditos del proyecto.',
+    roles: [],
+    respuesta: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'online' },
+        system: { type: 'string' },
+        version: { type: 'string' },
+        environment: { type: 'string' },
+        timestamp: { type: 'string', format: 'date-time' },
+        credits: {
+          type: 'object',
+          properties: {
+            organization: { type: 'string' },
+            project: { type: 'string' },
+            makers: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  role: { type: 'string' },
+                  comment: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
   getHealth(): SystemHealthInfo {
     return this.appService.getHealth();
   }

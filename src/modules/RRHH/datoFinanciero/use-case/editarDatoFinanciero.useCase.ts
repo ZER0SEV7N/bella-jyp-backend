@@ -1,9 +1,19 @@
 //src/modules/RRHH/datoFinanciero/use-case/editarDatoFinanciero.useCase.ts
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import * as argon2 from 'argon2';
 import type { ActualizarDatoFinancieroDto } from '@jyp/shared-contracts';
-import { validarEntidadesFinancieras, validarSueldoCargo } from './helper/validacionesDatoFinanciero.helper';
+import {
+  validarEntidadesFinancieras,
+  validarSueldoCargo,
+} from './helper/validacionesDatoFinanciero.helper';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 import { CryptoUtil } from '@/common/utils/crypto.util';
 
@@ -17,24 +27,28 @@ export class EditarDatoFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Ejecuta el caso de uso para editar los datos financieros de un empleado.
+   * Ejecuta el caso de uso para editar los datos financieros de un empleado (COM-F3).
    * @param idEmpleado - El ID del empleado.
    * @param dto - Los datos a actualizar.
    * @param idUsuario - El ID del usuario autenticado.
    * @returns Una promesa que se resuelve con los datos actualizados.
+   * @throws {NotFoundException} Si el dato financiero o el empleado/cargo no existen.
+   * @throws {UnauthorizedException} Si el usuario o la contraseña de confirmación son inválidos.
+   * @throws {BadRequestException} Si el sueldo básico o los datos previsionales son inválidos.
+   * @throws {InternalServerErrorException} Si ocurre un error inesperado durante la actualización.
    */
-  async execute(idEmpleado: string, dto: ActualizarDatoFinancieroDto, idUsuario: string) {
+  async execute(
+    idEmpleado: string,
+    dto: ActualizarDatoFinancieroDto,
+    idUsuario: string
+  ) {
     const datoFinanciero = await this.prisma.dato_financiero.findUnique({
       where: { empleado_id: idEmpleado },
     });
-    const cargoEmpleado = await this.prisma.empleados.findUnique({
-      where:{ id: idEmpleado},
-      select:{
-        cargo_id:true,
-      }
-    });
     if (datoFinanciero?.deleted_at !== null)
-      throw new NotFoundException('El dato financiero del colaborador no existe o ha sido desactivado.');
+      throw new NotFoundException(
+        'El dato financiero del colaborador no existe o ha sido desactivado.'
+      );
 
     //Step-Up Authentication: validación de credenciales para mutaciones sensibles
     const usuarioActual = await this.prisma.usuarios.findUnique({
@@ -42,26 +56,56 @@ export class EditarDatoFinancieroUseCase {
       select: { password_hash: true },
     });
 
-    if (!usuarioActual) throw new UnauthorizedException('Usuario no autorizado.');
+    if (!usuarioActual)
+      throw new UnauthorizedException('Usuario no autorizado.');
 
     //Validar la contraseña proporcionada para confirmar la identidad del usuario antes de permitir la actualización
-    const passwordValida = await argon2.verify(usuarioActual.password_hash, dto.password_confirmacion);
+    const passwordValida = await argon2.verify(
+      usuarioActual.password_hash,
+      dto.password_confirmacion
+    );
 
     if (!passwordValida)
       throw new UnauthorizedException({
         title: 'Confirmación de Seguridad Fallida',
-        detail: 'La contraseña ingresada es incorrecta. Operación financiera denegada.',
+        detail:
+          'La contraseña ingresada es incorrecta. Operación financiera denegada.',
       });
 
     //Validar entidades foráneas enviadas en la actualización
     await validarEntidadesFinancieras(this.prisma, dto);
     await this.validarCambioPension(idEmpleado, {
       id_regimen: dto.id_regimen ?? datoFinanciero.id_regimen,
-      id_tipo_afp: dto.id_tipo_afp === undefined ? datoFinanciero.id_tipo_afp : dto.id_tipo_afp,
+      id_tipo_afp:
+        dto.id_tipo_afp === undefined
+          ? datoFinanciero.id_tipo_afp
+          : dto.id_tipo_afp,
       cuspp: dto.cuspp === undefined ? datoFinanciero.cuspp : dto.cuspp,
-      tipo_comision: dto.tipo_comision === undefined ? datoFinanciero.tipo_comision : dto.tipo_comision,
+      tipo_comision:
+        dto.tipo_comision === undefined
+          ? datoFinanciero.tipo_comision
+          : dto.tipo_comision,
     });
-    await validarSueldoCargo(this.prisma,cargoEmpleado.cargo_id,dto.sueldo_basico);
+    if (dto.sueldo_basico !== undefined) {
+      const cargoEmpleado = await this.prisma.empleados.findUnique({
+        where: { id: idEmpleado },
+        select: {
+          cargo_id: true,
+        },
+      });
+      if (!cargoEmpleado?.cargo_id) {
+        throw new NotFoundException({
+          title: 'Empleado o cargo no encontrado',
+          detail:
+            'No se encontró el colaborador o no cuenta con un cargo asignado.',
+        });
+      }
+      await validarSueldoCargo(
+        this.prisma,
+        cargoEmpleado.cargo_id,
+        dto.sueldo_basico
+      );
+    }
     try {
       const actualizado = await this.prisma.dato_financiero.update({
         where: { empleado_id: idEmpleado },
@@ -95,12 +139,18 @@ export class EditarDatoFinancieroUseCase {
       return {
         id: actualizado.id,
         empleado_id: actualizado.empleado_id,
-        mensaje: 'Datos financieros actualizados y re-encriptados correctamente.',
+        mensaje:
+          'Datos financieros actualizados y re-encriptados correctamente.',
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+
       throw new InternalServerErrorException({
         title: 'Error de Actualización Financiera',
-        detail: error instanceof Error ? error.message : 'Fallo interno al actualizar los datos financieros.',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Fallo interno al actualizar los datos financieros.',
       });
     }
   }
@@ -113,27 +163,52 @@ export class EditarDatoFinancieroUseCase {
    * @throws NotFoundException si el régimen de pensión o AFP no existen.
    * @returns Promise<void> - Una promesa que se resuelve si la validación es exitosa, o se rechaza con una excepción si hay errores.
    */
-  private async validarCambioPension(idEmpleado: string, datos: { id_regimen: string; id_tipo_afp: string | null; cuspp: string | null; tipo_comision: string | null } ): Promise<void> {
+  private async validarCambioPension(
+    idEmpleado: string,
+    datos: {
+      id_regimen: string;
+      id_tipo_afp: string | null;
+      cuspp: string | null;
+      tipo_comision: string | null;
+    }
+  ): Promise<void> {
     //Validar existencia de régimen, AFP y empleado de forma concurrente
     const [regimen, afp, empleado] = await Promise.all([
       //Validar régimen de pensión
-      this.prisma.regimen_pension.findUnique({ where: { id: datos.id_regimen } }),
+      this.prisma.regimen_pension.findUnique({
+        where: { id: datos.id_regimen },
+      }),
       //Validar tipo de AFP solo si se proporciona
-      datos.id_tipo_afp ? this.prisma.tipo_afp.findUnique({ where: { id: datos.id_tipo_afp } }) : null,
+      datos.id_tipo_afp
+        ? this.prisma.tipo_afp.findUnique({ where: { id: datos.id_tipo_afp } })
+        : null,
       //Validar existencia del empleado y obtener su fecha de afiliación a la AFP
-      this.prisma.empleados.findUnique({ where: { id: idEmpleado }, select: { afp_fecha_filiacion: true } }),
+      this.prisma.empleados.findUnique({
+        where: { id: idEmpleado },
+        select: { afp_fecha_filiacion: true },
+      }),
     ]);
 
     //Validar resultados de las consultas y lanzar excepciones si alguna entidad no existe
-    if (!regimen) 
+    if (!regimen)
       throw new BadRequestException('Régimen pensionario no encontrado.');
 
     //Validar que si el régimen es AFP, se proporcionen todos los datos requeridos
-    if (/AFP|SPP/i.test(regimen.nombre) && (!afp || !datos.cuspp || !datos.tipo_comision || !empleado?.afp_fecha_filiacion))
-      throw new BadRequestException('Complete administradora, CUSPP, comisión y fecha de afiliación antes de cambiar a AFP.');
-    
+    if (
+      /AFP|SPP/i.test(regimen.nombre) &&
+      (!afp ||
+        !datos.cuspp ||
+        !datos.tipo_comision ||
+        !empleado?.afp_fecha_filiacion)
+    )
+      throw new BadRequestException(
+        'Complete administradora, CUSPP, comisión y fecha de afiliación antes de cambiar a AFP.'
+      );
+
     //Validar que la AFP proporcionada corresponda al régimen de pensión seleccionado
-    if (afp && afp.id_regimen !== regimen.id) 
-      throw new BadRequestException('La AFP no corresponde al régimen pensionario.');
+    if (afp && afp.id_regimen !== regimen.id)
+      throw new BadRequestException(
+        'La AFP no corresponde al régimen pensionario.'
+      );
   }
 }

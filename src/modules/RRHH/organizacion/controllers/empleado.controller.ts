@@ -1,9 +1,38 @@
 //src/modules/RRHH/controller/empleado.controller.ts
 //Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH
-import { Controller, Post, Body, HttpCode, HttpStatus, Delete, Param, Patch, UseGuards, UsePipes, Get,  Query, ParseUUIDPipe, Put } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Delete,
+  Param,
+  Patch,
+  UseGuards,
+  UsePipes,
+  Get,
+  Query,
+  ParseUUIDPipe,
+  Put,
+} from '@nestjs/common';
 //validacion de estructura de datos mediate el zod
-import { CrearEmpleadoSchema, EditarEmpleadoSchema, ListarEmpleadosQuerySchema, DesactivarEmpleadoSchema, CambiarEstadoLaboralSchema } from '@jyp/shared-contracts';
-import type { CrearEmpleadoDto, EditarEmpleadoDto, ListarEmpleadosQueryDto, DesactivarEmpleadoDto, CambiarEstadoLaboralDto, CrearSchemaEmpleadoCompletoDto } from '@jyp/shared-contracts';
+import {
+  CrearEmpleadoSchema,
+  EditarEmpleadoSchema,
+  ListarEmpleadosQuerySchema,
+  DesactivarEmpleadoSchema,
+  CambiarEstadoLaboralSchema,
+  SchemaEmpleadoCompletoCrear,
+} from '@jyp/shared-contracts';
+import type {
+  CrearEmpleadoDto,
+  EditarEmpleadoDto,
+  ListarEmpleadosQueryDto,
+  DesactivarEmpleadoDto,
+  CambiarEstadoLaboralDto,
+  CrearSchemaEmpleadoCompletoDto,
+} from '@jyp/shared-contracts';
 //casos de uso
 import { CrearEmpleadoUseCase } from '../use-cases/empleado/crearEmpleado.useCase';
 import { EditarEmpleadoUseCase } from '../use-cases/empleado/editarEmpleado.useCase';
@@ -13,7 +42,19 @@ import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { ListarEmpleadosUseCase } from '../use-cases/empleado/listarEmpleados.useCase';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { ApiSwaggerEmpleadosController, ApiSwaggerCrearEmpleado, ApiSwaggerActualizarEmpleado, ApiSwaggerDesactivarEmpleado, ApiSwaggerReactivarEmpleado, ApiSwaggerListarEmpleados, ApiDetalleEmpleado, ApiSwaggerConfirmarDniDisponible, ApiSwaggerObtenerDatosReniec, ApiSwaggerCrearEmpleadoCompleto } from '../decorators/empleado-swagger.decorator';
+import {
+  ApiSwaggerEmpleadosController,
+  ApiSwaggerCrearEmpleado,
+  ApiSwaggerActualizarEmpleado,
+  ApiSwaggerDesactivarEmpleado,
+  ApiSwaggerReactivarEmpleado,
+  ApiSwaggerListarEmpleados,
+  ApiDetalleEmpleado,
+  ApiSwaggerCambiarEstadoLaboral,
+  ApiSwaggerConfirmarDniDisponible,
+  ApiSwaggerObtenerDatosReniec,
+  ApiSwaggerCrearEmpleadoCompleto,
+} from '../decorators/empleado-swagger.decorator';
 import { ValidarDniUseCase } from '../use-cases/empleado/validarDni.useCase';
 import { ObtenerDatosReniecUseCase } from '../use-cases/empleado/obtenerDatosReniec.useCase';
 import { CrearEmpladoCompletoUseCase } from '../use-cases/empleado/crearEmpleadoCompleto.useCase';
@@ -22,7 +63,8 @@ import { CrearEmpladoCompletoUseCase } from '../use-cases/empleado/crearEmpleado
  * Controlador para manejar las operaciones relacionadas con los empleados en el módulo de RRHH.
  * Se aplican guards de autenticación (JwtAccessGuard) y autorización por roles (RolesGuard).
  * Endpoints disponibles:
- * - POST   /api/v1/rrhh/empleado                                   : Registrar un empleado completo (legajo, datos financieros y derechohabientes).
+ * - POST   /api/v1/rrhh/empleado                                   : Registrar un empleado (solo el legajo).
+ * - POST   /api/v1/rrhh/empleado/completo                          : Registrar un empleado completo (legajo, datos financieros y derechohabientes).
  * - GET    /api/v1/rrhh/empleado                                   : Listar empleados con paginación y filtros.
  * - GET    /api/v1/rrhh/empleado/:id                               : Obtener el detalle de un empleado.
  * - PUT    /api/v1/rrhh/empleado/:id                               : Actualizar un empleado existente.
@@ -43,15 +85,16 @@ export class EmpleadoController {
     private readonly listarEmpleadosUseCase: ListarEmpleadosUseCase,
     private readonly validarDniUseCase: ValidarDniUseCase,
     private readonly obtenerDatosReniecUseCase: ObtenerDatosReniecUseCase,
-    private readonly crearEmpleadoCompletoUseCase: CrearEmpladoCompletoUseCase,
+    private readonly crearEmpleadoCompletoUseCase: CrearEmpladoCompletoUseCase
   ) {}
 
-     /**
+  /**
    * Endpoint para registrar un empleado completo en una sola operación atómica:
    * datos del empleado, datos financieros (cuentas y CCI se guardan encriptados) y derechohabientes.
    * Si no se envían nombre y apellido para un DNI de 8 dígitos, se autocompletan vía RENIEC.
    * Si algún derechohabiente es hijo menor o hijo mayor estudiante, se activa la asignación familiar.
-   * @POST - /api/v1/rrhh/empleado
+   * Va en `completo` porque `POST /api/v1/rrhh/empleado` ya registra solo el legajo y Fastify no admite dos rutas iguales.
+   * @POST - /api/v1/rrhh/empleado/completo
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @body CrearSchemaEmpleadoCompletoDto {
    *   - datosEmpleado: datos personales, de contacto, domicilio, ubigeo, cargo, área y jornada,
@@ -66,9 +109,10 @@ export class EmpleadoController {
    *          409 Conflict - Ya existe un empleado con ese número de documento.
    *          500 Internal Server Error - Fallo interno al crear el legajo.
    */
-  @Post()
+  @Post('completo')
   @Roles('ADMIN', 'RRHH')
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ZodValidationPipe(SchemaEmpleadoCompletoCrear))
   @ApiSwaggerCrearEmpleadoCompleto()
   async crearEmpleadoCompleto(@Body() dto: CrearSchemaEmpleadoCompletoDto) {
     return this.crearEmpleadoCompletoUseCase.execute(dto);
@@ -181,14 +225,17 @@ export class EmpleadoController {
    *          400 Bad Request - Los datos proporcionados son inválidos.
    *          401 Unauthorized - El usuario no tiene un token válido.
    *          403 Forbidden - El usuario no tiene los permisos necesarios.
-   * 
+   *
    */
   @ApiSwaggerActualizarEmpleado()
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(EditarEmpleadoSchema, true))
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  async actualizarEmpleado( @Param('id', ParseUUIDPipe) id: string, @Body() payload: EditarEmpleadoDto ) {
+  async actualizarEmpleado(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() payload: EditarEmpleadoDto
+  ) {
     return this.editarEmpleadoUseCase.execute(id, payload);
   }
 
@@ -210,7 +257,13 @@ export class EmpleadoController {
   @Delete(':id/desactivar')
   @HttpCode(HttpStatus.OK)
   @Roles('ADMIN', 'RRHH')
-  async desactivar(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(DesactivarEmpleadoSchema.optional())) dto?: DesactivarEmpleadoDto) {
+  async desactivar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(DesactivarEmpleadoSchema.optional()))
+    dto?: DesactivarEmpleadoDto
+  ) {
+    // El esquema valida el cuerpo opcional; la baja usa la fecha del servidor.
+    void dto;
     return await this.estadoEmpleadoUseCase.desactivar(id);
   }
 
@@ -247,13 +300,17 @@ export class EmpleadoController {
    * @throws NotFoundException - Si el empleado no existe o no está activo.
    * @throws BadRequestException - Si el nuevo estado laboral es el mismo que el actual.
    */
+  @ApiSwaggerCambiarEstadoLaboral()
   @Patch(':id/estado-laboral')
   @Roles('ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(CambiarEstadoLaboralSchema))
-  async cambiarEstadoLaboral(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CambiarEstadoLaboralDto) {
+  async cambiarEstadoLaboral(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CambiarEstadoLaboralDto
+  ) {
     return await this.estadoEmpleadoUseCase.cambiarEstadoLaboral(id, dto);
   }
- 
+
   /**
    * Endpoint para obtener los detalles de un empleado por su ID.
    * Requiere que el usuario tenga los roles de ADMIN o RRHH para acceder a este endpoint.
@@ -310,7 +367,7 @@ export class EmpleadoController {
   @Get('dni/datos-reniec/:nro_documento')
   @Roles('ADMIN', 'RRHH')
   @ApiSwaggerObtenerDatosReniec()
-  async obtenerDatosDni(@Param('nro_documento') nro_documento:string){
+  async obtenerDatosDni(@Param('nro_documento') nro_documento: string) {
     return this.obtenerDatosReniecUseCase.execute(nro_documento);
   }
 }

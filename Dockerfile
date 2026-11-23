@@ -26,7 +26,8 @@ RUN --mount=type=secret,id=github_token,required=false \
       pnpm install && \
       git config --global --unset-all url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf; \
     else \
-      npm ci; \
+      node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));if(fs.existsSync('vendor/jyp-shared-contracts-1.2.0.tgz')){p.dependencies['@jyp/shared-contracts']='file:vendor/jyp-shared-contracts-1.2.0.tgz';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');}" && \
+      npm install --no-audit --no-fund; \
     fi
 
 # Generar el cliente de Prisma para Linux
@@ -72,7 +73,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/src/modules/payroll/planillas/fonts ./dist/modules/payroll/planillas/fonts
+COPY --from=builder /app/src/modules/nomina/planillas/fonts ./dist/modules/nomina/planillas/fonts
 
 RUN mkdir -p /app/archivos/contratos /app/archivos/integraciones && chown -R nestuser:nestgroup /app/archivos
 
@@ -81,3 +82,4 @@ USER nestuser
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s CMD node -e "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "dist/main.js"]
+

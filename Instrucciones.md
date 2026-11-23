@@ -129,6 +129,13 @@ docker compose ps
 | `n8n` | `jyp-n8n-local:2.44.6` | `http://localhost:5678` | Motor de automatización para generación de boletas/TXT y envío de correos |
 | `mailpit` | `axllent/mailpit:v1.32.0` | `http://localhost:8025` | Bandeja web SMTP local para inspeccionar correos enviados |
 
+### 4.3 Linux con Podman sin root
+Si ejecuta los contenedores en Linux con Podman *rootless* (Docker Desktop en Windows/macOS no lo necesita):
+
+- Copie `docker-compose.podman.example.yml` como `docker-compose.override.yml` antes de levantar los servicios.
+- Ejecute los comandos de Compose con `DOCKER_BUILDKIT=0` (por ejemplo, `DOCKER_BUILDKIT=0 docker compose up -d --build ...`).
+- Tenga en cuenta que la carpeta `./archivos/integraciones` quedará con un dueño dentro del rango de `subuid` de Podman, por lo que el usuario del host no podrá abrirla directamente (los contenedores sí tendrán acceso normal).
+
 ## 5. Creación del Esquema de Base de Datos, Objetos SQL y Seed Base
 
 El contenedor `postgres` inicia con una base de datos vacía (`planillas_db`). Ejecute los siguientes comandos en orden para construir las tablas, instalar los triggers/vistas/funciones SQL y poblar los catálogos iniciales:
@@ -147,7 +154,7 @@ pnpm db:seed
 
 ## 6. Carga Opcional de Datos de Prueba (Demo)
 
-Si desea poblar la base de datos con áreas, cargos, colaboradores, contratos, horarios, marcaciones de asistencia y planillas de ejemplo para probar todos los módulos inmediatamente, elija **una** de las siguientes opciones:
+Si desea poblar la base de datos con áreas, cargos, colaboradores, contratos, horarios, marcaciones de asistencia y planillas de ejemplo para probar todos los módulos inmediatamente, elija **una** de las siguientes opciones (la opción C ya incluye las otras dos):
 
 ### Opción A: Dataset de Prueba Estándar
 Carga el conjunto de datos de prueba principal (`scripts/datosprueba.sql`) junto con los objetos SQL:
@@ -161,6 +168,21 @@ Carga el escenario extendido ubicado en `scripts/pruebas-demo/datosprueba.sql`:
 
 ```bash
 node scripts/aplicar-sql.cjs demo-10
+```
+
+### Opción C: Todas las Demos Juntas (incluye el Dashboard de RRHH)
+Carga en un solo paso la opción A (3 colaboradores), la opción B (10 colaboradores) y 30 colaboradores más para el dashboard de RRHH (`scripts/pruebas-demo/dashboard-rrhh-demo.sql`): ingresos y ceses de octubre y noviembre de 2026, cumpleaños, contratos por vencer, solicitudes en trámite y marcaciones de octubre y del 1 al 21 de noviembre de 2026. Se puede volver a ejecutar sin duplicar datos.
+
+```bash
+pnpm db:demo-seed
+```
+
+Después, con el backend levantado, genere los resúmenes de asistencia desde **Cierre mensual → Generar** para octubre y noviembre de 2026; el dashboard los lee de ahí.
+
+Para quitar solo los 30 colaboradores del dashboard:
+
+```bash
+docker exec -i planillas_db psql -v ON_ERROR_STOP=1 -U postgres -d planillas_db < scripts/pruebas-demo/dashboard-rrhh-demo-limpiar.sql
 ```
 
 ## 7. Configuración del Flujo de Integración en n8n (Opcional para Boletas y Haberes)

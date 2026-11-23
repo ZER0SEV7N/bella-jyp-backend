@@ -17,6 +17,7 @@ import { TareasModule } from './modules/RRHH/tareas/tareas.module';
 import { ContratoModule } from './modules/RRHH/contrato/contrato.module';
 import { DatosFinancieroModule } from './modules/RRHH/datoFinanciero/datosFinanciero.module';
 import { SolicitudModule } from './modules/RRHH/solicitudes/solicitud.module';
+import { DashboardModule } from './modules/RRHH/dashboard/dashboard.module';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
 import { AfpModule } from './modules/nomina/afp/afp.module';
 import { BancosModule } from './modules/nomina/bancos/bancos.module';
@@ -51,6 +52,7 @@ import { IntegracionesModule } from './modules/integraciones/integraciones.modul
     ContratoModule,
     DatosFinancieroModule,
     SolicitudModule,
+    DashboardModule,
     AsistenciaModule,
     AfpModule,
     BancosModule,

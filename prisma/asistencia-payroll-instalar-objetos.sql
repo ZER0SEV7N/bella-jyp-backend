@@ -207,19 +207,26 @@ END $$;
 -- ------------------------------------------------------------------------------------------------
 
 -- Entrada: Fila afectada y contexto local app.usuario_id/app.ip.
--- Efecto: Inserta valores antes/después en audit_log. En planillas evita duplicar la instantánea
--- completa.
+-- Efecto: Inserta valores antes/después en audit_log junto con la entidad de negocio afectada
+-- (empleado por empleado_id; empresa para asistencia_calendario). En planillas evita duplicar la
+-- instantánea completa.
 CREATE OR REPLACE FUNCTION asistencia_auditar() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE antes jsonb; despues jsonb; actor uuid; ip inet;
+DECLARE antes jsonb; despues jsonb; actor uuid; ip inet; v_afectado_tipo text; v_afectado_id uuid;
 BEGIN
     actor := nullif(current_setting('app.usuario_id', true), '')::uuid;
     ip := coalesce(nullif(current_setting('app.ip', true), ''), '127.0.0.1')::inet;
     IF TG_OP = 'UPDATE' THEN antes := to_jsonb(OLD); END IF;
     despues := to_jsonb(NEW);
+    IF TG_TABLE_NAME = 'asistencia_calendario' THEN
+        v_afectado_tipo := 'empresa';
+    ELSE
+        v_afectado_id := nullif(despues->>'empleado_id', '')::uuid;
+        IF v_afectado_id IS NOT NULL THEN v_afectado_tipo := 'empleado'; END IF;
+    END IF;
     --La auditoría del historial conserva metadatos y montos, sin duplicar el documento de cálculo completo.
     IF TG_TABLE_NAME = 'historial_planillas' THEN antes := antes - 'snapshot_calculo'; despues := despues - 'snapshot_calculo'; END IF;
-    INSERT INTO audit_log(id, usuario_id, accion, tabla_afectada, registro_id, valores_antes, valores_despues, direccion_ip)
-        VALUES(asistencia_uuid_v7(), actor, CASE WHEN TG_OP = 'INSERT' THEN 'CREATE' ELSE TG_OP END, TG_TABLE_NAME, NEW.id, antes, despues, ip);
+    INSERT INTO audit_log(id, usuario_id, accion, tabla_afectada, registro_id, valores_antes, valores_despues, direccion_ip, afectado_tipo, afectado_id)
+        VALUES(asistencia_uuid_v7(), actor, CASE WHEN TG_OP = 'INSERT' THEN 'CREATE' ELSE TG_OP END, TG_TABLE_NAME, NEW.id, antes, despues, ip, v_afectado_tipo, v_afectado_id);
     RETURN NEW;
 END $$;
 
