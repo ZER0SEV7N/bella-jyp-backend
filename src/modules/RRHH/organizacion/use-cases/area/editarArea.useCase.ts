@@ -1,6 +1,11 @@
 //src/modules/RRHH/organizacion/use-cases/area/editarArea.useCase.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import {
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ActualizarAreaDto } from '@jyp/shared-contracts';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 import { verificarNombreAreaUnico } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
@@ -16,18 +21,20 @@ export class EditarAreaUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Ejecuta el caso de uso para actualizar un área.
+   * Ejecuta el caso de uso para actualizar un área (COM-F3).
    * @param areaId - El ID del área que se desea actualizar.
    * @param dto - Los datos necesarios para actualizar el área, incluyendo nombre y descripción.
    * @returns El área actualizada si la operación es exitosa.
-   * @throws NotFoundException si el área con el ID proporcionado no existe.
-   * @throws BadRequestException si ya existe otra área con el mismo nombre.
-   * @throws InternalServerErrorException si ocurre un error inesperado durante la actualización.
+   * @throws {NotFoundException} Si el área con el ID proporcionado no existe.
+   * @throws {ConflictException} Si ya existe otra área con el mismo nombre.
+   * @throws {InternalServerErrorException} Si ocurre un error inesperado durante la actualización.
    */
   async execute(areaId: string, dto: ActualizarAreaDto) {
     try {
       //Verificar que el área con el ID proporcionado exista y no haya sido eliminada
-      const areaExistente = await this.prisma.area.findUnique({ where: { id: areaId, deleted_at: null } });
+      const areaExistente = await this.prisma.area.findUnique({
+        where: { id: areaId, deleted_at: null },
+      });
 
       //Si el área no existe, lanzar una excepción de no encontrado
       if (!areaExistente)
@@ -37,7 +44,8 @@ export class EditarAreaUseCase {
         });
 
       //Validar colisión de nombre solo si cambió respecto al actual
-      if (dto.nombre && dto.nombre.trim() !== areaExistente.nombre) await verificarNombreAreaUnico(this.prisma, dto.nombre, areaId);
+      if (dto.nombre && dto.nombre.trim() !== areaExistente.nombre)
+        await verificarNombreAreaUnico(this.prisma, dto.nombre, areaId);
 
       //Actualizar el área en la base de datos utilizando Prisma
       return await this.prisma.area.update({
@@ -48,11 +56,14 @@ export class EditarAreaUseCase {
         },
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (error instanceof HttpException) throw error;
 
       throw new InternalServerErrorException({
         title: 'Error de Actualización',
-        detail: error instanceof Error ? error.message : 'Fallo interno al actualizar la información del área.',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Fallo interno al actualizar la información del área.',
       });
     }
   }

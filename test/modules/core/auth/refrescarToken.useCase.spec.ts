@@ -12,8 +12,21 @@ jest.mock('argon2', () => ({
 
 describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: RefrescarTokenUseCase;
-  let mockPrisma: any;
-  let mockJwt: any;
+  let mockPrisma: {
+    usuarios: { findUnique: jest.Mock };
+    tokens_seguridad: {
+      findMany: jest.Mock;
+      updateMany: jest.Mock;
+      create: jest.Mock;
+    };
+    $transaction: jest.Mock;
+  };
+  let mockJwt: {
+    sign: jest.Mock;
+    signAsync: jest.Mock;
+    verify: jest.Mock;
+    verifyAsync: jest.Mock;
+  };
 
   beforeEach(async () => {
     mockPrisma = {
@@ -25,9 +38,10 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         create: jest.fn(),
       },
-      $transaction: jest.fn(async (cb: any) => {
-        if (typeof cb === 'function') return await cb(mockPrisma);
-        return Promise.all(cb);
+      $transaction: jest.fn((cb: unknown) => {
+        if (typeof cb === 'function')
+          return (cb as (tx: unknown) => Promise<unknown>)(mockPrisma);
+        return Promise.all(cb as Promise<unknown>[]);
       }),
     };
 
@@ -72,22 +86,29 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
           nombre: 'Administrador',
           apellido: 'Sistema Central',
           nro_documento: '70000001',
+          activo: true,
+          deleted_at: null,
         },
       });
 
-      mockPrisma.tokens_seguridad.findMany.mockResolvedValue([{
-        id: 'token-uuid-1',
-        usuario_id: 'user-uuid-1',
-        usado: false,
-        expira_en: new Date(Date.now() + 100000),
-      }]);
+      mockPrisma.tokens_seguridad.findMany.mockResolvedValue([
+        {
+          id: 'token-uuid-1',
+          usuario_id: 'user-uuid-1',
+          usado: false,
+          expira_en: new Date(Date.now() + 100000),
+        },
+      ]);
 
       mockJwt.signAsync
         .mockResolvedValueOnce('new-access-token-15m')
         .mockResolvedValueOnce('new-refresh-token-7d');
 
       mockPrisma.tokens_seguridad.updateMany.mockResolvedValue({ count: 1 });
-      mockPrisma.tokens_seguridad.create.mockResolvedValue({ id: 'token-uuid-2', usado: false });
+      mockPrisma.tokens_seguridad.create.mockResolvedValue({
+        id: 'token-uuid-2',
+        usado: false,
+      });
 
       // Act
       const result = await useCase.execute('valid-refresh-token');
@@ -96,7 +117,10 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
       expect(result.accessToken).toBe('new-access-token-15m');
       expect(result.newRefreshToken).toBe('new-refresh-token-7d');
 
-      expect(mockJwt.verify).toHaveBeenCalledWith('valid-refresh-token', expect.any(Object));
+      expect(mockJwt.verify).toHaveBeenCalledWith(
+        'valid-refresh-token',
+        expect.any(Object) as unknown
+      );
       expect(mockPrisma.usuarios.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-uuid-1' },
         include: {
@@ -105,6 +129,8 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
               nombre: true,
               apellido: true,
               nro_documento: true,
+              activo: true,
+              deleted_at: true,
             },
           },
         },
@@ -114,14 +140,18 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
           usuario_id: 'user-uuid-1',
           proposito: 'REFRESH_TOKEN',
           usado: false,
-          expira_en: { gt: expect.any(Date) },
+          expira_en: { gt: expect.any(Date) as unknown },
         },
       });
 
       // Valida la transacción atómica de rotación
       expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(mockPrisma.tokens_seguridad.updateMany).toHaveBeenCalledWith({
-        where: { id: 'token-uuid-1', usado: false, expira_en: { gt: expect.any(Date) } },
+        where: {
+          id: 'token-uuid-1',
+          usado: false,
+          expira_en: { gt: expect.any(Date) as unknown },
+        },
         data: { usado: true },
       });
       expect(mockPrisma.tokens_seguridad.create).toHaveBeenCalledWith({
@@ -129,7 +159,7 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
           usuario_id: 'user-uuid-1',
           proposito: 'REFRESH_TOKEN',
           usado: false,
-        }),
+        }) as unknown,
       });
     });
   });
@@ -138,7 +168,7 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
     it('Debe lanzar UnauthorizedException si no se provee un token', async () => {
       // Act & Assert
       await expect(useCase.execute('')).rejects.toThrow(
-        new UnauthorizedException('Refresh token no proporcionado.'),
+        new UnauthorizedException('Refresh token no proporcionado.')
       );
     });
 
@@ -150,7 +180,7 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
 
       // Act & Assert
       await expect(useCase.execute('token-manipulado')).rejects.toThrow(
-        new UnauthorizedException('Refresh token inválido o expirado.'),
+        new UnauthorizedException('Refresh token inválido o expirado.')
       );
     });
 
@@ -164,8 +194,10 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
       });
 
       // Act & Assert
-      await expect(useCase.execute('token-valido-usuario-inactivo')).rejects.toThrow(
-        new UnauthorizedException('Usuario no encontrado o inactivo.'),
+      await expect(
+        useCase.execute('token-valido-usuario-inactivo')
+      ).rejects.toThrow(
+        new UnauthorizedException('Usuario no encontrado o inactivo.')
       );
     });
 
@@ -176,13 +208,18 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
         id: 'user-uuid-1',
         activo: true,
         deleted_at: null,
-        empleados: { nombre: 'Carlos', apellido: 'Ramírez' },
+        empleados: {
+          nombre: 'Carlos',
+          apellido: 'Ramírez',
+          activo: true,
+          deleted_at: null,
+        },
       });
       mockPrisma.tokens_seguridad.findMany.mockResolvedValue([]);
 
       // Act & Assert
       await expect(useCase.execute('token-revocado')).rejects.toThrow(
-        new UnauthorizedException('Sesión cerrada o token revocado.'),
+        new UnauthorizedException('Sesión cerrada o token revocado.')
       );
     });
   });

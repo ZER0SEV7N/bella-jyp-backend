@@ -1,233 +1,264 @@
 //src/modules/RRHH/solicitudes/decorator/solicitudes-swagger.decorator.ts
+import {
+  ApiContratoBody,
+  ApiContratoQuery,
+  ApiErroresOperacion,
+  ApiIdentificador,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
+import {
+  CrearSolicitudSchema,
+  EvaluarSolicitudSchema,
+  ListarSolicitudesQuerySchema,
+  SolicitudResumenSchema,
+} from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes, ApiExtension, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { SchemaObject } from '@nestjs/swagger';
+
+const ROLES_GESTION = ['ADMIN', 'RRHH'];
+const ROLES_LECTURA = ['ADMIN', 'RRHH', 'CONTADOR', 'EMPLEADO'];
+const ROLES_CREACION = ['ADMIN', 'RRHH', 'EMPLEADO'];
+
+const propiedadesSolicitudCompleta: Record<string, SchemaObject> = {
+  id: { type: 'string', format: 'uuid' },
+  codigo: { type: 'string', example: 'SOL-2026-001' },
+  empleado_id: { type: 'string', format: 'uuid' },
+  tipo: {
+    type: 'string',
+    enum: [
+      'VACACIONES',
+      'ADELANTO_VACACIONES',
+      'VENTA_VACACIONES',
+      'LICENCIA_MEDICA',
+      'PERMISO',
+      'JUSTIFICACION_ASISTENCIA',
+      'ACTUALIZACION_DATOS',
+      'ADELANTO_SUELDO',
+      'RENUNCIA',
+    ],
+  },
+  estado: {
+    type: 'string',
+    enum: ['PENDIENTE', 'EN_REVISION', 'APROBADA', 'RECHAZADA', 'ANULADA'],
+  },
+  fecha_inicio: { type: 'string', format: 'date-time', nullable: true },
+  fecha_fin: { type: 'string', format: 'date-time', nullable: true },
+  hora_inicio: { type: 'string', nullable: true },
+  hora_fin: { type: 'string', nullable: true },
+  efecto_asistencia: {
+    type: 'string',
+    enum: ['PENDIENTE_DEFINIR', 'CON_GOCE', 'SIN_GOCE', 'NO_APLICA'],
+  },
+  dias_solicitados: { type: 'integer', nullable: true },
+  monto: { type: 'string', nullable: true },
+  motivo: { type: 'string' },
+  observacion: { type: 'string', nullable: true },
+  sustento_url: { type: 'string', nullable: true },
+  sustento_nombre: { type: 'string', nullable: true },
+  responsable_id: { type: 'string', format: 'uuid', nullable: true },
+  fecha_limite: { type: 'string', format: 'date-time', nullable: true },
+  origen: {
+    type: 'string',
+    enum: ['PORTAL_EMPLEADO', 'MANUAL_RRHH', 'APLICACION_MOVIL'],
+  },
+  created_at: { type: 'string', format: 'date-time' },
+  updated_at: { type: 'string', format: 'date-time' },
+  deleted_at: { type: 'string', format: 'date-time', nullable: true },
+  empleados: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', format: 'uuid' },
+      nombre: { type: 'string' },
+      apellido: { type: 'string' },
+      nro_documento: { type: 'string' },
+      fecha_inicio: { type: 'string', format: 'date-time' },
+      area: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          nombre: { type: 'string' },
+        },
+      },
+      cargo: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          nombre: { type: 'string' },
+        },
+      },
+    },
+  },
+  responsable: {
+    type: 'object',
+    nullable: true,
+    properties: {
+      id: { type: 'string', format: 'uuid' },
+      email: { type: 'string', format: 'email' },
+      rol: { type: 'string' },
+      empleados: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string' },
+          apellido: { type: 'string' },
+        },
+      },
+    },
+  },
+};
 
 /**
- * Decorador Swagger para documentar el controlador de solicitudes en OpenAPI.
+ * Configura la etiqueta Swagger, la autenticación Bearer y los errores comunes para solicitudes.
  */
 export function ApiSwaggerSolicitudController() {
   return applyDecorators(
     ApiTags('Módulo RRHH - Gestión de Solicitudes y Permisos'),
     ApiBearerAuth('JWT-auth'),
+    ApiErroresOperacion()
   );
 }
 
 /**
- * Documentación del endpoint de creación de solicitud (compatible con JSON y Multipart).
+ * Documenta `POST /api/v1/rrhh/solicitudes`.
  */
 export function ApiSwaggerCrearSolicitud() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Crear Solicitud de Permiso / Vacaciones / Descanso',
-      description: 'Registra una solicitud formal de colaborador con generación automática de código correlativo (SOL-YYYY-NNN). Soporta subida de archivos adjuntos (PDF o Word, máx. 5MB) mediante multipart/form-data.',
-    }),
-    ApiConsumes('multipart/form-data', 'application/json'),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['tipo', 'motivo'],
-        properties: {
-          empleado_id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'UUID del empleado (opcional; si se omite, se deduce del usuario en sesión).',
-            example: '018f4a7c-8888-7000-2222-000000000001',
-          },
-          tipo: {
-            type: 'string',
-            enum: ['VACACIONES', 'LICENCIA_MEDICA', 'PERMISO', 'JUSTIFICACION_ASISTENCIA', 'ACTUALIZACION_DATOS', 'ADELANTO_SUELDO', 'RENUNCIA'],
-            example: 'VACACIONES',
-          },
-          fecha_inicio: {
-            type: 'string',
-            format: 'date',
-            example: '2026-10-01',
-          },
-          fecha_fin: {
-            type: 'string',
-            format: 'date',
-            example: '2026-10-15',
-          },
-          dias_solicitados: {
-            type: 'integer',
-            example: 15,
-            default: 1,
-          },
-          motivo: {
-            type: 'string',
-            example: 'Vacaciones correspondientes al periodo 2025-2026',
-          },
-          observacion: {
-            type: 'string',
-            nullable: true,
-            example: 'Coordinado previamente con jefatura de área.',
-          },
-          origen: {
-            type: 'string',
-            enum: ['PORTAL_EMPLEADO', 'MANUAL_RRHH', 'APLICACION_MOVIL'],
-            default: 'PORTAL_EMPLEADO',
-          },
-          archivo: {
-            type: 'string',
-            format: 'binary',
-            description: 'Archivo de sustento en formato PDF o Word (.doc, .docx), máx. 5MB.',
-          },
-        },
-      },
-    }),
-    ApiResponse({
+    ApiConsumes('application/json', 'multipart/form-data'),
+    ApiContratoBody(CrearSolicitudSchema, undefined, 'archivo'),
+    ApiOperacionDocumentada({
+      summary: 'Crear solicitud',
+      description:
+        'Registra una solicitud en estado `PENDIENTE` con código `SOL-YYYY-NNN` y auditoría transaccional. Soporta JSON o `multipart/form-data` con un adjunto PDF/Word en `archivo` (máx. 5 MB); restringe a EMPLEADO a su propio legajo sin observación ni origen distinto a PORTAL_EMPLEADO.',
+      roles: ROLES_CREACION,
       status: 201,
-      description: 'Solicitud registrada exitosamente en estado PENDIENTE.',
+      respuesta: { type: 'object', properties: propiedadesSolicitudCompleta },
     }),
     ApiResponse({
-      status: 400,
-      description: 'Datos inválidos, rango de fechas inconsistente o tipo de archivo no permitido.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Empleado solicitante no encontrado o inactivo.',
-    }),
-  );
-}
-
-export function ApiSwaggerListarSolicitudes() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Listar solicitudes',
-      description: 'Obtiene el listado paginado de solicitudes con filtros por estado, tipo, área, texto y rango de fechas.'
-    }),
-    ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
-    ApiQuery({ name: 'limit', required: false, type: Number, example: 10, maximum: 100 }),
-    ApiQuery({ name: 'estado', required: false, enum: ['PENDIENTE', 'EN_REVISION', 'APROBADA', 'RECHAZADA', 'ANULADA'] }),
-    ApiQuery({ name: 'tipo', required: false, enum: ['VACACIONES', 'ADELANTO_VACACIONES', 'VENTA_VACACIONES', 'LICENCIA_MEDICA', 'PERMISO', 'JUSTIFICACION_ASISTENCIA', 'ACTUALIZACION_DATOS', 'ADELANTO_SUELDO', 'RENUNCIA'] }),
-    ApiQuery({ name: 'area_id', required: false, type: String, format: 'uuid' }),
-    ApiQuery({ name: 'search', required: false, type: String }),
-    ApiQuery({ name: 'fecha_desde', required: false, type: String, example: '2026-01-01' }),
-    ApiQuery({ name: 'fecha_hasta', required: false, type: String, example: '2026-12-31' }),
-    ApiResponse({ status: 200, description: 'Listado paginado de solicitudes.' })
+      status: 413,
+      description: 'El archivo adjunto supera el tamaño máximo de 5 MB.',
+    })
   );
 }
 
 /**
- * Documentación de la consulta detallada de una solicitud por ID o código.
+ * Documenta `GET /api/v1/rrhh/solicitudes`.
+ */
+export function ApiSwaggerListarSolicitudes() {
+  return applyDecorators(
+    ApiContratoQuery(ListarSolicitudesQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Listar solicitudes',
+      description:
+        'Lista solicitudes paginadas con filtros por estado, tipo, área, búsqueda textual y rango `fecha_desde`/`fecha_hasta` (`YYYY-MM-DD`). Si el rol es EMPLEADO solo devuelve sus propias solicitudes; `meta` incluye `total_sin_estado` y `por_estado`.',
+      roles: ROLES_LECTURA,
+      respuesta: {
+        type: 'array',
+        items: esquemaContrato(SolicitudResumenSchema),
+      },
+      paginada: true,
+      metaAdicional: {
+        total_sin_estado: { type: 'integer' },
+        por_estado: {
+          type: 'object',
+          properties: {
+            PENDIENTE: { type: 'integer' },
+            EN_REVISION: { type: 'integer' },
+            APROBADA: { type: 'integer' },
+            RECHAZADA: { type: 'integer' },
+            ANULADA: { type: 'integer' },
+          },
+        },
+      },
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/rrhh/solicitudes/:idOCodigo`.
  */
 export function ApiSwaggerObtenerDetalleSolicitud() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Obtener Detalle de Solicitud',
-      description: 'Recupera la información integral de una solicitud por su UUID o código correlativo (ej. SOL-2026-001), calculando antigüedad laboral y alertas de urgencia.',
-    }),
-    ApiParam({
-      name: 'idOCodigo',
-      description: 'UUID de la solicitud o código correlativo (ej: SOL-2026-001).',
-      example: 'SOL-2026-001',
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Detalle de la solicitud obtenido con éxito.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Solicitud no encontrada.',
-    }),
-  );
-}
-
-/**
- * Documentación de la toma en revisión de una solicitud.
- */
-export function ApiSwaggerAsignarRevision() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Tomar Solicitud en Revisión',
-      description: 'Asigna la solicitud al usuario autenticado (ADMIN o RRHH) y cambia su estado a EN_REVISION.',
-    }),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH']),
-    ApiParam({
-      name: 'id',
-      description: 'UUID de la solicitud a tomar en revisión.',
-      schema: { type: 'string', format: 'uuid' },
-    }),
-    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
-    ApiResponse({
-      status: 200,
-      description: 'Solicitud tomada en revisión exitosamente.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Usuario revisor inválido.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Solicitud no encontrada.',
-    }),
-  );
-}
-
-/**
- * Documentación de la evaluación formal de la solicitud.
- */
-export function ApiSwaggerEvaluarSolicitud() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Evaluar Solicitud (Aprobar o Rechazar)',
-      description: 'Dictamina exclusivamente una solicitud EN_REVISION tomada por el usuario autenticado. Exige observación descriptiva (mínimo 5 caracteres) en caso de rechazo.',
-    }),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH']),
-    ApiParam({
-      name: 'id',
-      description: 'UUID de la solicitud a evaluar.',
-      schema: { type: 'string', format: 'uuid' },
-    }),
-    ApiBody({
-      schema: {
+    ApiIdentificador('idOCodigo', false),
+    ApiOperacionDocumentada({
+      summary: 'Obtener detalle de solicitud',
+      description:
+        'Recupera una solicitud por UUID o código `SOL-YYYY-NNN` (incluyendo anuladas), calculando `colaborador_resumen` con antigüedad y `alerta_urgencia`. Si el rol es EMPLEADO solo puede consultar sus propias solicitudes.',
+      roles: ROLES_LECTURA,
+      respuesta: {
         type: 'object',
-        required: ['estado'],
         properties: {
-          estado: {
-            type: 'string',
-            enum: ['APROBADA', 'RECHAZADA'],
-            example: 'APROBADA',
+          ...propiedadesSolicitudCompleta,
+          colaborador_resumen: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              nombre_completo: { type: 'string' },
+              documento: { type: 'string' },
+              area: { type: 'string' },
+              cargo: { type: 'string' },
+              antiguedad: { type: 'string' },
+            },
           },
-          observacion: {
-            type: 'string',
+          alerta_urgencia: {
+            type: 'object',
             nullable: true,
-            example: 'Aprobado conforme al rol de descanso programado.',
+            properties: {
+              mensaje: { type: 'string' },
+              detalle: { type: 'string' },
+            },
           },
         },
       },
-    }),
-    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
-    ApiResponse({
-      status: 200,
-      description: 'Solicitud evaluada y dictaminada exitosamente.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Rechazo sin motivo descriptivo.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Solicitud no encontrada.',
-    }),
+    })
   );
 }
 
 /**
- * Documentación de la anulación de una solicitud.
+ * Documenta `PATCH /api/v1/rrhh/solicitudes/:id/asignar-revision`.
+ */
+export function ApiSwaggerAsignarRevision() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Tomar solicitud en revisión',
+      description:
+        'Asigna al usuario ADMIN/RRHH autenticado como responsable y pasa la solicitud a `EN_REVISION` con auditoría. Es idempotente si ya la tomó el mismo usuario y responde 409 si finalizó o la tomó otro revisor.',
+      roles: ROLES_GESTION,
+      respuesta: { type: 'object', properties: propiedadesSolicitudCompleta },
+    })
+  );
+}
+
+/**
+ * Documenta `PATCH /api/v1/rrhh/solicitudes/:id/evaluar`.
+ */
+export function ApiSwaggerEvaluarSolicitud() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiContratoBody(EvaluarSolicitudSchema),
+    ApiOperacionDocumentada({
+      summary: 'Evaluar solicitud (aprobar o rechazar)',
+      description:
+        'Dictamina una solicitud `EN_REVISION` tomada por el evaluador (403 si otro responsable, 409 si otro estado). Exige `observacion` de 5 a 2000 caracteres al rechazar y valida que los períodos afectados no tengan incidencias aprobadas ni planilla cerrada al aprobar (409).',
+      roles: ROLES_GESTION,
+      respuesta: { type: 'object', properties: propiedadesSolicitudCompleta },
+    })
+  );
+}
+
+/**
+ * Documenta `PATCH /api/v1/rrhh/solicitudes/:id/anular`.
  */
 export function ApiSwaggerAnularSolicitud() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Anular Solicitud',
-      description: 'Anula una solicitud PENDIENTE o EN_REVISION, exige un motivo y conserva el registro consultable. No modifica deleted_at.',
-    }),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH']),
-    ApiParam({
-      name: 'id',
-      description: 'UUID de la solicitud a anular.',
-      schema: { type: 'string', format: 'uuid' },
-    }),
+    ApiIdentificador(),
     ApiBody({
       schema: {
         type: 'object',
@@ -235,33 +266,94 @@ export function ApiSwaggerAnularSolicitud() {
         properties: {
           motivo: {
             type: 'string',
-            example: 'Colaborador cancela la solicitud por reprogramación interna de vacaciones.',
+            minLength: 5,
+            maxLength: 3000,
+            example:
+              'Colaborador cancela la solicitud por reprogramación interna de vacaciones.',
           },
         },
       },
     }),
-    ApiResponse({ status: 409, description: 'Solicitud finalizada, tomada por otro usuario o modificada concurrentemente.' }),
-    ApiResponse({
-      status: 200,
-      description: 'Solicitud anulada exitosamente.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Motivo de anulación inválido.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Solicitud no encontrada.',
-    }),
+    ApiOperacionDocumentada({
+      summary: 'Anular solicitud',
+      description:
+        'Anula una solicitud en estado `PENDIENTE` o `EN_REVISION` exigiendo `motivo` (5 a 3000 caracteres), conserva `deleted_at: null` para consulta histórica y registra el evento en auditoría.',
+      roles: ROLES_GESTION,
+      respuesta: { type: 'object', properties: propiedadesSolicitudCompleta },
+    })
   );
 }
 
-/** Historial administrativo de una solicitud, incluyendo anulaciones. */
+/**
+ * Documenta `GET /api/v1/rrhh/solicitudes/:idOCodigo/historial`.
+ */
 export function ApiSwaggerObtenerHistorialSolicitud() {
-    return applyDecorators(
-        ApiOperation({ summary: 'Obtener historial de solicitud', description: 'Consulta por UUID o código. El EMPLEADO solo puede consultar su propia solicitud; los registros proceden de audit_log.' }),
-        ApiParam({ name: 'idOCodigo', description: 'UUID o código SOL-YYYY-NNN.', example: 'SOL-2026-001' }),
-        ApiResponse({ status: 200, description: 'Historial ordenado cronológicamente; puede estar vacío si no hay eventos registrados.' }),
-        ApiResponse({ status: 404, description: 'Solicitud inexistente o fuera del acceso del colaborador.' })
-    );
+  return applyDecorators(
+    ApiIdentificador('idOCodigo', false),
+    ApiOperacionDocumentada({
+      summary: 'Obtener historial de solicitud',
+      description:
+        'Consulta los eventos de `audit_log` de una solicitud por UUID o código `SOL-YYYY-NNN` en orden cronológico. El rol EMPLEADO solo puede consultar sus propias solicitudes.',
+      roles: ROLES_LECTURA,
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            accion: {
+              type: 'string',
+              enum: [
+                'CREADA',
+                'INICIO_REVISION',
+                'APROBADA',
+                'RECHAZADA',
+                'ANULADA',
+                'REASIGNADA',
+                'ASIGNADA',
+                'DESASIGNADA',
+                'ACTUALIZADA',
+                'ELIMINADA',
+              ],
+            },
+            fecha: { type: 'string', format: 'date-time' },
+            actor: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', format: 'uuid', nullable: true },
+                email: { type: 'string', nullable: true },
+                nombre_completo: { type: 'string' },
+              },
+            },
+            cambios: {
+              type: 'object',
+              properties: {
+                estado: {
+                  type: 'object',
+                  properties: {
+                    anterior: { nullable: true },
+                    nuevo: { nullable: true },
+                  },
+                },
+                responsable_id: {
+                  type: 'object',
+                  properties: {
+                    anterior: { nullable: true },
+                    nuevo: { nullable: true },
+                  },
+                },
+                observacion: {
+                  type: 'object',
+                  properties: {
+                    anterior: { nullable: true },
+                    nuevo: { nullable: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+  );
 }

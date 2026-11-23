@@ -1,263 +1,144 @@
-//src/modules/RRHH/decorators/area-swagger.decorator.ts
+//src/modules/RRHH/organizacion/decorators/area-swagger.decorator.ts
+import {
+  ApiContratoBody,
+  ApiContratoQuery,
+  ApiErroresOperacion,
+  ApiIdentificador,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
+import {
+  ActualizarAreaSchema,
+  AreaDetalleSchema,
+  AreaResumenSchema,
+  CrearAreaSchema,
+  ListarAreasQuerySchema,
+} from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiExtension} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { SchemaObject } from '@nestjs/swagger';
+
+const ROLES_AREA = ['ADMIN', 'RRHH'];
+
+const respuestaAreaSimple: SchemaObject = {
+  type: 'object',
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    nombre: { type: 'string' },
+    descripcion: { type: 'string', nullable: true },
+    activo: { type: 'boolean' },
+    deleted_at: { type: 'string', format: 'date-time', nullable: true },
+    created_at: { type: 'string', format: 'date-time' },
+    updated_at: { type: 'string', format: 'date-time' },
+  },
+};
 
 /**
- * Decorador personalizado para documentar los endpoints de autenticación en Swagger.
- * @param tag - Nombre de la etiqueta para agrupar los endpoints en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @requires - JWT Bearer token para autenticación.
- * @requires - Roles: ADMIN, RRHH para autorización.
+ * Configura la etiqueta Swagger, la autenticación Bearer y los errores comunes para áreas.
  */
 export function ApiSwaggerAreasController() {
   return applyDecorators(
-    ApiTags('Modulo RRHH - Areas'),
+    ApiTags('Módulo RRHH - Áreas'),
     ApiBearerAuth('JWT-auth'),
-    ApiExtension('x-roles', ['ADMIN', 'RRHH'])
+    ApiErroresOperacion()
   );
 }
 
 /**
- * Decorador para documentar el endopoint de creación de un área en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
+ * Documenta `POST /api/v1/rrhh/area/crear`.
  */
 export function ApiSwaggerCrearArea() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Crear Área',
-      description: 'Registra una nueva área o departamento de la empresa en el sistema. Requiere rol ADMIN o RRHH.'
-    }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: ['nombre'],
-        properties: {
-          nombre: { type: 'string', example: 'Recursos Humanos' },
-          descripcion: { type: 'string', example: 'Gestión de talento' }
-        }
-      }
-    }),
-    ApiResponse({
+    ApiContratoBody(CrearAreaSchema),
+    ApiOperacionDocumentada({
+      summary: 'Crear área',
+      description:
+        'Registra un área organizacional activa validando que el nombre no exista entre áreas no eliminadas (insensible a mayúsculas).',
+      roles: ROLES_AREA,
       status: 201,
-      description: 'Área creada exitosamente.'
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
-    }),
-    ApiResponse({
-      status: 409,
-      description: 'Conflicto. El nombre del área ya existe.'
-    }),
+      respuesta: respuestaAreaSimple,
+    })
   );
 }
 
 /**
- * Decorador para documentar el endpoint de actualización de un área en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param idParam - Parámetro de ruta que representa el ID del área a actualizar.
- * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
+ * Documenta `PUT /api/v1/rrhh/area/:id`.
  */
 export function ApiSwaggerActualizarArea() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Actualizar Área',
-      description: 'Actualiza los detalles de un área existente. Requiere rol ADMIN o RRHH.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'ID del área a actualizar (UUID).',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiBody({
-      schema: {
-        type: 'object',
-        properties: {
-          nombre: { type: 'string', example: 'Recursos Humanos' },
-          descripcion: { type: 'string', example: 'Gestión de talento' }
-        }
-      }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Área actualizada exitosamente.'
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'No encontrado. El área con el ID proporcionado no existe.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    ApiIdentificador(),
+    ApiContratoBody(ActualizarAreaSchema),
+    ApiOperacionDocumentada({
+      summary: 'Actualizar área',
+      description:
+        'Modifica nombre y/o descripción de un área no eliminada. Verifica colisión de nombre cuando cambia respecto al valor actual.',
+      roles: ROLES_AREA,
+      respuesta: respuestaAreaSimple,
     })
   );
 }
+
 /**
- * Decorador para documentar el endpoint de desactivación de un área en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param idParam - Parámetro de ruta que representa el ID del área a desactivar.
+ * Documenta `DELETE /api/v1/rrhh/area/:id/desactivar`.
  */
 export function ApiSwaggerDesactivarArea() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Desactivar Área',
-      description: 'Desactiva un área existente. Requiere rol ADMIN o RRHH.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'ID del área a desactivar (UUID).',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Área desactivada exitosamente.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'No encontrado. El área con el ID proporcionado no existe.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Desactivar área (baja lógica)',
+      description:
+        'Marca el área como inactiva y registra `deleted_at`. Rechaza la operación con 400 si tiene empleados activos o cargos activos asociados.',
+      roles: ROLES_AREA,
+      respuesta: respuestaAreaSimple,
     })
   );
 }
 
 /**
- * Decorador para documentar el endpoint de reactivación de un área en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param idParam - Parámetro de ruta que representa el ID del área a reactivar.
+ * Documenta `PATCH /api/v1/rrhh/area/:id/reactivar`.
  */
 export function ApiSwaggerReactivarArea() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Reactivar Área',
-      description: 'Reactiva un área desactivada. Requiere rol ADMIN o RRHH.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'ID del área a reactivar (UUID).',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Área reactivada exitosamente.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.'
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'No encontrado. El área con el ID proporcionado no existe.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
-    })
-  );
-}
-/**
- * Decorador para documentar el endpoint de listado de áreas en Swagger.
- * @param Query - Parámetros de consulta para filtrar y paginar los resultados.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param optionalFilters - Filtros opcionales para la consulta, como estado de actividad.
- * @param pagination - Parámetros de paginación, como página y límite de resultados.
- * @returns - Un objeto con las áreas encontradas y metadatos de paginación.
- */
-export function ApiSwaggerListarAreas() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Listar Áreas',
-      description: 'Obtiene un listado de áreas con paginación y filtros opcionales. Requiere rol ADMIN o RRHH.'
-    }),
-    ApiQuery({
-      name: 'page',
-      description: 'Número de página para la paginación.',
-      required: false,
-      type: Number,
-      example: 1
-    }),
-    ApiQuery({
-      name: 'limit',
-      description: 'Cantidad de resultados por página.',
-      required: false,
-      type: Number,
-      example: 50
-    }),
-    ApiQuery({
-      name: 'activo',
-      description: 'Filtra por estado de actividad del área (true para activas, false para inactivas).',
-      required: false,
-      type: Boolean,
-      example: true
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Listado de áreas obtenido exitosamente.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Reactivar área',
+      description:
+        'Restaura un área desactivada estableciendo `activo: true` y limpiando `deleted_at`. Responde 400 si el área ya se encuentra activa.',
+      roles: ROLES_AREA,
+      respuesta: respuestaAreaSimple,
     })
   );
 }
 
+/**
+ * Documenta `GET /api/v1/rrhh/area`.
+ */
+export function ApiSwaggerListarAreas() {
+  return applyDecorators(
+    ApiContratoQuery(ListarAreasQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Listar áreas',
+      description:
+        'Devuelve el listado paginado de áreas no eliminadas ordenadas por nombre, con filtros por estado activo y búsqueda textual e incluye conteos de cargos, empleados y jornadas.',
+      roles: ROLES_AREA,
+      respuesta: { type: 'array', items: esquemaContrato(AreaResumenSchema) },
+      paginada: true,
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/rrhh/area/:id`.
+ */
 export function ApiDetalleArea() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Detalle de Área',
-      description: 'Obtiene los detalles de un área específica por su ID. Requiere rol ADMIN o RRHH.'
-    }),
-    ApiParam({
-      name: 'id',
-      description: 'ID del área a consultar (UUID).',
-      required: true,
-      schema: { type: 'string', format: 'uuid' }
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Detalles del área obtenido exitosamente.'
-    }), 
-    ApiResponse({
-      status: 404,
-      description: 'No encontrado. El área con el ID proporcionado no existe.'
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.'
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene el rol necesario para realizar esta acción.'
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Obtener detalle de área',
+      description:
+        'Recupera un área no eliminada junto con sus cargos no eliminados y las jornadas asociadas.',
+      roles: ROLES_AREA,
+      respuesta: esquemaContrato(AreaDetalleSchema),
     })
   );
 }

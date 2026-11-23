@@ -1,197 +1,288 @@
 //src/modules/core/audit/decorators/audit-swagger.decorator.ts
-import { ApiOperacionDocumentada, esquemaContrato, ApiContratoBody, ApiContratoQuery } from '@/common/decorators/api-contrato.decorator';
-import { CreateAuditSchema, AuditResumenSchema, ObtenerAuditQuerySchema  } from '@jyp/shared-contracts';
+import {
+  ApiContratoBody,
+  ApiContratoQuery,
+  ApiIdentificador,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
+import {
+  ActividadAuditoriaQuerySchema,
+  AuditResumenSchema,
+  CreateAuditSchema,
+  DetalleActividadAuditoriaSchema,
+  FilaActividadAuditoriaSchema,
+  LineaTiempoAfectadoQuerySchema,
+  ObtenerAuditQuerySchema,
+  TIPOS_AFECTADO_CON_ID_AUDITORIA,
+} from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import type { SchemaObject } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+
+const cambioAuditoriaSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    campo: { type: 'string' },
+    etiqueta: { type: 'string' },
+    antes: { nullable: true },
+    despues: { nullable: true },
+    protegido: { type: 'boolean' },
+  },
+};
+
+const RESPUESTAS_ERROR_AUDITORIA = [
+  ApiResponse({
+    status: 400,
+    description:
+      'Solicitud inválida. Los filtros, la paginación o los parámetros no cumplen el contrato.',
+  }),
+  ApiResponse({
+    status: 401,
+    description: 'No autorizado. El usuario no tiene un token válido.',
+  }),
+  ApiResponse({
+    status: 403,
+    description:
+      'Prohibido. El rol no puede consultar la auditoría o la tabla pedida.',
+  }),
+];
 
 /**
- * Decorador personalizado para documentar los endpoints de auditoría en Swagger.
- * @param tag - Nombre de la etiqueta para agrupar los endpoints en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @requires - JWT Bearer token para autenticación.
- * @requires - Roles: ADMIN, CONTADOR para autorización.
+ * Decorador personalizado para agrupar y autenticar los endpoints de auditoría en Swagger.
  */
 export function ApiSwaggerAuditoriaController() {
-  return applyDecorators(ApiTags('Modulo Auditoria'), ApiBearerAuth('JWT-auth'));
+  return applyDecorators(
+    ApiTags('Modulo Auditoria'),
+    ApiBearerAuth('JWT-auth')
+  );
 }
 
 /**
- * Decorador para documentar el endpoint de creación de un registro de auditoría en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param requestBodySchema - Esquema de validación para el cuerpo de la solicitud.
+ * Documenta `POST /api/v1/core/audit/logs`: registro manual de un evento de auditoría.
  */
 export function ApiSwaggerCrearAuditoria() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Crear Registro de Auditoría',
-      description: 'Registra un nuevo evento de auditoría en el sistema. Requiere rol ADMIN o CONTADOR.',
-    }),
     ApiContratoBody(CreateAuditSchema),
-    ApiResponse({
+    ApiOperacionDocumentada({
+      summary: 'Crear registro de auditoría',
+      description:
+        'Registra manualmente un evento en audit_log tomando el usuario y la IP desde el contexto de la solicitud y sanitizando campos sensibles en los snapshots.',
+      roles: ['ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH'],
       status: 201,
-      description: 'Registro de auditoría creado exitosamente.',
+      respuesta: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          usuario_id: { type: 'string', format: 'uuid', nullable: true },
+          accion: { type: 'string' },
+          tabla_afectada: { type: 'string' },
+          registro_id: { type: 'string', format: 'uuid' },
+          valores_antes: {
+            type: 'object',
+            nullable: true,
+            additionalProperties: true,
+          },
+          valores_despues: {
+            type: 'object',
+            nullable: true,
+            additionalProperties: true,
+          },
+          direccion_ip: { type: 'string' },
+          created_at: { type: 'string', format: 'date-time' },
+          afectado_tipo: { type: 'string', nullable: true },
+          afectado_id: { type: 'string', format: 'uuid', nullable: true },
+        },
+      },
     }),
-    ApiResponse({
-      status: 400,
-      description: 'Datos inválidos. Devuelve un mensaje de error.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-    })
+    ...RESPUESTAS_ERROR_AUDITORIA
   );
 }
+
 /**
- * Decorador para documentar el endpoint de obtención de registros de auditoría en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param querySchema - Esquema de validación para los parámetros de consulta.
- * @Query - Esquema de validación para los parámetros de consulta.
- * @Query - Page: number - Número de página para la paginación.
- * @Query - Limit: number - Cantidad de registros por página para la paginación.
- * @Query - tabla_afectada: string - Nombre de la tabla afectada para filtrar los registros.
- * @Query - accion: string - Acción realizada para filtrar los registros.
- * @Query - usuario_id: string - ID del usuario que realizó la acción para filtrar los registros.
- * @Query - registro_id: string - ID del registro afectado para filtrar los registros.
- * @returns Un objeto con los registros de auditoría filtrados y paginados según los parámetros proporcionados.
+ * Documenta `GET /api/v1/core/audit/logs`: listado paginado de bitácoras técnicas de auditoría.
  */
 export function ApiSwaggerListarAuditoria() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Listar Registros de Auditoría',
-      description:
-        'Obtiene una lista de registros de auditoría filtrados y paginados según los parámetros proporcionados. Requiere rol ADMIN o CONTADOR.',
-    }),
     ApiContratoQuery(ObtenerAuditQuerySchema),
-
-    ApiResponse({
-      status: 200,
-      description: 'Retorna un objeto con los registros de auditoría filtrados y paginados según los parámetros proporcionados.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Solicitud inválida. Devuelve un mensaje de error si los parámetros de consulta no son válidos.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-    }),
     ApiOperacionDocumentada({
-      summary: 'Listar auditoría',
-      description: 'Tabla resumida; los deltas se consultan por ID.',
+      summary: 'Listar registros de auditoría',
+      description:
+        'Obtiene logs paginados ordenados del más reciente al más antiguo (sin valores_antes ni valores_despues). ADMIN ve todas las tablas; RRHH solo tablas de su ámbito; CONTADOR solo logs propios o de ASISTENTE.',
       roles: ['ADMIN', 'RRHH', 'CONTADOR'],
       paginada: true,
       respuesta: { type: 'array', items: esquemaContrato(AuditResumenSchema) },
-    })
+    }),
+    ...RESPUESTAS_ERROR_AUDITORIA
   );
 }
 
 /**
- * Decorador para documentar el endpoint de obtención de un registro de auditoría por ID en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param querySchema - Esquema de validación para los parámetros de consulta.
+ * Documenta `GET /api/v1/core/audit/logs/:id`: detalle técnico de un registro de auditoría por ID.
  */
 export function ApiSwaggerObtenerAuditoriaPorId() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Obtener Registro de Auditoría por ID',
-      description: 'Obtiene un registro de auditoría específico por su ID. Requiere rol ADMIN o CONTADOR.',
+    ApiIdentificador('id', true),
+    ApiOperacionDocumentada({
+      summary: 'Obtener registro de auditoría por ID',
+      description:
+        'Devuelve el registro técnico junto con cambios campo por campo y campos_modificados, ocultando huellas de campos protegidos. RRHH recibe 403 fuera de sus tablas permitidas y CONTADOR solo accede a logs propios o de ASISTENTE.',
+      roles: ['ADMIN', 'RRHH', 'CONTADOR'],
+      respuesta: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          usuario_id: { type: 'string', format: 'uuid', nullable: true },
+          accion: { type: 'string' },
+          tabla_afectada: { type: 'string' },
+          registro_id: { type: 'string', format: 'uuid' },
+          valores_antes: { nullable: true },
+          valores_despues: { nullable: true },
+          direccion_ip: { type: 'string' },
+          created_at: { type: 'string', format: 'date-time' },
+          afectado_tipo: { type: 'string', nullable: true },
+          afectado_id: { type: 'string', format: 'uuid', nullable: true },
+          cambios: { type: 'array', items: cambioAuditoriaSchema },
+          campos_modificados: { type: 'array', items: { type: 'string' } },
+        },
+      },
     }),
-    ApiQuery({
-      name: 'id',
-      required: true,
-      description: 'ID del registro de auditoría a obtener.',
-      schema: { type: 'string' },
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Retorna el registro de auditoría correspondiente al ID proporcionado.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Solicitud inválida. Devuelve un mensaje de error si el ID no es válido.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-    }),
+    ...RESPUESTAS_ERROR_AUDITORIA,
     ApiResponse({
       status: 404,
-      description: 'No encontrado. No existe un registro de auditoría con el ID proporcionado.',
+      description: 'No existe un registro de auditoría con el ID indicado.',
     })
   );
 }
 
 /**
- * Decorador para documentar el endpoint de obtención del historial de auditoría de un registro específico en Swagger.
- * @param summary - Resumen de la operación para mostrar en Swagger.
- * @param querySchema - Esquema de validación para los parámetros de consulta.
- * @Query - tabla: string - Nombre de la tabla afectada para filtrar los registros.
- * @Query - registroId: string - ID del registro afectado para filtrar los registros.
- * @Query - page: number - Número de página para la paginación.
- * @Query - limit: number - Cantidad de registros por página para la paginación.
- * @returns Un objeto con el historial de auditoría del registro específico, incluyendo los cambios realizados en sus campos.
+ * Documenta `GET /api/v1/core/audit/historial/:tabla/:registroId`: historial paginado de cambios de un registro.
  */
 export function ApiSwaggerObtenerHistorialRegistro() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Obtener Historial de Auditoría de un Registro',
-      description: 'Obtiene el historial de auditoría de un registro específico, incluyendo los cambios realizados en sus campos. Requiere rol ADMIN, RRHH o CONTADOR.',
-    }),
-    ApiQuery({
-      name: 'tabla',
-      required: true,
-      description: 'Nombre de la tabla afectada para filtrar los registros.',
-      schema: { type: 'string' },
-    }),
-    ApiQuery({
-      name: 'registroId',
-      required: true,
-      description: 'ID del registro afectado para filtrar los registros.',
-      schema: { type: 'string' },
-    }),
+    ApiIdentificador('tabla', false),
+    ApiIdentificador('registroId', true),
     ApiQuery({
       name: 'page',
       required: false,
-      description: 'Número de página para la paginación (opcional, por defecto 1).',
-      schema: { type: 'number', default: 1 },
+      description: 'Número de página (por defecto 1).',
+      schema: { type: 'integer', minimum: 1, default: 1 },
     }),
     ApiQuery({
       name: 'limit',
       required: false,
-      description: 'Cantidad de registros por página para la paginación (opcional, por defecto 20).',
-      schema: { type: 'number', default: 20 },
+      description: 'Registros por página (por defecto 20, máximo 100).',
+      schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
     }),
-    ApiResponse({
-      status: 200,
-      description: 'Retorna un objeto con el historial de auditoría del registro específico, incluyendo los cambios realizados en sus campos.',
+    ApiOperacionDocumentada({
+      summary: 'Obtener historial de auditoría de un registro',
+      description:
+        'Devuelve el historial paginado de cambios de una tabla y registro específico, con actor, diferencias campo por campo y campos_modificados. Respeta las restricciones por rol sobre tablas (RRHH) y actores (CONTADOR).',
+      roles: ['ADMIN', 'RRHH', 'CONTADOR'],
+      paginada: true,
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            fecha: { type: 'string', format: 'date-time' },
+            accion: { type: 'string' },
+            tabla_afectada: { type: 'string' },
+            registro_id: { type: 'string', format: 'uuid' },
+            usuario: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: { type: 'string', format: 'uuid' },
+                nombre: { type: 'string' },
+                rol: { type: 'string' },
+              },
+            },
+            cambios: { type: 'array', items: cambioAuditoriaSchema },
+            campos_modificados: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
     }),
-    ApiResponse({
-      status: 400,
-      description: 'Solicitud inválida. Devuelve un mensaje de error si los parámetros de consulta no son válidos.',
+    ...RESPUESTAS_ERROR_AUDITORIA
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/core/audit/actividad`: actividad auditada en lenguaje de negocio, con los
+ * filtros de `/logs` más `afectado_tipo`, `afectado_id`, `desde` y `hasta`.
+ */
+export function ApiSwaggerListarActividad() {
+  return applyDecorators(
+    ApiContratoQuery(ActividadAuditoriaQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Listar actividad de auditoría',
+      description:
+        'Lista paginada y legible de la actividad (fechas `desde` y `hasta` interpretadas en hora Lima): acción de negocio, módulo, actor, afectado, resumen, registro_id y campos modificados. Requiere rol ADMIN, RRHH o CONTADOR.',
+      roles: ['ADMIN', 'RRHH', 'CONTADOR'],
+      paginada: true,
+      respuesta: {
+        type: 'array',
+        items: esquemaContrato(FilaActividadAuditoriaSchema),
+      },
     }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. El usuario no tiene un token válido.',
+    ...RESPUESTAS_ERROR_AUDITORIA
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/core/audit/actividad/:id`: una fila de actividad con la lista de cambios.
+ */
+export function ApiSwaggerObtenerActividadPorId() {
+  return applyDecorators(
+    ApiIdentificador('id', true),
+    ApiOperacionDocumentada({
+      summary: 'Obtener detalle de actividad de auditoría',
+      description:
+        'Devuelve la fila de actividad más `cambios`: IDs reemplazados por nombres, enums con etiqueta legible, fechas normalizadas y listas (como el horario) comparadas por elemento. Los datos bancarios y el CUSPP se marcan como `protegido`.',
+      roles: ['ADMIN', 'RRHH', 'CONTADOR'],
+      respuesta: esquemaContrato(DetalleActividadAuditoriaSchema),
     }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los permisos necesarios para realizar esta acción.',
-    }),
+    ...RESPUESTAS_ERROR_AUDITORIA,
     ApiResponse({
       status: 404,
-      description: 'No encontrado. No existe un historial de auditoría para el registro especificado.',
+      description: 'No existe el registro o el rol no puede ver su tabla.',
     })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/core/audit/afectados/:tipo/:id`: línea de tiempo de un empleado, área,
+ * cargo o jornada.
+ */
+export function ApiSwaggerLineaTiempoAfectado() {
+  return applyDecorators(
+    ApiParam({
+      name: 'tipo',
+      required: true,
+      description: 'Tipo de afectado.',
+      schema: { type: 'string', enum: [...TIPOS_AFECTADO_CON_ID_AUDITORIA] },
+    }),
+    ApiIdentificador('id', true),
+    ApiContratoQuery(LineaTiempoAfectadoQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Línea de tiempo de un afectado',
+      description:
+        'Cambios de todas las tablas relacionadas con un empleado, área, cargo o jornada, del más reciente al más antiguo, con el mismo formato de fila que `/actividad` y rango de fechas en hora Lima.',
+      roles: ['ADMIN', 'RRHH', 'CONTADOR'],
+      paginada: true,
+      respuesta: {
+        type: 'array',
+        items: esquemaContrato(FilaActividadAuditoriaSchema),
+      },
+    }),
+    ...RESPUESTAS_ERROR_AUDITORIA
   );
 }

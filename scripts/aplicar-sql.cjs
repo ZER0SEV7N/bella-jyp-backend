@@ -5,6 +5,7 @@
  *   - `pnpm db:crear`             -> node scripts/aplicar-sql.cjs crear
  *   - `pnpm db:instalar-objetos`  -> node scripts/aplicar-sql.cjs objetos
  *   - `pnpm db:demo`              -> node scripts/aplicar-sql.cjs demo
+ *   - `pnpm db:demo-seed`         -> node scripts/aplicar-sql.cjs demo-seed
  */
 'use strict';
 
@@ -26,12 +27,20 @@ const ARCHIVOS_POR_MODO = {
     path.resolve(__dirname, '..', 'prisma', 'asistencia-payroll-instalar-objetos.sql'),
     path.resolve(__dirname, 'pruebas-demo', 'datosprueba.sql'),
   ],
+  // Las tres demos juntas: 3 empleados (Postman), 10 (n8n) y 30 del dashboard de RRHH,
+  // que reutiliza la jornada, áreas y cargos de la demo de 10.
+  'demo-seed': [
+    path.resolve(__dirname, '..', 'prisma', 'asistencia-payroll-instalar-objetos.sql'),
+    path.resolve(__dirname, 'datosprueba.sql'),
+    path.resolve(__dirname, 'pruebas-demo', 'datosprueba.sql'),
+    path.resolve(__dirname, 'pruebas-demo', 'dashboard-rrhh-demo.sql'),
+  ],
 };
 
 async function ejecutar() {
   const rutas = ARCHIVOS_POR_MODO[MODO];
   if (!rutas) {
-    console.error(`Modo no reconocido: "${MODO}". Use: crear | objetos | demo | demo-10`);
+    console.error(`Modo no reconocido: "${MODO}". Use: crear | objetos | demo | demo-10 | demo-seed`);
     process.exit(1);
   }
 

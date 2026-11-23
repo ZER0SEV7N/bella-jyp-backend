@@ -1,43 +1,52 @@
-// src/modules/payroll/bancos/decorators/bancos-swagger.decorator.ts
-import { ApiOperacionDocumentada, esquemaContrato } from '@/common/decorators/api-contrato.decorator';
+//src/modules/nomina/bancos/decorators/bancos-swagger.decorator.ts
+import {
+  ApiErroresOperacion,
+  ApiIdentificador,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
 import { BancoDetalleSchema } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+/**
+ * Decorador de nivel controlador para el submódulo de Bancos.
+ */
 export function ApiSwaggerBancosController() {
   return applyDecorators(
     ApiTags('Modulo de Nomina - submodulo de Bancos'),
     ApiBearerAuth('JWT-auth'),
+    ApiErroresOperacion()
   );
 }
 
+/**
+ * Documenta `GET /api/v1/nomina/bancos`.
+ */
 export function ApiSwaggerListarBancos() {
   return applyDecorators(
-    ApiOperation({
+    ApiOperacionDocumentada({
       summary: 'Listar catálogo de entidades financieras',
-      description: 'Devuelve la lista ordenada de bancos disponibles para cuentas de sueldo y CTS.',
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'Catálogo recuperado exitosamente.',
-      schema: {
-        example: [
-          { id: '018f4a7c-4444-7000-d000-000000000001', nombre: 'Banco de Crédito del Perú (BCP)' },
-          { id: '018f4a7c-4444-7000-d000-000000000002', nombre: 'BBVA Perú' },
-          { id: '018f4a7c-4444-7000-d000-000000000003', nombre: 'Interbank' },
-          { id: '018f4a7c-4444-7000-d000-000000000004', nombre: 'Scotiabank Perú' }
-        ]
-      }
-    }),
-    ApiResponse({ status: 401, description: 'No autenticado.' })
+      description:
+        'Devuelve la lista de bancos registrados ordenada alfabéticamente por nombre (`id` y `nombre`) para cuentas de sueldo y CTS.',
+      roles: ['ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE'],
+      respuesta: { type: 'array', items: esquemaContrato(BancoDetalleSchema) },
+    })
   );
 }
 
+/**
+ * Documenta `GET /api/v1/nomina/bancos/:id`.
+ */
 export function ApiSwaggerObtenerBancoPorId() {
-  return ApiOperacionDocumentada({
-    summary: 'Obtener detalle de bancos',
-    description: 'Información completa del registro seleccionado.',
-    roles: ['ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE'],
-    respuesta: esquemaContrato(BancoDetalleSchema),
-  })
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiOperacionDocumentada({
+      summary: 'Obtener detalle de banco',
+      description:
+        'Recupera el registro de una entidad financiera por su UUID. Devuelve 404 si no existe.',
+      roles: ['ADMIN', 'CONTADOR', 'RRHH', 'ASISTENTE'],
+      respuesta: esquemaContrato(BancoDetalleSchema),
+    })
+  );
 }

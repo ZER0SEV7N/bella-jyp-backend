@@ -4,7 +4,7 @@ const { mkdtemp, readFile, rm } = require('node:fs/promises');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { fila } = require('../fixtures/exportacion-n8n.fixture.cjs');
-const demo = require('../../pruebas-demo/datos-demo.json');
+const demo = require('../../scripts/pruebas-demo/datos-demo.json');
 const {
     emitirBoletas,
     enviarRecuperacion,

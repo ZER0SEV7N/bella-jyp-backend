@@ -103,6 +103,8 @@ services:
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Defina la llave de acceso JWT}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Defina la llave de refresco JWT}
       FINANCIAL_DATA_ENCRYPTION_KEY: ${FINANCIAL_DATA_ENCRYPTION_KEY:?Defina la llave de cifrado financiero}
+      # Opcional: sin este secreto la auditoría guarda [OCULTO] y no detecta cambios de cuentas, CCI ni CUSPP.
+      AUDITORIA_HUELLA_SECRETO: ${AUDITORIA_HUELLA_SECRETO:-}
       COOKIE_SECRET: ${COOKIE_SECRET:?Defina la llave de cookies}
       # Datos empresariales temporales del MVP; no son secretos de infraestructura.
       # Al existir Empresa en BD, la planilla leerá la empresa asociada y conservará su snapshot.

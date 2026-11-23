@@ -6,7 +6,12 @@ import { CrearEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/empl
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ReniecAdapter } from '@/modules/RRHH/organizacion/services/reniec.adapter';
 import { CrearEmpleadoDto } from '@jyp/shared-contracts';
-import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 
 //Mockear la generación de UUID para que siempre devuelva un valor predecible
 jest.mock('@/common/utils/uuid.util', () => ({
@@ -21,13 +26,11 @@ jest.mock('@/common/utils/uuid.util', () => ({
  */
 describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: CrearEmpleadoUseCase;
-  let prisma: PrismaService;
-  let reniec: ReniecAdapter;
 
   const mockPrisma = {
     empleados: { findFirst: jest.fn(), create: jest.fn() },
     area: { findUnique: jest.fn() },
-    cargo: { findUnique: jest.fn() },
+    cargo: { findUnique: jest.fn(), findFirst: jest.fn() },
     tipo_documento: { findUnique: jest.fn() },
     estado_empleado: { findUnique: jest.fn() },
     jornada: { findUnique: jest.fn() },
@@ -44,9 +47,17 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     nro_documento: '70112233',
     nombre: 'Juan',
     apellido: 'Perez',
-    email: 'demo@example.test', telefono: '900000001', sexo: 'MASCULINO', estado_civil: 'SOLTERO',
-    nacionalidad: 'PERUANA', direccion: 'Dirección demo', referencia_direccion: 'Referencia demo',
-    ubigeo: '150101', distrito: 'LIMA', provincia: 'LIMA', departamento: 'LIMA',
+    email: 'demo@example.test',
+    telefono: '900000001',
+    sexo: 'MASCULINO',
+    estado_civil: 'SOLTERO',
+    nacionalidad: 'PERUANA',
+    direccion: 'Dirección demo',
+    referencia_direccion: 'Referencia demo',
+    ubigeo: '150101',
+    distrito: 'LIMA',
+    provincia: 'LIMA',
+    departamento: 'LIMA',
     asig_familiar: false,
     fecha_nacimiento: '1995-05-15T00:00:00.000Z',
     fecha_inicio: '2026-09-01T00:00:00.000Z',
@@ -63,14 +74,26 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     }).compile();
 
     useCase = module.get<CrearEmpleadoUseCase>(CrearEmpleadoUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
-    reniec = module.get<ReniecAdapter>(ReniecAdapter);
 
     // Configurar entidades foráneas activas por defecto
-    mockPrisma.area.findUnique.mockResolvedValue({ id: payloadValido.area_id, activo: true });
-    mockPrisma.cargo.findUnique.mockResolvedValue({ id: payloadValido.cargo_id, activo: true });
-    mockPrisma.tipo_documento.findUnique.mockResolvedValue({ id: payloadValido.documento_id });
-    mockPrisma.estado_empleado.findUnique.mockResolvedValue({ id: payloadValido.estado_empleado_id });
+    mockPrisma.area.findUnique.mockResolvedValue({
+      id: payloadValido.area_id,
+      activo: true,
+    });
+    mockPrisma.cargo.findUnique.mockResolvedValue({
+      id: payloadValido.cargo_id,
+      activo: true,
+    });
+    mockPrisma.cargo.findFirst.mockResolvedValue({
+      id: payloadValido.cargo_id,
+      id_area: payloadValido.area_id,
+    });
+    mockPrisma.tipo_documento.findUnique.mockResolvedValue({
+      id: payloadValido.documento_id,
+    });
+    mockPrisma.estado_empleado.findUnique.mockResolvedValue({
+      id: (payloadValido as { estado_empleado_id?: string }).estado_empleado_id,
+    });
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -79,26 +102,45 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     it('Debe crear un empleado con datos completos sin llamar a RENIEC', async () => {
       //Arrange: Simular que no existe un empleado con el mismo documento y que la creación es exitosa
       mockPrisma.empleados.findFirst.mockResolvedValue(null);
-      mockPrisma.empleados.create.mockResolvedValue({ id: 'uuid-emp-123', ...payloadValido });
+      mockPrisma.empleados.create.mockResolvedValue({
+        id: 'uuid-emp-123',
+        ...payloadValido,
+      });
 
       //Act: Ejecutar el caso de uso con los datos completos
       const result = await useCase.execute(payloadValido);
 
       //Assert: Verificar que el empleado fue creado correctamente y que RENIEC no fue llamado
-      expect(result).toEqual(expect.objectContaining({ id: 'uuid-emp-123', nombre: 'Juan', apellido: 'Perez' }));
-      expect(mockReniec.consultarDni).not.toHaveBeenCalled();
-      expect(mockPrisma.empleados.create).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
+      expect(result).toEqual(
+        expect.objectContaining({
           id: 'uuid-emp-123',
-          nro_documento: '70112233',
           nombre: 'Juan',
           apellido: 'Perez',
-    email: 'demo@example.test', telefono: '900000001', sexo: 'MASCULINO', estado_civil: 'SOLTERO',
-    nacionalidad: 'PERUANA', direccion: 'Dirección demo', referencia_direccion: 'Referencia demo',
-    ubigeo: '150101', distrito: 'LIMA', provincia: 'LIMA', departamento: 'LIMA',
-          activo: true
         })
-      }));
+      );
+      expect(mockReniec.consultarDni).not.toHaveBeenCalled();
+      expect(mockPrisma.empleados.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'uuid-emp-123',
+            nro_documento: '70112233',
+            nombre: 'Juan',
+            apellido: 'Perez',
+            email: 'demo@example.test',
+            telefono: '900000001',
+            sexo: 'MASCULINO',
+            estado_civil: 'SOLTERO',
+            nacionalidad: 'PERUANA',
+            direccion: 'Dirección demo',
+            referencia_direccion: 'Referencia demo',
+            ubigeo: '150101',
+            distrito: 'LIMA',
+            provincia: 'LIMA',
+            departamento: 'LIMA',
+            activo: true,
+          }) as unknown,
+        })
+      );
     });
 
     it('Debe llamar a RENIEC si faltan nombres y es un DNI (8 dígitos)', async () => {
@@ -106,7 +148,7 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
       const payloadSinNombre: CrearEmpleadoDto = {
         ...payloadValido,
         nombre: null,
-        apellido: null
+        apellido: null,
       };
 
       mockPrisma.empleados.findFirst.mockResolvedValue(null);
@@ -129,43 +171,64 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
       expect(mockReniec.consultarDni).toHaveBeenCalledWith('70112233');
       expect(result.nombre).toBe('Carlos');
       expect(result.apellido).toBe('Lopez Gomez');
-      expect(mockPrisma.empleados.create).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          nombre: 'Carlos',
-          apellido: 'Lopez Gomez'
+      expect(mockPrisma.empleados.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            nombre: 'Carlos',
+            apellido: 'Lopez Gomez',
+          }) as unknown,
         })
-      }));
+      );
     });
   });
 
   describe('Validaciones de Negocio y Excepciones', () => {
-    it('Debe lanzar BadRequestException si el documento ya está registrado', async () => {
+    it('Debe lanzar ConflictException si el documento ya está registrado', async () => {
       //Arrange: Simular que ya existe un empleado con el mismo documento
-      mockPrisma.empleados.findFirst.mockResolvedValue({ id: 'emp-existente' });
+      mockPrisma.empleados.findFirst.mockResolvedValue({
+        id: 'emp-existente',
+        deleted_at: null,
+        activo: true,
+      });
 
       //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
-      await expect(useCase.execute(payloadValido)).rejects.toThrow(BadRequestException);
+      await expect(useCase.execute(payloadValido)).rejects.toThrow(
+        ConflictException
+      );
       expect(mockPrisma.empleados.create).not.toHaveBeenCalled();
     });
 
     it('Debe lanzar NotFoundException si alguna entidad foránea no existe o está inactiva', async () => {
       //Arrange: Simular que el área asignada se encuentra inactiva
       mockPrisma.empleados.findFirst.mockResolvedValue(null);
-      mockPrisma.area.findUnique.mockResolvedValue({ id: payloadValido.area_id, activo: false });
+      mockPrisma.area.findUnique.mockResolvedValue({
+        id: payloadValido.area_id,
+        activo: false,
+      });
 
       //Act & Assert: Ejecutar el caso de uso y verificar que se rechace la creación
-      await expect(useCase.execute(payloadValido)).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute(payloadValido)).rejects.toThrow(
+        NotFoundException
+      );
       expect(mockPrisma.empleados.create).not.toHaveBeenCalled();
     });
 
     it('Debe lanzar BadRequestException si RENIEC falla', async () => {
       //Arrange: Simular que no existe el documento pero RENIEC falla al consultar el DNI
-      const payloadSinNombre: CrearEmpleadoDto = { ...payloadValido, nombre: null, apellido: null };
+      const payloadSinNombre: CrearEmpleadoDto = {
+        ...payloadValido,
+        nombre: null,
+        apellido: null,
+      };
       mockPrisma.empleados.findFirst.mockResolvedValue(null);
-      mockReniec.consultarDni.mockRejectedValue(new Error('RENIEC Gateway Timeout'));
+      mockReniec.consultarDni.mockRejectedValue(
+        new Error('RENIEC Gateway Timeout')
+      );
 
       //Act & Assert: Ejecutar el caso de uso y verificar que se capture el fallo de identidad
-      await expect(useCase.execute(payloadSinNombre)).rejects.toThrow(BadRequestException);
+      await expect(useCase.execute(payloadSinNombre)).rejects.toThrow(
+        BadRequestException
+      );
       expect(mockReniec.consultarDni).toHaveBeenCalledWith('70112233');
       expect(mockPrisma.empleados.create).not.toHaveBeenCalled();
     });
@@ -173,10 +236,14 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     it('Debe capturar errores de base de datos y lanzar InternalServerErrorException', async () => {
       //Arrange: Simular error inesperado durante la persistencia en base de datos
       mockPrisma.empleados.findFirst.mockResolvedValue(null);
-      mockPrisma.empleados.create.mockRejectedValue(new Error('Conexión PostgreSQL cerrada'));
+      mockPrisma.empleados.create.mockRejectedValue(
+        new Error('Conexión PostgreSQL cerrada')
+      );
 
       //Act & Assert: Ejecutar el caso de uso y verificar que se envuelva en InternalServerErrorException
-      await expect(useCase.execute(payloadValido)).rejects.toThrow(InternalServerErrorException);
+      await expect(useCase.execute(payloadValido)).rejects.toThrow(
+        InternalServerErrorException
+      );
     });
   });
 });

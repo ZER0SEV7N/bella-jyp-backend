@@ -1,18 +1,49 @@
 //src/modules/asistencia/controller/incidencias.controller.ts
-import { Controller, Post, Body, UseGuards, HttpCode, UsePipes, HttpStatus, Patch, Get, Query, Req, Param, ParseUUIDPipe } from "@nestjs/common";
-import { JwtAccessGuard } from "@/common/guards/jwt-access.guard";
-import { RolesGuard } from "@/common/guards/roles.guard";
-import { Roles } from "@/common/decorators/roles.decorator";
-import { ZodValidationPipe } from "@/common/pipes/zod-validation.pipe";
-import { GenerarIncidenciasPeriodoSchema, AprobarIncidenciasSchema, ListarIncidenciasQuerySchema } from "@jyp/shared-contracts";
-import type { GenerarIncidenciasPeriodoDto, AprobarIncidenciasDto, ListarIncidenciasQueryDto } from "@jyp/shared-contracts";
-import { GenerarIncidenciasMesUseCase } from "../use-cases/Incidencias/generarIncidenciasMes.useCase";
-import { AprobarIncidenciaMesUseCase } from "../use-cases/Incidencias/aprobarIncidenciaMes.useCase";
-import { ListarIncidenciasMesUseCase } from "../use-cases/Incidencias/listarIncidenciasMes.useCase";
-import { ApiSwaggerIncidenciasController, ApiSwaggerGenerarCierre, ApiSwaggerAprobarIncidencias, ApiSwaggerListarIncidencias, ApiSwaggerListarIncidenciaPorId } from "../decorator/incidencias-swagger.decorator";
-import { actorSolicitud } from "@/common/utils/actor-operacion.util";
-import type { SolicitudAutenticada } from  "@/common/utils/actor-operacion.util";
-
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  UsePipes,
+  HttpStatus,
+  Patch,
+  Get,
+  Query,
+  Req,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+import {
+  GenerarIncidenciasPeriodoSchema,
+  AprobarIncidenciasSchema,
+  ListarIncidenciasQuerySchema,
+} from '@jyp/shared-contracts';
+import type {
+  GenerarIncidenciasPeriodoDto,
+  AprobarIncidenciasDto,
+  ListarIncidenciasQueryDto,
+} from '@jyp/shared-contracts';
+import { GenerarIncidenciasMesUseCase } from '../use-cases/Incidencias/generarIncidenciasMes.useCase';
+import { AprobarIncidenciaMesUseCase } from '../use-cases/Incidencias/aprobarIncidenciaMes.useCase';
+import { ListarIncidenciasMesUseCase } from '../use-cases/Incidencias/listarIncidenciasMes.useCase';
+import { ContarIncidenciasMesUseCase } from '../use-cases/Incidencias/contarIncidenciasMes.useCase';
+import {
+  ApiSwaggerIncidenciasController,
+  ApiSwaggerGenerarCierre,
+  ApiSwaggerAprobarIncidencias,
+  ApiSwaggerListarIncidencias,
+  ApiSwaggerTotalesIncidencias,
+  ApiSwaggerListarIncidenciaPorId,
+} from '../decorator/incidencias-swagger.decorator';
+import { actorSolicitud } from '@/common/utils/actor-operacion.util';
+import type { SolicitudAutenticada } from '@/common/utils/actor-operacion.util';
+import { TotalesIncidenciasQuerySchema } from '../helpers/filtro-incidencias.helper';
+import type { TotalesIncidenciasQueryDto } from '../helpers/filtro-incidencias.helper';
 
 /**
  * Controlador para la gestión de incidencias de asistencia.
@@ -24,97 +55,127 @@ import type { SolicitudAutenticada } from  "@/common/utils/actor-operacion.util"
 @UseGuards(JwtAccessGuard, RolesGuard)
 @ApiSwaggerIncidenciasController()
 export class IncidenciasController {
-    constructor(private readonly generarIncidenciasMesUseCase: GenerarIncidenciasMesUseCase,
-                private readonly aprobarIncidenciasUseCase: AprobarIncidenciaMesUseCase,
-                private readonly listarIncidenciasMesUseCase: ListarIncidenciasMesUseCase
-    ) {}
- 
-    /**
-     * Endpoint para generar el cierre de incidencias de asistencia para un período específico.
-     * @Post /api/v1/asistencia/incidencias/generar-cierre
-     * @HttpCode 200 - OK
-     * @Roles ADMIN, RRHH, CONTADOR - Solo usuarios con estos roles pueden acceder a este endpoint.
-     * @param dto {
-     *  - periodo: string - El período para el cual se generarán las incidencias (formato YYYY-MM).
-     *  - area_id?: string - (Opcional) ID del área para filtrar los empleados.
-     *  - empleado_id?: string - (Opcional) ID del empleado para filtrar el procesamiento.
-     * };
-     * @returns Un objeto con el resumen del procesamiento, incluyendo el número de empleados procesados y los detalles de cada uno.
-     * @throws BadRequestException - Si el DTO es inválido.
-     * @throws NotFoundException - Si no se encuentran empleados activos para procesar.
-     * @throws InternalServerErrorException - Si ocurre un error inesperado durante el procesamiento.
-     */
-    @Post('generar-cierre')
-    @HttpCode(HttpStatus.OK)
-    @Roles('ADMIN', 'RRHH', 'CONTADOR')
-    @ApiSwaggerGenerarCierre()
-    @UsePipes(new ZodValidationPipe(GenerarIncidenciasPeriodoSchema))
-    async generarCierre(@Body() dto: GenerarIncidenciasPeriodoDto, @Req() req: SolicitudAutenticada) {
-        return await this.generarIncidenciasMesUseCase.execute(dto, actorSolicitud(req));
-    }
+  constructor(
+    private readonly generarIncidenciasMesUseCase: GenerarIncidenciasMesUseCase,
+    private readonly aprobarIncidenciasUseCase: AprobarIncidenciaMesUseCase,
+    private readonly listarIncidenciasMesUseCase: ListarIncidenciasMesUseCase,
+    private readonly contarIncidenciasMesUseCase: ContarIncidenciasMesUseCase
+  ) {}
 
-    /**
-     * Endpoint para aprobar incidencias de asistencia para un período específico.
-     * @Patch /api/v1/asistencia/incidencias/aprobar
-     * @HttpCode 200 - OK
-     * @Roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
-     * @UsePipes ZodValidationPipe(AprobarIncidenciasSchema) - Valida el DTO de entrada contra el esquema definido.
-     * @param dto {
-     *  - periodo: string - El período para el cual se aprobarán las incidencias (formato YYYY-MM).
-     *  - empleado_id?: string - (Opcional) ID del empleado para filtrar las incidencias a aprobar.
-     * }
-     * @returns un objeto con el resumen de la operación, incluyendo el número de incidencias aprobadas y un mensaje de éxito.
-     * @throws BadRequestException - Si el DTO es inválido.
-     * @throws NotFoundException - Si no se encuentran incidencias pendientes para aprobar.
-     * @throws InternalServerErrorException - Si ocurre un error inesperado durante la actualización de las incidencias.
-     */
-    @Patch('aprobar')
-    @ApiSwaggerAprobarIncidencias()
-    @HttpCode(HttpStatus.OK)
-    @Roles('ADMIN', 'RRHH')
-    @UsePipes(new ZodValidationPipe(AprobarIncidenciasSchema))
-    async aprobarIncidencias(@Body() dto: AprobarIncidenciasDto, @Req() req: SolicitudAutenticada) {
-        return await this.aprobarIncidenciasUseCase.execute(dto, actorSolicitud(req));
-    }
+  /**
+   * Endpoint para generar el cierre de incidencias de asistencia para un período específico.
+   * @Post /api/v1/asistencia/incidencias/generar-cierre
+   * @HttpCode 200 - OK
+   * @Roles ADMIN, RRHH, CONTADOR - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @param dto {
+   *  - periodo: string - El período para el cual se generarán las incidencias (formato YYYY-MM).
+   *  - area_id?: string - (Opcional) ID del área para filtrar los empleados.
+   *  - empleado_id?: string - (Opcional) ID del empleado para filtrar el procesamiento.
+   * };
+   * @returns Un objeto con el resumen del procesamiento, incluyendo el número de empleados procesados y los detalles de cada uno.
+   * @throws BadRequestException - Si el DTO es inválido.
+   * @throws NotFoundException - Si no se encuentran empleados activos para procesar.
+   * @throws InternalServerErrorException - Si ocurre un error inesperado durante el procesamiento.
+   */
+  @Post('generar-cierre')
+  @HttpCode(HttpStatus.OK)
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  @ApiSwaggerGenerarCierre()
+  @UsePipes(new ZodValidationPipe(GenerarIncidenciasPeriodoSchema))
+  async generarCierre(
+    @Body() dto: GenerarIncidenciasPeriodoDto,
+    @Req() req: SolicitudAutenticada
+  ) {
+    return await this.generarIncidenciasMesUseCase.execute(
+      dto,
+      actorSolicitud(req)
+    );
+  }
 
-    /**
-     * Endpoint para listar las incidencias de asistencia de un período específico.
-     * @Get /api/v1/asistencia/incidencias
-     * @HttpCode 200 - OK
-     * @Roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
-     * @UsePipes ZodValidationPipe(ListarIncidenciasQuerySchema) - Valida los parámetros de consulta contra el esquema definido.
-     * @param query {
-     *   - periodo: string - El período para el cual se listarán las incidencias (formato YYYY-MM).
-     *   - area_id?: string - (Opcional) ID del área para filtrar los empleados.
-     *   - empleado_id?: string - (Opcional) ID del empleado para filtrar las incidencias.
-     *   }
-     * @returns un objeto con el resumen de las incidencias encontradas, incluyendo detalles de cada empleado y sus incidencias.
-     * @throws BadRequestException - Si los parámetros de consulta son inválidos.
-     * @throws NotFoundException - Si no se encuentran incidencias para el período especificado.
-     * @throws InternalServerErrorException - Si ocurre un error inesperado durante la consulta de las incidencias.
-     */
-    @Get()
-    @ApiSwaggerListarIncidencias()
-    @UseGuards(JwtAccessGuard, RolesGuard)
-    @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
-    @UsePipes(new ZodValidationPipe(ListarIncidenciasQuerySchema))
-    async listarIncidencias(@Query() query: ListarIncidenciasQueryDto) {
-        return await this.listarIncidenciasMesUseCase.execute(query);
-    }
+  /**
+   * Endpoint para aprobar incidencias de asistencia para un período específico.
+   * @Patch /api/v1/asistencia/incidencias/aprobar
+   * @HttpCode 200 - OK
+   * @Roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @UsePipes ZodValidationPipe(AprobarIncidenciasSchema) - Valida el DTO de entrada contra el esquema definido.
+   * @param dto {
+   *  - periodo: string - El período para el cual se aprobarán las incidencias (formato YYYY-MM).
+   *  - empleado_id?: string - (Opcional) ID del empleado para filtrar las incidencias a aprobar.
+   * }
+   * @returns un objeto con el resumen de la operación, incluyendo el número de incidencias aprobadas y un mensaje de éxito.
+   * @throws BadRequestException - Si el DTO es inválido.
+   * @throws NotFoundException - Si no se encuentran incidencias pendientes para aprobar.
+   * @throws InternalServerErrorException - Si ocurre un error inesperado durante la actualización de las incidencias.
+   */
+  @Patch('aprobar')
+  @ApiSwaggerAprobarIncidencias()
+  @HttpCode(HttpStatus.OK)
+  @Roles('ADMIN', 'RRHH')
+  @UsePipes(new ZodValidationPipe(AprobarIncidenciasSchema))
+  async aprobarIncidencias(
+    @Body() dto: AprobarIncidenciasDto,
+    @Req() req: SolicitudAutenticada
+  ) {
+    return await this.aprobarIncidenciasUseCase.execute(
+      dto,
+      actorSolicitud(req)
+    );
+  }
 
-    /**
-     * Endpoint para obtener una incidencia de asistencia por su ID.
-     * @Get /api/v1/asistencia/incidencias/:id
-     * @Roles ADMIN, RRHH, CONTADOR - Solo usuarios con estos roles pueden acceder a este endpoint.
-     * @param id - El ID de la incidencia a obtener.
-     * @returns un objeto con el detalle de la incidencia solicitada.
-     * @throws NotFoundException - Si no se encuentra la incidencia con el ID proporcionado.
-     * @throws BadRequestException - Si el ID no es válido.
-     */
-    @Get(':id')
-    @ApiSwaggerListarIncidenciaPorId()
-    @Roles('ADMIN', 'RRHH', 'CONTADOR')
-    obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
-        return this.listarIncidenciasMesUseCase.obtenerPorId(id);
-    }
+  /**
+   * Endpoint para listar las incidencias de asistencia de un período específico.
+   * @Get /api/v1/asistencia/incidencias
+   * @HttpCode 200 - OK
+   * @Roles ADMIN, RRHH, CONTADOR, ASISTENTE - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @UsePipes ZodValidationPipe(ListarIncidenciasQuerySchema) - Valida los parámetros de consulta contra el esquema definido.
+   * @param query {
+   *   - periodo: string - El período para el cual se listarán las incidencias (formato YYYY-MM).
+   *   - area_id?: string - (Opcional) ID del área para filtrar los empleados.
+   *   - empleado_id?: string - (Opcional) ID del empleado para filtrar las incidencias.
+   *   }
+   * @returns un objeto con el resumen de las incidencias encontradas, incluyendo detalles de cada empleado y sus incidencias.
+   * @throws BadRequestException - Si los parámetros de consulta son inválidos.
+   * @throws NotFoundException - Si no se encuentran incidencias para el período especificado.
+   * @throws InternalServerErrorException - Si ocurre un error inesperado durante la consulta de las incidencias.
+   */
+  @Get()
+  @ApiSwaggerListarIncidencias()
+  @UseGuards(JwtAccessGuard, RolesGuard)
+  @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
+  @UsePipes(new ZodValidationPipe(ListarIncidenciasQuerySchema))
+  async listarIncidencias(@Query() query: ListarIncidenciasQueryDto) {
+    return await this.listarIncidenciasMesUseCase.execute(query);
+  }
+
+  /**
+   * `GET /api/v1/asistencia/incidencias/totales` - Obtiene los totales por estado del cierre mensual de asistencia (ASI-M3).
+   *
+   * @param query - Parámetros de consulta con el período obligatorio y el área opcional.
+   * @returns Objeto con los conteos `{ PENDIENTE, APROBADO, RECHAZADO }`.
+   */
+  @Get('totales')
+  @ApiSwaggerTotalesIncidencias()
+  @Roles('ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE')
+  totales(
+    @Query(new ZodValidationPipe(TotalesIncidenciasQuerySchema))
+    query: TotalesIncidenciasQueryDto
+  ) {
+    return this.contarIncidenciasMesUseCase.execute(query);
+  }
+
+  /**
+   * Endpoint para obtener una incidencia de asistencia por su ID.
+   * @Get /api/v1/asistencia/incidencias/:id
+   * @Roles ADMIN, RRHH, CONTADOR - Solo usuarios con estos roles pueden acceder a este endpoint.
+   * @param id - El ID de la incidencia a obtener.
+   * @returns un objeto con el detalle de la incidencia solicitada.
+   * @throws NotFoundException - Si no se encuentra la incidencia con el ID proporcionado.
+   * @throws BadRequestException - Si el ID no es válido.
+   */
+  @Get(':id')
+  @ApiSwaggerListarIncidenciaPorId()
+  @Roles('ADMIN', 'RRHH', 'CONTADOR')
+  obtenerPorId(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listarIncidenciasMesUseCase.obtenerPorId(id);
+  }
 }

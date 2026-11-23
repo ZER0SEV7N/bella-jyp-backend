@@ -1,0 +1,16 @@
+# Solo para Linux con Podman sin root.
+# Copiar este archivo como docker-compose.override.yml (no se sube al repositorio).
+# Docker Desktop (Windows/macOS) no lo necesita.
+# Sin un oom_score_adj explícito, `exec` y los healthchecks en Podman rootless fallan con:
+# "crun: write to /proc/self/oom_score_adj: Permission denied".
+x-podman: &podman
+  oom_score_adj: 200
+
+services:
+  redis: *podman
+  archivos-permisos: *podman
+  postgres: *podman
+  backend: *podman
+  mailpit: *podman
+  n8n-postgres: *podman
+  n8n: *podman

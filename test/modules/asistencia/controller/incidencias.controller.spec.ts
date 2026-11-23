@@ -10,10 +10,12 @@ describe('IncidenciasController', () => {
     execute: jest.fn(),
     obtenerPorId: jest.fn(),
   };
+  const contarIncidenciasMesUseCase = { execute: jest.fn() };
   const controller = new IncidenciasController(
     generarIncidenciasMesUseCase as never,
     aprobarIncidenciasUseCase as never,
-    listarIncidenciasMesUseCase as never
+    listarIncidenciasMesUseCase as never,
+    contarIncidenciasMesUseCase as never
   );
   beforeEach(() => jest.clearAllMocks());
   it('generarCierre: conserva los parámetros y el resultado del caso de uso', async () => {
@@ -82,10 +84,7 @@ describe('IncidenciasController', () => {
     };
     aprobarIncidenciasUseCase.execute.mockResolvedValue(esperado);
     // Act: ejecutar únicamente el método público del controlador.
-    const resultado = await controller.aprobarIncidencias(
-      dto as never,
-      req as never
-    );
+    const resultado = await controller.aprobarIncidencias(dto, req as never);
     // Assert: verificar el destino, el actor y la respuesta observables.
     expect(aprobarIncidenciasUseCase.execute).toHaveBeenCalledWith(
       dto,
@@ -148,6 +147,29 @@ describe('IncidenciasController', () => {
     // Assert: conservar el error para que el filtro HTTP lo traduzca.
     await expect(operacion).rejects.toBe(error);
   });
+  it('totales: conserva los parámetros y el resultado del caso de uso', async () => {
+    // Arrange: preparar la consulta de totales por período y área.
+    const query = { periodo: '2026-09', area_id: 'area-1' };
+    const esperado = { PENDIENTE: 3, APROBADO: 5, RECHAZADO: 1 };
+    contarIncidenciasMesUseCase.execute.mockResolvedValue(esperado);
+    // Act: invocar el método público del controlador.
+    const resultado = await controller.totales(query);
+    // Assert: verificar delegación y respuesta.
+    expect(contarIncidenciasMesUseCase.execute).toHaveBeenCalledWith(query);
+    expect(resultado).toEqual(esperado);
+  });
+  it('totales: propaga el error sin informar éxito', async () => {
+    // Arrange: simular un fallo al contar totales.
+    const query = { periodo: '2026-09' };
+    const error = new Error('Operación rechazada');
+    contarIncidenciasMesUseCase.execute.mockRejectedValue(error);
+    // Act: solicitar los totales.
+    const operacion = Promise.resolve().then(() =>
+      controller.totales(query as never)
+    );
+    // Assert: conservar el error original.
+    await expect(operacion).rejects.toBe(error);
+  });
   it('obtenerPorId: conserva los parámetros y el resultado del caso de uso', async () => {
     // Arrange: preparar dependencias aisladas, sin HTTP ni base de datos.
     const id = '019a0000-0001-7000-8000-000000000001';
@@ -159,7 +181,7 @@ describe('IncidenciasController', () => {
     };
     listarIncidenciasMesUseCase.obtenerPorId.mockResolvedValue(esperado);
     // Act: ejecutar únicamente el método público del controlador.
-    const resultado = await controller.obtenerPorId(id as never);
+    const resultado = await controller.obtenerPorId(id);
     // Assert: verificar el destino, el actor y la respuesta observables.
     expect(listarIncidenciasMesUseCase.obtenerPorId).toHaveBeenCalledWith(id);
     expect(resultado).toEqual(esperado);

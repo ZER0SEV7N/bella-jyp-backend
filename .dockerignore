@@ -12,3 +12,5 @@ yarn-error.log*
 pnpm-debug.log*
 *.md
 *.tsbuildinfo
+# Archivos generados en tiempo de ejecución (montados como volumen; en Podman sin root quedan con otro dueño)
+archivos

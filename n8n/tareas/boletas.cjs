@@ -1,7 +1,7 @@
 //n8n/tareas/boletas.cjs
 const { join } = require('node:path');
 const { createHmac } = require('node:crypto');
-const { generateBoletaPdf } = require('../../dist/modules/payroll/planillas/helpers/generarBoleta.helper');
+const { generateBoletaPdf } = require('../../dist/modules/nomina/planillas/helpers/generarBoleta.helper');
 const { metadatos } = require('./almacenamiento.cjs');
 const { prepararCorreo } = require('./correos.cjs');
 

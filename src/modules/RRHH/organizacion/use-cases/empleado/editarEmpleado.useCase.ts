@@ -1,8 +1,17 @@
 //src/modules/RRHH/use-cases/empleado/editarEmpleado.useCase.ts
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { EditarEmpleadoDto } from '@jyp/shared-contracts';
-import { sanitizarTexto, sanitizarFecha } from '@/common/utils/transformacion.util';
+import {
+  sanitizarTexto,
+  sanitizarFecha,
+} from '@/common/utils/transformacion.util';
 import { verificarDocumentoUnico } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 import { validarEntidadesEmpleado } from './helper/validacionesEmpleado';
 
@@ -16,17 +25,20 @@ export class EditarEmpleadoUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Edita un empleado existente en la base de datos.
+   * Edita un empleado existente en la base de datos (COM-F3).
    * @param id - ID del empleado a editar.
    * @param payload - Objeto que contiene los datos a actualizar del empleado.
    * @returns El empleado actualizado con sus datos completos.
-   * @throws NotFoundException si el empleado no existe o ha sido dado de baja.
-   * @throws BadRequestException si el número de documento ya está registrado para otro empleado.
-   * @throws InternalServerErrorException si ocurre un error inesperado durante la operación.
+   * @throws {NotFoundException} Si el empleado no existe o ha sido dado de baja.
+   * @throws {BadRequestException} Si alguna validación de negocio falla.
+   * @throws {ConflictException} Si el número de documento ya está registrado para otro empleado.
+   * @throws {InternalServerErrorException} Si ocurre un error inesperado durante la operación.
    */
   async execute(id: string, payload: EditarEmpleadoDto) {
     try {
-      const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
+      const empleado = await this.prisma.empleados.findUnique({
+        where: { id, deleted_at: null },
+      });
 
       if (!empleado)
         throw new NotFoundException({
@@ -35,19 +47,35 @@ export class EditarEmpleadoUseCase {
         });
 
       //Una vez que hay historia de asistencia, la jornada cambia con fecha de vigencia y actor.
-      if (payload.jornada_id !== undefined && payload.jornada_id !== empleado.jornada_id) {
-        const historial = await this.prisma.asistencia_jornada.count({ where: { empleado_id: id } });
+      if (
+        payload.jornada_id !== undefined &&
+        payload.jornada_id !== empleado.jornada_id
+      ) {
+        const historial = await this.prisma.asistencia_jornada.count({
+          where: { empleado_id: id },
+        });
         if (historial > 0)
-          throw new BadRequestException('Asigne la nueva jornada desde gestión de asistencia indicando su fecha de vigencia.');
+          throw new BadRequestException(
+            'Asigne la nueva jornada desde gestión de asistencia indicando su fecha de vigencia.'
+          );
       }
 
       if (payload.afp_fecha_filiacion === null) {
-        const financiero = await this.prisma.dato_financiero.findUnique({ where: { empleado_id: id }, select: { id_tipo_afp: true } });
-        if (financiero?.id_tipo_afp) throw new BadRequestException('No puede retirar la fecha de afiliación mientras el legajo tenga AFP.');
+        const financiero = await this.prisma.dato_financiero.findUnique({
+          where: { empleado_id: id },
+          select: { id_tipo_afp: true },
+        });
+        if (financiero?.id_tipo_afp)
+          throw new BadRequestException(
+            'No puede retirar la fecha de afiliación mientras el legajo tenga AFP.'
+          );
       }
 
       //Validar unicidad del número de documento si se ha modificado
-      if (payload.nro_documento && payload.nro_documento.trim() !== empleado.nro_documento)
+      if (
+        payload.nro_documento &&
+        payload.nro_documento.trim() !== empleado.nro_documento
+      )
         await verificarDocumentoUnico(this.prisma, payload.nro_documento, id);
 
       //Validar que las entidades relacionadas (área, cargo, jornada) existan y estén activas
@@ -91,11 +119,14 @@ export class EditarEmpleadoUseCase {
         },
       });
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (error instanceof HttpException) throw error;
 
       throw new InternalServerErrorException({
         title: 'Error de Actualización',
-        detail: error instanceof Error ? error.message : 'Fallo interno al actualizar el legajo del colaborador.',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Fallo interno al actualizar el legajo del colaborador.',
       });
     }
   }

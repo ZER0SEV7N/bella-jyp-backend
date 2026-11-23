@@ -1,141 +1,147 @@
 //src/modules/nomina/afp/decorators/afp-swagger.decorator.ts
-import { CrearComisionSchema, CrearTipoAfpSchema, ListarComisionesQuerySchema, ListarTiposAfpQuerySchema } from '@jyp/shared-contracts';
-import { ApiContratoBody, ApiContratoQuery } from '@/common/decorators/api-contrato.decorator';
+import {
+  ApiContratoBody,
+  ApiContratoQuery,
+  ApiErroresOperacion,
+  ApiOperacionDocumentada,
+  esquemaContrato,
+} from '@/common/decorators/api-contrato.decorator';
+import {
+  ComisionAfpDetalleSchema,
+  CrearComisionSchema,
+  CrearTipoAfpSchema,
+  ListarComisionesQuerySchema,
+  ListarTiposAfpQuerySchema,
+} from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiExtension } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 /**
- * Decoradores de Swagger para el módulo de AFP.
+ * Decorador de nivel controlador para agrupar las operaciones del módulo de AFP y Pensiones.
  */
-//========================================================
-//CONTROLADOR GLOBAL
-//========================================================
 export function ApiSwaggerAfpController() {
   return applyDecorators(
     ApiTags('Módulo Nomina - AFP y Pensiones'),
     ApiBearerAuth('JWT-auth'),
-    ApiExtension('x-role', { roles: ['ADMIN', 'CONTADOR'] })
+    ApiErroresOperacion()
   );
 }
 
-// ========================================================
-// COMISIONES (Tasas SBS)
-// ========================================================
+/**
+ * Documenta `POST /api/v1/nomina/afp/comisiones`.
+ */
 export function ApiSwaggerComisionCrear() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Registrar nueva Comisión',
-      description: 'Abre un nuevo periodo de tasas y cierra el anterior (SCD Tipo 2). Requiere permisos de administrador o contador.',
-    }),
     ApiContratoBody(CrearComisionSchema),
-    ApiResponse({
+    ApiOperacionDocumentada({
+      summary: 'Registrar nueva comisión de AFP',
+      description:
+        'Registra una nueva vigencia de tasas SBS (SCD Tipo 2) para una AFP. Si no se indica comisión anterior, cierra automáticamente la última vigencia abierta en la fecha indicada o el día previo al nuevo inicio; valida que el inicio no sea anterior a la vigencia previa.',
+      roles: ['JYP'],
       status: 201,
-      description: 'Comisión registrada exitosamente.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Error de validación o datos duplicados.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT inválido o ausente.',
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'No se encontró la AFP o la comisión anterior especificada.',
+      respuesta: esquemaContrato(ComisionAfpDetalleSchema),
     }),
     ApiResponse({
       status: 500,
-      description: 'Error interno del servidor al intentar registrar la comisión.',
+      description: 'Error interno al intentar registrar la comisión de la AFP.',
     })
   );
 }
 
+/**
+ * Documenta `GET /api/v1/nomina/afp/comisiones`.
+ */
 export function ApiSwaggerComisionListar() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Listar Comisiones',
-      description:
-        'Obtiene el historial de tasas. Filtre por vigentes para el cálculo de planillas. Requiere permisos de administrador, contador, asistente o RRHH.',
-    }),
     ApiContratoQuery(ListarComisionesQuerySchema),
-
-    ApiResponse({
-      status: 200,
-      description: 'Listado de comisiones obtenido exitosamente.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT inválido o ausente.',
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 500,
-      description: 'Error interno del servidor al intentar obtener el listado de comisiones.',
+    ApiOperacionDocumentada({
+      summary: 'Listar comisiones de AFP',
+      description:
+        'Obtiene el historial paginado de tasas ordenado por período de inicio descendente. Permite filtrar por AFP y limitar a vigencias abiertas (`solo_vigentes`).',
+      roles: ['ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH'],
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            afp_id: { type: 'string', format: 'uuid' },
+            afp_nombre: { type: 'string' },
+            periodo_inicio: { type: 'string', format: 'date-time' },
+            periodo_final: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+            },
+            aporte_obligatorio: { type: 'number' },
+            comision_sobre_ra: { type: 'number' },
+            prima_seguro: { type: 'number' },
+            comision_mixta: { type: 'number' },
+          },
+        },
+      },
+      paginada: true,
     })
   );
 }
 
-// ========================================================
-// TIPOS DE AFP
-// ========================================================
+/**
+ * Documenta `POST /api/v1/nomina/afp/tipos`.
+ */
 export function ApiSwaggerTipoAfpCrear() {
   return applyDecorators(
-    ApiOperation({
-      summary: 'Crear Tipo de AFP',
-      description: 'Registra una nueva Administradora (Ej. Integra, Prima). Requiere permisos de administrador o contador.',
-    }),
     ApiContratoBody(CrearTipoAfpSchema),
-    ApiResponse({
+    ApiOperacionDocumentada({
+      summary: 'Crear tipo de AFP',
+      description:
+        'Registra una nueva administradora de fondos de pensiones. Valida que el régimen pertenezca a un sistema AFP y que no exista otra AFP con el mismo nombre.',
+      roles: ['JYP'],
       status: 201,
-      description: 'Tipo de AFP registrado exitosamente.',
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Error de validación o datos duplicados.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT inválido o ausente.',
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
+      respuesta: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          id_regimen: { type: 'string', format: 'uuid' },
+          nombre: { type: 'string' },
+        },
+      },
     }),
     ApiResponse({
       status: 500,
-      description: 'Error interno del servidor al intentar registrar el tipo de AFP.',
+      description: 'Error interno al intentar registrar la nueva AFP.',
     })
   );
 }
 
+/**
+ * Documenta `GET /api/v1/nomina/afp/tipos`.
+ */
 export function ApiSwaggerTipoAfpListar() {
   return applyDecorators(
-    ApiOperation({ summary: 'Listar Tipos de AFP' }),
     ApiContratoQuery(ListarTiposAfpQuerySchema),
-
-    ApiResponse({
-      status: 200,
-      description: 'Listado de tipos de AFP obtenido exitosamente.',
-    }),
-    ApiResponse({
-      status: 401,
-      description: 'No autorizado. Token JWT inválido o ausente.',
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Prohibido. El usuario no tiene los roles necesarios para realizar esta acción.',
-    }),
-    ApiResponse({
-      status: 500,
-      description: 'Error interno del servidor al intentar obtener el listado de tipos de AFP.',
+    ApiOperacionDocumentada({
+      summary: 'Listar tipos de AFP',
+      description:
+        'Devuelve el catálogo paginado de administradoras de AFP ordenado alfabéticamente por nombre, incluyendo el nombre de su régimen de pensión.',
+      roles: ['ADMIN', 'CONTADOR', 'ASISTENTE', 'RRHH'],
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            id_regimen: { type: 'string', format: 'uuid' },
+            nombre: { type: 'string' },
+            regimen_pension: {
+              type: 'object',
+              properties: {
+                nombre: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+      paginada: true,
     })
   );
 }

@@ -652,8 +652,12 @@ model audit_log {
   valores_despues Json?
   direccion_ip    String    @db.Inet
   created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  // Entidad de negocio a la que pertenece el cambio (empleado, area, cargo, jornada o empresa).
+  afectado_tipo   String?   @db.VarChar(30)
+  afectado_id     String?   @db.Uuid
   usuarios        usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_log_usuario")
 
+  @@index([afectado_tipo, afectado_id], map: "idx_audit_log_afectado")
   @@index([created_at(sort: Desc)], map: "idx_audit_log_fecha")
   @@index([tabla_afectada], map: "idx_audit_log_tabla")
   @@index([usuario_id], map: "idx_audit_log_usuario")

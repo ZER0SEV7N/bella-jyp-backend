@@ -1,26 +1,56 @@
 //src/modules/tareas/controller/tareas.controller.ts
 //Controlador de Tareas: Este controlador maneja las solicitudes HTTP relacionadas con la gestión de tareas,
-import { Controller, Post, Body, Get, Query, Patch, Param, ParseUUIDPipe, UseGuards, UsePipes, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  Patch,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+  UsePipes,
+  Req,
+} from '@nestjs/common';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import type { FastifyRequest } from 'fastify';
-import type { CrearTareaDto, ObtenerTareasQueryDto, CambiarEstadoTareaDto, CrearAnotacionDto } from '@jyp/shared-contracts';
-import { CrearTareaSchema, ObtenerTareasQuerySchema, CambiarEstadoTareaSchema, CrearAnotacionSchema } from '@jyp/shared-contracts';
+import type {
+  CrearTareaDto,
+  ObtenerTareasQueryDto,
+  CambiarEstadoTareaDto,
+  CrearAnotacionDto,
+} from '@jyp/shared-contracts';
+import {
+  CrearTareaSchema,
+  ObtenerTareasQuerySchema,
+  CambiarEstadoTareaSchema,
+  CrearAnotacionSchema,
+} from '@jyp/shared-contracts';
 import { CrearTareaUseCase } from '../use-cases/crearTarea.useCase';
 import { ObtenerTareasUseCase } from '../use-cases/obtenerTareas.useCase';
 import { FlujoTareasUseCase } from '../use-cases/flujoTareas.useCase';
+import {
+  ApiSwaggerAgregarAnotacionTarea,
+  ApiSwaggerCambiarEstadoTarea,
+  ApiSwaggerCrearTarea,
+  ApiSwaggerObtenerTareas,
+  ApiSwaggerTareasController,
+} from '../decorators/tareas-swagger.decorator';
 
 //Controlador de Tareas: Este controlador maneja las solicitudes HTTP relacionadas con la gestión de tareas,
 //incluyendo la creación, obtención, actualización de estado y adición de anotaciones a las tareas.
+@ApiSwaggerTareasController()
 @Controller('api/v1/rrhh/tareas')
 @UseGuards(JwtAccessGuard, RolesGuard)
 export class TareasController {
   constructor(
     private readonly crearTareaUseCase: CrearTareaUseCase,
     private readonly obtenerTareasUseCase: ObtenerTareasUseCase,
-    private readonly flujoTareasUseCase: FlujoTareasUseCase,
+    private readonly flujoTareasUseCase: FlujoTareasUseCase
   ) {}
 
   /**
@@ -35,12 +65,13 @@ export class TareasController {
    *    }
    * @Returns: La tarea creada con todos sus detalles.
    */
+  @ApiSwaggerCrearTarea()
   @Post()
   //@Roles('ADMIN', 'CONTADOR')
   @UsePipes(new ZodValidationPipe(CrearTareaSchema))
   async crearTarea(
     @Body() payload: CrearTareaDto,
-    @Req() req: FastifyRequest & { user: { id: string } },
+    @Req() req: FastifyRequest & { user: { id: string } }
   ) {
     return await this.crearTareaUseCase.execute(payload, req.user.id);
   }
@@ -56,12 +87,13 @@ export class TareasController {
    *   }
    * @Returns: Un objeto con la lista de tareas y metadatos de paginación.
    */
+  @ApiSwaggerObtenerTareas()
   @Get()
   @Roles('ADMIN', 'CONTADOR', 'ASISTENTE')
   @UsePipes(new ZodValidationPipe(ObtenerTareasQuerySchema))
   async obtenerTareas(
     @Query() queryParams: ObtenerTareasQueryDto,
-    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
   ) {
     return await this.obtenerTareasUseCase.execute(queryParams, req.user);
   }
@@ -76,19 +108,20 @@ export class TareasController {
    *   }
    * @Returns: La tarea actualizada con el nuevo estado.
    */
+  @ApiSwaggerCambiarEstadoTarea()
   @Patch(':id/estado')
   @Roles('CONTADOR', 'ADMIN', 'ASISTENTE')
   @UsePipes(new ZodValidationPipe(CambiarEstadoTareaSchema))
   async cambiarEstado(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: CambiarEstadoTareaDto,
-    @Req() req: FastifyRequest & { user: { id: string; rol: string } },
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
   ) {
     return await this.flujoTareasUseCase.cambiarEstado(
       id,
       payload,
       req.user.id,
-      req.user.rol,
+      req.user.rol
     );
   }
 
@@ -102,18 +135,19 @@ export class TareasController {
    *  }
    * @Returns: La anotación creada con todos sus detalles.
    */
+  @ApiSwaggerAgregarAnotacionTarea()
   @Post(':id/anotaciones')
   @Roles('CONTADOR', 'ADMIN', 'ASISTENTE')
   @UsePipes(new ZodValidationPipe(CrearAnotacionSchema))
   async agregarAnotacion(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: CrearAnotacionDto,
-    @Req() req: FastifyRequest & { user: { id: string } },
+    @Req() req: FastifyRequest & { user: { id: string } }
   ) {
     return await this.flujoTareasUseCase.agregarAnotacion(
       id,
       payload,
-      req.user.id,
+      req.user.id
     );
   }
 }

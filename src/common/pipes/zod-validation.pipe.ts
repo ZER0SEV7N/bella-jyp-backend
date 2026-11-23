@@ -1,6 +1,11 @@
 //src/common/pipes/zod-validation.pipe.ts
 //Pipe de validación usando Zod para validar los datos entrantes en los endpoints
-import { PipeTransform, ArgumentMetadata, BadRequestException, Injectable } from '@nestjs/common';
+import {
+  PipeTransform,
+  ArgumentMetadata,
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
 /**
  * Interfaz de tipado estructural (Duck Typing) que acepta cualquier esquema Zod
  * (Zod 3, Zod 4, ZodObject, ZodEffects, etc.), resolviendo incompatibilidades
@@ -9,9 +14,33 @@ import { PipeTransform, ArgumentMetadata, BadRequestException, Injectable } from
 export interface ZodSchemaLike {
   safeParse(data: unknown): {
     success: boolean;
-    data?: any;
-    error?: any;
+    data?: unknown;
+    error?: unknown;
   };
+}
+
+/**
+ * Extrae `fieldErrors` si el error de Zod expone `.flatten()`; en caso contrario devuelve el error tal cual.
+ */
+function extraerErroresZod(error: unknown): unknown {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'flatten' in error &&
+    typeof (error as { flatten?: unknown }).flatten === 'function'
+  ) {
+    const flattened = (
+      error as { flatten: () => { fieldErrors?: unknown } }
+    ).flatten();
+    if (
+      typeof flattened === 'object' &&
+      flattened !== null &&
+      'fieldErrors' in flattened
+    ) {
+      return flattened.fieldErrors;
+    }
+  }
+  return error;
 }
 
 /**
@@ -24,11 +53,17 @@ export class ZodValidationPipe implements PipeTransform {
    * Recibe cualquier esquema Zod mediante la interfaz estructural ZodSchemaLike,
    * garantizando compatibilidad con esquemas complejos de @jyp/shared-contracts.
    */
-  constructor(private readonly schema: ZodSchemaLike, private readonly preservarCamposParciales = false) {}
+  constructor(
+    private readonly schema: ZodSchemaLike,
+    private readonly preservarCamposParciales = false,
+    //Con `@Param()` (el objeto completo) permite validar los parámetros de ruta con el mismo esquema.
+    private readonly validarParametrosRuta = false
+  ) {}
 
-  transform(value: unknown, metadata: ArgumentMetadata) {
-    // Excluir parámetros de ruta (solo validamos Body y Query)
-    if (metadata.type !== 'body' && metadata.type !== 'query') {
+  transform(value: unknown, metadata: ArgumentMetadata): unknown {
+    // Los parámetros de ruta solo se validan si el pipe lo pide expresamente; Body y Query siempre
+    const validaRuta = this.validarParametrosRuta && metadata.type === 'param';
+    if (metadata.type !== 'body' && metadata.type !== 'query' && !validaRuta) {
       return value;
     }
 
@@ -38,24 +73,39 @@ export class ZodValidationPipe implements PipeTransform {
 
     // Si la validación falla, lanzamos una excepción BadRequestException con detalles del error
     if (!parsedValue.success) {
-      const fieldErrors =
-        parsedValue.error?.flatten?.()?.fieldErrors ??
-        parsedValue.error;
+      const fieldErrors = extraerErroresZod(parsedValue.error);
 
       throw new BadRequestException({
         type: 'https://api.jyp.com/errors/validation',
         title: 'Payload Inválido',
         status: 400,
-        detail: 'Los datos enviados no cumplen con el contrato estricto del sistema.',
+        detail:
+          'Los datos enviados no cumplen con el contrato estricto del sistema.',
         instance: metadata.type,
         errores: fieldErrors,
       });
     }
 
-    // Retorna la data purificada y tipada por Zod
-    if (this.preservarCamposParciales && metadata.type === 'body' && value && typeof value === 'object' && !Array.isArray(value))
-      return Object.fromEntries(Object.keys(value).filter((key) => Object.hasOwn(parsedValue.data, key)).map((key) => [key, parsedValue.data[key]]));
+    const data = parsedValue.data;
 
-    return parsedValue.data;
+    // Retorna la data purificada y tipada por Zod
+    if (
+      this.preservarCamposParciales &&
+      metadata.type === 'body' &&
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      typeof data === 'object' &&
+      data !== null
+    ) {
+      const recordData = data as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.keys(value)
+          .filter((key) => Object.hasOwn(recordData, key))
+          .map((key) => [key, recordData[key]])
+      );
+    }
+
+    return data;
   }
 }
