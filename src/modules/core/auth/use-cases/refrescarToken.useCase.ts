@@ -64,15 +64,27 @@ export class RefrescarTokenUseCase {
             apellido: true,
             nro_documento: true,
             activo: true,
-            deleted_at: true
+            deleted_at: true,
+            estado_laboral: true,
           },
         },
       },
     });
 
     // Validar que el usuario exista y esté activo
-    if ( !user?.activo || user.deleted_at !== null ||(user.empleados && (user.empleados.activo === false || user.empleados.deleted_at !== null))) 
+    if (!user?.activo || user.deleted_at !== null) {
       throw new UnauthorizedException('Usuario no encontrado o inactivo.');
+    }
+
+    // BUG-3: Bloquear refresco si el colaborador fue cesado o despedido
+    if (
+      user.empleados &&
+      (user.empleados.activo === false ||
+        user.empleados.deleted_at !== null ||
+        ['CESADO', 'DESPEDIDO'].includes(user.empleados.estado_laboral ?? ''))
+    ) {
+      throw new UnauthorizedException('El vínculo laboral del colaborador ya no se encuentra activo.');
+    }
     
     // Localizar el Refresh Token activo en la base de datos para verificar que no haya sido revocado o usado
     const tokenActivo = await this.localizarTokenActivo(user.id, payload.jti, refreshToken);
@@ -93,6 +105,7 @@ export class RefrescarTokenUseCase {
         expiresIn: '15m',
       }),
 
+      // Generar el nuevo Refresh Token con un tiempo de expiración de 7 días
       this.jwtService.signAsync(nuevoPayload, {
         jwtid: nuevoRefreshJti,
         secret: obtenerSecretoJwt('REFRESH'),
@@ -100,18 +113,21 @@ export class RefrescarTokenUseCase {
       }),
     ]);
 
+    // Hashear el nuevo Refresh Token antes de almacenarlo en la base de datos para mayor seguridad
     const hashedRT = await argon2.hash(newRefreshToken, { type: argon2.argon2id });
 
+    // Iniciar una transacción para marcar el Refresh Token anterior como usado y almacenar el nuevo Refresh Token en la base de datos
     await this.prisma.$transaction(async (tx) => {
       const consumido = await tx.tokens_seguridad.updateMany({
         where: { id: tokenActivo.id, usado: false, expira_en: { gt: new Date() } },
         data: { usado: true },
       });
 
+      // Validar que exactamente un token haya sido marcado como usado; si no, lanzar una excepción
       if (consumido.count !== 1) 
         throw new UnauthorizedException('El refresh token ya fue utilizado.');
       
-
+      // Almacenar el nuevo Refresh Token en la base de datos con su hash y metadatos asociados
       await tx.tokens_seguridad.create({
         data: {
           id: nuevoRefreshJti,

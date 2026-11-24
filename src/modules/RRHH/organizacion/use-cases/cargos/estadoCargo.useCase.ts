@@ -7,14 +7,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-<<<<<<< HEAD:src/modules/RRHH/organizacion/use-cases/cargos/estadoCargo.UseCase.ts
-import { obtenerCargo, verificarNombreUnicoCargoActivo } from './helpers/validaciones.helper';
-=======
 import {
   obtenerCargo,
   verificarNombreUnicoCargoActivo,
 } from './helpers/validaciones.helper';
->>>>>>> 5e75acc6bdee88d8bc621e30c26b02176fbd6c5f:src/modules/RRHH/organizacion/use-cases/cargos/estadoCargo.useCase.ts
 import { verificarAreaActiva } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 
 /**

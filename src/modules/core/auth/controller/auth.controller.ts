@@ -41,6 +41,7 @@ export class AuthController {
    * Endpoint para iniciar sesión en el sistema utilizando credenciales de usuario.
    * @POST /api/v1/core/auth/login
    * @param payload - LoginDTO - Objeto que contiene las credenciales de inicio de sesión (número de documento y contraseña).
+   * @param req - FastifyRequest - La solicitud HTTP entrante, utilizada para obtener la dirección IP del cliente.
    * @body - LoginDTO: {
    *    - tipo_documento: string - Tipo de documento del usuario.
    *    - nro_documento: string - Número de documento del usuario.
@@ -54,9 +55,12 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(LoginSchema))
-  async login(@Body() payload: LoginDTO, @Res({ passthrough: true }) res: FastifyReply) {
-    const { accessToken, refreshToken, usuario } = await this.loginUseCase.execute(payload);
-
+  async login(
+    @Body() payload: LoginDTO,
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const { accessToken, refreshToken, usuario } = await this.loginUseCase.execute(payload, req.ip);
     res.setCookie('jyp_rt', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -94,6 +98,7 @@ export class AuthController {
       });
     }
 
+    //Llamar al caso de uso para refrescar el token, que validará el refresh token y generará un nuevo access token (y posiblemente un nuevo refresh token)
     const { accessToken, newRefreshToken } = await this.refrescarTokenUseCase.execute(refreshToken);
 
     if (newRefreshToken) {
@@ -142,6 +147,7 @@ export class AuthController {
    * Endpoint para solicitar la recuperación de contraseña de un usuario.
    * @POST /api/v1/core/auth/recuperar-password
    * @param payload - SolicitudRecuperacionDTO - Objeto que contiene la información necesaria para solicitar la recuperación de contraseña.
+   * @param req - FastifyRequest - La solicitud HTTP entrante, utilizada para obtener la dirección IP del cliente.
    * @body - SolicitudRecuperacionDTO: {
    *    - email: string - Correo electrónico del usuario que solicita la recuperación de contraseña.
    * }
@@ -153,8 +159,8 @@ export class AuthController {
   @Post('recuperar-password')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(SolicitudRecuperacionSchema))
-  async solicitarRecuperacion(@Body() payload: SolicitudRecuperacionDTO) {
-    return await this.recuperacionPasswordUseCase.solicitar(payload);
+  async solicitarRecuperacion(@Body() payload: SolicitudRecuperacionDTO, @Req() req: FastifyRequest) {
+    return await this.recuperacionPasswordUseCase.solicitar(payload, req.ip);
   }
   
   /**
@@ -196,6 +202,7 @@ export class AuthController {
    * @POST /api/v1/core/auth/restablecer-password
    * @roles - No requiere roles específicos, accesible para cualquier usuario que tenga un token de restablecimiento válido.
    * @param payload - RestablecerPasswordDTO - Objeto que contiene la información necesaria para restablecer la contraseña, validado mediante ZodValidationPipe.
+   * @param req - FastifyRequest - La solicitud HTTP entrante, utilizada para obtener la dirección IP del cliente.
    * RestablecerPasswordDTO : {
    *    - token: string - Token de restablecimiento de contraseña enviado al correo del usuario.
    *    - newPassword: string - Nueva contraseña que el usuario desea establecer.
@@ -207,7 +214,10 @@ export class AuthController {
   @Post('restablecer-password')
   @HttpCode(HttpStatus.OK)
   @ApiSwaggerRestablecerPassword()
-  restablecerPassword(@Body(new ZodValidationPipe(RestablecerPasswordSchema)) payload: RestablecerPasswordDTO) {
-    return this.recuperacionPasswordUseCase.restablecer(payload);
+  restablecerPassword(
+    @Body(new ZodValidationPipe(RestablecerPasswordSchema)) payload: RestablecerPasswordDTO,
+    @Req() req: FastifyRequest,
+  ) {
+    return this.recuperacionPasswordUseCase.restablecer(payload, req.ip);
   }
 }

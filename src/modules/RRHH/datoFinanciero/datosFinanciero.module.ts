@@ -4,6 +4,7 @@ import { DatoFinancieroController } from './controller/datoFinanciero.controller
 import { AgregarDatoFinancieroUseCase } from './use-case/agregarDatoFinanciero.useCase';
 import { EditarDatoFinancieroUseCase } from './use-case/editarDatoFinanciero.useCase';
 import { ObtenerDatoFinancieroUseCase } from './use-case/obtenerDatoFinanciero.useCase';
+import { ControlIntentosService } from '@/common/guards/control-intentos.service';
 
 /**
  * Módulo de datos financieros que encapsula el controlador y los casos de uso relacionados con la gestión de datos financieros de los empleados.
@@ -13,14 +14,15 @@ import { ObtenerDatoFinancieroUseCase } from './use-case/obtenerDatoFinanciero.u
 @Module({
   controllers: [DatoFinancieroController],
   providers: [
+    ControlIntentosService,
     AgregarDatoFinancieroUseCase,
     EditarDatoFinancieroUseCase,
-    ObtenerDatoFinancieroUseCase
+    ObtenerDatoFinancieroUseCase,
   ],
   exports: [
     AgregarDatoFinancieroUseCase,
     EditarDatoFinancieroUseCase,
-    ObtenerDatoFinancieroUseCase
-  ]
+    ObtenerDatoFinancieroUseCase,
+  ],
 })
 export class DatosFinancieroModule {}

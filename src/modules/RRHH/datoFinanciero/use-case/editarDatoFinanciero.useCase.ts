@@ -1,10 +1,9 @@
 //src/modules/RRHH/datoFinanciero/use-case/editarDatoFinanciero.useCase.ts
 import {
   BadRequestException,
-  HttpException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
@@ -16,6 +15,7 @@ import {
 } from './helper/validacionesDatoFinanciero.helper';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 import { CryptoUtil } from '@/common/utils/crypto.util';
+import { ControlIntentosService } from '@/common/guards/control-intentos.service';
 
 /**
  * Caso de uso para editar los datos financieros de un empleado.
@@ -25,6 +25,7 @@ import { CryptoUtil } from '@/common/utils/crypto.util';
 @Injectable()
 export class EditarDatoFinancieroUseCase {
   constructor(private readonly prisma: PrismaService) {}
+  @Optional() private readonly controlIntentos?: ControlIntentosService
 
   /**
    * Ejecuta el caso de uso para editar los datos financieros de un empleado (COM-F3).
@@ -59,33 +60,44 @@ export class EditarDatoFinancieroUseCase {
     if (!usuarioActual)
       throw new UnauthorizedException('Usuario no autorizado.');
 
+    //Control de intentos de confirmación para prevenir ataques de fuerza bruta
+    await this.controlIntentos?.verificarDisponible('dato-financiero:confirmar', idUsuario);
+
     //Validar la contraseña proporcionada para confirmar la identidad del usuario antes de permitir la actualización
     const passwordValida = await argon2.verify(
       usuarioActual.password_hash,
-      dto.password_confirmacion
+      dto.password_confirmacion,
     );
 
-    if (!passwordValida)
+    // Si la contraseña es incorrecta, registrar el intento fallido y lanzar una excepción
+    if (!passwordValida) {
+      await this.controlIntentos?.registrarIntento('dato-financiero:confirmar', idUsuario);
       throw new UnauthorizedException({
         title: 'Confirmación de Seguridad Fallida',
-        detail:
-          'La contraseña ingresada es incorrecta. Operación financiera denegada.',
+        detail: 'La contraseña ingresada es incorrecta. Operación financiera denegada.',
       });
+    }
+
+    // Si la contraseña es correcta, limpiar los intentos fallidos para este usuario y acción
+    await this.controlIntentos?.limpiarIntentos('dato-financiero:confirmar', idUsuario);
 
     //Validar entidades foráneas enviadas en la actualización
     await validarEntidadesFinancieras(this.prisma, dto);
+    const {
+      id_tipo_afp = datoFinanciero.id_tipo_afp,
+      cuspp = datoFinanciero.cuspp,
+      tipo_comision = datoFinanciero.tipo_comision,
+    } = dto;
+
+    // Validar cambios en régimen de pensión y AFP, asegurando consistencia y completitud de datos
     await this.validarCambioPension(idEmpleado, {
       id_regimen: dto.id_regimen ?? datoFinanciero.id_regimen,
-      id_tipo_afp:
-        dto.id_tipo_afp === undefined
-          ? datoFinanciero.id_tipo_afp
-          : dto.id_tipo_afp,
-      cuspp: dto.cuspp === undefined ? datoFinanciero.cuspp : dto.cuspp,
-      tipo_comision:
-        dto.tipo_comision === undefined
-          ? datoFinanciero.tipo_comision
-          : dto.tipo_comision,
+      id_tipo_afp,
+      cuspp,
+      tipo_comision,
     });
+
+    // Validar sueldo básico si se proporciona un nuevo valor
     if (dto.sueldo_basico !== undefined) {
       const cargoEmpleado = await this.prisma.empleados.findUnique({
         where: { id: idEmpleado },
@@ -93,6 +105,8 @@ export class EditarDatoFinancieroUseCase {
           cargo_id: true,
         },
       });
+
+      // Validar que el empleado tenga un cargo asignado antes de validar el sueldo
       if (!cargoEmpleado?.cargo_id) {
         throw new NotFoundException({
           title: 'Empleado o cargo no encontrado',
@@ -100,59 +114,54 @@ export class EditarDatoFinancieroUseCase {
             'No se encontró el colaborador o no cuenta con un cargo asignado.',
         });
       }
+
+      // Validar que el sueldo básico esté dentro del rango permitido para el cargo del empleado
       await validarSueldoCargo(
         this.prisma,
         cargoEmpleado.cargo_id,
         dto.sueldo_basico
       );
     }
-    try {
-      const actualizado = await this.prisma.dato_financiero.update({
-        where: { empleado_id: idEmpleado },
-        data: {
-          id_regimen: dto.id_regimen,
-          id_tipo_afp: dto.id_tipo_afp,
-          sueldo_basico: dto.sueldo_basico,
-          cuspp: sanitizarTexto(dto.cuspp),
-          tipo_comision: sanitizarTexto(dto.tipo_comision),
 
-          // Sueldo (encriptación limpia sin ternarios anidados)
-          id_banco_sueldo: dto.id_banco_sueldo,
-          tipo_cuenta_sueldo: dto.tipo_cuenta_sueldo,
-          nro_cuenta_sueldo: CryptoUtil.encryptOptional(dto.nro_cuenta_sueldo),
-          cci_sueldo: CryptoUtil.encryptOptional(dto.cci_sueldo),
+    // Encriptar campos bancarios y CUSPP antes de actualizar en la base de datos
+    const cusppSanitizado = sanitizarTexto(dto.cuspp);
 
-          // CTS
-          id_banco_cts: dto.id_banco_cts,
-          tipo_cuenta_cts: dto.tipo_cuenta_cts,
-          nro_cuenta_cts: CryptoUtil.encryptOptional(dto.nro_cuenta_cts),
-          cci_cts: CryptoUtil.encryptOptional(dto.cci_cts),
+    // Intentar actualizar los datos financieros del empleado, aplicando encriptación simétrica para los campos bancarios
+    const actualizado = await this.prisma.dato_financiero.update({
+      where: { empleado_id: idEmpleado },
+      data: {
+        id_regimen: dto.id_regimen,
+        id_tipo_afp: dto.id_tipo_afp,
+        sueldo_basico: dto.sueldo_basico,
+        //Cifrar CUSPP igual que cuentas bancarias y CCI
+        cuspp: CryptoUtil.encryptOptional(cusppSanitizado),
+        tipo_comision: sanitizarTexto(dto.tipo_comision),
 
-          // Salud y EPS
-          regimen_salud: dto.regimen_salud,
-          eps_nombre: sanitizarTexto(dto.eps_nombre),
-          eps_plan: sanitizarTexto(dto.eps_plan),
-          eps_costo_adicional: dto.eps_costo_adicional,
-        },
-      });
+        // Sueldo (encriptación limpia sin ternarios anidados)
+        id_banco_sueldo: dto.id_banco_sueldo,
+        tipo_cuenta_sueldo: dto.tipo_cuenta_sueldo,
+        nro_cuenta_sueldo: CryptoUtil.encryptOptional(dto.nro_cuenta_sueldo),
+        cci_sueldo: CryptoUtil.encryptOptional(dto.cci_sueldo),
 
-      return {
-        id: actualizado.id,
-        empleado_id: actualizado.empleado_id,
-        mensaje:
-          'Datos financieros actualizados y re-encriptados correctamente.',
-      };
-    } catch (error) {
-      if (error instanceof HttpException) throw error;
+        // CTS
+        id_banco_cts: dto.id_banco_cts,
+        tipo_cuenta_cts: dto.tipo_cuenta_cts,
+        nro_cuenta_cts: CryptoUtil.encryptOptional(dto.nro_cuenta_cts),
+        cci_cts: CryptoUtil.encryptOptional(dto.cci_cts),
 
-      throw new InternalServerErrorException({
-        title: 'Error de Actualización Financiera',
-        detail:
-          error instanceof Error
-            ? error.message
-            : 'Fallo interno al actualizar los datos financieros.',
-      });
-    }
+        // Salud y EPS
+        regimen_salud: dto.regimen_salud,
+        eps_nombre: sanitizarTexto(dto.eps_nombre),
+        eps_plan: sanitizarTexto(dto.eps_plan),
+        eps_costo_adicional: dto.eps_costo_adicional,
+      },
+    });
+
+    return {
+      id: actualizado.id,
+      empleado_id: actualizado.empleado_id,
+      mensaje: 'Datos financieros actualizados y re-encriptados correctamente.',
+    };
   }
 
   /**

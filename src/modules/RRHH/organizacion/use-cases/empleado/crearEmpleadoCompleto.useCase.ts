@@ -170,6 +170,7 @@ export class CrearEmpladoCompletoUseCase {
     dto: CrearSchemaEmpleadoCompletoDto['datosFinanciero'],
     afiliacion: Date | null,
   ): Promise<void> {
+    // Se realizan consultas en paralelo para verificar la existencia de las entidades relacionadas con el régimen de pensión, tipo de AFP y bancos.
     const [regimen, tipoAfp, bancoSueldo, bancoCts] = await Promise.all([
       this.prisma.regimen_pension.findUnique({ where: { id: dto.id_regimen } }),
       dto.id_tipo_afp ? this.prisma.tipo_afp.findUnique({ where: { id: dto.id_tipo_afp } }) : null,
@@ -177,11 +178,13 @@ export class CrearEmpladoCompletoUseCase {
       dto.id_banco_cts ? this.prisma.bancos.findUnique({ where: { id: dto.id_banco_cts } }) : null,
     ]);
 
+    // Validaciones de existencia de entidades foráneas
     if (!regimen) throw new NotFoundException('El régimen de pensión especificado no existe.');
     if (dto.id_tipo_afp && !tipoAfp) throw new NotFoundException('El tipo de AFP especificado no existe.');
     if (dto.id_banco_sueldo && !bancoSueldo) throw new NotFoundException('El banco para sueldo no existe.');
     if (dto.id_banco_cts && !bancoCts) throw new NotFoundException('El banco para CTS no existe.');
 
+    // Validación específica para AFP: si el régimen es AFP, se requiere que se proporcionen administradora, CUSPP, comisión y fecha de afiliación.
     const esAfp = /AFP|SPP/i.test(regimen.nombre);
     if (esAfp && (!tipoAfp || !dto.cuspp || !dto.tipo_comision || !afiliacion))
       throw new BadRequestException('AFP requiere administradora, CUSPP, comisión y fecha de afiliación en el legajo.');

@@ -18,7 +18,7 @@ import { ApiSwaggerDatoFinancieroController, ApiSwaggerObtenerDatoFinanciero, Ap
    * Unicamente el ADMINISTRADOR, RRHH, CONTADOR, ASISTENTE puede obtener los datos financieros de un empleado
    * Para su registro y modificaciones SOLAMENTE tiene permisos el ADMIN, CONTADOR, RRHH
    */
-  @Controller('api/v1/RRHH/dato-financiero')
+  @Controller('api/v1/rrhh/dato-financiero')
   @UseGuards(JwtAccessGuard, RolesGuard)
   @ApiSwaggerDatoFinancieroController()
   export class DatoFinancieroController {
@@ -30,7 +30,7 @@ import { ApiSwaggerDatoFinancieroController, ApiSwaggerObtenerDatoFinanciero, Ap
 
     /**
      * Obtiene los datos financieros de un empleado
-     * @GET : /api/v1/RRHH/dato-financiero/empleado/{idEmpleado} 
+     * @GET : /api/v1/rrhh/dato-financiero/empleado/{idEmpleado} 
      * @ROLES : ADMIN, CONTADOR, RRHH, ASISTENTE
      * @param IdEmpleado - El ID del empleado
      * @returns Un objeto con los datos financieros del empleado, con enmascaramiento de campos sensibles.
@@ -46,7 +46,7 @@ import { ApiSwaggerDatoFinancieroController, ApiSwaggerObtenerDatoFinanciero, Ap
 
     /**
      * Registra la informacion financiera inicial de un empleado.
-     * @POST : /api/v1/RRHH/dato-financiero
+     * @POST : /api/v1/rrhh/dato-financiero
      * @ROLES : ADMIN, CONTADOR, RRHH
      * @payload - CrearDatoFinancieroDto {
      *    - empleado_id: string (UUID del empleado)
@@ -82,7 +82,7 @@ import { ApiSwaggerDatoFinancieroController, ApiSwaggerObtenerDatoFinanciero, Ap
 
     /**
      * Actualiza datos financieros requiriendo re-confirmación de contraseña (Step-Up Auth).
-     * @PUT : /api/v1/RRHH/dato-financiero/empleado/{idEmpleado}
+     * @PUT : /api/v1/rrhh/dato-financiero/empleado/{idEmpleado}
      * @ROLES : ADMIN, RRHH
      * @param IdEmpleado - El ID del empleado
      * @payload - ActualizarDatoFinancieroDto {
@@ -100,7 +100,7 @@ import { ApiSwaggerDatoFinancieroController, ApiSwaggerObtenerDatoFinanciero, Ap
      */
     @Put('empleado/:idEmpleado')
     @ApiSwaggerActualizarDatoFinanciero()
-    @Roles('ADMIN', 'RRHH')
+    @Roles('ADMIN', 'CONTADOR', 'RRHH')
     @UsePipes(new ZodValidationPipe(ActualizarDatoFinancieroSchema, true))
     async actualizar(@Param('idEmpleado', ParseUUIDPipe) IdEmpleado: string,
         @Body() payload: ActualizarDatoFinancieroDto,

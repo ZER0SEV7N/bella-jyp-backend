@@ -5,6 +5,17 @@ import type { DesactivarEmpleadoDto, CambiarEstadoLaboralDto } from '@jyp/shared
 import { ServerTime } from '@/common/utils/server-time';
 import { estado_empleado_enum } from '@prisma/client';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
+import {
+  anularContratos,
+  anularSolicitudes,
+  anularTokens,
+  anularUsuario,
+} from './helper/cesadoEmpleado';
+import {
+  verificarAreaActiva,
+  verificarCargoActivo,
+  verificarJornadaActiva,
+} from '@/modules/RRHH/common/verificacciones-rrhh.helper';
 
 /**
  * Caso de uso para gestionar el estado de un empleado, incluyendo la baja laboral (soft delete) y la reactivación del legajo.
@@ -23,47 +34,58 @@ export class EstadoEmpleadoUseCase {
    * @throws InternalServerErrorException - Si ocurre un error inesperado durante la operación.
    */
   async desactivar(id: string, dto?: DesactivarEmpleadoDto) {
+    // Buscar el empleado por ID, asegurándose de que no esté ya dado de baja
+    const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
+
+    // Validar que el empleado exista y esté activo antes de proceder con la desactivación
+    if (!empleado) {
+      throw new NotFoundException({
+        title: 'Colaborador no encontrado',
+        detail: 'El legajo no existe o ya se encuentra dado de baja.',
+      });
+    }
+
+    // Validar y resolver la fecha de cese
+    let fechaCese: Date;
     try {
-      //Buscar el empleado por ID, asegurándose de que no esté ya dado de baja
-      const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
+      fechaCese = dto?.fecha_cese ? ServerTime.desdeFechaSimple(dto.fecha_cese) : ServerTime.obtenerFechaSimpleActual;
+    } catch {
+      throw new BadRequestException('La fecha de cese no existe en el calendario.');
+    }
+    if (empleado.fecha_inicio && fechaCese < empleado.fecha_inicio) {
+      throw new BadRequestException('La fecha de cese no puede preceder al ingreso.');
+    }
 
-      if (!empleado)
-        throw new NotFoundException({
-          title: 'Colaborador no encontrado',
-          detail: 'El legajo no existe o ya se encuentra dado de baja.',
-        });
-
-      //Actualizar el estado del empleado a inactivo, estableciendo la fecha de cese y marcando el registro como eliminado (soft delete)
-      let fechaCese: Date;
-      try {
-        fechaCese = dto?.fecha_cese ? ServerTime.desdeFechaSimple(dto.fecha_cese) : ServerTime.obtenerFechaSimpleActual;
-      } catch {
-        throw new BadRequestException('La fecha de cese no existe en el calendario.');
-      }
-      if (empleado.fecha_inicio && fechaCese < empleado.fecha_inicio)
-        throw new BadRequestException('La fecha de cese no puede preceder al ingreso.');
-
-      return await this.prisma.empleados.update({
+    // EMP-F3: Cese integral atómico (empleado + vínculo laboral + usuario + tokens + contratos + solicitudes)
+    return await this.prisma.$transaction(async (tx) => {
+      const empleadoCesado = await tx.empleados.update({
         where: { id },
         data: {
           activo: false,
           estado_laboral: estado_empleado_enum.CESADO,
           fecha_cese: fechaCese,
-          deleted_at: new Date(),
+          deleted_at: ServerTime.obtenerFechaServidor,
         },
         include: {
           area: { select: { id: true, nombre: true } },
           cargo: { select: { id: true, nombre: true } },
         },
       });
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
 
-      throw new InternalServerErrorException({
-        title: 'Error al dar de baja al colaborador',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al procesar el cese del empleado.',
+      await tx.vinculo_laboral.updateMany({
+        where: { empleado_id: id, fecha_cese: null },
+        data: { fecha_cese: fechaCese },
       });
-    }
+
+      await Promise.all([
+        anularUsuario(tx, id),
+        anularTokens(tx, id),
+        anularContratos(tx, id, fechaCese),
+        anularSolicitudes(tx, id),
+      ]);
+
+      return empleadoCesado;
+    });
   }
 
   /**
@@ -75,47 +97,74 @@ export class EstadoEmpleadoUseCase {
    * @throws BadRequestException - Si el empleado ya está activo.
    */
   async reactivar(id: string) {
-    try {
-      //Buscar el empleado por ID, asegurándose de que exista
-      const empleado = await this.prisma.empleados.findUnique({ where: { id },
-        select:{
-          area_id: true, cargo_id: true,activo:true, deleted_at:true, nro_documento:true,  
-        }
+    // Buscar el empleado por ID, asegurándose de que exista
+    const empleado = await this.prisma.empleados.findUnique({
+      where: { id },
+      select: {
+        area_id: true,
+        cargo_id: true,
+        jornada_id: true,
+        activo: true,
+        deleted_at: true,
+        nro_documento: true,
+      },
+    });
+
+    if (!empleado) {
+      throw new NotFoundException({
+        title: 'Colaborador no encontrado',
+        detail: 'El legajo especificado no existe en el sistema.',
+      });
+    }
+
+    if (empleado.activo && empleado.deleted_at === null) {
+      throw new BadRequestException({
+        title: 'Colaborador ya activo',
+        detail: `El colaborador con documento ${empleado.nro_documento} ya se encuentra activo.`,
+      });
+    }
+
+    // EMP-F7: Validar que el área, cargo y jornada asignados sigan activos antes del reingreso
+    await Promise.all([
+      verificarAreaActiva(this.prisma, empleado.area_id),
+      verificarCargoActivo(this.prisma, empleado.cargo_id),
+      verificarJornadaActiva(this.prisma, empleado.jornada_id),
+    ]);
+
+    const fechaReingreso = ServerTime.obtenerFechaSimpleActual;
+
+    const empleadoReactivado = await this.prisma.$transaction(async (tx) => {
+      const actualizado = await tx.empleados.update({
+        where: { id },
+        data: {
+          activo: true,
+          deleted_at: null,
+          estado_laboral: estado_empleado_enum.ACTIVO,
+          fecha_inicio: fechaReingreso,
+          fecha_cese: null,
+        },
+        include: {
+          area: { select: { id: true, nombre: true } },
+          cargo: { select: { id: true, nombre: true } },
+        },
       });
 
-      if (!empleado)
-        throw new NotFoundException({
-          title: 'Colaborador no encontrado',
-          detail: 'El legajo especificado no existe en el sistema.',
-        });
-
-      if (empleado.activo && empleado.deleted_at === null)
-        throw new BadRequestException({
-          title: 'Colaborador ya activo',
-          detail: `El colaborador con documento ${empleado.nro_documento} ya se encuentra activo.`,
-        });
-
-      const empleadoReactivado = await this.prisma.vinculo_laboral.create({
+      await tx.vinculo_laboral.create({
         data: {
           id: IdentityGenerator.generateId(),
           empleado_id: id,
-          fecha_inicio: ServerTime.obtenerFechaSimpleActual,           
-        }
+          fecha_inicio: fechaReingreso,
+        },
       });
 
-      return {
-        state: true,
-        message: 'Colaborador reactivado correctamente. Verifique la asignación de contratos, jornada y régimen previsional.',
-        data: empleadoReactivado,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      return actualizado;
+    });
 
-      throw new InternalServerErrorException({
-        title: 'Error al reactivar legajo',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al restaurar el estado del colaborador.',
-      });
-    }
+    return {
+      state: true,
+      message: 'Colaborador reactivado correctamente. Verifique la asignación de contratos, jornada y régimen previsional.',
+      data: empleadoReactivado,
+    };
   }
 
   /**
@@ -130,7 +179,7 @@ export class EstadoEmpleadoUseCase {
     try {
       const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
 
-      if (!empleado || !empleado.activo)
+      if (!empleado?.activo)
         throw new NotFoundException({
           title: 'Colaborador no disponible',
           detail: 'No se puede modificar la situación operativa de un colaborador inactivo o cesado. Debe reactivarlo primero.',

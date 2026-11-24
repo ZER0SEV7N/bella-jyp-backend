@@ -71,7 +71,7 @@
     "dotenv": "^18.0.10",
     "exceljs": "^4.4.0",
     "fastify": "^5.12.8",
-    "ioredis": "^6.0.0",
+    "ioredis": "^6.1.0",
     "nestjs-cls": "^6.3.1",
     "nodemailer": "^10.6.1",
     "passport": "^0.7.0",
@@ -115,7 +115,7 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.73.0"
+    "typescript-eslint": "^8.74.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

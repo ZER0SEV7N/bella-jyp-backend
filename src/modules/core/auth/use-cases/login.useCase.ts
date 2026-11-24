@@ -59,6 +59,7 @@ export class LoginUseCase {
             apellido: true,
             nro_documento: true,
             email: true,
+            estado_laboral: true,
           },
         },
       },
@@ -81,6 +82,16 @@ export class LoginUseCase {
       throw this.credencialesInvalidas();
     }
     await this.controlIntentos?.limpiarIntentos('login:doc', claveDocumento);
+
+    if (['CESADO', 'DESPEDIDO'].includes(usuario.empleados?.estado_laboral ?? '')) {
+      throw new UnauthorizedException({
+        title: 'Vínculo Laboral Inactivo',
+        detail: 'El vínculo laboral del colaborador ya no se encuentra activo.',
+      });
+    }
+
+    await this.controlIntentos?.limpiarIntentos('login:doc', claveDocumento);
+    await this.controlIntentos?.limpiarIntentos('login:ip', ipCliente);
 
     // Construir el payload del JWT y generar los tokens de acceso y refresh
     const payload = construirPayloadJwt(usuario);

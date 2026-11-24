@@ -15,6 +15,7 @@ export class ObtenerDatosReniecUseCase{
             throw new BadRequestException("El DNI tiene menos de 8 digitos") 
         }
         
+        // Llamada al adaptador de Reniec para consultar los datos del ciudadano por su DNI
         const datosCiudadano = await this.recienAdapter.consultarDni(nro_documento);
         return{
             nombre: datosCiudadano.nombre,

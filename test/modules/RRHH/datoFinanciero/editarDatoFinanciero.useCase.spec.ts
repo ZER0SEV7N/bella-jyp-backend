@@ -179,6 +179,45 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
       expect(mockPrismaService.cargo.findFirst).not.toHaveBeenCalled();
       expect(result.id).toBe('df-uuid-1');
     });
+
+    it('Debe validar null como valor explícito al borrar el CUSPP de un régimen AFP', async () => {
+      mockPrismaService.dato_financiero.findUnique.mockResolvedValue({
+        id: 'df-uuid-1',
+        empleado_id: mockEmpleadoId,
+        id_regimen: 'regimen-afp',
+        id_tipo_afp: 'afp-uuid',
+        cuspp: '123456789012',
+        tipo_comision: 'FLUJO',
+        deleted_at: null,
+      });
+      mockPrismaService.usuarios.findUnique.mockResolvedValue({
+        password_hash: '$argon2id$v=19$hash',
+      });
+      mockPrismaService.regimen_pension.findUnique.mockResolvedValueOnce({
+        id: 'regimen-afp',
+        nombre: 'AFP',
+      });
+      mockPrismaService.tipo_afp.findUnique.mockResolvedValueOnce({
+        id: 'afp-uuid',
+        id_regimen: 'regimen-afp',
+      });
+      mockPrismaService.empleados.findUnique.mockResolvedValueOnce({
+        afp_fecha_filiacion: new Date('2020-01-01'),
+      });
+      (argon2.verify as jest.Mock).mockResolvedValue(true);
+
+      await expect(
+        useCase.execute(
+          mockEmpleadoId,
+          {
+            cuspp: null,
+            password_confirmacion: 'PasswordSegura123!',
+          },
+          mockUsuarioAutenticadoId
+        )
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.dato_financiero.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('Validaciones de Negocio y Excepciones', () => {

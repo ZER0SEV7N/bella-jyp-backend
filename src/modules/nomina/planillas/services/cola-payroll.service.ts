@@ -51,7 +51,11 @@ export class ColaPayrollService {
             throw new ConflictException('La clave de solicitud fue utilizada simultáneamente con otros filtros.');
         
         //Devuelve el ID del trabajo encolado, su estado y la URL de consulta.
-        return { trabajo_id: job.id, estado: await job.getState(), consulta: `/api/payroll/planillas/trabajos/${job.id}` };
+        return {
+            trabajo_id: job.id,
+            estado: await job.getState(),
+            consulta: `/api/v1/nomina/planillas/trabajos/${job.id}`,
+        };
     }
 
     /**
