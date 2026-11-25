@@ -24,8 +24,10 @@ import { ControlIntentosService } from '@/common/guards/control-intentos.service
  */
 @Injectable()
 export class EditarDatoFinancieroUseCase {
-  constructor(private readonly prisma: PrismaService) {}
-  @Optional() private readonly controlIntentos?: ControlIntentosService
+  constructor(
+  private readonly prisma: PrismaService,
+  @Optional() private readonly controlIntentos?: ControlIntentosService,
+) {}
 
   /**
    * Ejecuta el caso de uso para editar los datos financieros de un empleado (COM-F3).
