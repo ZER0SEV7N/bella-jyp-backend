@@ -13,7 +13,6 @@ import {
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { ObtenerMiPerfilUseCase } from '../use-cases/obtenerMiPerfil.useCase';
 import type { FastifyRequest } from 'fastify';
-import type { MiPerfilResponseDto } from '@jyp/shared-contracts';
 import {
   ApiSwaggerUsuariosController,
   ApiSwaggerObtenerMiPerfil,
@@ -31,12 +30,12 @@ import {
   CambiarEstadoUsuarioSchema,
   CambiarRolUsuarioSchema,
   ListarUsuariosQuerySchema,
-} from '../../../../../../shared-contracts/src/core/usuario/usuarios.schema';
-import type {
-  CambiarEstadoUsuarioBody,
-  CambiarRolUsuarioBody,
-  ListarUsuariosQuery,
-} from '../../../../../../shared-contracts/src/core/usuario/usuarios.schema';
+  type CambiarEstadoUsuarioBody,
+  type CambiarRolUsuarioBody,
+  type ListarUsuariosQuery,
+  type MiPerfilResponseDto,
+} from '@jyp/shared-contracts';
+
 
 /**
  * Controlador de usuarios que expone endpoints para la gestión de cuentas de usuario y el perfil del usuario autenticado.

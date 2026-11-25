@@ -126,7 +126,7 @@ export class AsignarJornadaAsistenciaUseCase {
           id: IdentityGenerator.generateId(),
           empleado_id: dto.empleado_id,
           jornada_id: dto.jornada_id,
-          desde: ServerTime.desdeFechaSimple(dto.desde),
+          desde,
           horario, //Horario de la jornada validado previamente.
           tolerancia_minutos: jornada.tolerancia_minutos,
           politica_tolerancia: dto.politica_tolerancia, //Política de tolerancia proporcionada en el DTO.
@@ -135,6 +135,14 @@ export class AsignarJornadaAsistenciaUseCase {
           usuario_id: actor.id,
         },
       });
+
+      // JOR-F1: Sincronizar empleados.jornada_id cuando la nueva vigencia ya inició (desde <= hoy)
+      if (desde <= ServerTime.obtenerFechaSimpleActual) {
+        await tx.empleados.update({
+          where: { id: dto.empleado_id },
+          data: { jornada_id: dto.jornada_id },
+        });
+      }
 
       // Solo se invalidan resúmenes pendientes desde la vigencia de la jornada para marcarlos desactualizados hasta regenerar; los aprobados están protegidos y los rechazados no se aprueban.
       await tx.incidencias_mes.updateMany({

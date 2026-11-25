@@ -53,9 +53,16 @@ export class SubirContratoPdfUseCase {
     } catch (error) {
       if (error instanceof BadRequestException) throw error; // Respetar errores de la utilidad (ej. Formato inválido)
 
+      let errorMessage = 'Error desconocido';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
       throw new InternalServerErrorException(
         'Ocurrió un error en el servidor al intentar guardar el archivo físico.',
-        error instanceof Error ? error.message : typeof error === 'string' ? error : 'Error desconocido'
+        errorMessage
       );
     }
   }

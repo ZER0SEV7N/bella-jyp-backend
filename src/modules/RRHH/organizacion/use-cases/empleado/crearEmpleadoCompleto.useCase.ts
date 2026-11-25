@@ -3,13 +3,15 @@ import { CrearSchemaEmpleadoCompletoDto } from '@jyp/shared-contracts';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
+import { CLS_USER_ID } from '@/common/cls/cls.constants';
 import { ReniecAdapter } from '../../services/reniec.adapter';
 import { verificarDocumentoUnico } from '@/modules/RRHH/common/verificacciones-rrhh.helper';
+import { sincronizarJornadaInicialEmpleado } from '@/modules/RRHH/common/sincronizar-jornada-inicial.helper';
 import { encontrarIdentidad, validarEntidadesEmpleado } from './helper/validacionesEmpleado';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
 import { CryptoUtil } from '@/common/utils/crypto.util';
@@ -24,47 +26,53 @@ export class CrearEmpladoCompletoUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reniecAdapter: ReniecAdapter,
+    @Optional() private readonly cls?: ClsService,
   ) {}
 
   /**
-   * Crea un nuevo empleado con su información financiera y derechohabientes.
+   * Crea un nuevo empleado con su información financiera, derechohabientes y jornada inicial de asistencia.
    * @param dto - Objeto que contiene los datos del empleado a crear.
    * @returns El empleado creado con sus datos completos.
    */
   async execute(dto: CrearSchemaEmpleadoCompletoDto) {
-    try {
-      // separación de bloques de datos del dto principal
-      const empleado_datos = dto.datosEmpleado;
-      const datos_financiero = dto.datosFinanciero;
-      const derechos_habientes = dto.derechosHabientes ?? [];
+    // separación de bloques de datos del dto principal
+    const empleado_datos = dto.datosEmpleado;
+    const datos_financiero = dto.datosFinanciero;
+    const derechos_habientes = dto.derechosHabientes ?? [];
 
-      // ── Validaciones del empleado ──
-      await verificarDocumentoUnico(this.prisma, empleado_datos.nro_documento);
-      await validarEntidadesEmpleado(this.prisma, empleado_datos);
-      const { nombre, apellido } = await encontrarIdentidad(
-        this.reniecAdapter,
-        empleado_datos.nro_documento,
-        empleado_datos.nombre,
-        empleado_datos.apellido,
-      );
+    // ── Validaciones del empleado ──
+    await verificarDocumentoUnico(this.prisma, empleado_datos.nro_documento);
+    await validarEntidadesEmpleado(this.prisma, empleado_datos);
+    const { nombre, apellido } = await encontrarIdentidad(
+      this.reniecAdapter,
+      empleado_datos.nro_documento,
+      empleado_datos.nombre,
+      empleado_datos.apellido,
+    );
 
-      const afpFechaFiliacion = sanitizarFecha(empleado_datos.afp_fecha_filiacion);
+    const afpFechaFiliacion = sanitizarFecha(empleado_datos.afp_fecha_filiacion);
 
-      // ── Validaciones financieras ──
-      await this.validarPrevisionYBancos(datos_financiero, afpFechaFiliacion);
+    // ── Validaciones financieras ──
+    await this.validarPrevisionYBancos(datos_financiero, afpFechaFiliacion);
 
-      // Activación automática de Asignación Familiar (Ley 25129)
-      const generaAsignacionFamiliar = derechos_habientes.some(
-        (dh) => dh.vinculo === 'HIJO_MENOR' || dh.vinculo === 'HIJO_MAYOR_ESTUDIANTE',
-      );
+    // Activación automática de Asignación Familiar (Ley 25129)
+    const generaAsignacionFamiliar = derechos_habientes.some(
+      (dh) => dh.vinculo === 'HIJO_MENOR' || dh.vinculo === 'HIJO_MAYOR_ESTUDIANTE',
+    );
 
-      // ── Encriptación AES-256-GCM de cuentas y CCIs ──
-      const nroCuentaSueldoEncrypted = CryptoUtil.encryptOptional(datos_financiero.nro_cuenta_sueldo);
-      const cciSueldoEncrypted = CryptoUtil.encryptOptional(datos_financiero.cci_sueldo);
-      const nroCuentaCtsEncrypted = CryptoUtil.encryptOptional(datos_financiero.nro_cuenta_cts);
-      const cciCtsEncrypted = CryptoUtil.encryptOptional(datos_financiero.cci_cts);
+    // ── Encriptación AES-256-GCM de CUSPP, cuentas y CCIs (FIN-F1) ──
+    const cusppEncrypted = CryptoUtil.encryptOptional(sanitizarTexto(datos_financiero.cuspp));
+    const nroCuentaSueldoEncrypted = CryptoUtil.encryptOptional(datos_financiero.nro_cuenta_sueldo);
+    const cciSueldoEncrypted = CryptoUtil.encryptOptional(datos_financiero.cci_sueldo);
+    const nroCuentaCtsEncrypted = CryptoUtil.encryptOptional(datos_financiero.nro_cuenta_cts);
+    const cciCtsEncrypted = CryptoUtil.encryptOptional(datos_financiero.cci_cts);
 
-      return await this.prisma.empleados.create({
+    const fechaInicio = new Date(empleado_datos.fecha_inicio);
+    const usuarioId = this.cls?.get<string>(CLS_USER_ID);
+
+    // JOR-F1: Alta completa + fotografía inicial en `asistencia_jornada` dentro de la misma transacción
+    return await this.prisma.$transaction(async (tx) => {
+      const empleado = await tx.empleados.create({
         data: {
           id: IdentityGenerator.generateId(),
           cargo_id: empleado_datos.cargo_id,
@@ -87,7 +95,7 @@ export class CrearEmpladoCompletoUseCase {
           provincia: empleado_datos.provincia.trim(),
           departamento: empleado_datos.departamento.trim(),
           fecha_nacimiento: new Date(empleado_datos.fecha_nacimiento),
-          fecha_inicio: new Date(empleado_datos.fecha_inicio),
+          fecha_inicio: fechaInicio,
           afp_fecha_filiacion: afpFechaFiliacion,
           asig_familiar: (empleado_datos.asig_familiar ?? false) || generaAsignacionFamiliar,
           activo: true,
@@ -99,7 +107,7 @@ export class CrearEmpladoCompletoUseCase {
               id_regimen: datos_financiero.id_regimen,
               id_tipo_afp: datos_financiero.id_tipo_afp ?? null,
               sueldo_basico: datos_financiero.sueldo_basico,
-              cuspp: sanitizarTexto(datos_financiero.cuspp),
+              cuspp: cusppEncrypted,
               tipo_comision: sanitizarTexto(datos_financiero.tipo_comision),
 
               // Sueldo
@@ -144,19 +152,16 @@ export class CrearEmpladoCompletoUseCase {
           jornada: { select: { id: true, nombre: true } },
         },
       });
-    } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException ||
-        error instanceof ConflictException
-      )
-        throw error;
 
-      throw new InternalServerErrorException({
-        title: 'Error al Registrar Colaborador',
-        detail: error instanceof Error ? error.message : 'Fallo interno al intentar crear el legajo del colaborador.',
+      await sincronizarJornadaInicialEmpleado(tx, {
+        empleadoId: empleado.id,
+        jornadaId: empleado.jornada_id,
+        fechaInicio,
+        usuarioId,
       });
-    }
+
+      return empleado;
+    });
   }
 
   /**

@@ -1,5 +1,7 @@
 //src/modules/RRHH/organizacion/use-cases/carga-masiva/procesarFilaEmpleado.useCase.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
+import { CLS_USER_ID } from '@/common/cls/cls.constants';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
@@ -7,6 +9,7 @@ import { CryptoUtil } from '@/common/utils/crypto.util';
 import { sanitizarTexto } from '@/common/utils/transformacion.util';
 import { Prisma } from '@prisma/client';
 import { normalizarFecha } from './helpers/normalizaciones.helper';
+import { sincronizarJornadaInicialEmpleado } from '@/modules/RRHH/common/sincronizar-jornada-inicial.helper';
 
 /**
  * Caso de uso para procesar una fila de datos de empleado en la carga masiva.
@@ -15,7 +18,10 @@ import { normalizarFecha } from './helpers/normalizaciones.helper';
  */
 @Injectable()
 export class ProcesarFilaEmpleadoUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly cls?: ClsService,
+  ) {}
 
   /**
    * Método principal para ejecutar el procesamiento de una fila de empleado.
@@ -106,6 +112,15 @@ export class ProcesarFilaEmpleadoUseCase {
         },
       });
 
+      // Sincronizar la jornada inicial del empleado de manera atómica dentro de la transacción
+      await sincronizarJornadaInicialEmpleado(tx, {
+        empleadoId: empleado.id,
+        jornadaId: empleado.jornada_id,
+        fechaInicio,
+        usuarioId: this.cls?.get<string>(CLS_USER_ID),
+        motivo: 'Asignación inicial automática vía carga masiva de colaboradores.',
+      });
+
       //Persistir o actualizar los datos financieros del empleado de manera atómica
       await this.upsertDatoFinanciero(tx, empleado.id, fila);
     });
@@ -128,6 +143,7 @@ export class ProcesarFilaEmpleadoUseCase {
 
     if (!regimen) throw new Error(`El régimen '${fila.regimen_pension}' no existe en el catálogo.`);
 
+    // Resolver el tipo de AFP solo si el régimen es AFP y se proporciona un tipo de AFP
     let tipoAfpId: string | null = null;
     if (fila.regimen_pension === 'AFP' && fila.tipo_afp) {
       const afp = await tx.tipo_afp.findFirst({ where: { nombre: { contains: fila.tipo_afp, mode: 'insensitive' } } });
@@ -155,7 +171,7 @@ export class ProcesarFilaEmpleadoUseCase {
       id_regimen: regimen.id,
       id_tipo_afp: tipoAfpId,
       sueldo_basico: fila.sueldo_basico,
-      cuspp: sanitizarTexto(fila.cuspp),
+      cuspp: CryptoUtil.encryptOptional(sanitizarTexto(fila.cuspp)),
       tipo_comision: sanitizarTexto(fila.tipo_comision),
 
       id_banco_sueldo: bancoSueldo?.id ?? null,

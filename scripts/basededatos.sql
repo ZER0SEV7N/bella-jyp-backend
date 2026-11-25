@@ -2728,4 +2728,11 @@ WHERE
 -- los triggers críticos estén activos.
 CREATE OR REPLACE FUNCTION asistencia_version_migracion() RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT '2026-10-21.1'::text $$;
 
+-- CON-F1: Garantizar a nivel de base de datos un único contrato VIGENTE activo por empleado.
+-- Nota: índice parcial no modelado en Prisma (igual que uq_novedad_dso_aprobada); no eliminar en migrate diff.
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_contrato_vigente" ON "contratos" ("empleado_id")
+WHERE
+    "estado" = 'VIGENTE'
+    AND "deleted_at" IS NULL;
+
 COMMIT;

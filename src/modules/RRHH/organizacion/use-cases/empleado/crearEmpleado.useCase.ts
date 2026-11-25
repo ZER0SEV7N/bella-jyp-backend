@@ -4,6 +4,7 @@ import {
   HttpException,
   Injectable,
   InternalServerErrorException,
+  Optional
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
@@ -18,6 +19,9 @@ import {
   validarEntidadesEmpleado,
   encontrarIdentidad,
 } from './helper/validacionesEmpleado';
+import { ClsService } from 'nestjs-cls';
+import { CLS_USER_ID } from '@/common/cls/cls.constants';
+import { sincronizarJornadaInicialEmpleado } from '@/modules/RRHH/common/sincronizar-jornada-inicial.helper';
 
 /**
  * Caso de uso para crear un nuevo empleado en el sistema.
@@ -28,8 +32,9 @@ import {
 export class CrearEmpleadoUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly reniecAdapter: ReniecAdapter
-  ) {}
+    private readonly reniecAdapter: ReniecAdapter,
+    @Optional() private readonly cls?: ClsService,
+) {}
 
   /**
    * Crea un nuevo empleado en el sistema (COM-F3).
@@ -44,6 +49,7 @@ export class CrearEmpleadoUseCase {
       await verificarDocumentoUnico(this.prisma, dto.nro_documento);
       await validarEntidadesEmpleado(this.prisma, dto);
 
+      // Consultar a RENIEC para obtener el nombre y apellido del empleado si no se proporcionan
       const { nombre, apellido } = await encontrarIdentidad(
         this.reniecAdapter,
         dto.nro_documento,
@@ -51,41 +57,56 @@ export class CrearEmpleadoUseCase {
         dto.apellido
       );
 
-      //Crear el empleado en la base de datos
-      return await this.prisma.empleados.create({
-        data: {
-          id: IdentityGenerator.generateId(),
-          cargo_id: dto.cargo_id,
-          area_id: dto.area_id,
-          documento_id: dto.documento_id,
-          estado_laboral: 'ACTIVO',
-          jornada_id: dto.jornada_id ?? null,
-          nro_documento: dto.nro_documento.trim(),
-          nombre,
-          apellido,
-          email: dto.email.trim(),
-          telefono: dto.telefono.trim(),
-          sexo: dto.sexo,
-          estado_civil: dto.estado_civil ?? 'SOLTERO',
-          nacionalidad: sanitizarTexto(dto.nacionalidad) ?? 'PERUANA',
-          direccion: dto.direccion.trim(),
-          referencia_direccion: dto.referencia_direccion.trim(),
-          ubigeo: dto.ubigeo.trim(),
-          distrito: dto.distrito.trim(),
-          provincia: dto.provincia.trim(),
-          departamento: dto.departamento.trim(),
-          fecha_nacimiento: new Date(dto.fecha_nacimiento),
-          fecha_inicio: new Date(dto.fecha_inicio),
-          afp_fecha_filiacion: sanitizarFecha(dto.afp_fecha_filiacion),
-          asig_familiar: dto.asig_familiar ?? false,
-          activo: true,
-          estado_sincronizacion: 'COMPLETO',
-        },
-        include: {
-          area: { select: { id: true, nombre: true } },
-          cargo: { select: { id: true, nombre: true } },
-          jornada: { select: { id: true, nombre: true } },
-        },
+      // Normalizar y sanitizar los datos del empleado antes de almacenarlos
+      const fechaInicio = new Date(dto.fecha_inicio);
+      const usuarioId = this.cls?.get<string>(CLS_USER_ID);
+
+      // Ejecutar la transacción para crear el empleado y sincronizar su jornada inicial
+      return await this.prisma.$transaction(async (tx) => {
+        const empleado = await tx.empleados.create({
+          data: {
+            id: IdentityGenerator.generateId(),
+            cargo_id: dto.cargo_id,
+            area_id: dto.area_id,
+            documento_id: dto.documento_id,
+            estado_laboral: 'ACTIVO',
+            jornada_id: dto.jornada_id ?? null,
+            nro_documento: dto.nro_documento.trim(),
+            nombre,
+            apellido,
+            email: dto.email.trim(),
+            telefono: dto.telefono.trim(),
+            sexo: dto.sexo,
+            estado_civil: dto.estado_civil ?? 'SOLTERO',
+            nacionalidad: sanitizarTexto(dto.nacionalidad) ?? 'PERUANA',
+            direccion: dto.direccion.trim(),
+            referencia_direccion: dto.referencia_direccion.trim(),
+            ubigeo: dto.ubigeo.trim(),
+            distrito: dto.distrito.trim(),
+            provincia: dto.provincia.trim(),
+            departamento: dto.departamento.trim(),
+            fecha_nacimiento: new Date(dto.fecha_nacimiento),
+            fecha_inicio: fechaInicio,
+            afp_fecha_filiacion: sanitizarFecha(dto.afp_fecha_filiacion),
+            asig_familiar: dto.asig_familiar ?? false,
+            activo: true,
+            estado_sincronizacion: 'COMPLETO',
+          },
+          include: {
+            area: { select: { id: true, nombre: true } },
+            cargo: { select: { id: true, nombre: true } },
+            jornada: { select: { id: true, nombre: true } },
+          },
+        });
+
+        await sincronizarJornadaInicialEmpleado(tx, {
+          empleadoId: empleado.id,
+          jornadaId: empleado.jornada_id,
+          fechaInicio,
+          usuarioId,
+        });
+
+        return empleado;
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;

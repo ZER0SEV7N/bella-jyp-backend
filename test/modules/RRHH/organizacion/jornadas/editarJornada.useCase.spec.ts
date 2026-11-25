@@ -18,6 +18,8 @@ describe('EditarJornadaUseCase - Pruebas Unitarias', () => {
 
   //Mock del servicio PrismaService para simular la interacción con la base de datos
   const mockPrisma = {
+    empleado: { count: jest.fn().mockResolvedValue(0) },
+    empleados: { count: jest.fn() },
     jornada: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
@@ -167,12 +169,12 @@ describe('EditarJornadaUseCase - Pruebas Unitarias', () => {
       await expect(useCase.execute(idJornada, { horario_semanal: horario50Horas })).rejects.toThrow(BadRequestException);
     });
 
-    it('Debe propagar InternalServerErrorException ante fallos no previstos', async () => {
-      //Arrange: Simular un fallo inesperado en la base de datos al intentar buscar la jornada
+   it('Debe propagar errores inesperados de BD al filtro global RFC 7807', async () => {
       mockPrisma.jornada.findUnique.mockRejectedValue(new Error('Conexión perdida'));
 
-      //Act & Assert: Ejecutar el caso de uso y esperar que lance InternalServerErrorException
-      await expect(useCase.execute(idJornada, { descripcion: 'Prueba' })).rejects.toThrow(InternalServerErrorException);
+      await expect(useCase.execute(idJornada, { descripcion: 'Prueba' })).rejects.toThrow(
+        'Conexión perdida',
+      );
     });
   });
 });

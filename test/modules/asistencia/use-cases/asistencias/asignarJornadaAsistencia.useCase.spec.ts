@@ -10,20 +10,23 @@ jest.mock('@/common/utils/transaccion-auditada.util', () => ({
 import { HorarioAsistenciaSchema } from '@jyp/shared-contracts';
 import { horario } from '../../../../fixtures/motores.fixture';
 import { Prisma } from '@prisma/client';
+
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('AsignarJornadaAsistenciaUseCase', () => {
   const actor = {
     id: '019a0000-0002-7000-8000-000000000003',
     ip: '127.0.0.1',
   };
+
   const prisma = {
-    empleados: { findUnique: jest.fn() },
+    empleados: { findUnique: jest.fn(), update: jest.fn() },
     jornada: { findUnique: jest.fn() },
     jornada_area: { findMany: jest.fn() },
     asistencia_jornada: { findUnique: jest.fn(), create: jest.fn() },
     incidencias_mes: { findFirst: jest.fn(), updateMany: jest.fn() },
     historial_planillas: { findFirst: jest.fn() },
   };
+
   const caso = new AsignarJornadaAsistenciaUseCase(prisma as never);
   const dto = {
     empleado_id: 'e',
@@ -34,11 +37,13 @@ describe('AsignarJornadaAsistenciaUseCase', () => {
   };
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.empleados.update.mockResolvedValue({ id: dto.empleado_id, jornada_id: dto.jornada_id });
     prisma.jornada_area.findMany.mockResolvedValue([]);
     prisma.incidencias_mes.findFirst.mockResolvedValue(null);
     prisma.incidencias_mes.updateMany.mockResolvedValue({ count: 0 });
     prisma.historial_planillas.findFirst.mockResolvedValue(null);
   });
+  
   it('registra una sola vigencia inicial con copia del horario', async () => {
     // Arrange: preparar el escenario y los datos ficticios.
     prisma.empleados.findUnique.mockResolvedValue({
