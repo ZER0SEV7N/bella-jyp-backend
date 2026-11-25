@@ -1,6 +1,17 @@
 //src/modules/core/auth/controller/auth.controller.ts
 //Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación
-import {Controller, Post, Body, Res, UsePipes, HttpCode, HttpStatus, UseGuards, UnauthorizedException, Req} from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  UsePipes,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  UnauthorizedException,
+  Req,
+} from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { LoginUseCase } from '../use-cases/login.useCase';
 import { ProvisionarUsuarioUseCase } from '../use-cases/provisionarUsuario.useCase';
@@ -11,9 +22,27 @@ import { LogoutUseCase } from '../use-cases/logout.useCase';
 import { JwtAccessGuard } from '@/common/guards/jwt-access.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { LoginSchema, ProvisionarUsuarioSchema, RestablecerPasswordSchema, SolicitudRecuperacionSchema } from '@jyp/shared-contracts';
-import type {LoginDTO, ProvisionarUsuarioDTO, RestablecerPasswordDTO, SolicitudRecuperacionDTO } from '@jyp/shared-contracts';
-import {ApiSwaggerController, ApiSwaggerLogin, ApiSwaggerRefresh, ApiSwaggerProvisionar, ApiSwaggerRecuperarPassword, ApiSwaggerLogout, ApiSwaggerRestablecerPassword} from '../decorators/auth-swagger.decorator';
+import {
+  LoginSchema,
+  ProvisionarUsuarioSchema,
+  RestablecerPasswordSchema,
+  SolicitudRecuperacionSchema,
+} from '@jyp/shared-contracts';
+import type {
+  LoginDTO,
+  ProvisionarUsuarioDTO,
+  RestablecerPasswordDTO,
+  SolicitudRecuperacionDTO,
+} from '@jyp/shared-contracts';
+import {
+  ApiSwaggerController,
+  ApiSwaggerLogin,
+  ApiSwaggerRefresh,
+  ApiSwaggerProvisionar,
+  ApiSwaggerRecuperarPassword,
+  ApiSwaggerLogout,
+  ApiSwaggerRestablecerPassword,
+} from '../decorators/auth-swagger.decorator';
 
 /**
  * Controlador de autenticación para manejar las rutas y solicitudes relacionadas con la autenticación.
@@ -58,15 +87,16 @@ export class AuthController {
   async login(
     @Body() payload: LoginDTO,
     @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) res: FastifyReply,
+    @Res({ passthrough: true }) res: FastifyReply
   ) {
-    const { accessToken, refreshToken, usuario } = await this.loginUseCase.execute(payload, req.ip);
+    const { accessToken, refreshToken, usuario } =
+      await this.loginUseCase.execute(payload, req.ip);
     res.setCookie('jyp_rt', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 // 7 días
+      maxAge: 7 * 24 * 60 * 60, // 7 días
     });
 
     return { accessToken, usuario };
@@ -87,19 +117,24 @@ export class AuthController {
   @ApiSwaggerRefresh()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
+  async refreshToken(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply
+  ) {
     //Obtener el refresh token de las cookies de la solicitud
     const refreshToken = req.cookies?.['jyp_rt'];
     //Si no se encuentra en las cookies, intentar obtenerlo del encabezado de la solicitud (por si acaso)
     if (!refreshToken) {
       throw new UnauthorizedException({
         title: 'Sesión Expirada',
-        detail: 'No se encontró la cookie de refresco. Inicie sesión nuevamente.',
+        detail:
+          'No se encontró la cookie de refresco. Inicie sesión nuevamente.',
       });
     }
 
     //Llamar al caso de uso para refrescar el token, que validará el refresh token y generará un nuevo access token (y posiblemente un nuevo refresh token)
-    const { accessToken, newRefreshToken } = await this.refrescarTokenUseCase.execute(refreshToken);
+    const { accessToken, newRefreshToken } =
+      await this.refrescarTokenUseCase.execute(refreshToken);
 
     if (newRefreshToken) {
       res.setCookie('jyp_rt', newRefreshToken, {
@@ -135,12 +170,15 @@ export class AuthController {
   @ApiSwaggerProvisionar()
   @Post('provisionar')
   @HttpCode(HttpStatus.CREATED)
-  //@UseGuards(JwtAccessGuard, RolesGuard) // <---- Esto esta comentado para permitir que el endpoint sea accesible sin autenticación, pero en producción debería estar protegido. Lo dejamos comentado a proposito para pruebas y desarrollo.
-  @Roles('JYP','ADMIN', 'RRHH')
+  @UseGuards(JwtAccessGuard, RolesGuard) //Protege la creación de cuentas: sin token válido no se puede provisionar (AUTH-F1).
+  @Roles('JYP', 'ADMIN', 'RRHH')
   @UsePipes(new ZodValidationPipe(ProvisionarUsuarioSchema))
-  async provisionar(@Body() payload: ProvisionarUsuarioDTO) {
-    //Retorno directo, cero formateo en el controlador
-    return await this.provisionarUsuarioUseCase.execute(payload);
+  async provisionar(
+    @Body() payload: ProvisionarUsuarioDTO,
+    @Req() req: FastifyRequest & { user: { id: string; rol: string } }
+  ) {
+    //El rol del actor se valida contra la jerarquía de aprovisionamiento (RRHH no puede crear ADMIN).
+    return await this.provisionarUsuarioUseCase.execute(payload, req.user.rol);
   }
 
   /**
@@ -159,10 +197,13 @@ export class AuthController {
   @Post('recuperar-password')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(SolicitudRecuperacionSchema))
-  async solicitarRecuperacion(@Body() payload: SolicitudRecuperacionDTO, @Req() req: FastifyRequest) {
+  async solicitarRecuperacion(
+    @Body() payload: SolicitudRecuperacionDTO,
+    @Req() req: FastifyRequest
+  ) {
     return await this.recuperacionPasswordUseCase.solicitar(payload, req.ip);
   }
-  
+
   /**
    * Ruta para cerrar sesión, invalidando el refresh token y el access token.
    * @POST /api/v1/core/auth/logout
@@ -175,10 +216,15 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiSwaggerLogout()
-  async logout(@Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
+  async logout(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply
+  ) {
     const refreshToken = req.cookies?.['jyp_rt'];
     const authHeader = req.headers.authorization;
-    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7): undefined;
+    const accessToken = authHeader?.startsWith('Bearer ')
+      ? authHeader.substring(7)
+      : undefined;
 
     await this.logoutUseCase.execute(refreshToken, accessToken);
 
@@ -188,12 +234,12 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 0
+      maxAge: 0,
     });
 
     return {
       title: 'Sesión Finalizada',
-      detail: 'Tokens invalidados exitosamente.'
+      detail: 'Tokens invalidados exitosamente.',
     };
   }
 
@@ -215,8 +261,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiSwaggerRestablecerPassword()
   restablecerPassword(
-    @Body(new ZodValidationPipe(RestablecerPasswordSchema)) payload: RestablecerPasswordDTO,
-    @Req() req: FastifyRequest,
+    @Body(new ZodValidationPipe(RestablecerPasswordSchema))
+    payload: RestablecerPasswordDTO,
+    @Req() req: FastifyRequest
   ) {
     return this.recuperacionPasswordUseCase.restablecer(payload, req.ip);
   }

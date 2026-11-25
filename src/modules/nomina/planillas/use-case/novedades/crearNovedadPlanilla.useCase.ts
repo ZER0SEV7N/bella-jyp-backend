@@ -1,10 +1,18 @@
 //src/modules/nomina/planillas/use-case/crearNovedadPlanilla.useCase.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
-import { bloquearEmpleado, transaccionAuditada } from '@/common/utils/transaccion-auditada.util';
+import {
+  bloquearEmpleado,
+  transaccionAuditada,
+} from '@/common/utils/transaccion-auditada.util';
 import type { CrearNovedadPlanillaDto } from '@jyp/shared-contracts';
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
+import { verificarPlanillaAbierta } from '../../helpers/verificar-planilla-abierta.helper';
 
 /**
  * Caso de uso para crear una novedad de planilla para un empleado.
@@ -25,6 +33,7 @@ export class CrearNovedadPlanillaUseCase {
    * @returns - Promesa que se resuelve con la novedad de planilla creada si la operación es exitosa.
    * @throws NotFoundException si el empleado no existe.
    * @throws ConflictException si se excede el límite de cien novedades por colaborador en el período especificado.
+   * @throws ConflictException si la planilla del período ya está congelada o declarada (PLA-F7).
    */
   execute(dto: CrearNovedadPlanillaDto, actor: ActorOperacion) {
     return transaccionAuditada(this.prisma, actor, async (tx) => {
@@ -32,13 +41,33 @@ export class CrearNovedadPlanillaUseCase {
       await bloquearEmpleado(tx, dto.empleado_id);
 
       //Se valida que el empleado exista y que no se exceda el límite de cien novedades por colaborador en el período especificado.
-      if (!(await tx.empleados.findUnique({ where: { id: dto.empleado_id, deleted_at: null }, select: { id: true } })))
+      if (
+        !(await tx.empleados.findUnique({
+          where: { id: dto.empleado_id, deleted_at: null },
+          select: { id: true },
+        }))
+      )
         throw new NotFoundException('El colaborador no existe.');
 
+      //Se rechaza la novedad si la planilla del período ya fue congelada o declarada (PLA-F7).
+      await verificarPlanillaAbierta(tx, dto.empleado_id, dto.periodo);
+
       //Se valida que no se exceda el límite de cien novedades por colaborador en el período especificado.
-      if ((await tx.novedad_planilla.count({ where: { empleado_id: dto.empleado_id, periodo: dto.periodo } })) >= 100)
-        throw new ConflictException('El período alcanzó el límite de cien novedades por colaborador.');
-      return tx.novedad_planilla.create({ data: { id: IdentityGenerator.generateId(), ...dto, registrado_por: actor.id } });
+      if (
+        (await tx.novedad_planilla.count({
+          where: { empleado_id: dto.empleado_id, periodo: dto.periodo },
+        })) >= 100
+      )
+        throw new ConflictException(
+          'El período alcanzó el límite de cien novedades por colaborador.'
+        );
+      return tx.novedad_planilla.create({
+        data: {
+          id: IdentityGenerator.generateId(),
+          ...dto,
+          registrado_por: actor.id,
+        },
+      });
     });
   }
 }

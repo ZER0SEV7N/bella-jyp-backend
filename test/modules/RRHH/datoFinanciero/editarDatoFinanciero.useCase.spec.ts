@@ -281,10 +281,10 @@ describe('EditarDatoFinancieroUseCase - Pruebas Unitarias de Step-Up Auth y Re-e
         new Error('PostgreSQL deadlock')
       );
 
-      // Assert: Verificar que se lance InternalServerErrorException
+      // Assert: el fallo de la base de datos se propaga al filtro global, que responde 500 sin filtrar detalles
       await expect(
         useCase.execute(mockEmpleadoId, dtoEditar, mockUsuarioAutenticadoId)
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow('PostgreSQL deadlock');
     });
 
     it('Debe lanzar NotFoundException con title y detail si el empleado no existe al validar sueldo_basico', async () => {

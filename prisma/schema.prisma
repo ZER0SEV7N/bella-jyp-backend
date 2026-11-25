@@ -206,6 +206,7 @@ model empleados {
   // Vínculo laboral
   fecha_inicio          DateTime                   @db.Date
   fecha_cese            DateTime?                  @db.Date
+  motivo_cese           String?                    @db.VarChar(255)
   afp_fecha_filiacion   DateTime?                  @db.Date
   asig_familiar         Boolean                    @default(false)
   activo                Boolean                    @default(true)

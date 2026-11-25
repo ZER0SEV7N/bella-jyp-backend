@@ -150,6 +150,109 @@ export class PrismaService
         ? derechohabiente.empleado_id
         : null;
     };
+    const obtenerValoresAntes = async (
+      model: string,
+      operation: string,
+      argsRecord: Record<string, unknown> | null
+    ): Promise<Record<string, unknown> | null> => {
+      if (operation !== 'update' && operation !== 'delete') return null;
+      try {
+        return await getModelClient(model).findUnique({
+          where: argsRecord?.where,
+        });
+      } catch (error) {
+        localLogger.warn(
+          `Auditoría: No se pudo obtener el estado previo de ${model}`,
+          error
+        );
+        return null;
+      }
+    };
+    const obtenerValoresDespues = (
+      operation: string,
+      resultado: unknown,
+      argsRecord: Record<string, unknown> | null
+    ): {
+      valoresDespues: unknown;
+      valoresDespuesMasivos: Record<string, unknown> | null;
+    } => {
+      if (
+        operation === 'create' ||
+        operation === 'update' ||
+        operation === 'upsert'
+      ) {
+        return { valoresDespues: resultado, valoresDespuesMasivos: null };
+      }
+      if (!OPERACIONES_DML_MASIVAS.has(operation)) {
+        return { valoresDespues: null, valoresDespuesMasivos: null };
+      }
+
+      const registrosAfectados =
+        typeof resultado === 'object' &&
+        resultado !== null &&
+        'count' in resultado
+          ? ((resultado as { count?: unknown }).count ?? null)
+          : null;
+      const valoresDespuesMasivos = {
+        operacion_masiva: operation,
+        filtro: argsRecord?.where ?? null,
+        datos: argsRecord?.data ?? null,
+        registros_afectados: registrosAfectados,
+      };
+      return { valoresDespues: valoresDespuesMasivos, valoresDespuesMasivos };
+    };
+    const obtenerAfectado = async (
+      model: string,
+      registroId: string,
+      valoresAntes: Record<string, unknown> | null,
+      valoresDespues: unknown
+    ): Promise<AfectadoAuditoria | null> => {
+      try {
+        return await resolverAfectadoAuditoria(
+          model,
+          registroId,
+          valoresAntes,
+          valoresDespues,
+          buscarEmpleadoDeDerechohabiente
+        );
+      } catch (error) {
+        localLogger.warn(
+          `Auditoría: No se pudo determinar el afectado de ${model}`,
+          error
+        );
+        return null;
+      }
+    };
+    const registrarAuditoria = async (
+      data: Omit<AuditLogPayload, 'valores_antes' | 'valores_despues'>,
+      valoresAntes: Record<string, unknown> | null,
+      valoresDespues: unknown,
+      valoresDespuesMasivos: Record<string, unknown> | null
+    ): Promise<void> => {
+      const snapshotAntes = valoresAntes
+        ? crearSnapshotAuditoria(quitarCamposRelacion(data.tabla_afectada, valoresAntes))
+        : null;
+      let snapshotDespues: unknown = null;
+      if (valoresDespues) {
+        const valoresLimpios = valoresDespuesMasivos
+          ? quitarCamposRelacionMasiva(data.tabla_afectada, valoresDespuesMasivos)
+          : quitarCamposRelacion(data.tabla_afectada, valoresDespues);
+        snapshotDespues = crearSnapshotAuditoria(valoresLimpios);
+      }
+
+      try {
+        await createAuditLog({
+          ...data,
+          valores_antes: snapshotAntes,
+          valores_despues: snapshotDespues,
+        });
+      } catch (error) {
+        localLogger.error(
+          `Auditoría: No se pudo registrar la operación ${data.accion} en ${data.tabla_afectada}`,
+          error
+        );
+      }
+    };
 
     const extendedClient = this.$extends({
       query: {
@@ -170,53 +273,21 @@ export class PrismaService
               return query(args);
             }
 
-            let valoresAntes: Record<string, unknown> | null = null; //Variable para almacenar los valores antes de la operación (para auditoría)
             const argsRecord =
               typeof args === 'object' && args !== null
                 ? (args as Record<string, unknown>)
                 : null;
-
-            //Capturar el estado Exacto antes de la operación para operaciones de Update y Delete
-            if (operation === 'update' || operation === 'delete') {
-              try {
-                valoresAntes = await getModelClient(model).findUnique({
-                  where: argsRecord?.where,
-                });
-              } catch (error) {
-                localLogger.warn(
-                  `Auditoría: No se pudo obtener el estado previo de ${model}`,
-                  error
-                );
-              }
-            }
+            const valoresAntes = await obtenerValoresAntes(
+              model,
+              operation,
+              argsRecord
+            );
 
             //Ejecutar la consulta original de Prisma
             const resultado: unknown = await query(args);
 
-            //Capturar el estado Exacto después de la operación para operaciones de Create, Update y Upsert
-            let valoresDespues: unknown = null;
-            let valoresDespuesMasivos: Record<string, unknown> | null = null;
-            if (
-              operation === 'create' ||
-              operation === 'update' ||
-              operation === 'upsert'
-            ) {
-              valoresDespues = resultado;
-            } else if (esMasiva) {
-              const registrosAfectados =
-                typeof resultado === 'object' &&
-                resultado !== null &&
-                'count' in resultado
-                  ? ((resultado as { count?: unknown }).count ?? null)
-                  : null;
-              valoresDespuesMasivos = {
-                operacion_masiva: operation,
-                filtro: argsRecord?.where ?? null,
-                datos: argsRecord?.data ?? null,
-                registros_afectados: registrosAfectados,
-              };
-              valoresDespues = valoresDespuesMasivos;
-            }
+            const { valoresDespues, valoresDespuesMasivos } =
+              obtenerValoresDespues(operation, resultado, argsRecord);
 
             //Extraer información de auditoría del contexto de la solicitud usando ClsService
             let userId: string | null =
@@ -230,55 +301,29 @@ export class PrismaService
               IdentityGenerator.generateId();
 
             //El afectado es informativo: si no se puede resolver, la auditoría se guarda igual.
-            let afectado: AfectadoAuditoria | null = null;
-            try {
-              afectado = await resolverAfectadoAuditoria(
-                model,
-                registroId,
-                valoresAntes,
-                valoresDespues,
-                buscarEmpleadoDeDerechohabiente
-              );
-            } catch (error) {
-              localLogger.warn(
-                `Auditoría: No se pudo determinar el afectado de ${model}`,
-                error
-              );
-            }
+            const afectado = await obtenerAfectado(
+              model,
+              registroId,
+              valoresAntes,
+              valoresDespues
+            );
 
             //Registrar la operación en la tabla de auditoría
-            try {
-              await createAuditLog({
+            await registrarAuditoria(
+              {
                 id: IdentityGenerator.generateId(),
                 usuario_id: userId,
                 accion: operation.toUpperCase(),
                 tabla_afectada: model,
                 registro_id: registroId,
-                valores_antes: valoresAntes
-                  ? crearSnapshotAuditoria(
-                      quitarCamposRelacion(model, valoresAntes)
-                    )
-                  : null,
-                valores_despues: valoresDespues
-                  ? crearSnapshotAuditoria(
-                      valoresDespuesMasivos
-                        ? quitarCamposRelacionMasiva(
-                            model,
-                            valoresDespuesMasivos
-                          )
-                        : quitarCamposRelacion(model, valoresDespues)
-                    )
-                  : null,
                 direccion_ip: ipAddress,
                 afectado_tipo: afectado?.tipo ?? null,
                 afectado_id: afectado?.id ?? null,
-              });
-            } catch (error) {
-              localLogger.error(
-                `Auditoría: No se pudo registrar la operación de ${operation} en ${model}`,
-                error
-              );
-            }
+              },
+              valoresAntes,
+              valoresDespues,
+              valoresDespuesMasivos
+            );
 
             return resultado;
           },

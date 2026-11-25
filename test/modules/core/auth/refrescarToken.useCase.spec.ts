@@ -131,6 +131,7 @@ describe('RefrescarTokenUseCase - Pruebas Unitarias Exhaustivas', () => {
               nro_documento: true,
               activo: true,
               deleted_at: true,
+              estado_laboral: true,
             },
           },
         },

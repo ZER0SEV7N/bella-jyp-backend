@@ -1,7 +1,15 @@
 //src/modules/RRHH/use-cases/empleado/estadoEmpleado.UseCase.ts
-import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
-import type { DesactivarEmpleadoDto, CambiarEstadoLaboralDto } from '@jyp/shared-contracts';
+import type {
+  DesactivarEmpleadoDto,
+  CambiarEstadoLaboralDto,
+} from '@jyp/shared-contracts';
 import { ServerTime } from '@/common/utils/server-time';
 import { estado_empleado_enum } from '@prisma/client';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
@@ -35,7 +43,9 @@ export class EstadoEmpleadoUseCase {
    */
   async desactivar(id: string, dto?: DesactivarEmpleadoDto) {
     // Buscar el empleado por ID, asegurándose de que no esté ya dado de baja
-    const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
+    const empleado = await this.prisma.empleados.findUnique({
+      where: { id, deleted_at: null },
+    });
 
     // Validar que el empleado exista y esté activo antes de proceder con la desactivación
     if (!empleado) {
@@ -48,12 +58,18 @@ export class EstadoEmpleadoUseCase {
     // Validar y resolver la fecha de cese
     let fechaCese: Date;
     try {
-      fechaCese = dto?.fecha_cese ? ServerTime.desdeFechaSimple(dto.fecha_cese) : ServerTime.obtenerFechaSimpleActual;
+      fechaCese = dto?.fecha_cese
+        ? ServerTime.desdeFechaSimple(dto.fecha_cese)
+        : ServerTime.obtenerFechaSimpleActual;
     } catch {
-      throw new BadRequestException('La fecha de cese no existe en el calendario.');
+      throw new BadRequestException(
+        'La fecha de cese no existe en el calendario.'
+      );
     }
     if (empleado.fecha_inicio && fechaCese < empleado.fecha_inicio) {
-      throw new BadRequestException('La fecha de cese no puede preceder al ingreso.');
+      throw new BadRequestException(
+        'La fecha de cese no puede preceder al ingreso.'
+      );
     }
 
     // EMP-F3: Cese integral atómico (empleado + vínculo laboral + usuario + tokens + contratos + solicitudes)
@@ -64,6 +80,7 @@ export class EstadoEmpleadoUseCase {
           activo: false,
           estado_laboral: estado_empleado_enum.CESADO,
           fecha_cese: fechaCese,
+          motivo_cese: dto?.motivo_cese ?? null,
           deleted_at: ServerTime.obtenerFechaServidor,
         },
         include: {
@@ -142,6 +159,7 @@ export class EstadoEmpleadoUseCase {
           estado_laboral: estado_empleado_enum.ACTIVO,
           fecha_inicio: fechaReingreso,
           fecha_cese: null,
+          motivo_cese: null,
         },
         include: {
           area: { select: { id: true, nombre: true } },
@@ -162,7 +180,8 @@ export class EstadoEmpleadoUseCase {
 
     return {
       state: true,
-      message: 'Colaborador reactivado correctamente. Verifique la asignación de contratos, jornada y régimen previsional.',
+      message:
+        'Colaborador reactivado correctamente. Verifique la asignación de contratos, jornada y régimen previsional.',
       data: empleadoReactivado,
     };
   }
@@ -177,12 +196,15 @@ export class EstadoEmpleadoUseCase {
    */
   async cambiarEstadoLaboral(id: string, dto: CambiarEstadoLaboralDto) {
     try {
-      const empleado = await this.prisma.empleados.findUnique({ where: { id, deleted_at: null } });
+      const empleado = await this.prisma.empleados.findUnique({
+        where: { id, deleted_at: null },
+      });
 
       if (!empleado?.activo)
         throw new NotFoundException({
           title: 'Colaborador no disponible',
-          detail: 'No se puede modificar la situación operativa de un colaborador inactivo o cesado. Debe reactivarlo primero.',
+          detail:
+            'No se puede modificar la situación operativa de un colaborador inactivo o cesado. Debe reactivarlo primero.',
         });
 
       if (empleado.estado_laboral === dto.estado_laboral)
@@ -193,7 +215,7 @@ export class EstadoEmpleadoUseCase {
 
       const empleadoActualizado = await this.prisma.empleados.update({
         where: { id },
-        data: { estado_laboral: dto.estado_laboral as estado_empleado_enum },
+        data: { estado_laboral: dto.estado_laboral },
         include: {
           area: { select: { id: true, nombre: true } },
           cargo: { select: { id: true, nombre: true } },
@@ -206,11 +228,18 @@ export class EstadoEmpleadoUseCase {
         data: empleadoActualizado,
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
 
       throw new InternalServerErrorException({
         title: 'Error al cambiar estado laboral',
-        detail: error instanceof Error ? error.message : 'Fallo inesperado al cambiar el estado operativo.',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Fallo inesperado al cambiar el estado operativo.',
       });
     }
   }
