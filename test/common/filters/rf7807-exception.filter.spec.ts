@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { FastifyRequest } from 'fastify';
 
 /**
@@ -50,6 +51,9 @@ describe('Rfc7807ExceptionFilter - Pruebas Unitarias de Formateo de Errores', ()
     loggerErrorSpy = jest
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => {});
+
+    //Los errores de negocio se registran como advertencia; también se silencian en las pruebas.
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -129,6 +133,101 @@ describe('Rfc7807ExceptionFilter - Pruebas Unitarias de Formateo de Errores', ()
           status: HttpStatus.INTERNAL_SERVER_ERROR,
           detail: 'Ocurrió un error inesperado en el servidor.',
           instance: '/api/rrhh/empleados',
+        })
+      );
+    });
+  });
+
+  describe('catch() - Errores de Prisma y de negocio', () => {
+    /**
+     * Construye un error conocido de Prisma con el código y metadatos indicados.
+     */
+    const errorPrisma = (
+      code: string,
+      meta?: Record<string, unknown>,
+      message = 'Error de Prisma'
+    ) =>
+      new Prisma.PrismaClientKnownRequestError(message, {
+        code,
+        clientVersion: 'test',
+        meta,
+      });
+
+    it('P2021 responde 500 y no expone el nombre de la tabla faltante', () => {
+      //Arrange
+      const error = errorPrisma('P2021', { table: 'integracion_trabajo' });
+
+      //Act
+      filter.catch(error, mockHost);
+
+      //Assert
+      expect(mockReply.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+      const llamadas = mockReply.send.mock.calls as unknown as Array<
+        [{ detail: string }]
+      >;
+      expect(llamadas[0][0].detail).not.toContain('integracion_trabajo');
+      //El nombre de la tabla sí queda en el log, para diagnosticar el despliegue.
+      expect(
+        loggerErrorSpy.mock.calls.some(([mensaje]) =>
+          String(mensaje).includes('integracion_trabajo')
+        )
+      ).toBe(true);
+    });
+
+    it('P2023 responde 400 por un identificador con formato inválido', () => {
+      //Act
+      filter.catch(errorPrisma('P2023'), mockHost);
+
+      //Assert
+      expect(mockReply.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+    });
+
+    it('P2024 responde 503 por saturación del pool de conexiones', () => {
+      //Act
+      filter.catch(errorPrisma('P2024'), mockHost);
+
+      //Assert
+      expect(mockReply.status).toHaveBeenCalledWith(
+        HttpStatus.SERVICE_UNAVAILABLE
+      );
+    });
+
+    it('P2010 traduce el mensaje del trigger a un conflicto de negocio', () => {
+      //Arrange: el trigger devuelve texto plano dentro de meta.message
+      const error = errorPrisma('P2010', {
+        message: 'PLANILLA_BLOQUEADA: el período 2026-11 es inmutable.',
+      });
+
+      //Act
+      filter.catch(error, mockHost);
+
+      //Assert
+      expect(mockReply.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+      expect(mockReply.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Planilla no modificable',
+          status: HttpStatus.CONFLICT,
+        })
+      );
+    });
+
+    it('traduce un Error crudo con marca de planilla bloqueada a 409', () => {
+      //Arrange: algunos drivers propagan el texto del trigger sin envolverlo en Prisma
+      const error = new Error(
+        'ASISTENCIA_BLOQUEADA: la planilla del período no está abierta.'
+      );
+
+      //Act
+      filter.catch(error, mockHost);
+
+      //Assert
+      expect(mockReply.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+      expect(mockReply.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Asistencia no modificable',
+          status: HttpStatus.CONFLICT,
         })
       );
     });

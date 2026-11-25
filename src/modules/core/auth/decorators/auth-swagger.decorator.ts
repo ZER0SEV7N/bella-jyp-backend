@@ -116,8 +116,8 @@ export function ApiSwaggerProvisionar() {
     ApiOperacionDocumentada({
       summary: 'Provisionar usuario interno',
       description:
-        'Crea credenciales en PostgreSQL con hash Argon2id para un colaborador activo existente. La verificación de sesión y rol está desactivada temporalmente (AUTH-F1), por lo que hoy es público y no exige token. Exige correo corporativo (400), rechaza crear una cuenta destino con rol JYP (403, reservado a administración del software), valida que el colaborador exista y esté activo (404) y que no tenga usuario previo (409).',
-      roles: [],
+        'Crea credenciales en PostgreSQL con hash Argon2id para un colaborador activo existente. Exige un Access Token válido y respeta la jerarquía de roles (AUTH-F1): JYP y ADMIN pueden crear ADMIN, RRHH, CONTADOR, ASISTENTE y EMPLEADO; RRHH solo puede crear ASISTENTE y EMPLEADO. Exige correo corporativo (400), rechaza crear una cuenta destino con rol JYP (403), valida que el colaborador exista y esté activo (404) y que no tenga usuario previo (409).',
+      roles: ['JYP', 'ADMIN', 'RRHH'],
       status: 201,
       respuesta: {
         type: 'object',
@@ -133,9 +133,13 @@ export function ApiSwaggerProvisionar() {
       description: 'Datos inválidos o falta el correo corporativo obligatorio.',
     }),
     ApiResponse({
+      status: 401,
+      description: 'Falta el Access Token o la sesión fue revocada.',
+    }),
+    ApiResponse({
       status: 403,
       description:
-        'La cuenta destino solicita rol JYP, que solo se provisiona desde administración del software.',
+        'La cuenta destino solicita un rol que el actor no puede asignar (incluye el rol JYP, reservado a administración del software).',
     }),
     ApiResponse({
       status: 404,
