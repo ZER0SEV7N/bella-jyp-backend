@@ -30,7 +30,7 @@ export class CrearContratoUseCase {
         select: { id: true, activo: true, deleted_at: true }
       });
 
-      if (!empleado || !empleado.activo) throw new NotFoundException({
+      if (!empleado?.activo) throw new NotFoundException({
         title: 'Empleado no disponible',
         detail: 'No se encontró un empleado activo con el ID proporcionado.',
       });
@@ -50,12 +50,12 @@ export class CrearContratoUseCase {
           id: IdentityGenerator.generateId(),
           empleado_id: dto.empleado_id,
           tipo_modalidad: dto.tipo_modalidad || 'PLAZO_FIJO',
-          estado: (dto.estado as estado_contrato_enum) ?? estado_contrato_enum.VIGENTE,
+          estado: estado_contrato_enum.VIGENTE,
           fecha_inicio: fechaInicio,
           fecha_fin: fechaFin ?? null,
           observacion: dto.observacion?.trim() ?? null,
           url: urlPdf ?? null,
-          contrato_origen_id: dto.contrato_origen_id ?? null,
+          contrato_origen_id: null,
         },
         include: {
           empleados: {
@@ -71,7 +71,7 @@ export class CrearContratoUseCase {
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
 
-      throw new InternalServerErrorException('Ocurrió un error al intentar registrar el contrato.', error instanceof Error ? error.message : String(error));
+      throw new InternalServerErrorException('Ocurrió un error al intentar registrar el contrato.', error instanceof Error ? error.message : JSON.stringify(error));
     }
   }
 }

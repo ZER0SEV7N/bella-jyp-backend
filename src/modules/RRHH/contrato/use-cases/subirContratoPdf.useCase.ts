@@ -55,7 +55,7 @@ export class SubirContratoPdfUseCase {
 
       throw new InternalServerErrorException(
         'Ocurrió un error en el servidor al intentar guardar el archivo físico.',
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : typeof error === 'string' ? error : 'Error desconocido'
       );
     }
   }

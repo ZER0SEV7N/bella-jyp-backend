@@ -130,7 +130,7 @@ export class ListarContratoUseCase {
 
       throw new InternalServerErrorException(
         'Error al consultar el listado de contratos.',
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : JSON.stringify(error) ?? 'Error desconocido'
       );
     }
   }

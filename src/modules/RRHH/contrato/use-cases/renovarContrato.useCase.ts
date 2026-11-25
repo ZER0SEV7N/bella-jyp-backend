@@ -75,7 +75,7 @@ export class RenovarContratoUseCase {
 
       throw new InternalServerErrorException(
         'Error al procesar la renovación del contrato.',
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : 'Error desconocido'
       );
     }
   }

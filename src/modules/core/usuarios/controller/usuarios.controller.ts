@@ -31,12 +31,12 @@ import {
   CambiarEstadoUsuarioSchema,
   CambiarRolUsuarioSchema,
   ListarUsuariosQuerySchema,
-} from '../schemas/usuarios.schema';
+} from '../../../../../../shared-contracts/src/core/usuario/usuarios.schema';
 import type {
   CambiarEstadoUsuarioBody,
   CambiarRolUsuarioBody,
   ListarUsuariosQuery,
-} from '../schemas/usuarios.schema';
+} from '../../../../../../shared-contracts/src/core/usuario/usuarios.schema';
 
 /**
  * Controlador de usuarios que expone endpoints para la gestión de cuentas de usuario y el perfil del usuario autenticado.

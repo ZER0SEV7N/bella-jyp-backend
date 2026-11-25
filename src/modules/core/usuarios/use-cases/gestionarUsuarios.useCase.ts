@@ -11,7 +11,7 @@ import { validarJerarquiaProvision } from '../../auth/helpers/auth-token.helper'
 import type {
   ListarUsuariosQuery,
   RolUsuario,
-} from '../schemas/usuarios.schema';
+} from '@jyp/shared-contracts';
 
 /**
  * Caso de uso para la administración integral de cuentas de usuario (`USR-M1`):
@@ -30,28 +30,26 @@ export class GestionUsuariosUseCase {
     const skip = (page - 1) * limit;
 
     const where: Prisma.usuariosWhereInput = { deleted_at: null };
-    //`filtros.rol` es un rol válido del contrato: ya no requiere un cast que podía romper Prisma.
+    //filtros.rol es un rol válido del contrato: ya no requiere un cast que podía romper Prisma.
     if (filtros.rol) where.rol = filtros.rol;
     if (typeof filtros.activo === 'boolean') where.activo = filtros.activo;
 
+    // Si se proporciona un término de búsqueda, 
+    // se divide en palabras y se construye una condición OR para buscar coincidencias en `email`, 
+    // `nro_documento`, `nombre` y `apellido` de los empleados relacionados.
     if (filtros.search?.trim()) {
       const terminos = filtros.search.trim().split(/\s+/);
       where.AND = terminos.map((termino) => ({
         OR: [
           { email: { contains: termino, mode: 'insensitive' } },
-          {
-            empleados: {
-              nro_documento: { contains: termino, mode: 'insensitive' },
-            },
-          },
+          { empleados: { nro_documento: { contains: termino, mode: 'insensitive' }, }, },
           { empleados: { nombre: { contains: termino, mode: 'insensitive' } } },
-          {
-            empleados: { apellido: { contains: termino, mode: 'insensitive' } },
-          },
+          { empleados: { apellido: { contains: termino, mode: 'insensitive' } } },
         ],
       }));
     }
 
+    // Se ejecuta una transacción para obtener el total de usuarios que cumplen con los filtros y la lista paginada de usuarios.
     const [total, usuarios] = await this.prisma.$transaction([
       this.prisma.usuarios.count({ where }),
       this.prisma.usuarios.findMany({

@@ -24,7 +24,7 @@ export class AnularContratoUseCase {
     const contrato = await this.prisma.contratos.findUnique({where: { id: idContrato } });
     
     //Validaciones de negocio
-    if (!contrato || contrato.deleted_at !== null) throw new NotFoundException('Contrato no encontrado o ya anulado.');
+    if (contrato?.deleted_at !== null) throw new NotFoundException('Contrato no encontrado o ya anulado.');
     if (contrato.estado === estado_contrato_enum.ANULADO) throw new BadRequestException('El contrato ya se encuentra en estado ANULADO.');
     
     try {

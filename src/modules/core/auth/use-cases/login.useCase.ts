@@ -81,7 +81,6 @@ export class LoginUseCase {
       await this.controlIntentos?.registrarIntento('login:ip', ipCliente);
       throw this.credencialesInvalidas();
     }
-    await this.controlIntentos?.limpiarIntentos('login:doc', claveDocumento);
 
     if (['CESADO', 'DESPEDIDO'].includes(usuario.empleados?.estado_laboral ?? '')) {
       throw new UnauthorizedException({
