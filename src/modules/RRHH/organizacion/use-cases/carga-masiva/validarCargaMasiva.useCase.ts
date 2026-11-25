@@ -145,15 +145,15 @@ export class ValidarCargaMasivaUseCase {
    * @param errores - Arreglo de errores pre-validación.
    */
   private agregarErroresFila(
-    issues: { path: (string | number)[]; message: string }[],
+    issues: { path: PropertyKey[]; message: string }[],
     objetoEstandar: Record<string, any>,
     numeroFila: number,
     errores: ErrorPreValidacionDetalle[]
   ): void {
     //Iterar sobre cada issue de validación y agregarlo al arreglo de errores
     for (const issue of issues) {
-      const columna = issue.path.length > 0 ? issue.path.join('.') : 'general';
-      const valorRecibido = issue.path.length > 0 ? (objetoEstandar as any)[issue.path[0] as string] : undefined;
+      const columna = issue.path.length > 0 ? issue.path.map(String).join('.') : 'general';
+      const valorRecibido = issue.path.length > 0 ? (objetoEstandar as any)[issue.path[0]] : undefined;
 
       errores.push({
         fila: numeroFila,
