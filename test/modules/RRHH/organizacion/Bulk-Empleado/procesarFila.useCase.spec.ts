@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProcesarFilaEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/procesarFilaEmpleado.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
+import type { ContextoCatalogosCargaMasiva } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/catalogos-carga-masiva.helper';
 
 jest.mock('@/common/utils/crypto.util', () => ({
   CryptoUtil: {
@@ -20,23 +21,41 @@ jest.mock('@/common/utils/uuid.util', () => ({
 
 /**
  * Pruebas unitarias para ProcesarFilaEmpleadoUseCase siguiendo el patrón AAA (Arrange, Act, Assert).
+ * El caso de uso recibe un contexto con los catálogos ya resueltos; no consulta la base por fila.
  */
 describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: ProcesarFilaEmpleadoUseCase;
-  let prismaService: PrismaService;
 
   const mockPrismaService = {
     $transaction: jest.fn((cb) => cb(mockPrismaService)),
-    tipo_documento: { findFirst: jest.fn() },
-    area: { findFirst: jest.fn(), create: jest.fn() },
-    cargo: { findFirst: jest.fn(), create: jest.fn() },
-    jornada: { findFirst: jest.fn() },
     empleados: { upsert: jest.fn() },
-    regimen_pension: { findFirst: jest.fn() },
-    tipo_afp: { findFirst: jest.fn() },
-    bancos: { findFirst: jest.fn() },
     dato_financiero: { upsert: jest.fn() },
   };
+
+  /**
+   * Construye un contexto de catálogos completo, con claves en minúsculas tal como las consume el caso de uso.
+   */
+  const crearContexto = (
+    overrides: Partial<ContextoCatalogosCargaMasiva> = {}
+  ): ContextoCatalogosCargaMasiva =>
+    ({
+      tipoDocumento: new Map([
+        ['dni', { id: 'doc-uuid-1', tipo_documento: 'DNI' }],
+      ]),
+      area: new Map([['sistemas', { id: 'area-uuid-1', nombre: 'Sistemas' }]]),
+      cargo: new Map([
+        [
+          'area-uuid-1::desarrollador',
+          { id: 'cargo-uuid-1', nombre: 'Desarrollador' },
+        ],
+      ]),
+      jornada: new Map([['turno mañana', { id: 'jornada-uuid-1' }]]),
+      regimenOnp: { id: 'regimen-uuid-1', nombre: 'ONP' },
+      regimenAfp: { id: 'regimen-spp', nombre: 'SPP' },
+      tipoAfp: new Map([['integra', { id: 'afp-uuid-1', nombre: 'INTEGRA' }]]),
+      banco: new Map([['bcp', { id: 'banco-uuid-1', nombre: 'BCP' }]]),
+      ...overrides,
+    }) as unknown as ContextoCatalogosCargaMasiva;
 
   const mockFilaBase: CargaMasivaFilaDTO = {
     tipo_documento: 'DNI',
@@ -86,35 +105,34 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
       ],
     }).compile();
 
-    useCase = module.get<ProcesarFilaEmpleadoUseCase>(ProcesarFilaEmpleadoUseCase);
-    prismaService = module.get<PrismaService>(PrismaService);
+    useCase = module.get<ProcesarFilaEmpleadoUseCase>(
+      ProcesarFilaEmpleadoUseCase
+    );
 
-    mockPrismaService.$transaction.mockImplementation((cb) => cb(mockPrismaService));
-    mockPrismaService.regimen_pension.findFirst.mockResolvedValue({ id: 'regimen-uuid-1', nombre: 'ONP' });
-    mockPrismaService.bancos.findFirst.mockResolvedValue({ id: 'banco-uuid-1', nombre: 'BCP' });
-    mockPrismaService.dato_financiero.upsert.mockResolvedValue({ id: 'df-uuid-1' });
+    mockPrismaService.$transaction.mockImplementation((cb) =>
+      cb(mockPrismaService)
+    );
+    mockPrismaService.dato_financiero.upsert.mockResolvedValue({
+      id: 'df-uuid-1',
+    });
   });
 
   afterEach(() => jest.clearAllMocks());
 
   describe('execute() - Happy Paths', () => {
-    it('Debe procesar e insertar/actualizar (upsert) exitosamente un empleado con datos completos', async () => {
+    it('Debe procesar e insertar/actualizar (upsert) un empleado con datos completos desde el contexto', async () => {
       // Arrange
       const mockFila = { ...mockFilaBase };
-      mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1', tipo_documento: 'DNI' });
-      mockPrismaService.area.findFirst.mockResolvedValue({ id: 'area-uuid-1', nombre: 'Sistemas' });
-      mockPrismaService.cargo.findFirst.mockResolvedValue({ id: 'cargo-uuid-1', nombre: 'Desarrollador' });
-      mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'jornada-uuid-1', nombre: 'Turno Mañana' });
-      mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-uuid-1', nro_documento: '72345678' });
+      mockPrismaService.empleados.upsert.mockResolvedValue({
+        id: 'emp-uuid-1',
+        nro_documento: '72345678',
+      });
 
       // Act
-      await useCase.execute(mockFila, 'job-uuid-1');
+      await useCase.execute(mockFila, 'job-uuid-1', crearContexto());
 
       // Assert
-      expect(prismaService.tipo_documento.findFirst).toHaveBeenCalledWith({
-        where: { tipo_documento: { equals: 'DNI', mode: 'insensitive' } },
-      });
-      expect(prismaService.empleados.upsert).toHaveBeenCalledWith(
+      expect(mockPrismaService.empleados.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { nro_documento: '72345678' },
           update: expect.objectContaining({
@@ -126,7 +144,7 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
             asig_familiar: true,
             estado_sincronizacion: 'COMPLETO',
           }),
-        }),
+        })
       );
       expect(mockPrismaService.dato_financiero.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -135,80 +153,13 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
             sueldo_basico: 3500.0,
             regimen_salud: 'ESSALUD_REGULAR',
           }),
-        }),
+        })
       );
     });
 
-    it('Debe auto-crear el Área y el Cargo si no existen previamente en la base de datos', async () => {
+    it('Debe persistir el documento y el régimen AFP desde el contexto', async () => {
       // Arrange
       const mockFila: CargaMasivaFilaDTO = {
-        ...mockFilaBase,
-        nro_documento: '78990011',
-        nombre: 'Ana',
-        apellido: 'Lopez',
-        area: 'Nueva Area Logistica',
-        cargo: 'Jefe de Almacen',
-        asig_familiar: false,
-      };
-
-      mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-uuid-1' });
-      mockPrismaService.area.findFirst.mockResolvedValue(null);
-      mockPrismaService.area.create.mockResolvedValue({ id: 'new-area-id', nombre: 'Nueva Area Logistica' });
-      mockPrismaService.cargo.findFirst.mockResolvedValue(null);
-      mockPrismaService.cargo.create.mockResolvedValue({ id: 'new-cargo-id', nombre: 'Jefe de Almacen' });
-      mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'jornada-uuid-1' });
-      mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-uuid-3', nro_documento: '78990011' });
-
-      // Act
-      await useCase.execute(mockFila, 'job-uuid-3');
-
-      // Assert
-      expect(prismaService.area.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ nombre: 'Nueva Area Logistica' }),
-        }),
-      );
-      expect(prismaService.cargo.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ nombre: 'Jefe de Almacen', id_area: 'new-area-id' }),
-        }),
-      );
-    });
-  });
-
-  describe('execute() - Validaciones y Excepciones', () => {
-    it('Debe lanzar un error si el tipo de documento especificado no existe en la base de datos', async () => {
-      // Arrange
-      const mockFila: CargaMasivaFilaDTO = {
-        ...mockFilaBase,
-        tipo_documento: 'PTP',
-        nro_documento: '99999999',
-      };
-      mockPrismaService.tipo_documento.findFirst.mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(useCase.execute(mockFila, 'job-1')).rejects.toThrow(
-        "El tipo de documento 'PTP' no existe en la base de datos.",
-      );
-    });
-
-    it('Debe rechazar la fila si faltan nombre o apellido requeridos por el contrato', async () => {
-      // Arrange
-      const mockFila: CargaMasivaFilaDTO = {
-        ...mockFilaBase,
-        nombre: '' as any,
-        apellido: '' as any,
-      };
-
-      // Act & Assert
-      await expect(useCase.execute(mockFila, 'job-1')).rejects.toThrow(
-        'La fila del trabajo job-1 requiere nombre y apellido completos.',
-      );
-    });
-
-    it('Debe lanzar error si el régimen pensionario o la AFP indicada no existe en el catálogo', async () => {
-      // Arrange
-      const mockFilaAfp: CargaMasivaFilaDTO = {
         ...mockFilaBase,
         regimen_pension: 'AFP',
         tipo_afp: 'INTEGRA',
@@ -216,16 +167,75 @@ describe('ProcesarFilaEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         tipo_comision: 'FLUJO',
         afp_fecha_filiacion: '2020-01-01',
       };
-      mockPrismaService.tipo_documento.findFirst.mockResolvedValue({ id: 'doc-1' });
-      mockPrismaService.area.findFirst.mockResolvedValue({ id: 'area-1' });
-      mockPrismaService.cargo.findFirst.mockResolvedValue({ id: 'cargo-1' });
-      mockPrismaService.jornada.findFirst.mockResolvedValue({ id: 'jornada-1' });
-      mockPrismaService.empleados.upsert.mockResolvedValue({ id: 'emp-1' });
-      mockPrismaService.regimen_pension.findFirst.mockResolvedValue({ id: 'reg-spp', nombre: 'SPP' });
-      mockPrismaService.tipo_afp.findFirst.mockResolvedValue(null);
+      mockPrismaService.empleados.upsert.mockResolvedValue({
+        id: 'emp-afp',
+        nro_documento: '72345678',
+      });
+
+      // Act
+      await useCase.execute(mockFila, 'job-afp', crearContexto());
+
+      // Assert
+      expect(mockPrismaService.dato_financiero.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            id_regimen: 'regimen-spp',
+            id_tipo_afp: 'afp-uuid-1',
+            tipo_comision: 'FLUJO',
+          }),
+        })
+      );
+    });
+  });
+
+  describe('execute() - Validaciones y Excepciones', () => {
+    it('Debe lanzar un error si el tipo de documento no está en el contexto', async () => {
+      // Arrange
+      const mockFila: CargaMasivaFilaDTO = {
+        ...mockFilaBase,
+        tipo_documento: 'PTP',
+        nro_documento: '99999999',
+      };
 
       // Act & Assert
-      await expect(useCase.execute(mockFilaAfp, 'job-afp')).rejects.toThrow('La AFP indicada no existe.');
+      await expect(
+        useCase.execute(mockFila, 'job-1', crearContexto())
+      ).rejects.toThrow(
+        "El tipo de documento 'PTP' no existe en la base de datos."
+      );
+    });
+
+    it('Debe rechazar la fila si faltan nombre o apellido requeridos por el contrato', async () => {
+      // Arrange
+      const mockFila: CargaMasivaFilaDTO = {
+        ...mockFilaBase,
+        nombre: '',
+        apellido: '',
+      };
+
+      // Act & Assert
+      await expect(
+        useCase.execute(mockFila, 'job-1', crearContexto())
+      ).rejects.toThrow(
+        'La fila del trabajo job-1 requiere nombre y apellido completos.'
+      );
+    });
+
+    it('Debe lanzar error si la AFP indicada no está en el contexto', async () => {
+      // Arrange
+      const mockFilaAfp: CargaMasivaFilaDTO = {
+        ...mockFilaBase,
+        regimen_pension: 'AFP',
+        tipo_afp: 'PRIMA',
+        cuspp: '123456PRIMA1',
+        tipo_comision: 'FLUJO',
+        afp_fecha_filiacion: '2020-01-01',
+      };
+
+      // Act & Assert
+      await expect(
+        useCase.execute(mockFilaAfp, 'job-afp', crearContexto())
+      ).rejects.toThrow('La AFP indicada no existe.');
     });
   });
 });

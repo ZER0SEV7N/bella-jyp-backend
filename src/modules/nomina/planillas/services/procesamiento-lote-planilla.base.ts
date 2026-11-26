@@ -1,4 +1,5 @@
 // src/modules/nomina/planillas/services/procesamiento-lote-planilla.base.ts
+import { mapConLimite } from '@/common/utils/concurrencia.util';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ServerTime } from '@/common/utils/server-time';
 import type { JobPayrollData } from '@/workers/calculo-masivo/payroll.processor';
@@ -43,36 +44,6 @@ const ESTADOS_INMUTABLES = new Set(['CONGELADO', 'DECLARADO']);
  * por debajo del `DB_POOL_MAX` para dejar margen a las peticiones HTTP (Mejora 1 / RNF-01).
  */
 export const CONCURRENCIA_DEFECTO = 4;
-
-/**
- * Ejecuta `fn` sobre cada elemento manteniendo como máximo `limite` promesas en vuelo.
- * Sin dependencias externas y con el mismo orden de salida que la entrada.
- * @param items - Elementos a procesar.
- * @param limite - Máximo de operaciones concurrentes.
- * @param fn - Función asíncrona aplicada a cada elemento.
- * @returns - Resultados en el mismo orden que `items`.
- */
-export async function mapConLimite<T, R>(
-  items: T[],
-  limite: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const resultados = new Array<R>(items.length);
-  let siguiente = 0;
-
-  const trabajadores = Array.from(
-    { length: Math.max(1, Math.min(limite, items.length)) },
-    async () => {
-      while (siguiente < items.length) {
-        const indice = siguiente++;
-        resultados[indice] = await fn(items[indice]);
-      }
-    }
-  );
-
-  await Promise.all(trabajadores);
-  return resultados;
-}
 
 /**
  * Clase base protegida con las operaciones unitarias y de lote del procesamiento masivo de planillas.
