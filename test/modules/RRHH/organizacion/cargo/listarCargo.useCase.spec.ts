@@ -170,8 +170,8 @@ describe('ListarCargosUseCase - Pruebas Unitarias de Paginación y Filtros Avanz
 
   describe('Manejo de Excepciones', () => {
     it('Debe transformar fallos inesperados de consulta a InternalServerErrorException', async () => {
-      //Arrange: Simular que la base de datos lanza un error inesperado
-      mockPrisma.$transaction.mockRejectedValueOnce(new Error('PostgreSQL Connection Failure'));
+      //Arrange: Simular que la base de datos lanza un error inesperado en el conteo
+      mockPrisma.cargo.count.mockRejectedValueOnce(new Error('PostgreSQL Connection Failure'));
 
       //Act & Assert: Verificar que se lanza la excepción de error interno y que se propaga correctamente
       await expect(useCase.listar({ page: 1, limit: 50 })).rejects.toThrow(InternalServerErrorException);

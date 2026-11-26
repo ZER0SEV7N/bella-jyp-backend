@@ -28,6 +28,10 @@ export const EnvSchema = z.object({
     .string({ error: 'DATABASE_URL es requerida' })
     .min(1, 'DATABASE_URL no puede estar vacía'),
   DIRECT_URL: z.string().optional(),
+  // Tamaño del pool nativo de conexiones. Bajo carga evita el 500 por agotamiento del pool.
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(100).default(20),
+  // Concurrencia del cálculo masivo de planillas (se mantiene por debajo del pool).
+  PLANILLA_CONCURRENCIA: z.coerce.number().int().min(1).max(50).default(4),
 
   // Infraestructura Redis (BullMQ, Caché y Notificaciones)
   REDIS_HOST: z.string().default('localhost'),

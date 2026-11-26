@@ -67,7 +67,7 @@ export class TareasController {
    */
   @ApiSwaggerCrearTarea()
   @Post()
-  //@Roles('ADMIN', 'CONTADOR')
+  @Roles('ADMIN', 'CONTADOR')
   @UsePipes(new ZodValidationPipe(CrearTareaSchema))
   async crearTarea(
     @Body() payload: CrearTareaDto,

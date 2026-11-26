@@ -194,7 +194,7 @@ export class EmpleadoController {
   /**
    * Endpoint para actualizar la información de un empleado existente.
    * Requiere que el usuario tenga los roles de ADMIN o RRHH para acceder a este endpoint.
-   * @PUT - /api/rrhh/empleado/:id
+   * @PUT - /api/v1/rrhh/empleado/:id
    * @roles ADMIN, RRHH - Solo usuarios con estos roles pueden acceder a este endpoint.
    * @param id : string - UUID del empleado a actualizar.
    * @param payload : EditarEmpleadoDto{
@@ -262,9 +262,7 @@ export class EmpleadoController {
     @Body(new ZodValidationPipe(DesactivarEmpleadoSchema.optional()))
     dto?: DesactivarEmpleadoDto
   ) {
-    // El esquema valida el cuerpo opcional; la baja usa la fecha del servidor.
-    void dto;
-    return await this.estadoEmpleadoUseCase.desactivar(id);
+    return await this.estadoEmpleadoUseCase.desactivar(id, dto);
   }
 
   /**

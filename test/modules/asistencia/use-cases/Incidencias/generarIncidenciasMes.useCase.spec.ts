@@ -7,7 +7,8 @@ describe('GenerarIncidenciasMesUseCase', () => {
     ip: '127.0.0.1',
   };
   const servicio = { generar: jest.fn() };
-  const caso = new GenerarIncidenciasMesUseCase(servicio as never);
+  const cache = { invalidate: jest.fn() };
+  const caso = new GenerarIncidenciasMesUseCase(servicio as never, cache as never);
   const dto = { periodo: '2026-09', empleado_id: 'empleado' };
   it('conserva el actor y los filtros', async () => {
     // Arrange: preparar el escenario y los datos ficticios.

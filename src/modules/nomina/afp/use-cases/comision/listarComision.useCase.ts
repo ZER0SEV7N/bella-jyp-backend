@@ -26,7 +26,7 @@ export class ListarComisionesUseCase {
     if (solo_vigentes) whereClause.periodo_final = null;
 
     //Realizamos la consulta a la base de datos para obtener el total y las comisiones con paginación
-    const [total, comisiones] = await this.prisma.$transaction([
+    const [total, comisiones] = await Promise.all([
       this.prisma.comisiones_afp.count({ where: whereClause }),
       this.prisma.comisiones_afp.findMany({
         where: whereClause,

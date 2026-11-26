@@ -39,7 +39,7 @@ export class ListarAreasUseCase {
         ];
 
       //Realizar la consulta a la base de datos utilizando Prisma en una transacción para obtener el total y las áreas
-      const [total, areas] = await this.prisma.$transaction([
+      const [total, areas] = await Promise.all([
         this.prisma.area.count({ where }),
         this.prisma.area.findMany({
           where,

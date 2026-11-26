@@ -27,5 +27,11 @@
     "strictPropertyInitialization": false,
     "useDefineForClassFields": false
   },
-  "include": ["src/**/*", "test/**/*", "src/**/*.spec.ts", "prisma.config.ts", "prisma/**/*"]
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "src/**/*.spec.ts",
+    "prisma.config.ts",
+    "prisma/**/*"
+  ]
 }

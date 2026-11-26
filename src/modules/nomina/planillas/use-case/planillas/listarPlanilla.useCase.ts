@@ -20,7 +20,7 @@ export class ListarPlanillasUseCase {
      */
     async execute(query: ListarPlanillasDto) {
         const where = { periodo: query.periodo, deleted_at: null };
-        const [total, data] = await this.prisma.$transaction([
+        const [total, data] = await Promise.all([
             this.prisma.historial_planillas.count({ where }),
             this.prisma.historial_planillas.findMany({
                 where,

@@ -2,7 +2,6 @@ import { Test } from '@nestjs/testing';
 import {
   BadRequestException,
   ConflictException,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CrearSchemaEmpleadoCompletoDto } from '@jyp/shared-contracts';
@@ -46,6 +45,7 @@ describe('CrearEmpladoCompletoUseCase', () => {
   let useCase: CrearEmpladoCompletoUseCase;
   let reniecAdapter: { consultarDni: jest.Mock };
   let prisma: {
+    $transaction: jest.Mock;
     empleados: { create: jest.Mock };
     regimen_pension: { findUnique: jest.Mock };
     tipo_afp: { findUnique: jest.Mock };
@@ -158,6 +158,7 @@ describe('CrearEmpladoCompletoUseCase', () => {
     jest.clearAllMocks();
 
     prisma = {
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
       empleados: {
         create: jest.fn().mockResolvedValue({ id: 'uuid-generado' }),
       },
@@ -185,7 +186,9 @@ describe('CrearEmpladoCompletoUseCase', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         CrearEmpladoCompletoUseCase,
-        { provide: PrismaService, useValue: prisma },
+        // Usar una factory evita que el contenedor conserve una referencia
+        // distinta del mock y garantiza que $transaction esté disponible.
+        { provide: PrismaService, useFactory: () => prisma },
         { provide: ReniecAdapter, useValue: reniecAdapter },
       ],
     }).compile();
@@ -307,7 +310,13 @@ describe('CrearEmpladoCompletoUseCase', () => {
       await useCase.execute(crearDto());
       const financiero = dataCreada().dato_financiero.create;
 
-      expect(encryptSpy).toHaveBeenCalledTimes(4);
+      // El caso de uso también llama encryptOptional para el CUSPP (null).
+      expect(encryptSpy).toHaveBeenCalledTimes(5);
+      expect(encryptSpy).toHaveBeenCalledWith(null);
+      expect(encryptSpy).toHaveBeenCalledWith('1234567890');
+      expect(encryptSpy).toHaveBeenCalledWith('00212345678901234567');
+      expect(encryptSpy).toHaveBeenCalledWith('0987654321');
+      expect(encryptSpy).toHaveBeenCalledWith('00209876543210987654');
       expect(financiero.nro_cuenta_sueldo).toBe('enc(1234567890)');
       expect(financiero.cci_sueldo).toBe('enc(00212345678901234567)');
       expect(financiero.nro_cuenta_cts).toBe('enc(0987654321)');
@@ -576,31 +585,22 @@ describe('CrearEmpladoCompletoUseCase', () => {
 
   // ───────────────────────────── Errores inesperados ─────────────────────────────
   describe('errores inesperados', () => {
-    it('convierte un error de Prisma en InternalServerErrorException con el detalle', async () => {
+    it('propaga el error de Prisma', async () => {
+      // Arrange
       prisma.empleados.create.mockRejectedValue(new Error('Conexión perdida'));
 
-      const error = (await useCase
-        .execute(crearDto())
-        .catch((e: unknown) => e)) as InternalServerErrorException;
-
-      expect(error).toBeInstanceOf(InternalServerErrorException);
-      expect(error.getResponse()).toMatchObject({
-        title: 'Error al Registrar Colaborador',
-        detail: 'Conexión perdida',
-      });
+      // Act & Assert
+      await expect(useCase.execute(crearDto())).rejects.toThrow(
+        'Conexión perdida',
+      );
     });
 
-    it('usa un mensaje genérico si el error lanzado no es una instancia de Error', async () => {
+    it('propaga un valor de rechazo que no es una instancia de Error', async () => {
+      // Arrange
       prisma.empleados.create.mockRejectedValue('algo raro');
 
-      const error = (await useCase
-        .execute(crearDto())
-        .catch((e: unknown) => e)) as InternalServerErrorException;
-
-      expect(error).toBeInstanceOf(InternalServerErrorException);
-      expect(error.getResponse()).toMatchObject({
-        detail: 'Fallo interno al intentar crear el legajo del colaborador.',
-      });
+      // Act & Assert
+      await expect(useCase.execute(crearDto())).rejects.toBe('algo raro');
     });
   });
 });

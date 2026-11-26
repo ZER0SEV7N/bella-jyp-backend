@@ -162,9 +162,9 @@ describe('ListarAreasUseCase - Pruebas Unitarias Exhaustivas', () => {
   });
 
   describe('Manejo de Excepciones', () => {
-    it('Debe propagar InternalServerErrorException si la transacción en PostgreSQL falla', async () => {
-      //Arrange: Simular un fallo en la transacción de Prisma para provocar un error interno
-      mockPrisma.$transaction.mockRejectedValueOnce(new Error('Transaction Timeout'));
+    it('Debe transformar un fallo de consulta en InternalServerErrorException', async () => {
+      //Arrange: Simular que el conteo de áreas falla en la base de datos
+      mockPrisma.area.count.mockRejectedValueOnce(new Error('Transaction Timeout'));
 
       //Act & Assert: Verificar que se lanza la excepción de error interno y que se propaga correctamente
       await expect(useCase.listar({} as ListarAreasQueryDto)).rejects.toThrow( InternalServerErrorException );

@@ -12,6 +12,11 @@ import {
 } from '@jyp/shared-contracts';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ServerTime } from '@/common/utils/server-time';
+import { CacheCatalogoService } from '@/common/config/redis/cache-catalogo.service';
+import {
+  DASHBOARD_CACHE_TTL_SEGUNDOS,
+  claveDashboardCache,
+} from '@/common/config/redis/claves-cache';
 import { ContarIncidenciasMesUseCase } from '@/modules/asistencia/use-cases/Incidencias/contarIncidenciasMes.useCase';
 import {
   diferenciaDiasSimples,
@@ -46,7 +51,8 @@ interface CumpleanosFilaSql {
 export class ObtenerDashboardRrhhUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly contarIncidenciasMesUseCase: ContarIncidenciasMesUseCase
+    private readonly contarIncidenciasMesUseCase: ContarIncidenciasMesUseCase,
+    private readonly cache: CacheCatalogoService
   ) {}
 
   /**
@@ -61,6 +67,18 @@ export class ObtenerDashboardRrhhUseCase {
   ): Promise<DashboardRrhhResponseDto> {
     const fechas = resolverContextoFechasDashboard(query.periodo);
 
+    // Cache-aside por período: evita recalcular los indicadores en cada petición (Mejora 3).
+    // Se invalida cuando cambia la asistencia o las planillas del período.
+    return this.cache.getOrSet(
+      claveDashboardCache(fechas.periodo),
+      DASHBOARD_CACHE_TTL_SEGUNDOS,
+      () => this.construir(fechas)
+    );
+  }
+
+  private async construir(
+    fechas: ContextoFechasDashboard
+  ): Promise<DashboardRrhhResponseDto> {
     const [
       dotacion,
       asistenciaSemana,

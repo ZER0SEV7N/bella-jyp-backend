@@ -194,6 +194,13 @@ CREATE TYPE "naturaleza_concepto_enum" AS ENUM ('INGRESO', 'DESCUENTO', 'APORTE_
 
 CREATE TYPE "estado_contrato_enum" AS ENUM ('VIGENTE', 'RENOVADO', 'VENCIDO', 'ANULADO', 'FINALIZADO');
 
+-- ------------------------------------------------------------------------------------------------
+-- 1.25. estado_integracion_enum
+-- Estado de la bandeja de salida hacia n8n; lo consume el despachador de integraciones.
+-- ------------------------------------------------------------------------------------------------
+
+CREATE TYPE "estado_integracion_enum" AS ENUM ('PARCIAL', 'PENDIENTE', 'PROCESANDO', 'COMPLETADO', 'FALLIDO');
+
 -- ================================================================================================
 -- 2. CATÁLOGOS BASE
 -- ================================================================================================
@@ -546,6 +553,8 @@ CREATE TABLE "empleados" (
     "fecha_inicio" DATE NOT NULL,
     -- Cese que delimita el vínculo; el mes de cese requiere liquidación específica.
     "fecha_cese" DATE,
+    -- Motivo declarado del cese (renuncia, despido, fin de contrato). Se conserva para auditoría y liquidación.
+    "motivo_cese" VARCHAR(255),
     "afp_fecha_filiacion" DATE,
     "asig_familiar" BOOLEAN NOT NULL DEFAULT false,
     "activo" BOOLEAN NOT NULL DEFAULT true,
@@ -1690,6 +1699,47 @@ COMMENT ON TABLE "liquidacion_concepto" IS 'Conceptos, bases, factores e importe
 
 CREATE UNIQUE INDEX "uq_liquidacion_concepto_orden" ON "liquidacion_concepto" ("liquidacion_id", "orden");
 
+-- ------------------------------------------------------------------------------------------------
+-- 11.8. integracion_trabajo — Bandeja de salida persistente para n8n
+-- No duplica planillas ni guarda PDFs en PostgreSQL. El contenido sensible (incluido el token de
+-- recuperación) se almacena cifrado. La cola pendiente se consulta por (estado, despachado_en).
+-- ------------------------------------------------------------------------------------------------
+
+CREATE TABLE "integracion_trabajo" (
+    "id" UUID NOT NULL,
+    "clave" VARCHAR(200) NOT NULL,
+    "tipo" VARCHAR(30) NOT NULL,
+    "estado" "estado_integracion_enum" NOT NULL DEFAULT 'PENDIENTE',
+    "periodo" VARCHAR(7),
+    "usuario_id" UUID,
+    "solicitud_cifrada" TEXT NOT NULL,
+    "planilla_ids" UUID[] NOT NULL,
+    "resultado" JSONB,
+    "error" VARCHAR(2000),
+    "ejecucion_id" UUID,
+    "intentos" INTEGER NOT NULL DEFAULT 0,
+    "despachado_en" TIMESTAMPTZ(6),
+    "iniciado_en" TIMESTAMPTZ(6),
+    "finalizado_en" TIMESTAMPTZ(6),
+    "creado_en" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "actualizado_en" TIMESTAMPTZ(6) NOT NULL,
+    CONSTRAINT "integracion_trabajo_pkey" PRIMARY KEY ("id")
+);
+
+COMMENT ON TABLE "integracion_trabajo" IS 'Bandeja de salida persistente para n8n. No duplica planillas ni guarda PDFs en PostgreSQL.';
+
+-- Unicidad de (clave): garantiza idempotencia de la solicitud.
+CREATE UNIQUE INDEX "integracion_trabajo_clave_key" ON "integracion_trabajo" ("clave");
+
+-- Consulta de trabajos pendientes de despacho.
+CREATE INDEX "idx_integracion_pendiente" ON "integracion_trabajo" ("estado", "despachado_en");
+
+-- Consulta de trabajos por período y tipo.
+CREATE INDEX "idx_integracion_periodo" ON "integracion_trabajo" ("periodo", "tipo");
+
+-- Consulta por usuario solicitante.
+CREATE INDEX "integracion_trabajo_usuario_id_idx" ON "integracion_trabajo" ("usuario_id");
+
 -- ================================================================================================
 -- 12. RELACIONES Y CLAVES FORÁNEAS
 -- ================================================================================================
@@ -1972,6 +2022,15 @@ ADD CONSTRAINT "adelanto_desembolso_solicitud_id_fkey" FOREIGN KEY ("solicitud_i
 
 ALTER TABLE "usuarios"
 ADD CONSTRAINT "fk_usuarios_empleado" FOREIGN KEY ("empleado_id") REFERENCES "empleados" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ------------------------------------------------------------------------------------------------
+-- Relaciones de integracion_trabajo
+-- ------------------------------------------------------------------------------------------------
+
+-- integracion_trabajo(usuario_id) referencia usuarios(id). Puede ser NULL en trabajos automáticos.
+
+ALTER TABLE "integracion_trabajo"
+ADD CONSTRAINT "integracion_trabajo_usuario_id_fkey" FOREIGN KEY ("usuario_id") REFERENCES "usuarios" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- ------------------------------------------------------------------------------------------------
 -- Relaciones de tokens_seguridad
@@ -2668,5 +2727,12 @@ WHERE
 -- Efecto: Devuelve la revisión instalada. Se define al final; el arranque comprueba también que
 -- los triggers críticos estén activos.
 CREATE OR REPLACE FUNCTION asistencia_version_migracion() RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT '2026-10-21.1'::text $$;
+
+-- CON-F1: Garantizar a nivel de base de datos un único contrato VIGENTE activo por empleado.
+-- Nota: índice parcial no modelado en Prisma (igual que uq_novedad_dso_aprobada); no eliminar en migrate diff.
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_contrato_vigente" ON "contratos" ("empleado_id")
+WHERE
+    "estado" = 'VIGENTE'
+    AND "deleted_at" IS NULL;
 
 COMMIT;

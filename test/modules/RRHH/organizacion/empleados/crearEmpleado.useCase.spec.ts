@@ -27,7 +27,8 @@ jest.mock('@/common/utils/uuid.util', () => ({
 describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: CrearEmpleadoUseCase;
 
-  const mockPrisma = {
+  const mockPrisma: any = {
+    $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(mockPrisma)),
     empleados: { findFirst: jest.fn(), create: jest.fn() },
     area: { findUnique: jest.fn() },
     cargo: { findUnique: jest.fn(), findFirst: jest.fn() },
@@ -45,6 +46,7 @@ describe('CrearEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
     area_id: '018f4a7c-area-0000-0000-000000000001',
     documento_id: '018f4a7c-tdoc-0000-0000-000000000001',
     nro_documento: '70112233',
+    estado_laboral: 'ACTIVO',
     nombre: 'Juan',
     apellido: 'Perez',
     email: 'demo@example.test',

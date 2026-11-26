@@ -55,7 +55,7 @@ export class ListarEmpleadosUseCase {
       }
 
       //Ejecución de la transacción para contar el total de empleados y obtener la lista paginada de empleados según los filtros aplicados.
-      const [total, empleados] = await this.prisma.$transaction([
+      const [total, empleados] = await Promise.all([
         this.prisma.empleados.count({ where }),
         this.prisma.empleados.findMany({
           where,

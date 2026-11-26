@@ -4,7 +4,7 @@ import {
   ApiOperacionDocumentada,
   esquemaContrato,
 } from '@/common/decorators/api-contrato.decorator';
-import { MiPerfilSchema, usuarioRolEnum } from '@jyp/shared-contracts';
+import { MiPerfilSchema } from '@jyp/shared-contracts';
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -97,7 +97,10 @@ export function ApiSwaggerListarUsuarios() {
           properties: {
             id: { type: 'string', format: 'uuid' },
             email: { type: 'string' },
-            rol: { type: 'string', enum: [...usuarioRolEnum.options] },
+            rol: {
+              type: 'string',
+              enum: ['ADMIN', 'RRHH', 'CONTADOR', 'ASISTENTE', 'EMPLEADO', 'JYP'],
+            },
             activo: { type: 'boolean' },
             ultimo_acceso: {
               type: 'string',

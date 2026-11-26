@@ -23,7 +23,7 @@ export class ListarTiposAfpUseCase {
     const skip = (page - 1) * limit;
 
     //Realizar la consulta a la base de datos para obtener el total de tipos de AFP y los tipos de AFP paginados
-    const [total, tipos] = await this.prisma.$transaction([
+    const [total, tipos] = await Promise.all([
       this.prisma.tipo_afp.count(),
       this.prisma.tipo_afp.findMany({
         skip,

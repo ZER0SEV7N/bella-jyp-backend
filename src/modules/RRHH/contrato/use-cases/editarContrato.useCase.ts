@@ -3,7 +3,6 @@ import { BadRequestException, Injectable, InternalServerErrorException, NotFound
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { EditarContratoDto } from '@jyp/shared-contracts';
 import { sanitizarFecha } from '@/common/utils/transformacion.util';
-import { estado_contrato_enum } from '@prisma/client';
 
 /**
  * Caso de uso para editar un contrato en el módulo de RRHH
@@ -43,7 +42,6 @@ export class EditarContratoUseCase {
         where: { id: idContrato },
         data: {
           tipo_modalidad: dto.tipo_modalidad ?? undefined,
-          estado: dto.estado ? (dto.estado as estado_contrato_enum) : undefined,
           observacion: dto.observacion !== undefined ? dto.observacion?.trim() : undefined,
           ...(fechaInicio && { fecha_inicio: fechaInicio }),
           ...(fechaFin !== undefined && { fecha_fin: fechaFin }),

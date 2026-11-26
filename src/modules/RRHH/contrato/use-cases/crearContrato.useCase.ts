@@ -1,5 +1,5 @@
 //src/modules/RRHH/contrato/use-cases/crearContrato.useCase.ts
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CrearContratoDto } from '@jyp/shared-contracts';
 import { IdentityGenerator } from '@/common/utils/uuid.util';
@@ -23,39 +23,63 @@ export class CrearContratoUseCase {
    * @returns Una promesa que resuelve con el contrato creado
    */
   async execute(dto: CrearContratoDto, urlPdf?: string) {
-    try {
-      //Validar que el empleado exista y esté activo
-      const empleado = await this.prisma.empleados.findUnique({
-        where: { id: dto.empleado_id, deleted_at: null },
-        select: { id: true, activo: true, deleted_at: true }
-      });
+    // Validar que el empleado exista y esté activo
+    const empleado = await this.prisma.empleados.findUnique({
+      where: { id: dto.empleado_id, deleted_at: null },
+      select: { id: true, activo: true, deleted_at: true },
+    });
 
-      if (!empleado || !empleado.activo) throw new NotFoundException({
+    // Validar que el empleado exista y esté activo
+    if (!empleado?.activo) {
+      throw new NotFoundException({
         title: 'Empleado no disponible',
         detail: 'No se encontró un empleado activo con el ID proporcionado.',
       });
-      
+    }
 
-      //Normalizar fechas con sanitizarFecha
-      const fechaInicio = sanitizarFecha(dto.fecha_inicio);
-      const fechaFin = sanitizarFecha(dto.fecha_fin);
+    // Normalizar fechas con sanitizarFecha
+    const fechaInicio = sanitizarFecha(dto.fecha_inicio);
+    const fechaFin = sanitizarFecha(dto.fecha_fin);
 
-      if (!fechaInicio) throw new BadRequestException('La fecha de inicio es obligatoria y debe ser válida.');
-      
-      if (fechaFin && fechaInicio > fechaFin) throw new BadRequestException('La fecha de inicio no puede ser posterior a la fecha de fin.');
-      
-      //Crear el contrato
-      return await this.prisma.contratos.create({
+    if (!fechaInicio) {
+      throw new BadRequestException('La fecha de inicio es obligatoria y debe ser válida.');
+    }
+    if (fechaFin && fechaInicio > fechaFin) {
+      throw new BadRequestException('La fecha de inicio no puede ser posterior a la fecha de fin.');
+    }
+
+    // Garantizar atómicamente un único contrato VIGENTE por colaborador
+    return await this.prisma.$transaction(async (tx) => {
+      const contratoVigente = await tx.contratos.findFirst({
+        where: {
+          empleado_id: dto.empleado_id,
+          estado: estado_contrato_enum.VIGENTE,
+          deleted_at: null,
+        },
+        select: { id: true },
+      });
+
+      // Si ya existe un contrato VIGENTE para el empleado, lanzar un error de conflicto
+      if (contratoVigente) {
+        throw new ConflictException({
+          title: 'Contrato vigente duplicado',
+          detail:
+            'El colaborador ya cuenta con un contrato VIGENTE. Renueve o anule el contrato actual antes de crear uno nuevo.',
+          campo: 'empleado_id',
+        });
+      }
+
+      return tx.contratos.create({
         data: {
           id: IdentityGenerator.generateId(),
           empleado_id: dto.empleado_id,
           tipo_modalidad: dto.tipo_modalidad || 'PLAZO_FIJO',
-          estado: (dto.estado as estado_contrato_enum) ?? estado_contrato_enum.VIGENTE,
+          estado: estado_contrato_enum.VIGENTE,
           fecha_inicio: fechaInicio,
           fecha_fin: fechaFin ?? null,
           observacion: dto.observacion?.trim() ?? null,
           url: urlPdf ?? null,
-          contrato_origen_id: dto.contrato_origen_id ?? null,
+          contrato_origen_id: null,
         },
         include: {
           empleados: {
@@ -63,15 +87,11 @@ export class CrearContratoUseCase {
               id: true,
               nombre: true,
               apellido: true,
-              nro_documento: true
-            }
-          }
-        }
+              nro_documento: true,
+            },
+          },
+        },
       });
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
-
-      throw new InternalServerErrorException('Ocurrió un error al intentar registrar el contrato.', error instanceof Error ? error.message : String(error));
-    }
+    });
   }
 }

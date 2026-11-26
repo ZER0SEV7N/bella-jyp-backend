@@ -3,8 +3,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CargaMasivaProcessor } from '@/workers/carga-masiva/carga-masiva.processor';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { ProcesarFilaEmpleadoUseCase } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/procesarFilaEmpleado.useCase';
+import { prepararCatalogosCargaMasiva } from '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/catalogos-carga-masiva.helper';
 import { Job } from 'bullmq';
 import type { CargaMasivaFilaDTO } from '@jyp/shared-contracts';
+
+// Se aísla la resolución de catálogos: el worker solo debe orquestar y propagar el contexto.
+jest.mock(
+  '@/modules/RRHH/organizacion/use-cases/carga-masiva/helpers/catalogos-carga-masiva.helper',
+  () => ({
+    prepararCatalogosCargaMasiva: jest.fn(),
+  })
+);
 
 /**
  * Pruebas unitarias para el worker de BullMQ encargado de procesar la carga masiva de empleados.
@@ -59,22 +68,30 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
     regimen_salud: 'ESSALUD_REGULAR',
     eps_costo_adicional: 0,
     tipo_cuenta_sueldo: 'SUELDO',
-    tipo_cuenta_cts: 'AHORROS'
+    tipo_cuenta_cts: 'AHORROS',
   };
 
   //Configuración del módulo de pruebas antes de cada test
   beforeEach(async () => {
+    // La resolución de catálogos se aísla con un contexto vacío: el worker solo lo propaga.
+    (prepararCatalogosCargaMasiva as jest.Mock).mockResolvedValue({});
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CargaMasivaProcessor,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: ProcesarFilaEmpleadoUseCase, useValue: mockProcesarFilaUseCase },
-      ]
+        {
+          provide: ProcesarFilaEmpleadoUseCase,
+          useValue: mockProcesarFilaUseCase,
+        },
+      ],
     }).compile();
 
     processor = module.get<CargaMasivaProcessor>(CargaMasivaProcessor);
     prismaService = module.get<PrismaService>(PrismaService);
-    procesarFilaEmpleadoUseCase = module.get<ProcesarFilaEmpleadoUseCase>(ProcesarFilaEmpleadoUseCase);
+    procesarFilaEmpleadoUseCase = module.get<ProcesarFilaEmpleadoUseCase>(
+      ProcesarFilaEmpleadoUseCase
+    );
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -84,14 +101,19 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
       //Arrange: Crear un job simulado con varias filas de empleados
       const registros: CargaMasivaFilaDTO[] = [
         { ...filaBaseMock, nro_documento: '70998877' },
-        { ...filaBaseMock, nro_documento: '002233445', tipo_documento: 'CE' }
+        { ...filaBaseMock, nro_documento: '002233445', tipo_documento: 'CE' },
       ];
 
       //Crear un job simulado con varias filas de empleados
-      const mockJob = { name: 'lote-final', data: { jobId: mockJobId, registros } } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
+      const mockJob = {
+        name: 'lote-final',
+        data: { jobId: mockJobId, registros },
+      } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
 
       //Mockear las respuestas de Prisma y del caso de uso
-      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({ id: mockJobId });
+      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({
+        id: mockJobId,
+      });
       mockProcesarFilaUseCase.execute.mockResolvedValue(undefined);
 
       //Mockear la respuesta de findUnique para simular que el job existe en la base de datos
@@ -100,7 +122,7 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
         total_registros: 2,
         procesados: 0,
         fallidos: 0,
-        errores_detalle: []
+        errores_detalle: [],
       });
 
       //Act: Ejecutar el método process del worker
@@ -109,13 +131,23 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
       //Assert: Verificar que se haya actualizado el estado del job a PROCESANDO al inicio
       expect(prismaService.cargaMasivaJob.update).toHaveBeenNthCalledWith(1, {
         where: { id: mockJobId },
-        data: { estado: 'PROCESANDO' }
+        data: { estado: 'PROCESANDO' },
       });
 
       //Verificar que se haya llamado al caso de uso de procesamiento de fila para cada registro
       expect(procesarFilaEmpleadoUseCase.execute).toHaveBeenCalledTimes(2);
-      expect(procesarFilaEmpleadoUseCase.execute).toHaveBeenNthCalledWith(1, registros[0], mockJobId);
-      expect(procesarFilaEmpleadoUseCase.execute).toHaveBeenNthCalledWith(2, registros[1], mockJobId);
+      expect(procesarFilaEmpleadoUseCase.execute).toHaveBeenNthCalledWith(
+        1,
+        registros[0],
+        mockJobId,
+        {}
+      );
+      expect(procesarFilaEmpleadoUseCase.execute).toHaveBeenNthCalledWith(
+        2,
+        registros[1],
+        mockJobId,
+        {}
+      );
 
       //Verificar que se haya actualizado el estado del job a COMPLETADO al finalizar
       expect(prismaService.cargaMasivaJob.update).toHaveBeenNthCalledWith(2, {
@@ -124,8 +156,8 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
           procesados: 2,
           fallidos: 0,
           errores_detalle: [],
-          estado: 'COMPLETADO'
-        }
+          estado: 'COMPLETADO',
+        },
       });
     });
 
@@ -133,17 +165,24 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
       //Arrange: Crear un job simulado con varias filas de empleados, una de las cuales fallará
       const registros: CargaMasivaFilaDTO[] = [
         { ...filaBaseMock, nro_documento: '70998877' },
-        { ...filaBaseMock, nro_documento: '00000000' }
+        { ...filaBaseMock, nro_documento: '00000000' },
       ];
 
       //Crear un job simulado con varias filas de empleados
-      const mockJob = { name: 'lote-0', data: { jobId: mockJobId, registros } } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
+      const mockJob = {
+        name: 'lote-0',
+        data: { jobId: mockJobId, registros },
+      } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
 
       //Mockear las respuestas de Prisma y del caso de uso
-      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({ id: mockJobId });
+      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({
+        id: mockJobId,
+      });
 
       //Mockear el caso de uso para que la primera fila se procese correctamente y la segunda falle
-      mockProcesarFilaUseCase.execute.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('DNI no encontrado en RENIEC'));
+      mockProcesarFilaUseCase.execute
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('DNI no encontrado en RENIEC'));
 
       //Mockear la respuesta de findUnique para simular que el job existe en la base de datos
       mockPrismaService.cargaMasivaJob.findUnique.mockResolvedValue({
@@ -151,7 +190,7 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
         total_registros: 10,
         procesados: 0,
         fallidos: 0,
-        errores_detalle: []
+        errores_detalle: [],
       });
 
       //Act: Ejecutar el método process del worker
@@ -164,22 +203,33 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
         data: {
           procesados: 1,
           fallidos: 1,
-          errores_detalle: [{ Dni: '00000000', causa: 'DNI no encontrado en RENIEC' }],
-          estado: 'PROCESANDO'
-        }
+          errores_detalle: [
+            { Dni: '00000000', causa: 'DNI no encontrado en RENIEC' },
+          ],
+          estado: 'PROCESANDO',
+        },
       });
     });
 
     it('Debe marcar estado FALLIDO si todas las filas del archivo fallan', async () => {
       //Arrange: Crear un job simulado con una fila de empleado que fallará
-      const registros: CargaMasivaFilaDTO[] = [{ ...filaBaseMock, nro_documento: '11111111' }];
+      const registros: CargaMasivaFilaDTO[] = [
+        { ...filaBaseMock, nro_documento: '11111111' },
+      ];
 
       //Crear un job simulado con una fila de empleado que fallará
-      const mockJob = { name: 'lote-final', data: { jobId: mockJobId, registros } } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
+      const mockJob = {
+        name: 'lote-final',
+        data: { jobId: mockJobId, registros },
+      } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
 
       //Mockear las respuestas de Prisma y del caso de uso
-      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({ id: mockJobId });
-      mockProcesarFilaUseCase.execute.mockRejectedValue(new Error('Error de concurrencia en BD'));
+      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({
+        id: mockJobId,
+      });
+      mockProcesarFilaUseCase.execute.mockRejectedValue(
+        new Error('Error de concurrencia en BD')
+      );
 
       //Mockear la respuesta de findUnique para simular que el job existe en la base de datos
       mockPrismaService.cargaMasivaJob.findUnique.mockResolvedValue({
@@ -187,7 +237,7 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
         total_registros: 1,
         procesados: 0,
         fallidos: 0,
-        errores_detalle: []
+        errores_detalle: [],
       });
 
       //Act: Ejecutar el método process del worker
@@ -200,21 +250,28 @@ describe('CargaMasivaProcessor - Pruebas Unitarias del Worker de BullMQ', () => 
         data: {
           procesados: 0,
           fallidos: 1,
-          errores_detalle: [{ Dni: '11111111', causa: 'Error de concurrencia en BD' }],
-          estado: 'FALLIDO'
-        }
+          errores_detalle: [
+            { Dni: '11111111', causa: 'Error de concurrencia en BD' },
+          ],
+          estado: 'FALLIDO',
+        },
       });
     });
 
     it('Debe ignorar la actualización final si el job ya no existe en la BD', async () => {
-      //Arrange: Crear un job simulado con una fila de empleado 
+      //Arrange: Crear un job simulado con una fila de empleado
       const registros: CargaMasivaFilaDTO[] = [{ ...filaBaseMock }];
 
       //Crear un job simulado con una fila de empleado
-      const mockJob = { name: 'lote-0', data: { jobId: mockJobId, registros } } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
+      const mockJob = {
+        name: 'lote-0',
+        data: { jobId: mockJobId, registros },
+      } as Job<{ jobId: string; registros: CargaMasivaFilaDTO[] }>;
 
       //Mockear las respuestas de Prisma y del caso de uso
-      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({ id: mockJobId });
+      mockPrismaService.cargaMasivaJob.update.mockResolvedValue({
+        id: mockJobId,
+      });
       mockProcesarFilaUseCase.execute.mockResolvedValue(undefined);
       mockPrismaService.cargaMasivaJob.findUnique.mockResolvedValue(null);
 

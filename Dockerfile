@@ -26,7 +26,12 @@ RUN --mount=type=secret,id=github_token,required=false \
       pnpm install && \
       git config --global --unset-all url."https://$(cat /run/secrets/github_token)@github.com/".insteadOf; \
     else \
-      node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));if(fs.existsSync('vendor/jyp-shared-contracts-1.2.0.tgz')){p.dependencies['@jyp/shared-contracts']='file:vendor/jyp-shared-contracts-1.2.0.tgz';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');}" && \
+      node -e "const fs=require('fs'); \
+        const p=JSON.parse(fs.readFileSync('package.json','utf8')); \
+        if(fs.existsSync('vendor/jyp-shared-contracts-1.2.0.tgz')){ \
+          p.dependencies['@jyp/shared-contracts']='file:vendor/jyp-shared-contracts-1.2.0.tgz'; \
+          fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n'); \
+        }" && \
       npm install --no-audit --no-fund; \
     fi
 

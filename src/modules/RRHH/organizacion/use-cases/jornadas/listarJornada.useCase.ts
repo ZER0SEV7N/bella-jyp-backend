@@ -46,7 +46,7 @@ export class ListarJornadaUseCase {
       if (query.area_id) where.jornada_areas = { some: { area_id: query.area_id } };
 
       //Realizar la consulta a la base de datos con transacción para obtener el total y los registros paginados
-      const [total, jornadas] = await this.prisma.$transaction([
+      const [total, jornadas] = await Promise.all([
         this.prisma.jornada.count({ where }),
         this.prisma.jornada.findMany({
           where,

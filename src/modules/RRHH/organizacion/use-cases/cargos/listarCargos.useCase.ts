@@ -40,7 +40,7 @@ export class ListarCargosUseCase {
         ];
 
       //Realizar la consulta a la base de datos utilizando Prisma en una transacción para obtener el total y los cargos
-      const [total, cargos] = await this.prisma.$transaction([
+      const [total, cargos] = await Promise.all([
         this.prisma.cargo.count({ where }),
         this.prisma.cargo.findMany({
           where,

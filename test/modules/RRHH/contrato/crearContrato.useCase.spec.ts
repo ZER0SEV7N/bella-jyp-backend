@@ -1,6 +1,6 @@
 //test/modules/RRHH/contrato/crearContrato.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CrearContratoUseCase } from '@/modules/RRHH/contrato/use-cases/crearContrato.useCase';
 import { CrearContratoDto } from '@jyp/shared-contracts';
@@ -23,7 +23,6 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
     //DTO de prueba para crear un contrato
     const dtoCrear: CrearContratoDto = {
         empleado_id: mockEmpleadoId,
-        estado: 'VIGENTE',
         tipo_modalidad: 'PLAZO_FIJO',
         fecha_inicio: '2026-09-01',
         fecha_fin: '2027-02-28',
@@ -31,10 +30,11 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
     };
 
     //Mock del servicio Prisma para simular la interacción con la base de datos
-    const mockPrismaService = {
+   const mockPrismaService: any = {
+        $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(mockPrismaService)),
         empleados: { findUnique: jest.fn() },
         estado_contrato: { findUnique: jest.fn() },
-        contratos: { create: jest.fn() },
+        contratos: { findFirst: jest.fn(), create: jest.fn() },
     };
 
     //Configuración del módulo de pruebas antes de cada prueba
@@ -48,6 +48,8 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
 
         useCase = module.get<CrearContratoUseCase>(CrearContratoUseCase);
         prismaService = module.get<PrismaService>(PrismaService);
+        mockPrismaService.$transaction.mockImplementation((cb: any) => cb(mockPrismaService));
+        mockPrismaService.contratos.findFirst.mockResolvedValue(null);
     });
 
     afterEach(() => jest.clearAllMocks());
@@ -114,12 +116,16 @@ describe('CrearContratoUseCase - Pruebas Unitarias Exhaustivas', () => {
             await expect(useCase.execute(dtoCrear)).resolves.toMatchObject({ estado: 'VIGENTE' });
         });
 
-        it('Resiliencia: Debe transformar cualquier error imprevisto a InternalServerErrorException', async () => {
-           //Arrange: Configuración del mock para simular un error inesperado en la base de datos
-            mockPrismaService.empleados.findUnique.mockRejectedValue(new Error('Fatal DB failure'));
+        it('CON-F1: Debe lanzar ConflictException si el colaborador ya tiene un contrato VIGENTE', async () => {
+            mockPrismaService.empleados.findUnique.mockResolvedValue({
+                id: mockEmpleadoId,
+                activo: true,
+                deleted_at: null,
+            });
+            mockPrismaService.contratos.findFirst.mockResolvedValue({ id: 'contrato-vigente-1' });
 
-            //Act & Assert: Ejecutar el caso de uso y verificar que se lance la excepción esperada
-            await expect(useCase.execute(dtoCrear)).rejects.toThrow(InternalServerErrorException);
+            await expect(useCase.execute(dtoCrear)).rejects.toThrow(ConflictException);
+            expect(mockPrismaService.contratos.create).not.toHaveBeenCalled();
         });
     });
 });
