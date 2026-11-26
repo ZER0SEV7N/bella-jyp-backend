@@ -23,7 +23,7 @@ export async function consultarActividadAuditoria(
   page: number,
   limit: number
 ): Promise<ListaActividadAuditoria> {
-  const [total, filas] = await prisma.$transaction([
+  const [total, filas] = await Promise.all([
     prisma.audit_log.count({ where }),
     prisma.audit_log.findMany({
       where,

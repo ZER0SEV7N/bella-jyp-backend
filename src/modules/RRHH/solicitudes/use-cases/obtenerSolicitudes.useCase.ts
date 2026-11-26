@@ -82,7 +82,7 @@ export class ObtenerSolicitudesUseCase {
         //Se realiza una transacción para obtener el total de solicitudes que cumplen con los filtros y la lista de solicitudes paginadas.
         const { estado: _estado, ...filtroConteos } = where;
         //Se realiza una transacción para obtener el total de solicitudes que cumplen con los filtros y la lista de solicitudes paginadas.
-        const [total, solicitudes] = await this.prisma.$transaction([
+        const [total, solicitudes] = await Promise.all([
             this.prisma.solicitud.count({ where }),
             this.prisma.solicitud.findMany({
                 where,

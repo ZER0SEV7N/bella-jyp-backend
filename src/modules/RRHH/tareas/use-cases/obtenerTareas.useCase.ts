@@ -30,7 +30,7 @@ export class ObtenerTareasUseCase {
     }
     //Ver todas las tareas si es ADMIN o SUPERADMIN (JYP)
 
-    const [total, tareas] = await this.prisma.$transaction([
+    const [total, tareas] = await Promise.all([
       this.prisma.tareas_asistente.count({ where: where }),
       this.prisma.tareas_asistente.findMany({
         where: where,

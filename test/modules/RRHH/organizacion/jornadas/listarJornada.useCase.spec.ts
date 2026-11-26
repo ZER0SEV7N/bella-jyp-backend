@@ -195,9 +195,9 @@ describe('ListarJornadaUseCase - Pruebas Unitarias', () => {
   });
 
   describe('Manejo de Errores', () => {
-    it('Debe propagar InternalServerErrorException si la transacción falla', async () => {
-      //Arrange: Configurar el mock para simular un error en la trans
-      mockPrisma.$transaction.mockRejectedValueOnce(new Error('PostgreSQL timeout'));
+    it('Debe transformar un fallo de consulta en InternalServerErrorException', async () => {
+      //Arrange: Configurar el mock para simular un error de PostgreSQL en el conteo
+      mockPrisma.jornada.count.mockRejectedValueOnce(new Error('PostgreSQL timeout'));
 
       //Act & Assert: Ejecutar el caso de uso y esperar que lance InternalServerErrorException
       await expect(useCase.execute({} as ListarJornadasQueryDto)).rejects.toThrow(InternalServerErrorException);

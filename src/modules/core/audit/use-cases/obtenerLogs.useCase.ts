@@ -48,7 +48,7 @@ export class ObtenerLogsUseCase {
       hasta,
     });
 
-    const [total, logs] = await this.prisma.$transaction([
+    const [total, logs] = await Promise.all([
       this.prisma.audit_log.count({ where }),
       this.prisma.audit_log.findMany({
         where,

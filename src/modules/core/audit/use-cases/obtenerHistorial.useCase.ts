@@ -25,7 +25,7 @@ export class ObtenerHistorialUseCase {
     });
     const skip = (page - 1) * limit;
 
-    const [total, filas] = await this.prisma.$transaction([
+    const [total, filas] = await Promise.all([
       this.prisma.audit_log.count({ where }),
       this.prisma.audit_log.findMany({
         where,

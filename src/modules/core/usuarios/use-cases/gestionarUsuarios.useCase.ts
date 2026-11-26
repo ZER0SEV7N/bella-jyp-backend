@@ -50,7 +50,7 @@ export class GestionUsuariosUseCase {
     }
 
     // Se ejecuta una transacción para obtener el total de usuarios que cumplen con los filtros y la lista paginada de usuarios.
-    const [total, usuarios] = await this.prisma.$transaction([
+    const [total, usuarios] = await Promise.all([
       this.prisma.usuarios.count({ where }),
       this.prisma.usuarios.findMany({
         where,
