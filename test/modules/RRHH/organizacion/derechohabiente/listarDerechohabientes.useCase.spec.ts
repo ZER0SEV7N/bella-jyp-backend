@@ -74,6 +74,19 @@ describe('ListarDerechohabientesUseCase - Pruebas Unitarias Exhaustivas', () => 
         orderBy: { created_at: 'desc' },
       });
     });
+
+    it('Debe incluir los derechohabientes inactivos cuando se solicita con incluir_inactivos', async () => {
+      // Arrange
+      mockPrisma.derechohabientes.findMany.mockResolvedValue([]);
+
+      // Act
+      await useCase.listarPorEmpleado(empleadoId, true);
+
+      // Assert: sin el filtro deleted_at.
+      expect(mockPrisma.derechohabientes.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { empleado_id: empleadoId } })
+      );
+    });
   });
 
   describe('Validaciones de Negocio y Excepciones', () => {
