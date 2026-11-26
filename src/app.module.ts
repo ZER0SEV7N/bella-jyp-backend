@@ -12,6 +12,7 @@ import { NotificacionesModule } from './common/notificaciones/notificaciones.mod
 import { AuthModule } from './modules/core/auth/auth.module';
 import { AuditModule } from './modules/core/audit/audit.module';
 import { UsuariosModule } from './modules/core/usuarios/usuarios.module';
+import { CatalogosModule } from './modules/core/catalogos/catalogos.module';
 import { OrganizacionModule } from './modules/RRHH/organizacion/organizacion.module';
 import { TareasModule } from './modules/RRHH/tareas/tareas.module';
 import { ContratoModule } from './modules/RRHH/contrato/contrato.module';
@@ -47,6 +48,7 @@ import { IntegracionesModule } from './modules/integraciones/integraciones.modul
     AuthModule,
     AuditModule,
     UsuariosModule,
+    CatalogosModule,
     OrganizacionModule,
     TareasModule,
     ContratoModule,
