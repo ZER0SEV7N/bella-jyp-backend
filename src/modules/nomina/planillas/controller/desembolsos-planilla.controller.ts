@@ -7,9 +7,10 @@ import type { SolicitudAutenticada } from '@/common/utils/actor-operacion.util';
 import { actorSolicitud } from '@/common/utils/actor-operacion.util';
 import type { RegistrarDesembolsoDto } from '@jyp/shared-contracts';
 import { RegistrarDesembolsoSchema } from '@jyp/shared-contracts';
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiSwaggerPlanillasController, ApiSwaggerRegistrarDesembolso } from '../decorators/planillas-swagger.decorator';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiSwaggerPlanillasController, ApiSwaggerListarAdelantosPendientesDesembolso, ApiSwaggerRegistrarDesembolso } from '../decorators/planillas-swagger.decorator';
 import { RegistrarDesembolsoUseCase } from '../use-case/desembolso/registrarDesembolso.useCase';
+import { ListarAdelantosPendientesDesembolsoUseCase } from '../use-case/desembolso/listarAdelantosPendientesDesembolso.useCase';
 
 /**
  * Controlador para manejar las operaciones de desembolso de planillas.
@@ -22,7 +23,21 @@ import { RegistrarDesembolsoUseCase } from '../use-case/desembolso/registrarDese
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles('ADMIN', 'CONTADOR', 'ASISTENTE')
 export class DesembolsosPlanillaController {
-    constructor(private readonly registrarDesembolso: RegistrarDesembolsoUseCase) {}
+    constructor(
+        private readonly registrarDesembolso: RegistrarDesembolsoUseCase,
+        private readonly listarAdelantosPendientes: ListarAdelantosPendientesDesembolsoUseCase
+    ) {}
+
+    /**
+     * Endpoint para listar los adelantos aprobados que aún no tienen desembolso (PLA-F9).
+     * @returns Una promesa que resuelve con los adelantos pendientes de desembolso.
+     */
+    @Get()
+    @ApiSwaggerListarAdelantosPendientesDesembolso()
+    @Roles('CONTADOR')
+    listarPendientes() {
+        return this.listarAdelantosPendientes.execute();
+    }
 
     /**
      * Endpoint para registrar un desembolso de planilla.

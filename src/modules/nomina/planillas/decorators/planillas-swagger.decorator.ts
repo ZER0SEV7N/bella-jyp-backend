@@ -201,6 +201,36 @@ export function ApiSwaggerRegistrarDesembolso() {
 }
 
 /**
+ * Documenta `GET /api/v1/nomina/planillas/desembolsos`.
+ */
+export function ApiSwaggerListarAdelantosPendientesDesembolso() {
+  return applyDecorators(
+    ApiOperacionDocumentada({
+      summary: 'Listar adelantos aprobados pendientes de desembolso',
+      description:
+        'Devuelve las solicitudes de ADELANTO_SUELDO aprobadas sin desembolso, con colaborador y monto, para que el contador registre el egreso.',
+      roles: contador,
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            codigo: { type: 'string' },
+            empleado_id: { type: 'string', format: 'uuid' },
+            colaborador: { type: 'string' },
+            nro_documento: { type: 'string' },
+            monto: { type: 'string', nullable: true },
+            fecha_limite: { type: 'string', format: 'date', nullable: true },
+            created_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    })
+  );
+}
+
+/**
  * Documenta `POST /api/v1/nomina/planillas/novedades`.
  */
 export function ApiSwaggerCrearNovedadPlanilla() {

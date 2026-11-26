@@ -21,6 +21,7 @@ import { ListarNovedadesPlanillaUseCase } from './use-case/novedades/listarNoved
 import { ListarPlanillasUseCase } from './use-case/planillas/listarPlanilla.useCase';
 import { ObtenerPlanillaUseCase } from './use-case/planillas/obtenerPlanilla.useCase';
 import { RegistrarDesembolsoUseCase } from './use-case/desembolso/registrarDesembolso.useCase';
+import { ListarAdelantosPendientesDesembolsoUseCase } from './use-case/desembolso/listarAdelantosPendientesDesembolso.useCase';
 import { ResolverNovedadPlanillaUseCase } from './use-case/novedades/resolverNovedadPlanilla.useCase';
 import { SolicitarGeneracionPlanillasUseCase } from './use-case/solicitarGeneracionPlanilla.useCase';
 import { BoletasPropiasUseCase } from './use-case/boletasPropias.useCase';
@@ -44,6 +45,7 @@ import { BoletasPropiasUseCase } from './use-case/boletasPropias.useCase';
     BoletasPropiasUseCase,
     ObtenerPlanillaUseCase,
     RegistrarDesembolsoUseCase,
+    ListarAdelantosPendientesDesembolsoUseCase,
     GenerarPlanillaUseCase,
     ResolverNovedadPlanillaUseCase,
     SolicitarGeneracionPlanillasUseCase,
