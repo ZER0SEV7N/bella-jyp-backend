@@ -2,11 +2,6 @@ import { decimal } from '@/modules/nomina/planillas/domain/dinero-planilla';
 import { r4 } from '@/modules/nomina/planillas/domain/dinero-planilla';
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('decimal', () => {
-    const actor = {
-        id: '019a0000-0002-7000-8000-000000000003',
-        ip: '127.0.0.1',
-    };
-
     it('conserva precisión decimal al sumar importes', async () => {
         // Arrange: preparar el escenario y los datos ficticios.
         const a = decimal('0.10'),

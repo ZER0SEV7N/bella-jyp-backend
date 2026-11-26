@@ -2,10 +2,6 @@ import { ListarMarcacionesUseCase } from '@/modules/asistencia/use-cases/asisten
 
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('ListarMarcacionesUseCase', () => {
-  const actor = {
-    id: '019a0000-0002-7000-8000-000000000003',
-    ip: '127.0.0.1',
-  };
   const prisma = {
     asistencia_marcacion: { count: jest.fn(), findMany: jest.fn() },
   };

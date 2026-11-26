@@ -1,6 +1,6 @@
 //test/modules/payroll/afp/afp.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import {BadRequestException,NotFoundException, InternalServerErrorException} from '@nestjs/common';
+import {BadRequestException,NotFoundException} from '@nestjs/common';
 import { AfpController } from '@/modules/nomina/afp/controller/afp.controller';
 import { AgregarComisionUseCase } from '@/modules/nomina/afp/use-cases/comision/agregarComision.useCase';
 import { ListarComisionesUseCase } from '@/modules/nomina/afp/use-cases/comision/listarComision.useCase';
@@ -23,8 +23,6 @@ import type {
 describe('AfpController - Pruebas Unitarias Exhaustivas de Endpoints HTTP', () => {
   let controller: AfpController;
 
-  const mockAgregarAportacionUseCase = { execute: jest.fn() };
-  const mockListarAportacionesUseCase = { listar: jest.fn() };
   const mockAgregarComisionUseCase = { execute: jest.fn() };
   const mockListarComisionesUseCase = { listar: jest.fn() };
   const mockAgregarTipoAfpUseCase = { execute: jest.fn() };

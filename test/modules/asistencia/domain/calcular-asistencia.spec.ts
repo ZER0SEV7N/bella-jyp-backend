@@ -4,8 +4,6 @@ import {
 } from '@/modules/asistencia/domain/calcular-asistencia';
 import {
   contexto,
-  entrada,
-  horario,
   horario48,
   cambiarMarcas,
   dia,

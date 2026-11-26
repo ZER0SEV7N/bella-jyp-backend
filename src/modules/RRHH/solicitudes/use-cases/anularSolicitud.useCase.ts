@@ -1,5 +1,5 @@
 //src/modules/RRHH/solicitudes/use-cases/anularSolicitud.useCase.ts
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { SOLICITUD_INCLUDE, obtenerSolicitudOperativa } from '../helpers/validacionesSolicitud.helper';
 import { Prisma } from '@prisma/client';

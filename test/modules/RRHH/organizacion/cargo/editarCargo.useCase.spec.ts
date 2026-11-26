@@ -12,7 +12,6 @@ import type { ActualizarCargoDto } from '@jyp/shared-contracts';
  */
 describe('EditarCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: EditarCargoUseCase;
-  let prisma: PrismaService;
 
   //Mocks de Prisma para simular la interacción con la base de datos
   const mockPrisma = {
@@ -47,7 +46,6 @@ describe('EditarCargoUseCase - Pruebas Unitarias Exhaustivas', () => {
     }).compile();
 
     useCase = module.get<EditarCargoUseCase>(EditarCargoUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => jest.clearAllMocks());

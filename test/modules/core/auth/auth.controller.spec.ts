@@ -3,7 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
   UnauthorizedException,
-  HttpStatus,
 } from '@nestjs/common';
 import { AuthController } from '@/modules/core/auth/controller/auth.controller';
 import { LoginUseCase } from '@/modules/core/auth/use-cases/login.useCase';

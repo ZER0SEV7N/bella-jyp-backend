@@ -2,10 +2,6 @@ import { ListarNovedadesPlanillaUseCase } from '@/modules/nomina/planillas/use-c
 
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('ListarNovedadesPlanillaUseCase', () => {
-    const actor = {
-        id: '019a0000-0002-7000-8000-000000000003',
-        ip: '127.0.0.1',
-    };
     const prisma = { novedad_planilla: { findMany: jest.fn() } };
     const caso = new ListarNovedadesPlanillaUseCase(prisma as never);
     it('acota el listado al empleado y período', async () => {

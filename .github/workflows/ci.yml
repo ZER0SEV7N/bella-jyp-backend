@@ -107,8 +107,7 @@ jobs:
             exit 0
           fi
           printf 'Revisando %s archivos con ESLint\n' "${#ARCHIVOS[@]}"
-          # Solo los errores bloquean el merge; los avisos (p. ej. no-unused-vars) se corrigen de forma incremental.
-          pnpm exec eslint "${ARCHIVOS[@]}"
+          pnpm exec eslint --max-warnings=0 "${ARCHIVOS[@]}"
 
       - name: Verificar complejidad ciclomática (SonarQube pre-check)
         run: pnpm run check:complejidad

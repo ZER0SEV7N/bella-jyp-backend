@@ -47,7 +47,7 @@ export class EditarContratoUseCase {
           ...(fechaFin !== undefined && { fecha_fin: fechaFin }),
         },
       });
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Error al actualizar los datos del contrato.');
     }
   }

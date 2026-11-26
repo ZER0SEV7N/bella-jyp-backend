@@ -2,10 +2,6 @@ import { ListarPlanillasUseCase } from '@/modules/nomina/planillas/use-case/plan
 
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('ListarPlanillasUseCase', () => {
-    const actor = {
-        id: '019a0000-0002-7000-8000-000000000003',
-        ip: '127.0.0.1',
-    };
     const prisma = {
         historial_planillas: { count: jest.fn(), findMany: jest.fn() },
         $transaction: jest.fn((a) => Promise.all(a)),

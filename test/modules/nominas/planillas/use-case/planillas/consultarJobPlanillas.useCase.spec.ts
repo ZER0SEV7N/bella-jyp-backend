@@ -8,7 +8,6 @@ describe('ConsultarTrabajoPlanillasUseCase', () => {
     };
     const servicio = { consultar: jest.fn() };
     const caso = new ConsultarTrabajoPlanillasUseCase(servicio as never);
-    const dto = { periodo: '2026-09', empleado_id: 'empleado' };
     it('conserva el actor y los filtros', async () => {
         // Arrange: preparar el escenario y los datos ficticios.
         servicio.consultar.mockResolvedValue({ id: 'trabajo' });

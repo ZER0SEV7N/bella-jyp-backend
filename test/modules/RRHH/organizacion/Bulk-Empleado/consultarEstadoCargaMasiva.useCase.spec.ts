@@ -8,7 +8,6 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('ConsultarEstadoCargaMasivaUseCase', () => {
   let useCase: ConsultarEstadoCargaMasivaUseCase;
-  let prisma: PrismaService;
 
   //Arrange: Configuración de Mocks
   const mockPrisma = { cargaMasivaJob: { findFirst: jest.fn() } };
@@ -25,7 +24,6 @@ describe('ConsultarEstadoCargaMasivaUseCase', () => {
 
     //Obtiene las instancias del caso de uso y del servicio Prisma
     useCase = module.get<ConsultarEstadoCargaMasivaUseCase>(ConsultarEstadoCargaMasivaUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

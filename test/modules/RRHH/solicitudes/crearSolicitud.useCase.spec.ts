@@ -21,7 +21,6 @@ jest.mock('@/common/utils/transaccion-auditada.util', () => ({
  */
 describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
     let useCase: CrearSolicitudUseCase;
-    let prisma: PrismaService;
 
     //Mocks de PrismaService para simular la base de datos
     const mockPrisma = {
@@ -61,7 +60,6 @@ describe('CrearSolicitudUseCase - Pruebas Unitarias Exhaustivas', () => {
         }).compile();
 
         useCase = module.get<CrearSolicitudUseCase>(CrearSolicitudUseCase);
-        prisma = module.get<PrismaService>(PrismaService);
 
         jest.spyOn(IdentityGenerator, 'generateId').mockReturnValue('solicitud-uuid-001');
     });

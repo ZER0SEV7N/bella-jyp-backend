@@ -35,7 +35,7 @@ export class AnularContratoUseCase {
           deleted_at: new Date(),
         },
       });
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Error al intentar anular el contrato.');
     }
   }

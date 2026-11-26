@@ -3,11 +3,6 @@ import { entrada } from '../../../../fixtures/motores.fixture';
 import { Dinero } from '@/modules/nomina/planillas/domain/dinero-planilla';
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('calcularGratificacion', () => {
-    const actor = {
-        id: '019a0000-0002-7000-8000-000000000003',
-        ip: '127.0.0.1',
-    };
-
     it('prorratea tres meses computables en julio', async () => {
         // Arrange: preparar el escenario y los datos ficticios.
         const e = { ...entrada(), meses_gratificacion: 3 };

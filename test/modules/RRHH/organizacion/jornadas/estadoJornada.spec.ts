@@ -12,7 +12,6 @@ import { PrismaService } from '@/common/prisma/prisma.service';
  */
 describe('EstadoJornadaUseCase - Pruebas Unitarias de Desactivación y Reactivación', () => {
   let useCase: EstadoJornadaUseCase;
-  let prisma: PrismaService;
 
   //Mock del servicio PrismaService para simular la interacción con la base de datos
   const mockPrisma = {
@@ -35,7 +34,6 @@ describe('EstadoJornadaUseCase - Pruebas Unitarias de Desactivación y Reactivac
     }).compile();
 
     useCase = module.get<EstadoJornadaUseCase>(EstadoJornadaUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => jest.clearAllMocks());

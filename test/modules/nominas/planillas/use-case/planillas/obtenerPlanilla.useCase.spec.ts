@@ -2,10 +2,6 @@ import { ObtenerPlanillaUseCase } from '@/modules/nomina/planillas/use-case/plan
 
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('ObtenerPlanillaUseCase', () => {
-    const actor = {
-        id: '019a0000-0002-7000-8000-000000000003',
-        ip: '127.0.0.1',
-    };
     const prisma = { historial_planillas: { findUnique: jest.fn() } };
     const caso = new ObtenerPlanillaUseCase(prisma as never);
     it('excluye una planilla eliminada', async () => {
