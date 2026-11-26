@@ -1,215 +1,90 @@
-//src/modules/nomina/planillas/services/procesamiento-masivo-planilla.service.ts
+// src/modules/nomina/planillas/services/procesamiento-masivo-planilla.service.ts
 import { PrismaService } from '@/common/prisma/prisma.service';
-import { ServerTime } from '@/common/utils/server-time';
 import type { JobPayrollData } from '@/workers/calculo-masivo/payroll.processor';
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { GenerarPlanillaUseCase } from '../use-case/planillas/generarPlanilla.useCase';
+import {
+  estadoResultado,
+  ProcesamientoLotePlanillaBase,
+  type ResumenLotePlanilla,
+} from './procesamiento-lote-planilla.base';
+
+const TAMANO_LOTE = 20;
 
 /**
- * Servicio para el procesamiento masivo de planillas.
- * Este servicio permite generar planillas de manera masiva para un conjunto de empleados, aplicando filtros por período, empleado y área.
- * Se encarga de iterar sobre los empleados que cumplen con los criterios especificados, generando la planilla para cada uno y registrando los resultados.
- * @requires - PrismaService para acceder a la base de datos y consultar los empleados y planillas.
- * @requires - GenerarPlanillaUseCase para generar la planilla de cada empleado individualmente.
+ * Servicio orquestador para el procesamiento masivo de planillas por cursor.
+ * Delega el filtrado y la ejecución de lotes a `ProcesamientoLotePlanillaBase`.
  */
-
-type ErrorEmpleado = { empleado_id: string; detalle: string }; //
-
-/**
- * Resultado de procesar un colaborador dentro del lote.
- * `OMITIDA_POR_ESTADO` indica que su planilla ya estaba congelada o declarada y no se recalculó (PLA-F6).
- */
-type ResultadoEmpleado =
-  | { tipo: 'PROCESADA' }
-  | { tipo: 'OMITIDA_POR_ESTADO' }
-  | { tipo: 'ERROR'; error: ErrorEmpleado };
-
 @Injectable()
-export class ProcesamientoMasivoPlanillasService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly generarPlanilla: GenerarPlanillaUseCase
-  ) {}
+export class ProcesamientoMasivoPlanillasService extends ProcesamientoLotePlanillaBase {
+  constructor(prisma: PrismaService, generarPlanilla: GenerarPlanillaUseCase) {
+    super(prisma, generarPlanilla);
+  }
 
   /**
-   * Procesa la generación de planillas de manera masiva para los empleados que cumplen con los filtros especificados en el trabajo.
-   * @param job - El trabajo que contiene los datos necesarios para el procesamiento masivo, incluyendo el período, empleado y área.
-   * @returns Un objeto con el estado del procesamiento, el total de empleados procesados, la cantidad de planillas generadas correctamente, la cantidad de fallidas y un listado de errores por empleado.
+   * Procesa de manera masiva las planillas de los colaboradores que coinciden con los filtros del trabajo.
+   * @param job Trabajo de BullMQ con período, filtros opcionales y actor.
+   * @returns Resumen consolidado del estado, conteos y errores de negocio acotados.
    * @throws Error si no existen colaboradores dentro del período y los filtros solicitados.
    */
   async procesar(job: Job<JobPayrollData>) {
-    //Valida los filtros y obtiene el total de empleados que cumplen con los criterios especificados en el trabajo.
-    const where = this.filtros(job.data);
+    const where = this.construirFiltros(job.data);
 
-    //Cuenta el total de empleados que cumplen con los filtros especificados.
     const total = await this.prisma.empleados.count({ where });
-    if (!total)
+    if (!total) {
       throw new Error(
         'No existen colaboradores dentro del período y los filtros solicitados.'
       );
-
-    //Inicializa las variables para el procesamiento de los empleados, incluyendo el cursor para la paginación, y los contadores de procesados, correctos y fallidos.
-    let cursor: string | undefined,
-      procesados = 0,
-      correctos = 0,
-      fallidos = 0,
-      omitidasPorEstado = 0;
-
-    //Lista para almacenar los errores encontrados durante el procesamiento de los empleados.
-    const errores: ErrorEmpleado[] = [];
-
-    //Itera sobre los empleados que cumplen con los filtros especificados, procesando cada uno de ellos y registrando los resultados.
-    while (true) {
-      const empleados = await this.prisma.empleados.findMany({
-        where,
-        select: { id: true },
-        orderBy: { id: 'asc' },
-        take: 50,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      });
-
-      //Si no hay más empleados que procesar, se rompe el bucle.
-      if (!empleados.length) break;
-
-      //Procesa cada empleado, registrando los errores encontrados y actualizando el progreso del trabajo.
-      for (const empleado of empleados) {
-        const resultado = await this.procesarEmpleado(job, empleado.id);
-
-        //Un error de negocio se informa por empleado; una planilla validada se omite sin marcarla como falla.
-        if (resultado.tipo === 'ERROR') {
-          fallidos++;
-          registrarError(errores, resultado.error);
-        } else {
-          correctos++;
-          if (resultado.tipo === 'OMITIDA_POR_ESTADO') omitidasPorEstado++;
-        }
-        procesados++;
-        await job.updateProgress({
-          total,
-          procesados,
-          correctos,
-          fallidos,
-          omitidas_por_estado: omitidasPorEstado,
-        });
-      }
-      //Actualiza el cursor para la siguiente iteración, apuntando al último empleado procesado.
-      cursor = empleados.at(-1).id;
     }
-    //Devuelve el estado del procesamiento, incluyendo el total de empleados procesados,
-    //la cantidad de planillas generadas correctamente, la cantidad de fallidas y un listado de errores por empleado.
+
+    const resumen: ResumenLotePlanilla = {
+      procesados: 0,
+      correctos: 0,
+      fallidos: 0,
+      omitidasPorEstado: 0,
+      errores: [],
+    };
+
+    await this.procesarPagina(job, where, total, resumen);
+
     return {
-      estado: estadoResultado(correctos, fallidos),
-      total: procesados,
-      correctos,
-      fallidos,
-      omitidas_por_estado: omitidasPorEstado,
-      errores,
-      errores_truncados: fallidos > errores.length,
+      estado: estadoResultado(resumen.correctos, resumen.fallidos),
+      total: resumen.procesados,
+      correctos: resumen.correctos,
+      fallidos: resumen.fallidos,
+      omitidas_por_estado: resumen.omitidasPorEstado,
+      errores: resumen.errores,
+      errores_truncados: resumen.fallidos > resumen.errores.length,
     };
   }
 
   /**
-   * Genera los filtros para la consulta de empleados según los criterios especificados en el trabajo.
-   * @param dto - El objeto que contiene los datos necesarios para generar los filtros, incluyendo el período, empleado y área.
-   * @returns - Un objeto con los filtros generados para la consulta de empleados.
-   * @throws Error si el período especificado no es válido.
+   * Recorre las páginas de colaboradores por cursor de forma recursiva asíncrona.
+   * Evita `await` dentro de bucles `while` (`typescript:S9382`) manteniendo memoria constante.
    */
-  private filtros({ dto }: JobPayrollData) {
-    //Valida el período especificado en el DTO y obtiene la fecha de inicio y fin del período.
-    const { year, month } = ServerTime.validarPeriodo(dto.periodo);
-
-    //Calcula la fecha de inicio y fin del período, considerando el primer día del mes y el último día del mes.
-    const inicio = ServerTime.desdeFechaSimple(`${dto.periodo}-01`),
-      fin = new Date(Date.UTC(year, month, 0));
-
-    //Devuelve un objeto con los filtros generados para la consulta de empleados,
-    //incluyendo la fecha de inicio y fin del período, el estado de cese del empleado y los filtros opcionales por empleado y área.
-    return {
-      deleted_at: null,
-      fecha_inicio: { lte: fin },
-      OR: [{ fecha_cese: null }, { fecha_cese: { gte: inicio } }],
-      ...(dto.empleado_id ? { id: dto.empleado_id } : {}),
-      ...(dto.area_id ? { area_id: dto.area_id } : {}),
-    };
-  }
-
-  /**
-   * Procesa la generación de la planilla para un empleado específico, manejando los errores de negocio y técnicos.
-   * @param job - El trabajo que contiene los datos necesarios para el procesamiento masivo, incluyendo el período, empleado y área.
-   * @param empleadoId - El ID del empleado para el cual se generará la planilla.
-   * @returns - El resultado del colaborador: procesado, omitido por estado o error de negocio.
-   * @throws Error si ocurre un error técnico durante la generación de la planilla.
-   */
-  private async procesarEmpleado(
+  private async procesarPagina(
     job: Job<JobPayrollData>,
-    empleadoId: string
-  ): Promise<ResultadoEmpleado> {
-    //Desestructura el DTO y el actor del trabajo para obtener los datos necesarios para la generación de la planilla.
-    const { dto, actor } = job.data;
+    where: ReturnType<ProcesamientoLotePlanillaBase['construirFiltros']>,
+    total: number,
+    resumen: ResumenLotePlanilla,
+    cursor?: string
+  ): Promise<void> {
+    const empleados = await this.prisma.empleados.findMany({
+      where,
+      select: { id: true },
+      orderBy: { id: 'asc' },
+      take: TAMANO_LOTE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
 
-    //Intenta generar la planilla para el empleado, manejando los errores de negocio y técnicos.
-    try {
-      //Un reintento reconoce los resultados que ya produjo este mismo trabajo.
-      const anterior = await this.prisma.historial_planillas.findUnique({
-        where: {
-          empleado_id_periodo: {
-            empleado_id: empleadoId,
-            periodo: dto.periodo,
-          },
-        },
-        select: { estado: true, snapshot_calculo: true },
-      });
+    if (!empleados.length) return;
 
-      //Una planilla congelada o declarada es inmutable: nunca se recalcula, aunque el trabajo sea distinto (PLA-F6).
-      //Antes se recalculaba cuando el trabajo no coincidía, el trigger la rechazaba y el lote entero fallaba.
-      if (anterior && ['CONGELADO', 'DECLARADO'].includes(anterior.estado))
-        return { tipo: 'OMITIDA_POR_ESTADO' };
+    await this.procesarLote(job, empleados, total, resumen);
 
-      //Si no existe un registro anterior o el trabajo_id del snapshot no coincide con el ID del trabajo actual,
-      //se genera la planilla para el empleado.
-      const snapshot = anterior?.snapshot_calculo as {
-        trabajo_id?: string;
-      } | null;
-      if (!anterior || snapshot?.trabajo_id !== job.id)
-        await this.generarPlanilla.execute(
-          empleadoId,
-          dto.periodo,
-          actor,
-          job.id
-        );
-
-      return { tipo: 'PROCESADA' };
-    } catch (error) {
-      //Los errores técnicos se reintentan por BullMQ; las reglas de negocio se informan por empleado.
-      if (!(error instanceof HttpException) || error.getStatus() >= 500)
-        throw error;
-      return {
-        tipo: 'ERROR',
-        error: { empleado_id: empleadoId, detalle: error.message },
-      };
+    const siguienteCursor = empleados.at(-1)?.id;
+    if (siguienteCursor) {
+      await this.procesarPagina(job, where, total, resumen, siguienteCursor);
     }
   }
-}
-
-/**
- * Determina el estado del procesamiento masivo de planillas según la cantidad de planillas generadas correctamente y fallidas.
- * @param correctos - La cantidad de planillas generadas correctamente.
- * @param fallidos - La cantidad de planillas que fallaron durante el procesamiento.
- * @returns -  Un string que representa el estado del procesamiento: 'COMPLETADO' si no hay fallidos,
- * 'PARCIAL' si hay correctos y fallidos, o 'FALLIDO' si no hay correctos.
- */
-function estadoResultado(correctos: number, fallidos: number): string {
-  if (!fallidos) return 'COMPLETADO';
-  return correctos ? 'PARCIAL' : 'FALLIDO';
-}
-
-/**
- * Registra un error en el informe de errores.
- * El informe de errores está acotado para no crecer con el tamaño total de la nómina.
- * @param errores - El array de errores.
- * @param error - El error a registrar.
- */
-function registrarError(errores: ErrorEmpleado[], error: ErrorEmpleado): void {
-  if (errores.length < 100) errores.push(error);
 }
