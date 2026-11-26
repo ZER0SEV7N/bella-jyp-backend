@@ -7,17 +7,19 @@ import type { CellValue, Row } from 'exceljs';
 
 /**
  * Helper que valida y procesa las filas de marcaciones de asistencia leídas desde un archivo Excel.
- * Este helper tiene funciones para convertir fechas y horas de Excel a formato ISO, 
+ * Este helper tiene funciones para convertir fechas y horas de Excel a formato ISO,
  * validar el contenido de cada fila y devolver un objeto con las filas válidas y los errores encontrados.
  */
 
 //Función que valida una fila de marcación de asistencia leída desde un archivo Excel.
-export interface FilaImportacion extends FilaMarcacionBiometricaDto { fila: number; }
+export interface FilaImportacion extends FilaMarcacionBiometricaDto {
+  fila: number;
+}
 
 //Función que convierte un número de serie de Excel a una fecha en formato ISO (YYYY-MM-DD).
 export interface ErrorImportacion {
-    fila: number;
-    detalle: string;
+  fila: number;
+  detalle: string;
 }
 
 export const CABECERAS = ['nro_documento', 'fecha', 'hora', 'tipo_marcacion']; //Cabeceras esperadas en el archivo Excel de marcaciones de asistencia.
@@ -31,15 +33,23 @@ export const MAX_FILAS = 5000; //Número máximo de filas permitidas en el archi
  * @throws - Error si el número de serie no es válido o está fuera del rango permitido.
  */
 export function fechaExcel(serial: number, usa1904: boolean): string {
-    if (!Number.isInteger(serial) || serial < (usa1904 ? 0 : 1) || (!usa1904 && serial === 60)) 
-        throw new BadRequestException('La fecha Excel no es válida.');
-    
-    //Se calcula la fecha base en milisegundos desde el 1 de enero de 1970, ajustando según el sistema de fechas utilizado (1904 o 1900).
-    const base = Date.UTC(usa1904 ? 1904 : 1899, usa1904 ? 0 : 11, usa1904 ? 1 : 30);
+  if (
+    !Number.isInteger(serial) ||
+    serial < (usa1904 ? 0 : 1) ||
+    (!usa1904 && serial === 60)
+  )
+    throw new BadRequestException('La fecha Excel no es válida.');
 
-    //Excel inventa el 29/02/1900: antes de ese día su serie necesita un ajuste adicional.
-    const dias = !usa1904 && serial < 60 ? serial + 1 : serial;
-    return new Date(base + dias * 86400000).toISOString().slice(0, 10);
+  //Se calcula la fecha base en milisegundos desde el 1 de enero de 1970, ajustando según el sistema de fechas utilizado (1904 o 1900).
+  const base = Date.UTC(
+    usa1904 ? 1904 : 1899,
+    usa1904 ? 0 : 11,
+    usa1904 ? 1 : 30
+  );
+
+  //Excel inventa el 29/02/1900: antes de ese día su serie necesita un ajuste adicional.
+  const dias = !usa1904 && serial < 60 ? serial + 1 : serial;
+  return new Date(base + dias * 86400000).toISOString().slice(0, 10);
 }
 
 /**
@@ -49,17 +59,34 @@ export function fechaExcel(serial: number, usa1904: boolean): string {
  * @throws - Error si la fracción no es válida o está fuera del rango permitido.
  */
 export function horaExcel(fraccion: number): string {
-    //Se valida que la fracción esté en el rango permitido (0 <= fraccion < 1).
-    if (fraccion < 0 || fraccion >= 1) 
-        throw new BadRequestException('La hora Excel debe ser una fracción de día.');
-    
-    //Se calcula el número de segundos desde la fracción de día y se convierte a formato HH:MM:SS.
-    const segundos = Math.round(fraccion * 86400);
-    if (segundos >= 86400) 
-        throw new BadRequestException('La hora excede el día.');
-    
-    //Se retorna la hora en formato HH:MM:SS, asegurándose de que cada componente tenga dos dígitos.
-    return `${String(Math.floor(segundos / 3600)).padStart(2, '0')}:${String(Math.floor(segundos / 60) % 60).padStart(2, '0')}:${String(segundos % 60).padStart(2, '0')}`;
+  //Se valida que la fracción esté en el rango permitido (0 <= fraccion < 1).
+  if (fraccion < 0 || fraccion >= 1)
+    throw new BadRequestException(
+      'La hora Excel debe ser una fracción de día.'
+    );
+
+  //Se calcula el número de segundos desde la fracción de día y se convierte a formato HH:MM:SS.
+  const segundos = Math.round(fraccion * 86400);
+  if (segundos >= 86400)
+    throw new BadRequestException('La hora excede el día.');
+
+  //Se retorna la hora en formato HH:MM:SS, asegurándose de que cada componente tenga dos dígitos.
+  return `${String(Math.floor(segundos / 3600)).padStart(2, '0')}:${String(Math.floor(segundos / 60) % 60).padStart(2, '0')}:${String(segundos % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Convierte el valor de una celda a texto plano, descartando los objetos que no aplican a este
+ * importador (fórmulas o rich text). Evita que `String(objeto)` produzca `[object Object]`.
+ * @param valor - Valor de la celda leída desde Excel.
+ * @returns - Texto plano o cadena vacía si no hay un valor textual utilizable.
+ */
+export function textoPlano(valor: CellValue | null | undefined): string {
+  if (valor === null || valor === undefined) return '';
+  if (typeof valor === 'string') return valor;
+  if (typeof valor === 'number' || typeof valor === 'boolean')
+    return String(valor);
+  if (valor instanceof Date) return valor.toISOString();
+  return '';
 }
 
 /**
@@ -73,26 +100,42 @@ export function horaExcel(fraccion: number): string {
  * @returns - Objeto que contiene los datos validados de la fila de marcación de asistencia.
  * @throws - Error de tipo BadRequestException si las cabeceras no coinciden, si se excede el número máximo de filas o si la fila es inválida.
  */
-export function validarFilaMarcacion(fila: Row, usa1904: boolean): FilaImportacion {
-    //Se obtienen los valores de la fila, omitiendo la primera columna (índice 0) que corresponde al número de fila.
-    const valores = (fila.values as CellValue[]).slice(1);
+export function validarFilaMarcacion(
+  fila: Row,
+  usa1904: boolean
+): FilaImportacion {
+  //Se obtienen los valores de la fila, omitiendo la primera columna (índice 0) que corresponde al número de fila.
+  const valores = (fila.values as CellValue[]).slice(1);
 
-    //Si la fila es la primera (cabecera), se valida que las cabeceras coincidan con las esperadas. Si no coinciden, se lanza una excepción BadRequestException.
-    if (typeof valores[0] !== 'string') 
-        throw new BadRequestException('El documento debe estar almacenado como texto para preservar sus ceros iniciales.');
+  //Si la fila es la primera (cabecera), se valida que las cabeceras coincidan con las esperadas. Si no coinciden, se lanza una excepción BadRequestException.
+  if (typeof valores[0] !== 'string')
+    throw new BadRequestException(
+      'El documento debe estar almacenado como texto para preservar sus ceros iniciales.'
+    );
 
-    //Se valida que la fecha y hora sean válidas y se convierten a formato ISO.
-    const fecha = typeof valores[1] === 'number' ? fechaExcel(valores[1], usa1904) : String(valores[1] ?? '').trim();
-    const hora = typeof valores[2] === 'number' ? horaExcel(valores[2]) : String(valores[2] ?? '').trim();
-    const validado = FilaMarcacionBiometricaSchema.parse({
-        nro_documento: valores[0],
-        fecha,
-        hora,
-        tipo_marcacion: String(valores[3] ?? '').trim().toUpperCase()
-    });
+  //Se valida que la fecha y hora sean válidas y se convierten a formato ISO.
+  //La celda puede llegar como texto, serial de Excel (número) o Date, según cómo la leyó el lector.
+  const fecha =
+    typeof valores[1] === 'number'
+      ? fechaExcel(valores[1], usa1904)
+      : valores[1] instanceof Date
+        ? valores[1].toISOString().slice(0, 10)
+        : textoPlano(valores[1]).trim();
+  const hora =
+    typeof valores[2] === 'number'
+      ? horaExcel(valores[2])
+      : valores[2] instanceof Date
+        ? valores[2].toISOString().slice(11, 19)
+        : textoPlano(valores[2]).trim();
+  const validado = FilaMarcacionBiometricaSchema.parse({
+    nro_documento: valores[0],
+    fecha,
+    hora,
+    tipo_marcacion: textoPlano(valores[3]).trim().toUpperCase(),
+  });
 
-    //Se valida que la marcación no pertenezca a una fecha futura en relación con la hora actual del servidor.
-    if (ServerTime.desdeHoraPeru(fecha, hora) > new Date()) 
-        throw new BadRequestException('La marcación pertenece al futuro.');
-    return { ...validado, fila: fila.number };
+  //Se valida que la marcación no pertenezca a una fecha futura en relación con la hora actual del servidor.
+  if (ServerTime.desdeHoraPeru(fecha, hora) > new Date())
+    throw new BadRequestException('La marcación pertenece al futuro.');
+  return { ...validado, fila: fila.number };
 }
