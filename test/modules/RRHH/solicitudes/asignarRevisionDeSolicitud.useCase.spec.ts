@@ -1,6 +1,6 @@
 //test/modules/RRHH/solicitudes/asignarRevisionDeSolicitud.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { AsignarRevisionDeSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/asignarRevisionDeSolicitud.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 
@@ -23,7 +23,6 @@ jest.mock('@/common/utils/transaccion-auditada.util', () => ({
  */
 describe('AsignarRevisionDeSolicitudUseCase - Pruebas Unitarias', () => {
     let useCase: AsignarRevisionDeSolicitudUseCase;
-    let prisma: PrismaService;
 
     //Mocks de PrismaService para simular la base de datos
     const mockPrisma = { usuarios: { findUnique: jest.fn().mockResolvedValue({ activo: true, deleted_at: null, rol: 'RRHH' }) }, solicitud: { findUnique: jest.fn(), update: jest.fn() } };
@@ -42,7 +41,6 @@ describe('AsignarRevisionDeSolicitudUseCase - Pruebas Unitarias', () => {
         }).compile();
 
         useCase = module.get<AsignarRevisionDeSolicitudUseCase>(AsignarRevisionDeSolicitudUseCase);
-        prisma = module.get<PrismaService>(PrismaService);
     });
 
     afterEach(() => jest.clearAllMocks());

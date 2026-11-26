@@ -13,7 +13,6 @@ jest.mock('@/common/utils/fileStorage.util', () => ({
 
 describe('SubirSustentoDerechohabienteUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: SubirSustentoDerechohabienteUseCase;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     derechohabientes: { findUnique: jest.fn() },
@@ -41,7 +40,6 @@ describe('SubirSustentoDerechohabienteUseCase - Pruebas Unitarias Exhaustivas', 
     }).compile();
 
     useCase = module.get<SubirSustentoDerechohabienteUseCase>(SubirSustentoDerechohabienteUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
 
     jest.spyOn(IdentityGenerator, 'generateId').mockReturnValue('sustento-uuid-100');
   });

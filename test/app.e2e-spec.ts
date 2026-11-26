@@ -1,12 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from '@/app.module';
-import { PrismaService } from '@/common/prisma/prisma.service';
-import { CryptoUtil } from '@/common/utils/crypto.util';
 
 describe('Sistema JYP - Pruebas de Integración y Endpoints E2E', () => {
   let app: NestFastifyApplication;
-  let prisma: PrismaService;
 
   // UUIDs Deterministas de la BD Mapeados desde el Script SQL
   const SEED_DATA = {
@@ -24,7 +21,6 @@ describe('Sistema JYP - Pruebas de Integración y Endpoints E2E', () => {
   };
 
   let accessTokenAdmin: string;
-  let idContratoCreado: string;
 
   beforeAll(async () => {
     process.env.FINANCIAL_DATA_ENCRYPTION_KEY = 'jyp_financial_master_key_super_secret_32_bytes_2026!';
@@ -39,8 +35,6 @@ describe('Sistema JYP - Pruebas de Integración y Endpoints E2E', () => {
 
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
-
-    prisma = app.get<PrismaService>(PrismaService);
   });
 
   afterAll(async () => {
@@ -174,10 +168,6 @@ describe('Sistema JYP - Pruebas de Integración y Endpoints E2E', () => {
       });
 
       expect([201, 400, 404]).toContain(response.statusCode);
-      if (response.statusCode === 201) {
-        const body = JSON.parse(response.body);
-        idContratoCreado = body.data.id;
-      }
     });
 
     it('GET /api/contrato/empleado/:empleadoId - Debe obtener el historial de contratos del empleado', async () => {

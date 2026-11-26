@@ -20,7 +20,6 @@ jest.mock('@/common/utils/transaccion-auditada.util', () => ({
  */
 describe('EvaluarSolicitudUseCase - Pruebas Unitarias', () => {
     let useCase: EvaluarSolicitudUseCase;
-    let prisma: PrismaService;
 
     //Mocks de PrismaService para simular la base de datos
     const mockPrisma = { usuarios: { findUnique: jest.fn().mockResolvedValue({ activo: true, deleted_at: null, rol: 'RRHH' }) }, solicitud: { findUnique: jest.fn(), update: jest.fn() } };
@@ -39,7 +38,6 @@ describe('EvaluarSolicitudUseCase - Pruebas Unitarias', () => {
         }).compile();
 
         useCase = module.get<EvaluarSolicitudUseCase>(EvaluarSolicitudUseCase);
-        prisma = module.get<PrismaService>(PrismaService);
     });
 
     afterEach(() => jest.clearAllMocks());

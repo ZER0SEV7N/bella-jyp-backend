@@ -1,5 +1,5 @@
 //src/modules/RRHH/organizacion/use-cases/derechohabiente/subirSustento.useCase.ts
-import { Injectable, HttpException, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, HttpException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { FileStorageUtil } from '@/common/utils/fileStorage.util';
 import { IdentityGenerator } from '@/common/utils/uuid.util';

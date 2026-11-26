@@ -2,12 +2,7 @@ import { horasDiariasPlanilla } from '@/modules/nomina/planillas/helpers/prepara
 import { validarJornadaRegular } from '@/modules/asistencia/domain/validar-jornada';
 import {
     contexto,
-    entrada,
     horario,
-    horario48,
-    cambiarMarcas,
-    dia,
-    solicitud,
 } from '../../../../fixtures/motores.fixture';
 
 describe('horas - Reglas aisladas del motor', () => {

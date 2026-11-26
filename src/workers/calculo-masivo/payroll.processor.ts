@@ -16,7 +16,6 @@ import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
  */
 export const COLA_PAYROLL = 'payroll-calculo';
 export interface JobPayrollData { dto: GenerarPlanillasDto; actor: ActorOperacion; }
-type ErrorPayroll = { empleado_id: string; detalle: string };
 
 /**
  * Clase que representa el processor de BullMQ para el cálculo masivo de planillas.

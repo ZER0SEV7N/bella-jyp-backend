@@ -2,10 +2,6 @@ import { ParametrosLegalesService } from '@/modules/nomina/services/parametros-l
 
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('ParametrosLegalesService', () => {
-    const actor = {
-        id: '019a0000-0002-7000-8000-000000000003',
-        ip: '127.0.0.1',
-    };
     const prisma = { parametro_legal: { findMany: jest.fn() } },
         redis = {
             get: jest.fn(),

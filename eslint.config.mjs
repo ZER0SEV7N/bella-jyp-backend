@@ -13,8 +13,8 @@ import tseslint from 'typescript-eslint';
  * - Las reglas "unsafe" de typescript-eslint (`no-unsafe-*`, `no-unnecessary-type-assertion`,
  *   `no-unsafe-enum-comparison`) se desactivan: en un codebase NestJS/Prisma con tipos dinámicos
  *   y mocks producen falsos positivos estructurales.
- * - `no-unused-vars` queda como aviso (warn): la deuda existente no bloquea el PR, pero el editor
- *   y el CI la siguen mostrando para limpiarla de forma incremental.
+ * - `no-unused-vars` vuelve a ser error tras limpiar la deuda acumulada (los `_prefijados`
+ *   se consideran intencionalmente sin uso).
  */
 export default tseslint.config(
   {
@@ -50,9 +50,9 @@ export default tseslint.config(
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
-      // Aviso en vez de error: los `_prefijados` se consideran intencionalmente sin uso.
+      // Los `_prefijados` se consideran intencionalmente sin uso; el resto es error.
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',

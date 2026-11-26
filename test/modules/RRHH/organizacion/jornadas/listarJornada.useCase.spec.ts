@@ -15,7 +15,6 @@ import type { ListarJornadasQueryDto } from '@jyp/shared-contracts';
  */
 describe('ListarJornadaUseCase - Pruebas Unitarias', () => {
   let useCase: ListarJornadaUseCase;
-  let prisma: PrismaService;
 
   //Mock del servicio PrismaService para simular la interacción con la base de datos
   const mockPrisma = {
@@ -59,7 +58,6 @@ describe('ListarJornadaUseCase - Pruebas Unitarias', () => {
     }).compile();
 
     useCase = module.get<ListarJornadaUseCase>(ListarJornadaUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   //Limpiar los mocks después de cada prueba para evitar interferencias entre casos

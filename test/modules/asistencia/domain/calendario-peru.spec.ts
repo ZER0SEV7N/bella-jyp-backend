@@ -1,13 +1,4 @@
 import { feriadosNacionalesPeru } from '@/modules/asistencia/domain/calendario-peru';
-import {
-  contexto,
-  entrada,
-  horario,
-  horario48,
-  cambiarMarcas,
-  dia,
-  solicitud,
-} from '../../../fixtures/motores.fixture';
 
 describe('calendario - Reglas aisladas del motor', () => {
   it('El calendario distingue las incorporaciones legales históricas', () => {

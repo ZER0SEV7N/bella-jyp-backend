@@ -1,5 +1,5 @@
 //src/modules/rrhh/solicitudes/use-cases/evaluarSolicitud.useCase.ts
-import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { EvaluarSolicitudDto } from '@jyp/shared-contracts';
 import {SOLICITUD_INCLUDE, obtenerSolicitudOperativa, validarResponsable, verificarRevisorActivo } from '../helpers/validacionesSolicitud.helper';

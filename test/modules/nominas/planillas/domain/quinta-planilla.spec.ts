@@ -1,13 +1,4 @@
 import { corteRetencionesQuinta } from '@/modules/nomina/planillas/domain/calcular-planilla';
-import {
-    contexto,
-    entrada,
-    horario,
-    horario48,
-    cambiarMarcas,
-    dia,
-    solicitud,
-} from '../../../../fixtures/motores.fixture';
 
 describe('quinta - Reglas aisladas del motor', () => {
     it('Los cortes de quinta categoría son los del tramo y no cambian cada mes', () => {

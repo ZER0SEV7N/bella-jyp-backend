@@ -98,7 +98,7 @@ describe('ExportacionesController', () => {
     };
     consultar.archivo.mockResolvedValue(esperado);
     // Act: ejecutar únicamente el método público del controlador.
-    const resultado = await controller.archivo(
+    await controller.archivo(
       id as never,
       nombre as never,
       reply as never

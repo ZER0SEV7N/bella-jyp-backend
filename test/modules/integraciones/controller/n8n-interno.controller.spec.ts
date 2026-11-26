@@ -1,5 +1,4 @@
 import { N8nInternoController } from '@/modules/integraciones/controller/n8n-interno.controller';
-import { actorSolicitud } from '@/common/utils/actor-operacion.util';
 import 'reflect-metadata';
 
 /** Unitarias del controlador. Los pipes y las guardias HTTP se comprueban en integración. */

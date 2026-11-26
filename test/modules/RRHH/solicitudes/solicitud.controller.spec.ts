@@ -11,7 +11,7 @@ import { FileStorageUtil } from '@/common/utils/fileStorage.util';
 import type { CrearSolicitudDto, EvaluarSolicitudDto } from '@jyp/shared-contracts';
 import { ObtenerHistorialSolicitudUseCase } from '@/modules/RRHH/solicitudes/use-cases/obtenerHistorialSolicitud.useCase';
 import { ObtenerSolicitudesUseCase } from '@/modules/RRHH/solicitudes/use-cases/obtenerSolicitudes.useCase';
-import { leerMultipartSolicitud, limpiarSustentoSolicitud } from '@/modules/RRHH/solicitudes/helpers/multipartSolicitud.helper';
+import { leerMultipartSolicitud } from '@/modules/RRHH/solicitudes/helpers/multipartSolicitud.helper';
 jest.mock('@/modules/RRHH/solicitudes/helpers/multipartSolicitud.helper', () => ({ leerMultipartSolicitud: jest.fn(), limpiarSustentoSolicitud: jest.fn().mockResolvedValue(undefined) }));
 
 /**

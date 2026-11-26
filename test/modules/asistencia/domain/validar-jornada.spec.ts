@@ -1,12 +1,7 @@
 import { validarJornadaRegular } from '@/modules/asistencia/domain/validar-jornada';
 import {
-  contexto,
-  entrada,
   horario,
   horario48,
-  cambiarMarcas,
-  dia,
-  solicitud,
 } from '../../../fixtures/motores.fixture';
 
 describe('jornada - Reglas aisladas del motor', () => {

@@ -190,7 +190,7 @@ describe('PlanillasController', () => {
         };
         descargarBoleta.execute.mockResolvedValue(esperado);
         // Act: ejecutar únicamente el método público del controlador.
-        const resultado = await controller.boleta(id as never, reply as never);
+        await controller.boleta(id as never, reply as never);
         // Assert: verificar el destino, el actor y la respuesta observables.
         expect(descargarBoleta.execute).toHaveBeenCalledWith(id);
         expect(reply.send).toHaveBeenCalledWith(esperado.stream);

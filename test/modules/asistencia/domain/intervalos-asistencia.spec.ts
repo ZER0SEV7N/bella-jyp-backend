@@ -2,11 +2,6 @@ import { restar } from '@/modules/asistencia/domain/intervalos-asistencia';
 
 /** Prueba aislada: Arrange prepara mocks; Act ejecuta; Assert verifica el comportamiento. */
 describe('restar', () => {
-  const actor = {
-    id: '019a0000-0002-7000-8000-000000000003',
-    ip: '127.0.0.1',
-  };
-
   it('no descuenta dos veces dos coberturas solapadas', async () => {
     // Arrange: preparar el escenario y los datos ficticios.
     const base: [[number, number]] = [[540, 1080]];

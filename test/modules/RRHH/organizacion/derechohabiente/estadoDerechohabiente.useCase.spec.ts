@@ -5,7 +5,6 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 
 describe('EstadoDerechohabienteUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: EstadoDerechohabienteUseCase;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     derechohabientes: {
@@ -25,7 +24,6 @@ describe('EstadoDerechohabienteUseCase - Pruebas Unitarias Exhaustivas', () => {
     }).compile();
 
     useCase = module.get<EstadoDerechohabienteUseCase>(EstadoDerechohabienteUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => jest.clearAllMocks());

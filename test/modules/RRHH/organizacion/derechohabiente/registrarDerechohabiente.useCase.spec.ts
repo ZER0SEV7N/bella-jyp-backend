@@ -12,7 +12,6 @@ import type { RegistrarDerechohabienteDto } from '@jyp/shared-contracts';
  */
 describe('RegistrarDerechohabienteUseCase - Pruebas Unitarias Exhaustivas', () => {
   let useCase: RegistrarDerechohabienteUseCase;
-  let prisma: PrismaService;
 
   //Mock del servicio Prisma para simular interacciones con la base de datos
   const mockPrisma = {
@@ -48,7 +47,6 @@ describe('RegistrarDerechohabienteUseCase - Pruebas Unitarias Exhaustivas', () =
 
     //Obtener instancias de los servicios y casos de uso a probar
     useCase = module.get<RegistrarDerechohabienteUseCase>(RegistrarDerechohabienteUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
 
     //Mockear la generación de UUID para garantizar consistencia en las pruebas
     jest.spyOn(IdentityGenerator, 'generateId').mockReturnValue('dh-uuid-100');

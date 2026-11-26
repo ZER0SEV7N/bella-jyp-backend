@@ -1,6 +1,6 @@
 //test/modules/RRHH/organizacion/jornadas/editarJornada.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { EditarJornadaUseCase } from '@/modules/RRHH/organizacion/use-cases/jornadas/editarJornada.useCase';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { ActualizarJornadaDto } from '@jyp/shared-contracts';
@@ -14,7 +14,6 @@ import type { ActualizarJornadaDto } from '@jyp/shared-contracts';
  */
 describe('EditarJornadaUseCase - Pruebas Unitarias', () => {
   let useCase: EditarJornadaUseCase;
-  let prisma: PrismaService;
 
   //Mock del servicio PrismaService para simular la interacción con la base de datos
   const mockPrisma = {
@@ -64,7 +63,6 @@ describe('EditarJornadaUseCase - Pruebas Unitarias', () => {
     }).compile();
 
     useCase = module.get<EditarJornadaUseCase>(EditarJornadaUseCase);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => jest.clearAllMocks());

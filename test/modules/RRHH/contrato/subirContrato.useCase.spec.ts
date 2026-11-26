@@ -1,6 +1,6 @@
 //test/modules/RRHH/contrato/subirContrato.useCase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { SubirContratoPdfUseCase } from '@/modules/RRHH/contrato/use-cases/subirContratoPdf.useCase';
 import { FileStorageUtil } from '@/common/utils/fileStorage.util';

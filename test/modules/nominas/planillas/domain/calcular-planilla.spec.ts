@@ -1,13 +1,5 @@
 import { calcularPlanilla } from '@/modules/nomina/planillas/domain/calcular-planilla';
-import {
-    contexto,
-    entrada,
-    horario,
-    horario48,
-    cambiarMarcas,
-    dia,
-    solicitud,
-} from '../../../../fixtures/motores.fixture';
+import { entrada } from '../../../../fixtures/motores.fixture';
 
 describe('planilla - Reglas aisladas del motor', () => {
     it('Planilla ONP: un sueldo de 1500 da un neto de 1305 sin otros conceptos', () => {
