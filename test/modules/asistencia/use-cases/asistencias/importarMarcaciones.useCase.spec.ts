@@ -8,7 +8,8 @@ describe('ImportarMarcacionesUseCase', () => {
     ip: '127.0.0.1',
   };
   const servicio = { guardar: jest.fn() };
-  const caso = new ImportarMarcacionesUseCase({} as never, servicio as never);
+  const cache = { invalidate: jest.fn() };
+  const caso = new ImportarMarcacionesUseCase({} as never, servicio as never, cache as never);
   beforeEach(() => jest.clearAllMocks());
   it('guarda un archivo validado y conserva al actor', async () => {
     // Arrange: preparar el escenario y los datos ficticios.

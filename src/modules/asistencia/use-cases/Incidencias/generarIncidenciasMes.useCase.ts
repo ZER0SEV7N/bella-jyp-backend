@@ -1,5 +1,7 @@
 //src/modules/asistencia/use-cases/generarIncidenciasMes.useCase.ts
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
+import { CacheCatalogoService } from '@/common/config/redis/cache-catalogo.service';
+import { patronDashboardCache } from '@/common/config/redis/claves-cache';
 import { GeneracionMasivaAsistenciaService } from '../../services/generacion-masiva-asistencia.service';
 import type { GenerarIncidenciasPeriodoDto } from '@jyp/shared-contracts';
 import { Injectable } from '@nestjs/common';
@@ -12,18 +14,24 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class GenerarIncidenciasMesUseCase {
-    constructor(private readonly generacionMasiva: GeneracionMasivaAsistenciaService) {}
+  constructor(
+    private readonly generacionMasiva: GeneracionMasivaAsistenciaService,
+    private readonly cache: CacheCatalogoService
+  ) {}
 
-    /**
-     * Metodo de ejecución principal del caso de uso.
-     * Procesa los empleados activos y genera las incidencias de asistencia para el período especificado.
-     * @param dto - Dto que contiene el período y los filtros opcionales para empleados y áreas.
-     * @returns Un objeto con el resumen del procesamiento, incluyendo el número de empleados procesados y los detalles de cada uno.
-     * @throws BadRequestException - Si el DTO es inválido.
-     * @throws NotFoundException - Si no se encuentran empleados activos para procesar.
-     * @throws InternalServerErrorException - Si ocurre un error inesperado durante el procesamiento.
-     */
-    async execute(dto: GenerarIncidenciasPeriodoDto, actor: ActorOperacion) {
-        return this.generacionMasiva.generar(dto, actor);
-    }
+  /**
+   * Metodo de ejecución principal del caso de uso.
+   * Procesa los empleados activos y genera las incidencias de asistencia para el período especificado.
+   * @param dto - Dto que contiene el período y los filtros opcionales para empleados y áreas.
+   * @returns Un objeto con el resumen del procesamiento, incluyendo el número de empleados procesados y los detalles de cada uno.
+   * @throws BadRequestException - Si el DTO es inválido.
+   * @throws NotFoundException - Si no se encuentran empleados activos para procesar.
+   * @throws InternalServerErrorException - Si ocurre un error inesperado durante el procesamiento.
+   */
+  async execute(dto: GenerarIncidenciasPeriodoDto, actor: ActorOperacion) {
+    const resultado = await this.generacionMasiva.generar(dto, actor);
+    //Las incidencias alimentan el cierre de asistencia del dashboard: se invalida su caché.
+    await this.cache.invalidate(patronDashboardCache());
+    return resultado;
+  }
 }

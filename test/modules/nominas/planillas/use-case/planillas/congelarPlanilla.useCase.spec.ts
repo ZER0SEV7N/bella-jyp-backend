@@ -23,7 +23,8 @@ describe('CongelarPlanillaUseCase: validación y cierre contable', () => {
     historial_planillas: { findUnique: jest.fn(), update: jest.fn() },
   };
   const pool = { calcular: jest.fn() };
-  const caso = new CongelarPlanillaUseCase(prisma as never, pool as never);
+  const cache = { invalidate: jest.fn() };
+  const caso = new CongelarPlanillaUseCase(prisma as never, pool as never, cache as never);
   const actor = { id: 'contador-uuid', ip: '127.0.0.1' };
 
   beforeEach(() => {
