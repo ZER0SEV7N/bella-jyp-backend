@@ -33,6 +33,7 @@ import {
   respuestaPlanilla,
   respuestaTrabajo,
 } from './planillas-respuestas.swagger';
+import { ListarNovedadesGlobalesQuerySchema } from '../schemas/listar-novedades-globales.schema';
 
 const operadores = ['ADMIN', 'CONTADOR', 'ASISTENTE'];
 const contador = ['CONTADOR'];
@@ -277,6 +278,39 @@ export function ApiSwaggerListarNovedadesPlanilla() {
         'Sin paginación (ignora `page`/`limit`, los cuales tampoco forman parte de `DetalleAsistenciaQuerySchema`, y limita el resultado con `take: 100` ordenado por `created_at` ascendente). Consulta `novedad_planilla` filtrando por `{ empleado_id, periodo }`; sin `empleado_id` devuelve hasta 100 novedades de todos los colaboradores.',
       roles: operadores,
       respuesta: { type: 'array', items: respuestaNovedad },
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/nomina/planillas/novedades` (listado global PLA-F5).
+ */
+export function ApiSwaggerListarNovedadesGlobales() {
+  return applyDecorators(
+    ApiContratoQuery(ListarNovedadesGlobalesQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Listar novedades de todos los colaboradores',
+      description:
+        'Devuelve las novedades de planilla de forma paginada, con filtros opcionales de `empleado_id`, `periodo` y `estado`, e incluye el nombre del colaborador.',
+      roles: operadores,
+      paginada: true,
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            empleado_id: { type: 'string', format: 'uuid' },
+            colaborador: { type: 'string' },
+            periodo: { type: 'string' },
+            tipo: { type: 'string' },
+            monto: { type: 'string' },
+            estado: { type: 'string' },
+            motivo: { type: 'string' },
+            created_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
     })
   );
 }
