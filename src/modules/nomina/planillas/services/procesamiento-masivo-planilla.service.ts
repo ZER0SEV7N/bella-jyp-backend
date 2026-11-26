@@ -19,7 +19,14 @@ const TAMANO_LOTE = 20;
 @Injectable()
 export class ProcesamientoMasivoPlanillasService extends ProcesamientoLotePlanillaBase {
   constructor(prisma: PrismaService, generarPlanilla: GenerarPlanillaUseCase) {
-    super(prisma, generarPlanilla);
+    // La concurrencia es configurable (PLANILLA_CONCURRENCIA); sin ella se usa el tope por defecto.
+    super(
+      prisma,
+      generarPlanilla,
+      process.env.PLANILLA_CONCURRENCIA
+        ? Number(process.env.PLANILLA_CONCURRENCIA)
+        : undefined
+    );
   }
 
   /**

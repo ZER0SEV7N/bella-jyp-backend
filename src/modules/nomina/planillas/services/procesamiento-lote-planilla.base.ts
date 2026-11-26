@@ -3,6 +3,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { ServerTime } from '@/common/utils/server-time';
 import type { JobPayrollData } from '@/workers/calculo-masivo/payroll.processor';
 import { HttpException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { Job } from 'bullmq';
 import { GenerarPlanillaUseCase } from '../use-case/planillas/generarPlanilla.useCase';
 
@@ -27,8 +28,51 @@ export interface ResumenLotePlanilla {
   errores: ErrorEmpleado[];
 }
 
+/** Fila precargada del historial de planillas para decidir si un colaborador se recalcula. */
+type PlanillaPrevia = {
+  empleado_id: string;
+  estado: string;
+  snapshot_calculo: Prisma.JsonValue | null;
+};
+
 const MAX_ERRORES_INFORME = 100;
 const ESTADOS_INMUTABLES = new Set(['CONGELADO', 'DECLARADO']);
+
+/**
+ * Concurrencia por defecto del cálculo masivo. Coincide con los hilos de Piscina y se mantiene
+ * por debajo del `DB_POOL_MAX` para dejar margen a las peticiones HTTP (Mejora 1 / RNF-01).
+ */
+export const CONCURRENCIA_DEFECTO = 4;
+
+/**
+ * Ejecuta `fn` sobre cada elemento manteniendo como máximo `limite` promesas en vuelo.
+ * Sin dependencias externas y con el mismo orden de salida que la entrada.
+ * @param items - Elementos a procesar.
+ * @param limite - Máximo de operaciones concurrentes.
+ * @param fn - Función asíncrona aplicada a cada elemento.
+ * @returns - Resultados en el mismo orden que `items`.
+ */
+export async function mapConLimite<T, R>(
+  items: T[],
+  limite: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const resultados = new Array<R>(items.length);
+  let siguiente = 0;
+
+  const trabajadores = Array.from(
+    { length: Math.max(1, Math.min(limite, items.length)) },
+    async () => {
+      while (siguiente < items.length) {
+        const indice = siguiente++;
+        resultados[indice] = await fn(items[indice]);
+      }
+    }
+  );
+
+  await Promise.all(trabajadores);
+  return resultados;
+}
 
 /**
  * Clase base protegida con las operaciones unitarias y de lote del procesamiento masivo de planillas.
@@ -37,7 +81,8 @@ const ESTADOS_INMUTABLES = new Set(['CONGELADO', 'DECLARADO']);
 export abstract class ProcesamientoLotePlanillaBase {
   protected constructor(
     protected readonly prisma: PrismaService,
-    protected readonly generarPlanilla: GenerarPlanillaUseCase
+    protected readonly generarPlanilla: GenerarPlanillaUseCase,
+    private readonly concurrencia: number = CONCURRENCIA_DEFECTO
   ) {}
 
   /**
@@ -59,8 +104,9 @@ export abstract class ProcesamientoLotePlanillaBase {
   }
 
   /**
-   * Procesa en paralelo un lote acotado de colaboradores y actualiza el progreso del job una sola vez por lote.
-   * Evita `await` dentro de bucles (`typescript:S9382`) y reduce escrituras redundantes a Redis.
+   * Procesa en paralelo un lote acotado de colaboradores con un tope de concurrencia.
+   * Precarga el historial de planillas del lote en una sola consulta (Bulk Fetch) para erradicar
+   * el patrón N+1 y actualiza el progreso del job una sola vez por lote.
    */
   protected async procesarLote(
     job: Job<JobPayrollData>,
@@ -68,8 +114,19 @@ export abstract class ProcesamientoLotePlanillaBase {
     total: number,
     resumen: ResumenLotePlanilla
   ): Promise<void> {
-    const resultados = await Promise.all(
-      empleados.map((empleado) => this.procesarEmpleado(job, empleado.id))
+    const { periodo } = job.data.dto;
+
+    // Precarga del lote: una consulta reemplaza a los findUnique por colaborador.
+    const previas = await this.prisma.historial_planillas.findMany({
+      where: { empleado_id: { in: empleados.map((e) => e.id) }, periodo },
+      select: { empleado_id: true, estado: true, snapshot_calculo: true },
+    });
+    const mapa = new Map(previas.map((p) => [p.empleado_id, p]));
+
+    const resultados = await mapConLimite(
+      empleados,
+      this.concurrencia,
+      (empleado) => this.procesarEmpleado(job, empleado.id, mapa)
     );
 
     acumularResultadosLote(resumen, resultados);
@@ -85,34 +142,26 @@ export abstract class ProcesamientoLotePlanillaBase {
 
   /**
    * Genera la planilla de un colaborador individual, separando errores de negocio (4xx) de fallos técnicos (5xx).
+   * @param mapa - Historial precargado del lote, indexado por `empleado_id`.
    * @throws Error si ocurre un fallo técnico para que BullMQ reintente el trabajo.
    */
   protected async procesarEmpleado(
     job: Job<JobPayrollData>,
-    empleadoId: string
+    empleadoId: string,
+    mapa: Map<string, PlanillaPrevia>
   ): Promise<ResultadoEmpleado> {
     const { dto, actor } = job.data;
 
     try {
-      // Un reintento reconoce los resultados que ya produjo este mismo trabajo.
-      const anterior = await this.prisma.historial_planillas.findUnique({
-        where: {
-          empleado_id_periodo: {
-            empleado_id: empleadoId,
-            periodo: dto.periodo,
-          },
-        },
-        select: { estado: true, snapshot_calculo: true },
-      });
+      const anterior = mapa.get(empleadoId);
 
       // Una planilla congelada o declarada es inmutable: nunca se recalcula (PLA-F6).
       if (anterior && ESTADOS_INMUTABLES.has(anterior.estado)) {
         return { tipo: 'OMITIDA_POR_ESTADO' };
       }
 
-      const snapshot = anterior?.snapshot_calculo as {
-        trabajo_id?: string;
-      } | null;
+      const snapshot =
+        (anterior?.snapshot_calculo as { trabajo_id?: string } | null) ?? null;
       if (!anterior || snapshot?.trabajo_id !== job.id) {
         await this.generarPlanilla.execute(
           empleadoId,

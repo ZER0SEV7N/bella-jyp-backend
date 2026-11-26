@@ -91,8 +91,10 @@ export class PrismaService
         'CRITICAL: DATABASE_URL no está definida en el entorno. Verifica tu archivo .env'
       );
 
-    //Instanciar el Pool nativo de conexiones de PostgreSQL
-    const pool = new Pool({ connectionString });
+    //Instanciar el Pool nativo de conexiones de PostgreSQL.
+    //El tamaño es configurable (DB_POOL_MAX) para no agotar el pool durante el cálculo masivo en paralelo.
+    const poolMax = Number(process.env.DB_POOL_MAX) || 20;
+    const pool = new Pool({ connectionString, max: poolMax });
 
     //Acoplar el Pool al Driver Adapter de Prisma
     const adapter = new PrismaPg(pool);
@@ -230,12 +232,17 @@ export class PrismaService
       valoresDespuesMasivos: Record<string, unknown> | null
     ): Promise<void> => {
       const snapshotAntes = valoresAntes
-        ? crearSnapshotAuditoria(quitarCamposRelacion(data.tabla_afectada, valoresAntes))
+        ? crearSnapshotAuditoria(
+            quitarCamposRelacion(data.tabla_afectada, valoresAntes)
+          )
         : null;
       let snapshotDespues: unknown = null;
       if (valoresDespues) {
         const valoresLimpios = valoresDespuesMasivos
-          ? quitarCamposRelacionMasiva(data.tabla_afectada, valoresDespuesMasivos)
+          ? quitarCamposRelacionMasiva(
+              data.tabla_afectada,
+              valoresDespuesMasivos
+            )
           : quitarCamposRelacion(data.tabla_afectada, valoresDespues);
         snapshotDespues = crearSnapshotAuditoria(valoresLimpios);
       }
