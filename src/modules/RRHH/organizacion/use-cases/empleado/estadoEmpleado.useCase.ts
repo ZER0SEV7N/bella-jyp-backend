@@ -157,7 +157,7 @@ export class EstadoEmpleadoUseCase {
           activo: true,
           deleted_at: null,
           estado_laboral: estado_empleado_enum.ACTIVO,
-          fecha_inicio: fechaReingreso,
+          // D7: `fecha_inicio` conserva el ingreso original; la antigüedad se calcula desde el vínculo.
           fecha_cese: null,
           motivo_cese: null,
         },
@@ -167,13 +167,20 @@ export class EstadoEmpleadoUseCase {
         },
       });
 
-      await tx.vinculo_laboral.create({
-        data: {
-          id: IdentityGenerator.generateId(),
-          empleado_id: id,
-          fecha_inicio: fechaReingreso,
-        },
+      // D7: solo se abre un vínculo nuevo si no existe uno vigente (evita P2002 en un reintento).
+      const vinculoAbierto = await tx.vinculo_laboral.findFirst({
+        where: { empleado_id: id, fecha_cese: null },
+        select: { id: true },
       });
+      if (!vinculoAbierto) {
+        await tx.vinculo_laboral.create({
+          data: {
+            id: IdentityGenerator.generateId(),
+            empleado_id: id,
+            fecha_inicio: fechaReingreso,
+          },
+        });
+      }
 
       return actualizado;
     });
