@@ -52,9 +52,9 @@ export class AsignarJornadaAsistenciaUseCase {
       //Se bloquea al empleado para evitar conflictos de concurrencia durante la operación.
       await bloquearEmpleado(tx, dto.empleado_id);
 
-      //Se valida que el empleado exista y tenga fecha de ingreso.
+      //Se valida que el empleado exista y tenga fecha de ingreso (la vigencia la determina el vínculo, ASI-F6).
       const empleado = await tx.empleados.findUnique({
-        where: { id: dto.empleado_id, deleted_at: null },
+        where: { id: dto.empleado_id },
         select: { fecha_inicio: true, area_id: true },
       });
       if (!empleado?.fecha_inicio)

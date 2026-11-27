@@ -526,6 +526,8 @@ model historial_planillas {
   snapshot_calculo   Json?
   validado_por       String?   @db.Uuid
   validado_en        DateTime? @db.Timestamptz(6)
+  declarado_por      String?   @db.Uuid
+  declarado_en       DateTime? @db.Timestamptz(6)
 
   // Ingresos ordinarios y extraordinarios
   sueldo_base          Decimal @default(0.0000) @db.Decimal(12, 4)

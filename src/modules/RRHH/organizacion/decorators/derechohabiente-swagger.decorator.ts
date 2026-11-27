@@ -15,6 +15,7 @@ import { applyDecorators } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiConsumes,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -156,10 +157,17 @@ export function ApiSwaggerSubirSustentoDerechohabiente() {
 export function ApiSwaggerListarPorEmpleado() {
   return applyDecorators(
     ApiIdentificador('empleadoId'),
+    ApiQuery({
+      name: 'incluir_inactivos',
+      required: false,
+      description:
+        'Si es `true`, incluye también los derechohabientes dados de baja (soft delete).',
+      schema: { type: 'boolean' },
+    }),
     ApiOperacionDocumentada({
       summary: 'Listar derechohabientes de un empleado',
       description:
-        'Devuelve los derechohabientes no eliminados asociados al empleado indicado, ordenados de forma descendente por fecha de creación.',
+        'Devuelve los derechohabientes no eliminados asociados al empleado indicado (o también los inactivos con `incluir_inactivos=true`), ordenados de forma descendente por fecha de creación.',
       roles: ROLES_DERECHOHABIENTE,
       respuesta: {
         type: 'array',

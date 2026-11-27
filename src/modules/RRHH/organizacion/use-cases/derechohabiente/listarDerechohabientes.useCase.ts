@@ -15,13 +15,18 @@ export class ListarDerechohabientesUseCase {
   /**
    * Metodo principal para ejecutar el caso de uso de listado de derechohabientes.
    * @param empleadoId - ID del empleado titular cuyos derechohabientes se desean listar.
+   * @param incluirInactivos - Si es `true`, incluye también los derechohabientes dados de baja (soft delete).
    * @returns - Una lista de derechohabientes asociados al empleado titular, incluyendo información de tipo de documento y sustentos documentales.
    * @throws InternalServerErrorException si ocurre un error al consultar la base de datos.
    */
-  async listarPorEmpleado(empleadoId: string) {
+  async listarPorEmpleado(empleadoId: string, incluirInactivos = false) {
     try {
       return await this.prisma.derechohabientes.findMany({
-        where: { empleado_id: empleadoId, deleted_at: null },
+        where: {
+          empleado_id: empleadoId,
+          //Por defecto solo activos; con `incluir_inactivos` se conservan también los dados de baja.
+          ...(incluirInactivos ? {} : { deleted_at: null }),
+        },
         select: {
           id: true,
           empleado_id: true,

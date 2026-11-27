@@ -8,10 +8,15 @@ import { actorSolicitud } from '@/common/utils/actor-operacion.util';
 import type { CrearNovedadPlanillaDto, DetalleAsistenciaQueryDto, ResolverNovedadPlanillaDto } from '@jyp/shared-contracts';
 import { CrearNovedadPlanillaSchema, DetalleAsistenciaQuerySchema, ResolverNovedadPlanillaSchema } from '@jyp/shared-contracts';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiSwaggerCrearNovedadPlanilla, ApiSwaggerListarNovedadesPlanilla, ApiSwaggerPlanillasController, ApiSwaggerResolverNovedadPlanilla } from '../decorators/planillas-swagger.decorator';
+import { ApiSwaggerCrearNovedadPlanilla, ApiSwaggerListarNovedadesGlobales, ApiSwaggerListarNovedadesPlanilla, ApiSwaggerPlanillasController, ApiSwaggerResolverNovedadPlanilla } from '../decorators/planillas-swagger.decorator';
 import { CrearNovedadPlanillaUseCase } from '../use-case/novedades/crearNovedadPlanilla.useCase';
 import { ListarNovedadesPlanillaUseCase } from '../use-case/novedades/listarNovedadesPlanilla.useCase';
+import { ListarNovedadesGlobalesUseCase } from '../use-case/novedades/listarNovedadesGlobales.useCase';
 import { ResolverNovedadPlanillaUseCase } from '../use-case/novedades/resolverNovedadPlanilla.useCase';
+import {
+  ListarNovedadesGlobalesQuerySchema,
+  type ListarNovedadesGlobalesQuery,
+} from '../schemas/listar-novedades-globales.schema';
 
 /**
  * Controlador para manejar las operaciones relacionadas con las novedades de planilla.
@@ -30,7 +35,19 @@ import { ResolverNovedadPlanillaUseCase } from '../use-case/novedades/resolverNo
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles('ADMIN', 'CONTADOR', 'ASISTENTE')
 export class NovedadesPlanillaController {
-    constructor(private readonly crearNovedadPlanilla: CrearNovedadPlanillaUseCase, private readonly resolverNovedadPlanilla: ResolverNovedadPlanillaUseCase, private readonly listarNovedadesPlanilla: ListarNovedadesPlanillaUseCase) {}
+    constructor(private readonly crearNovedadPlanilla: CrearNovedadPlanillaUseCase, private readonly resolverNovedadPlanilla: ResolverNovedadPlanillaUseCase, private readonly listarNovedadesPlanilla: ListarNovedadesPlanillaUseCase, private readonly listarNovedadesGlobales: ListarNovedadesGlobalesUseCase) {}
+
+    /**
+     * Endpoint para listar las novedades de todos los colaboradores (PLA-F5).
+     * @Get /api/v1/nomina/planillas/novedades
+     * @param query - Filtros opcionales (empleado_id, periodo, estado) y paginación.
+     * @returns Novedades paginadas con el nombre del colaborador.
+     */
+    @Get()
+    @ApiSwaggerListarNovedadesGlobales()
+    listarGlobales(@Query(new ZodValidationPipe(ListarNovedadesGlobalesQuerySchema)) query: ListarNovedadesGlobalesQuery) {
+        return this.listarNovedadesGlobales.execute(query);
+    }
 
     /**
      * Endpoint para crear una nueva novedad de planilla.

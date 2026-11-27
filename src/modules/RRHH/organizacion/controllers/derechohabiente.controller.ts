@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
   UseGuards,
   UsePipes,
   ParseUUIDPipe,
@@ -157,9 +158,13 @@ export class DerechohabienteController {
   @ApiSwaggerListarPorEmpleado()
   @Roles('ADMIN', 'RRHH')
   async listarPorEmpleado(
-    @Param('empleadoId', ParseUUIDPipe) empleadoId: string
+    @Param('empleadoId', ParseUUIDPipe) empleadoId: string,
+    @Query('incluir_inactivos') incluirInactivos?: string
   ) {
-    return await this.listarUseCase.listarPorEmpleado(empleadoId);
+    return await this.listarUseCase.listarPorEmpleado(
+      empleadoId,
+      incluirInactivos === 'true'
+    );
   }
 
   /**

@@ -33,6 +33,8 @@ import {
   respuestaPlanilla,
   respuestaTrabajo,
 } from './planillas-respuestas.swagger';
+import { ListarNovedadesGlobalesQuerySchema } from '../schemas/listar-novedades-globales.schema';
+import { DeclararPlanillaSchema } from '../schemas/declarar-planilla.schema';
 
 const operadores = ['ADMIN', 'CONTADOR', 'ASISTENTE'];
 const contador = ['CONTADOR'];
@@ -147,6 +149,24 @@ export function ApiSwaggerCongelarPlanilla() {
 }
 
 /**
+ * Documenta `POST /api/v1/nomina/planillas/:id/declarar`.
+ */
+export function ApiSwaggerDeclararPlanilla() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiContratoBody(DeclararPlanillaSchema),
+    ApiOperacionDocumentada({
+      summary: 'Declarar la planilla',
+      description:
+        'Solo CONTADOR. Pasa la planilla de CONGELADO a DECLARADO de forma terminal (no admite reapertura). Verifica versión optimista en transacción auditada.',
+      roles: contador,
+      status: 201,
+      respuesta: respuestaPlanilla,
+    })
+  );
+}
+
+/**
  * Documenta `GET /api/v1/nomina/planillas/:id/boleta`.
  */
 export function ApiSwaggerDescargarBoleta() {
@@ -201,6 +221,36 @@ export function ApiSwaggerRegistrarDesembolso() {
 }
 
 /**
+ * Documenta `GET /api/v1/nomina/planillas/desembolsos`.
+ */
+export function ApiSwaggerListarAdelantosPendientesDesembolso() {
+  return applyDecorators(
+    ApiOperacionDocumentada({
+      summary: 'Listar adelantos aprobados pendientes de desembolso',
+      description:
+        'Devuelve las solicitudes de ADELANTO_SUELDO aprobadas sin desembolso, con colaborador y monto, para que el contador registre el egreso.',
+      roles: contador,
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            codigo: { type: 'string' },
+            empleado_id: { type: 'string', format: 'uuid' },
+            colaborador: { type: 'string' },
+            nro_documento: { type: 'string' },
+            monto: { type: 'string', nullable: true },
+            fecha_limite: { type: 'string', format: 'date', nullable: true },
+            created_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    })
+  );
+}
+
+/**
  * Documenta `POST /api/v1/nomina/planillas/novedades`.
  */
 export function ApiSwaggerCrearNovedadPlanilla() {
@@ -247,6 +297,39 @@ export function ApiSwaggerListarNovedadesPlanilla() {
         'Sin paginación (ignora `page`/`limit`, los cuales tampoco forman parte de `DetalleAsistenciaQuerySchema`, y limita el resultado con `take: 100` ordenado por `created_at` ascendente). Consulta `novedad_planilla` filtrando por `{ empleado_id, periodo }`; sin `empleado_id` devuelve hasta 100 novedades de todos los colaboradores.',
       roles: operadores,
       respuesta: { type: 'array', items: respuestaNovedad },
+    })
+  );
+}
+
+/**
+ * Documenta `GET /api/v1/nomina/planillas/novedades` (listado global PLA-F5).
+ */
+export function ApiSwaggerListarNovedadesGlobales() {
+  return applyDecorators(
+    ApiContratoQuery(ListarNovedadesGlobalesQuerySchema),
+    ApiOperacionDocumentada({
+      summary: 'Listar novedades de todos los colaboradores',
+      description:
+        'Devuelve las novedades de planilla de forma paginada, con filtros opcionales de `empleado_id`, `periodo` y `estado`, e incluye el nombre del colaborador.',
+      roles: operadores,
+      paginada: true,
+      respuesta: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            empleado_id: { type: 'string', format: 'uuid' },
+            colaborador: { type: 'string' },
+            periodo: { type: 'string' },
+            tipo: { type: 'string' },
+            monto: { type: 'string' },
+            estado: { type: 'string' },
+            motivo: { type: 'string' },
+            created_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
     })
   );
 }

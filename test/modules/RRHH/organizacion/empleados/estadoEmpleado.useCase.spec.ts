@@ -15,7 +15,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
   //Transacción simulada: replica los delegados que usan el caso de uso y sus helpers de cese.
   const mockTx = {
     empleados: { update: jest.fn() },
-    vinculo_laboral: { updateMany: jest.fn(), create: jest.fn() },
+    vinculo_laboral: { updateMany: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
     usuarios: { updateMany: jest.fn() },
     tokens_seguridad: { updateMany: jest.fn() },
     contratos: { updateMany: jest.fn() },
@@ -188,6 +188,7 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
           activo: true,
         });
         mockTx.empleados.update.mockResolvedValue(empleadoReactivado);
+        mockTx.vinculo_laboral.findFirst.mockResolvedValue(null);
         mockTx.vinculo_laboral.create.mockResolvedValue({
           id: 'vinculo-uuid-1',
           empleado_id: idEmpleado,
@@ -199,6 +200,18 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
         // Assert: se crea un nuevo vínculo y se devuelve el legajo reactivado.
         expect(result.state).toBe(true);
         expect(result.data).toEqual(empleadoReactivado);
+        // D7: `fecha_inicio` no se sobrescribe; solo se limpian el cese y el soft delete.
+        expect(mockTx.empleados.update).toHaveBeenCalledWith({
+          where: { id: idEmpleado },
+          data: {
+            activo: true,
+            deleted_at: null,
+            estado_laboral: 'ACTIVO',
+            fecha_cese: null,
+            motivo_cese: null,
+          },
+          include: expect.any(Object),
+        });
         expect(mockTx.vinculo_laboral.create).toHaveBeenCalledWith({
           data: {
             id: expect.any(String) as unknown,
@@ -206,6 +219,28 @@ describe('EstadoEmpleadoUseCase - Pruebas Unitarias Exhaustivas', () => {
             fecha_inicio: expect.any(Date) as unknown,
           },
         });
+      });
+
+      it('Debe conservar el vínculo vigente sin crear uno nuevo (D7)', async () => {
+        // Arrange: ya existe un vínculo abierto (reintento de reactivación).
+        mockPrisma.empleados.findUnique.mockResolvedValue(empleadoCesado);
+        mockPrisma.area.findUnique.mockResolvedValue({ id: 'area-1', activo: true });
+        mockPrisma.cargo.findUnique.mockResolvedValue({ id: 'cargo-1', activo: true });
+        mockPrisma.jornada.findUnique.mockResolvedValue({ id: 'jornada-1', activo: true });
+        mockTx.empleados.update.mockResolvedValue({
+          id: idEmpleado,
+          activo: true,
+          estado_laboral: 'ACTIVO',
+        });
+        mockTx.vinculo_laboral.findFirst.mockResolvedValue({
+          id: 'vinculo-existente',
+        });
+
+        // Act
+        await useCase.reactivar(idEmpleado);
+
+        // Assert: no se duplica el vínculo (evita P2002).
+        expect(mockTx.vinculo_laboral.create).not.toHaveBeenCalled();
       });
     });
 

@@ -51,7 +51,7 @@ describe('ContarIncidenciasMesUseCase', () => {
       area_id: 'area-123',
     });
 
-    // Assert: aplica deleted_at: null y area_id igual que el listado.
+    // Assert: aplica el criterio de vigencia (ASI-F6) y area_id.
     expect(resultado).toEqual({
       PENDIENTE: 0,
       APROBADO: 0,
@@ -61,10 +61,9 @@ describe('ContarIncidenciasMesUseCase', () => {
       by: ['estado'],
       where: {
         periodo: '2026-09',
-        empleados: {
-          deleted_at: null,
+        empleados: expect.objectContaining({
           area_id: 'area-123',
-        },
+        }),
       },
       _count: { _all: true },
     });

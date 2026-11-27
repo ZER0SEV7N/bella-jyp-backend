@@ -1,6 +1,7 @@
 //src/modules/asistencia/services/generacion-masiva-asistencia.service.ts
 import { ServerTime } from '@/common/utils/server-time';
 import { GenerarIncidenciaEmpleadoUseCase } from '../use-cases/Incidencias/generarIncidenciaEmpleado.useCase';
+import { criterioVigenciaEnPeriodo } from '../helpers/criterio-vigencia.helper';
 import type { ActorOperacion } from '@/common/utils/actor-operacion.util';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import type { GenerarIncidenciasPeriodoDto } from '@jyp/shared-contracts';
@@ -28,21 +29,14 @@ export class GeneracionMasivaAsistenciaService {
      */
     async generar(dto: GenerarIncidenciasPeriodoDto, actor: ActorOperacion) {
         //Se valida el período proporcionado en el DTO y se asegura que no sea un período futuro.
-        const { year, month } = ServerTime.validarPeriodo(dto.periodo);
         if (dto.periodo > ServerTime.obtenerPeriodoActual) 
             throw new BadRequestException('No se puede generar un período futuro.');
 
-        //Se calcula el rango de fechas del mes para el período especificado.
-        const fin = new Date(Date.UTC(year, month, 0));
-        const inicio = ServerTime.desdeFechaSimple(`${dto.periodo}-01`);
-        //La fecha del vínculo determina la selección, no el indicador activo actual.
-        //Nota: `fecha_inicio` es NOT NULL en `prisma/schema.prisma`, por lo que se filtra directamente con `{ lte: fin }`
-        //(en Prisma 7 pasar `{ fecha_inicio: null }` sobre una columna no anulable lanza PrismaClientValidationError).
+        //La vigencia del vínculo (fecha_inicio/fecha_cese) determina la selección, no el indicador
+        //activo actual: un cesado a mitad de mes se incluye para calcular sus días trabajados (ASI-F6).
         const empleados = await this.prisma.empleados.findMany({
             where: {
-                deleted_at: null,
-                fecha_inicio: { lte: fin },
-                OR: [{ fecha_cese: null }, { fecha_cese: { gte: inicio } }],
+                ...criterioVigenciaEnPeriodo(dto.periodo),
                 ...(dto.empleado_id ? { id: dto.empleado_id } : {}),
                 ...(dto.area_id ? { area_id: dto.area_id } : {}),
             },

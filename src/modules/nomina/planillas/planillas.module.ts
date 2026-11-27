@@ -13,6 +13,7 @@ import { PlanillasController } from './controller/planillas.controller';
 import { ColaPayrollService } from './services/cola-payroll.service';
 import { ProcesamientoMasivoPlanillasService } from './services/procesamiento-masivo-planilla.service';
 import { CongelarPlanillaUseCase } from './use-case/planillas/congelarPlanilla.useCase';
+import { DeclararPlanillaUseCase } from './use-case/planillas/declararPlanilla.useCase';
 import { ConsultarTrabajoPlanillasUseCase } from './use-case/planillas/consultarJobPlanillas.useCase';
 import { CrearNovedadPlanillaUseCase } from './use-case/novedades/crearNovedadPlanilla.useCase';
 import { DescargarBoletaUseCase } from './use-case/descargarBoleta.useCase';
@@ -21,7 +22,9 @@ import { ListarNovedadesPlanillaUseCase } from './use-case/novedades/listarNoved
 import { ListarPlanillasUseCase } from './use-case/planillas/listarPlanilla.useCase';
 import { ObtenerPlanillaUseCase } from './use-case/planillas/obtenerPlanilla.useCase';
 import { RegistrarDesembolsoUseCase } from './use-case/desembolso/registrarDesembolso.useCase';
+import { ListarAdelantosPendientesDesembolsoUseCase } from './use-case/desembolso/listarAdelantosPendientesDesembolso.useCase';
 import { ResolverNovedadPlanillaUseCase } from './use-case/novedades/resolverNovedadPlanilla.useCase';
+import { ListarNovedadesGlobalesUseCase } from './use-case/novedades/listarNovedadesGlobales.useCase';
 import { SolicitarGeneracionPlanillasUseCase } from './use-case/solicitarGeneracionPlanilla.useCase';
 import { BoletasPropiasUseCase } from './use-case/boletasPropias.useCase';
 
@@ -44,10 +47,13 @@ import { BoletasPropiasUseCase } from './use-case/boletasPropias.useCase';
     BoletasPropiasUseCase,
     ObtenerPlanillaUseCase,
     RegistrarDesembolsoUseCase,
+    ListarAdelantosPendientesDesembolsoUseCase,
     GenerarPlanillaUseCase,
     ResolverNovedadPlanillaUseCase,
+    ListarNovedadesGlobalesUseCase,
     SolicitarGeneracionPlanillasUseCase,
     CongelarPlanillaUseCase,
+    DeclararPlanillaUseCase,
     CrearNovedadPlanillaUseCase,
     ListarPlanillasUseCase,
     ListarNovedadesPlanillaUseCase,
