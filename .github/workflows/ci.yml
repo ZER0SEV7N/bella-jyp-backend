@@ -59,10 +59,12 @@ jobs:
         uses: pnpm/action-setup@v4
         # Sin `version`: toma la de `packageManager` en package.json (pnpm 12.21.0).
 
-      - name: Configurar Node.js 22 con caché de pnpm
+      - name: Configurar Node.js 24 con caché de pnpm
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          # Jest 30 requiere Node >=24.9 para soportar `require(esm)` de dependencias
+          # como pdfmake/pdfkit/fontkit; Node 22 rompía la suite de planillas en CI.
+          node-version: '24'
           cache: 'pnpm'
 
       # Opcional: solo hace falta mientras @jyp/shared-contracts sea privado. Si el secreto no
@@ -141,10 +143,10 @@ jobs:
         uses: pnpm/action-setup@v4
         # Sin `version`: toma la de `packageManager` en package.json (pnpm 12.21.0).
 
-      - name: Configurar Node.js 22
+      - name: Configurar Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Auditar vulnerabilidades High/Critical en dependencias de producción
         run: pnpm audit --prod --audit-level=high
