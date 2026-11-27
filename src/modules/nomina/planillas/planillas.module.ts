@@ -13,6 +13,7 @@ import { PlanillasController } from './controller/planillas.controller';
 import { ColaPayrollService } from './services/cola-payroll.service';
 import { ProcesamientoMasivoPlanillasService } from './services/procesamiento-masivo-planilla.service';
 import { CongelarPlanillaUseCase } from './use-case/planillas/congelarPlanilla.useCase';
+import { DeclararPlanillaUseCase } from './use-case/planillas/declararPlanilla.useCase';
 import { ConsultarTrabajoPlanillasUseCase } from './use-case/planillas/consultarJobPlanillas.useCase';
 import { CrearNovedadPlanillaUseCase } from './use-case/novedades/crearNovedadPlanilla.useCase';
 import { DescargarBoletaUseCase } from './use-case/descargarBoleta.useCase';
@@ -52,6 +53,7 @@ import { BoletasPropiasUseCase } from './use-case/boletasPropias.useCase';
     ListarNovedadesGlobalesUseCase,
     SolicitarGeneracionPlanillasUseCase,
     CongelarPlanillaUseCase,
+    DeclararPlanillaUseCase,
     CrearNovedadPlanillaUseCase,
     ListarPlanillasUseCase,
     ListarNovedadesPlanillaUseCase,

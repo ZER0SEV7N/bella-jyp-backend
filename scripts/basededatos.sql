@@ -1102,6 +1102,9 @@ CREATE TABLE "historial_planillas" (
     -- Usuario contador que realizó el cierre.
     "validado_por" UUID,
     "validado_en" TIMESTAMPTZ(6),
+    -- Usuario y momento de la declaración final (PLA-F3).
+    "declarado_por" UUID,
+    "declarado_en" TIMESTAMPTZ(6),
     "sueldo_base" DECIMAL(12, 4) NOT NULL DEFAULT 0.0000,
     "asignacion_familia" DECIMAL(12, 4) NOT NULL DEFAULT 0.0000,
     "horas_extras_25" DECIMAL(12, 4) NOT NULL DEFAULT 0.0000,

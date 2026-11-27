@@ -34,6 +34,7 @@ import {
   respuestaTrabajo,
 } from './planillas-respuestas.swagger';
 import { ListarNovedadesGlobalesQuerySchema } from '../schemas/listar-novedades-globales.schema';
+import { DeclararPlanillaSchema } from '../schemas/declarar-planilla.schema';
 
 const operadores = ['ADMIN', 'CONTADOR', 'ASISTENTE'];
 const contador = ['CONTADOR'];
@@ -140,6 +141,24 @@ export function ApiSwaggerCongelarPlanilla() {
       summary: 'Validar y congelar la planilla',
       description:
         'Solo CONTADOR. Verifica versión optimista, vigencia del hash de fuentes, conciliación exacta de importes contra el motor y datos de empresa antes de pasar de ABIERTO a CONGELADO en transacción auditada.',
+      roles: contador,
+      status: 201,
+      respuesta: respuestaPlanilla,
+    })
+  );
+}
+
+/**
+ * Documenta `POST /api/v1/nomina/planillas/:id/declarar`.
+ */
+export function ApiSwaggerDeclararPlanilla() {
+  return applyDecorators(
+    ApiIdentificador(),
+    ApiContratoBody(DeclararPlanillaSchema),
+    ApiOperacionDocumentada({
+      summary: 'Declarar la planilla',
+      description:
+        'Solo CONTADOR. Pasa la planilla de CONGELADO a DECLARADO de forma terminal (no admite reapertura). Verifica versión optimista en transacción auditada.',
       roles: contador,
       status: 201,
       respuesta: respuestaPlanilla,

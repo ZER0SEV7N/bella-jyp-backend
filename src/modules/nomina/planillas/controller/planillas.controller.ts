@@ -9,13 +9,18 @@ import type { CongelarPlanillaDto, GenerarPlanillasDto, ListarPlanillasDto } fro
 import { CongelarPlanillaSchema, GenerarPlanillasSchema, ListarPlanillasSchema } from '@jyp/shared-contracts';
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { ApiSwaggerCongelarPlanilla, ApiSwaggerConsultarTrabajoPlanillas, ApiSwaggerDescargarBoleta, ApiSwaggerGenerarPlanillas, ApiSwaggerListarPlanillas, ApiSwaggerObtenerPlanilla, ApiSwaggerPlanillasController } from '../decorators/planillas-swagger.decorator';
+import { ApiSwaggerCongelarPlanilla, ApiSwaggerConsultarTrabajoPlanillas, ApiSwaggerDeclararPlanilla, ApiSwaggerDescargarBoleta, ApiSwaggerGenerarPlanillas, ApiSwaggerListarPlanillas, ApiSwaggerObtenerPlanilla, ApiSwaggerPlanillasController } from '../decorators/planillas-swagger.decorator';
 import { CongelarPlanillaUseCase } from '../use-case/planillas/congelarPlanilla.useCase';
+import { DeclararPlanillaUseCase } from '../use-case/planillas/declararPlanilla.useCase';
 import { ConsultarTrabajoPlanillasUseCase } from '../use-case/planillas/consultarJobPlanillas.useCase';
 import { DescargarBoletaUseCase } from '../use-case/descargarBoleta.useCase';
 import { ListarPlanillasUseCase } from '../use-case/planillas/listarPlanilla.useCase';
 import { ObtenerPlanillaUseCase } from '../use-case/planillas/obtenerPlanilla.useCase';
 import { SolicitarGeneracionPlanillasUseCase } from '../use-case/solicitarGeneracionPlanilla.useCase';
+import {
+  DeclararPlanillaSchema,
+  type DeclararPlanillaDto,
+} from '../schemas/declarar-planilla.schema';
 
 /**
  * Controlador de la API REST para la gestión de planillas de pago.
@@ -42,7 +47,8 @@ export class PlanillasController {
         private readonly listarPlanillas: ListarPlanillasUseCase, 
         private readonly obtenerPlanilla: ObtenerPlanillaUseCase, 
         private readonly descargarBoleta: DescargarBoletaUseCase,
-        private readonly congelarPlanilla: CongelarPlanillaUseCase
+        private readonly congelarPlanilla: CongelarPlanillaUseCase,
+        private readonly declararPlanilla: DeclararPlanillaUseCase
     ) {}
 
     /**
@@ -152,5 +158,17 @@ export class PlanillasController {
     @Roles('CONTADOR')
     congelar(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(CongelarPlanillaSchema)) dto: CongelarPlanillaDto, @Req() req: SolicitudAutenticada) {
         return this.congelarPlanilla.execute(id, dto, actorSolicitud(req));
+    }
+
+    /**
+     * Endpoint para declarar una planilla congelada (cierre terminal, PLA-F3).
+     * @Post /api/v1/nomina/planillas/:id/declarar
+     * @roles 'CONTADOR' - Solo el contador declara la planilla.
+     */
+    @Post(':id/declarar')
+    @ApiSwaggerDeclararPlanilla()
+    @Roles('CONTADOR')
+    declarar(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(DeclararPlanillaSchema)) dto: DeclararPlanillaDto, @Req() req: SolicitudAutenticada) {
+        return this.declararPlanilla.execute(id, dto, actorSolicitud(req));
     }
 }
