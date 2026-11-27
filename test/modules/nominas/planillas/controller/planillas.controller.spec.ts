@@ -10,13 +10,15 @@ describe('PlanillasController', () => {
     const obtenerPlanilla = { execute: jest.fn() };
     const descargarBoleta = { execute: jest.fn() };
     const congelarPlanilla = { execute: jest.fn() };
+    const declararPlanilla = { execute: jest.fn() };
     const controller = new PlanillasController(
         solicitarGeneracionPlanillas as never,
         consultarTrabajoPlanillas as never,
         listarPlanillas as never,
         obtenerPlanilla as never,
         descargarBoleta as never,
-        congelarPlanilla as never
+        congelarPlanilla as never,
+        declararPlanilla as never
     );
     beforeEach(() => jest.clearAllMocks());
     it('generar: conserva los parámetros y el resultado del caso de uso', async () => {
@@ -260,6 +262,53 @@ describe('PlanillasController', () => {
         // Act: solicitar la operación.
         const operacion = Promise.resolve().then(() =>
             controller.congelar(id as never, dto as never, req as never)
+        );
+        // Assert: conservar el error para que el filtro HTTP lo traduzca.
+        await expect(operacion).rejects.toBe(error);
+    });
+    it('declarar: conserva los parámetros y el resultado del caso de uso', async () => {
+        // Arrange: preparar dependencias aisladas, sin HTTP ni base de datos.
+        const id = '019a0000-0001-7000-8000-000000000001';
+        const dto = { version: 2 };
+        const req = {
+            user: {
+                id: '019a0000-0002-7000-8000-000000000003',
+                rol: 'CONTADOR',
+            },
+            ip: '127.0.0.1',
+        };
+        const esperado = { id, estado: 'DECLARADO' };
+        declararPlanilla.execute.mockResolvedValue(esperado);
+        // Act: ejecutar únicamente el método público del controlador.
+        const resultado = await controller.declarar(
+            id as never,
+            dto as never,
+            req as never
+        );
+        // Assert: verificar el destino, el actor y la respuesta observables.
+        expect(declararPlanilla.execute).toHaveBeenCalledWith(
+            id,
+            dto,
+            actorSolicitud(req)
+        );
+        expect(resultado).toEqual(esperado);
+    });
+    it('declarar: propaga el error sin informar éxito', async () => {
+        // Arrange: simular una regla de negocio rechazada por el caso de uso.
+        const id = '019a0000-0001-7000-8000-000000000001';
+        const dto = { version: 2 };
+        const req = {
+            user: {
+                id: '019a0000-0002-7000-8000-000000000003',
+                rol: 'CONTADOR',
+            },
+            ip: '127.0.0.1',
+        };
+        const error = new Error('Operación rechazada');
+        declararPlanilla.execute.mockRejectedValue(error);
+        // Act: solicitar la operación.
+        const operacion = Promise.resolve().then(() =>
+            controller.declarar(id as never, dto as never, req as never)
         );
         // Assert: conservar el error para que el filtro HTTP lo traduzca.
         await expect(operacion).rejects.toBe(error);

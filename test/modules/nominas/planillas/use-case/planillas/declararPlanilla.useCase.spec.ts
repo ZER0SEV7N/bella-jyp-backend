@@ -25,6 +25,7 @@ describe('DeclararPlanillaUseCase', () => {
       id: 'planilla',
       estado: 'CONGELADO',
       version: 1,
+      comentarios: 'Cierre mensual validado',
     });
   });
 
@@ -44,10 +45,56 @@ describe('DeclararPlanillaUseCase', () => {
       data: expect.objectContaining({
         estado: 'DECLARADO',
         declarado_por: actor.id,
+        declarado_en: expect.any(Date) as unknown,
         version: { increment: 1 },
       }),
     });
     expect(resultado).toEqual({ id: 'planilla', estado: 'DECLARADO' });
+  });
+
+  it('Debe conservar el motivo del congelamiento y agregar el de la declaración', async () => {
+    // Arrange
+    prisma.historial_planillas.update.mockResolvedValue({
+      id: 'planilla',
+      estado: 'DECLARADO',
+    });
+
+    // Act
+    await caso.execute(
+      'planilla',
+      { version: 1, motivo: 'Cierre del mes de octubre' },
+      actor
+    );
+
+    // Assert
+    expect(prisma.historial_planillas.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          comentarios:
+            'Cierre mensual validado\nDeclaración: Cierre del mes de octubre',
+        }),
+      })
+    );
+  });
+
+  it('Debe mantener los comentarios cuando la declaración no trae motivo', async () => {
+    // Arrange
+    prisma.historial_planillas.update.mockResolvedValue({
+      id: 'planilla',
+      estado: 'DECLARADO',
+    });
+
+    // Act
+    await caso.execute('planilla', { version: 1 }, actor);
+
+    // Assert
+    expect(prisma.historial_planillas.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          comentarios: 'Cierre mensual validado',
+        }),
+      })
+    );
   });
 
   it('Debe rechazar una planilla que no está congelada', async () => {
@@ -60,6 +107,21 @@ describe('DeclararPlanillaUseCase', () => {
 
     // Act & Assert
     await expect(caso.execute('planilla', { version: 1 }, actor)).rejects.toThrow(
+      ConflictException
+    );
+    expect(prisma.historial_planillas.update).not.toHaveBeenCalled();
+  });
+
+  it('Debe rechazar una planilla ya declarada (estado terminal)', async () => {
+    // Arrange
+    prisma.historial_planillas.findUnique.mockResolvedValue({
+      id: 'planilla',
+      estado: 'DECLARADO',
+      version: 2,
+    });
+
+    // Act & Assert
+    await expect(caso.execute('planilla', { version: 2 }, actor)).rejects.toThrow(
       ConflictException
     );
     expect(prisma.historial_planillas.update).not.toHaveBeenCalled();

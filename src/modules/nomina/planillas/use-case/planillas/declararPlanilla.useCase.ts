@@ -27,13 +27,21 @@ export class DeclararPlanillaUseCase {
       if (planilla.version !== dto.version)
         throw new ConflictException('La planilla cambió desde que fue consultada.');
 
+      //El motivo del congelamiento se conserva; el de la declaración se agrega al historial.
+      const motivoDeclaracion = dto.motivo?.trim();
+      const comentarios = motivoDeclaracion
+        ? [planilla.comentarios, `Declaración: ${motivoDeclaracion}`]
+            .filter(Boolean)
+            .join('\n')
+        : planilla.comentarios;
+
       return tx.historial_planillas.update({
         where: { id, version: dto.version, estado: 'CONGELADO' },
         data: {
           estado: 'DECLARADO',
           declarado_por: actor.id,
           declarado_en: new Date(),
-          comentarios: dto.motivo ?? null,
+          comentarios,
           version: { increment: 1 },
         },
       });
