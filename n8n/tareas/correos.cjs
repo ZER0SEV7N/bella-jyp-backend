@@ -28,7 +28,8 @@ async function prepararCorreo(directorio, nombre, mensaje, planillaId) {
     };
 
     // Crea un transporte de correo local para generar el archivo del correo sin enviarlo
-    const transporteLocal = nodemailer.createTransport({
+    // NOSONAR: este transporte usa un flujo local y no establece ninguna conexión HTTP.
+    const transporteLocal = nodemailer.createTransport({ // NOSONAR
         streamTransport: true,
         buffer: false,
         newline: 'windows',

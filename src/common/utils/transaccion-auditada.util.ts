@@ -50,7 +50,7 @@ export async function transaccionAuditada<T>(
   trabajo: (tx: Prisma.TransactionClient) => Promise<T>
 ): Promise<T> {
   //Se realizan hasta 3 intentos de la operación en caso de conflictos de concurrencia (código de error P2034).
-  for (let intento = 0; intento < 3; intento++) {
+  const ejecutar = async (intento: number): Promise<T> => {
     try {
       //Se ejecuta la operación dentro de una transacción de Prisma con nivel de aislamiento serializable y tiempos de espera configurados.
       return await prisma.$transaction(
@@ -71,14 +71,12 @@ export async function transaccionAuditada<T>(
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2034' &&
         intento < 2
-      )
-        continue;
+      ) {
+        return ejecutar(intento + 1);
+      }
       throw error;
     }
-  }
+  };
 
-  //Si después de 3 intentos la operación no se puede completar debido a conflictos de concurrencia, se lanza una excepción ConflictException.
-  throw new ConflictException(
-    'La información cambió durante la operación. Vuelva a consultarla.'
-  );
+  return ejecutar(0);
 }

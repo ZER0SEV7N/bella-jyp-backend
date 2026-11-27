@@ -31,7 +31,7 @@ export async function prepararImportacion(prisma: PrismaService, archivo: Multip
     //Se valida que cada fila corresponda a un vínculo laboral vigente en la fecha de la marcación.
     for (const f of filas) {
         const e = porDocumento.get(f.nro_documento);
-        if (!e || !e.fecha_inicio || f.fecha < e.fecha_inicio.toISOString().slice(0, 10) || (e.fecha_cese && f.fecha > e.fecha_cese.toISOString().slice(0, 10))) {
+        if (!e?.fecha_inicio || f.fecha < e.fecha_inicio.toISOString().slice(0, 10) || (e.fecha_cese && f.fecha > e.fecha_cese.toISOString().slice(0, 10))) {
             if (errores.length < 100)
                 errores.push({ fila: f.fila, detalle: 'El documento no corresponde a un vínculo laboral vigente en esa fecha.' });
         }

@@ -21,7 +21,7 @@ export async function seedComisionesOctubre2026(prisma: ClienteSeed) {
     const fin = new Date('2026-12-31');
 
     // Insertar o verificar las comisiones de cada AFP
-    for (const tasa of tasas) {
+    await Promise.all(tasas.map(async (tasa) => {
         const afp = await prisma.tipo_afp.findFirstOrThrow({ where: { nombre: tasa.nombre, regimen_pension: { nombre: 'SPP' } } });
         const vigentes = await prisma.comisiones_afp.findMany({ where: { afp_id: afp.id, periodo_inicio: { lte: fin }, OR: [{ periodo_final: null }, { periodo_final: { gte: inicio } }] } });
         const valores = { aporte_obligatorio: '10', prima_seguro: '1.37', comision_sobre_ra: tasa.flujo, comision_mixta: tasa.saldo, comision_flujo_mixta: '0', remuneracion_maxima_asegurable: '12732.70' };
@@ -44,8 +44,8 @@ export async function seedComisionesOctubre2026(prisma: ClienteSeed) {
                 
                 comprobarValor(valor, esperado, `${tasa.nombre}.${campo}`);
             }
-            continue;
+            return;
         }
         await prisma.comisiones_afp.create({ data: { id: IdentityGenerator.generateId(), afp_id: afp.id, ...valores, periodo_inicio: inicio, periodo_final: fin } });
-    }
+    }));
 }

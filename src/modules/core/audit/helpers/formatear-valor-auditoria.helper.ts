@@ -53,7 +53,7 @@ export function crearNombresResueltosVacios(): NombresResueltosAuditoria {
  * @returns El texto con espacios y la primera letra en mayúscula.
  */
 export function humanizarAuditoria(valor: string): string {
-  const texto = valor.replace(/_/g, ' ').trim().toLowerCase();
+  const texto = valor.replaceAll('_', ' ').trim().toLowerCase();
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 

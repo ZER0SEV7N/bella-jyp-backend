@@ -66,7 +66,8 @@ function aplicarSobretiempo(r: ResultadoDia, decisiones: DecisionAsistencia[]): 
  * @returns - Objeto ResultadoDia actualizado con la evaluación de las marcaciones, incluyendo los minutos trabajados, tardanzas, salidas anticipadas y alertas generadas.
  * @throws RangeError si los intervalos de tiempo no son válidos o si los datos de entrada no cumplen con los requisitos de formato o consistencia.
  */
-export function evaluarMarcaciones(r: ResultadoDia, horario: HorarioDia, jornada: JornadaHistorica, decisiones: DecisionAsistencia[], programado: Intervalo[], conGoce: Intervalo[], sinGoce: Intervalo[], aprobadas: SolicitudAsistencia[]): ResultadoDia {
+export function evaluarMarcaciones(r: ResultadoDia, horario: HorarioDia, jornada: JornadaHistorica, decisiones: DecisionAsistencia[], ...contexto: [programado: Intervalo[], conGoce: Intervalo[], sinGoce: Intervalo[], aprobadas: SolicitudAsistencia[]]): ResultadoDia {
+    const [programado, conGoce, sinGoce, aprobadas] = contexto;
     //Calcula los intervalos trabajados a partir de las marcas registradas y el horario laboral.
     const trabajado = intervalosTrabajados(r.marcas, horario);
 

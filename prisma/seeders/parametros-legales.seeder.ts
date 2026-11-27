@@ -30,14 +30,21 @@ export async function seedParametrosLegales(prisma: ClienteSeed) {
         parametros.push({ codigo: 'VIDA_LEY_PCT', nombre: 'Prima Vida Ley contratada', valor: vida, desde: process.env.SEED_VIDA_LEY_DESDE ?? '2026-01-01', hasta: process.env.SEED_VIDA_LEY_HASTA ?? '2026-12-31', fuente: 'Configuración expresa de la empresa: verificar vigencia de la póliza.' });
     }
 
-    // Insertar o verificar los parámetros legales
-    for (const parametro of parametros) {
+    // Consultar en paralelo para evitar esperas dentro del ciclo de validación
+    const registrosAnteriores = await Promise.all(parametros.map((parametro) => {
         const desde = new Date(parametro.desde);
         const hasta = parametro.hasta ? new Date(parametro.hasta) : null;
-        const anteriores = await prisma.parametro_legal.findMany({
+        return prisma.parametro_legal.findMany({
             where: { codigo: parametro.codigo, vigente_desde: { lte: hasta ?? new Date('9999-12-31') }, OR: [{ vigente_hasta: null }, { vigente_hasta: { gte: desde } }] },
         });
+    }));
 
+    // Insertar o verificar los parámetros legales
+    const pendientes = [];
+    for (const [indice, parametro] of parametros.entries()) {
+        const desde = new Date(parametro.desde);
+        const hasta = parametro.hasta ? new Date(parametro.hasta) : null;
+        const anteriores = registrosAnteriores[indice];
         // Verificar que no haya vigencias superpuestas para el mismo parámetro
         const actual = anteriores.find((registro) => registro.vigente_desde.getTime() === desde.getTime());
         if (anteriores.some((registro) => registro.id !== actual?.id)) 
@@ -51,8 +58,9 @@ export async function seedParametrosLegales(prisma: ClienteSeed) {
             
             continue;
         }
-        await prisma.parametro_legal.create({ data: { id: IdentityGenerator.generateId(), codigo: parametro.codigo, nombre: parametro.nombre, valor: parametro.valor, vigente_desde: desde, vigente_hasta: hasta, descripcion: parametro.fuente } });
+        pendientes.push({ id: IdentityGenerator.generateId(), codigo: parametro.codigo, nombre: parametro.nombre, valor: parametro.valor, vigente_desde: desde, vigente_hasta: hasta, descripcion: parametro.fuente });
     }
+    await Promise.all(pendientes.map((data) => prisma.parametro_legal.create({ data })));
 
     // Advertencia si no se ha configurado la prima de Vida Ley
     if (vida === undefined) 

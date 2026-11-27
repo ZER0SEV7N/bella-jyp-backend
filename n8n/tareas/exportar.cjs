@@ -184,11 +184,13 @@ async function plame(trabajo, filas, directorio) {
             await jor.linea(lineaJornadaPlame(fila));
 
             // Se escriben las líneas de remuneración en el archivo correspondiente para cada línea generada por la función lineasRemuneracionPlame.
-            for (const linea of lineasRemuneracionPlame(
+            await lineasRemuneracionPlame(
                 fila,
                 trabajo.solicitud.configuracion
-            ))
-                await rem.linea(linea);
+            ).reduce(
+                (escritura, linea) => escritura.then(() => rem.linea(linea)),
+                Promise.resolve()
+            );
         }
 
         // Se valida que al menos una fila haya sido procesada para generar los archivos PLAME.
@@ -278,15 +280,16 @@ async function costos(trabajo, filas, directorio) {
     await archivo.linea('area,empleados,ingresos_brutos,descuentos,neto,reducciones_tiempo,remuneracion_devengada,essalud,vida_ley,costo_empleador');
     
     // Se itera sobre cada área y sus totales acumulados para escribir las líneas correspondientes en el archivo CSV.
+    let escritura = Promise.resolve();
     for (const [area, t] of areas) {
         // Evitar que un nombre de área se interprete como fórmula al abrir el CSV en Excel.
         const etiqueta = /^[=+@-]/.test(area) ? "'" + area : area;
         
         // Se escribe una línea en el archivo CSV con los valores de cada columna, 
         // asegurando que los valores numéricos se formateen con dos decimales y que las comillas dobles se escapen correctamente.
-        await archivo.linea(
+        escritura = escritura.then(() => archivo.linea(
             [
-                '"' + etiqueta.replace(/"/g, '""') + '"',
+                '"' + etiqueta.replaceAll('"', '""') + '"',
                 t.cantidad,
                 ...[
                     t.ingresos,
@@ -299,9 +302,10 @@ async function costos(trabajo, filas, directorio) {
                     t.ingresos.minus(t.tiempo).plus(t.essalud).plus(t.vida),
                 ].map((v) => v.toFixed(2)),
             ].join(',')
-        );
+        ));
     }
 
+    await escritura;
     // Se cierra el archivo CSV después de escribir todas las líneas.
     await archivo.cerrar();
     return [await metadatos(directorio, nombre, 'text/csv')];

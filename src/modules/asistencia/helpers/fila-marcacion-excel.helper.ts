@@ -115,18 +115,22 @@ export function validarFilaMarcacion(
 
   //Se valida que la fecha y hora sean válidas y se convierten a formato ISO.
   //La celda puede llegar como texto, serial de Excel (número) o Date, según cómo la leyó el lector.
-  const fecha =
-    typeof valores[1] === 'number'
-      ? fechaExcel(valores[1], usa1904)
-      : valores[1] instanceof Date
-        ? valores[1].toISOString().slice(0, 10)
-        : textoPlano(valores[1]).trim();
-  const hora =
-    typeof valores[2] === 'number'
-      ? horaExcel(valores[2])
-      : valores[2] instanceof Date
-        ? valores[2].toISOString().slice(11, 19)
-        : textoPlano(valores[2]).trim();
+  let fecha: string;
+  if (typeof valores[1] === 'number') {
+    fecha = fechaExcel(valores[1], usa1904);
+  } else if (valores[1] instanceof Date) {
+    fecha = valores[1].toISOString().slice(0, 10);
+  } else {
+    fecha = textoPlano(valores[1]).trim();
+  }
+  let hora: string;
+  if (typeof valores[2] === 'number') {
+    hora = horaExcel(valores[2]);
+  } else if (valores[2] instanceof Date) {
+    hora = valores[2].toISOString().slice(11, 19);
+  } else {
+    hora = textoPlano(valores[2]).trim();
+  }
   const validado = FilaMarcacionBiometricaSchema.parse({
     nro_documento: valores[0],
     fecha,

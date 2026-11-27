@@ -206,6 +206,108 @@ function aplanarNombres(
   return planos;
 }
 
+type CambioBaseAuditoria = ReturnType<typeof calcularCambiosAuditoria>[number];
+
+function debeOmitirCambio(
+  cambio: CambioBaseAuditoria,
+  accion: AccionVistaAuditoria,
+  campoContexto: string | undefined,
+  tabla: string
+): boolean {
+  const config = obtenerConfigCampoAuditoria(tabla, cambio.campo);
+  const esCambioDeEstado =
+    (accion === 'BAJA' || accion === 'REACTIVACION') &&
+    (cambio.campo === 'deleted_at' || cambio.campo === 'activo');
+  return Boolean(
+    config?.oculto ||
+      esCambioDeEstado ||
+      (accion === 'CREACION' && cambio.campo === campoContexto)
+  );
+}
+
+function construirCambioProtegido(
+  cambio: CambioBaseAuditoria,
+  tabla: string
+): CambioActividadAuditoria {
+  const config = obtenerConfigCampoAuditoria(tabla, cambio.campo);
+  return {
+    campo: cambio.campo,
+    etiqueta: cambio.etiqueta,
+    tipo: config?.tipo ?? 'texto',
+    antes: null,
+    despues: null,
+    protegido: true,
+  };
+}
+
+function construirCambioLista(
+  cambio: CambioBaseAuditoria,
+  campo: ReturnType<typeof inferirConfigCampoAuditoria>,
+  valorAntes: unknown,
+  valorDespues: unknown,
+  nombres: NombresResueltosAuditoria
+): CambioActividadAuditoria | null {
+  const antesLista = campo.ruta
+    ? comoValores(valorAntes)?.[campo.ruta]
+    : valorAntes;
+  const despuesLista = campo.ruta
+    ? comoValores(valorDespues)?.[campo.ruta]
+    : valorDespues;
+  const detalle = compararListaAuditoria(
+    campo,
+    antesLista,
+    despuesLista,
+    nombres
+  );
+  if (detalle.length === 0) return null;
+  return {
+    campo: cambio.campo,
+    etiqueta: cambio.etiqueta,
+    tipo: 'lista',
+    antes: null,
+    despues: null,
+    detalle,
+  };
+}
+
+function construirCambioTexto(
+  cambio: CambioBaseAuditoria,
+  campo: ReturnType<typeof inferirConfigCampoAuditoria>,
+  valorAntes: unknown,
+  valorDespues: unknown,
+  nombres: NombresResueltosAuditoria
+): CambioActividadAuditoria | null {
+  const textoAntes = formatearValorAuditoria(campo, valorAntes, nombres);
+  const textoDespues = formatearValorAuditoria(campo, valorDespues, nombres);
+  if (textoAntes === textoDespues) return null;
+  return {
+    campo: cambio.campo,
+    etiqueta: cambio.etiqueta,
+    tipo: campo.tipo,
+    antes: textoAntes,
+    despues: textoDespues,
+  };
+}
+
+function construirCambio(
+  cambio: CambioBaseAuditoria,
+  antes: Valores | null,
+  despues: Valores | null,
+  tabla: string,
+  nombres: NombresResueltosAuditoria
+): CambioActividadAuditoria | null {
+  const config = obtenerConfigCampoAuditoria(tabla, cambio.campo);
+  if (cambio.protegido) return construirCambioProtegido(cambio, tabla);
+
+  const valorAntes = antes?.[cambio.campo];
+  const valorDespues = despues?.[cambio.campo];
+  const campo =
+    config ?? inferirConfigCampoAuditoria(cambio.campo, valorDespues ?? valorAntes);
+  return campo.tipo === 'lista'
+    ? construirCambioLista(cambio, campo, valorAntes, valorDespues, nombres)
+    : construirCambioTexto(cambio, campo, valorAntes, valorDespues, nombres);
+}
+
 function construirCambios(
   fila: FilaAuditoriaActividad,
   accion: AccionVistaAuditoria,
@@ -227,72 +329,11 @@ function construirCambios(
     tabla
   );
 
-  const cambios: CambioActividadAuditoria[] = [];
-  for (const cambio of base) {
-    const config = obtenerConfigCampoAuditoria(tabla, cambio.campo);
-    if (config?.oculto) continue;
-    if (
-      (accion === 'BAJA' || accion === 'REACTIVACION') &&
-      (cambio.campo === 'deleted_at' || cambio.campo === 'activo')
-    ) {
-      continue;
-    }
-    if (accion === 'CREACION' && cambio.campo === campoContexto) continue;
-
-    if (cambio.protegido) {
-      cambios.push({
-        campo: cambio.campo,
-        etiqueta: cambio.etiqueta,
-        tipo: config?.tipo ?? 'texto',
-        antes: null,
-        despues: null,
-        protegido: true,
-      });
-      continue;
-    }
-
-    const valorAntes = antes?.[cambio.campo];
-    const valorDespues = despues?.[cambio.campo];
-    const campo =
-      config ??
-      inferirConfigCampoAuditoria(cambio.campo, valorDespues ?? valorAntes);
-
-    if (campo.tipo === 'lista') {
-      const antesLista = campo.ruta
-        ? comoValores(valorAntes)?.[campo.ruta]
-        : valorAntes;
-      const despuesLista = campo.ruta
-        ? comoValores(valorDespues)?.[campo.ruta]
-        : valorDespues;
-      const detalle = compararListaAuditoria(
-        campo,
-        antesLista,
-        despuesLista,
-        nombres
-      );
-      if (detalle.length === 0) continue;
-      cambios.push({
-        campo: cambio.campo,
-        etiqueta: cambio.etiqueta,
-        tipo: 'lista',
-        antes: null,
-        despues: null,
-        detalle,
-      });
-      continue;
-    }
-
-    const textoAntes = formatearValorAuditoria(campo, valorAntes, nombres);
-    const textoDespues = formatearValorAuditoria(campo, valorDespues, nombres);
-    if (textoAntes === textoDespues) continue;
-    cambios.push({
-      campo: cambio.campo,
-      etiqueta: cambio.etiqueta,
-      tipo: campo.tipo,
-      antes: textoAntes,
-      despues: textoDespues,
-    });
-  }
+  const cambios = base.flatMap((cambio) => {
+    if (debeOmitirCambio(cambio, accion, campoContexto, tabla)) return [];
+    const resultado = construirCambio(cambio, antes, despues, tabla, nombres);
+    return resultado ? [resultado] : [];
+  });
 
   //El jsonb de Postgres devuelve las claves por longitud y alfabéticamente; la vista las muestra
   //en el orden en que las define la configuración de la tabla.

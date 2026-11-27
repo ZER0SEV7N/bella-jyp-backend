@@ -52,18 +52,16 @@ export class GeneracionMasivaAsistenciaService {
 
         //Se procesa cada empleado en el lote, generando las incidencias de asistencia y registrando los resultados.
         const lote = empleados.slice(0, dto.limite);
-        const resultados: { empleado_id: string; id?: string; estado?: string; error?: string }[] = [];
-        
-        //Se itera sobre cada empleado en el lote y se intenta generar la incidencia de asistencia.
-        for (const empleado of lote) {
+        //Se procesan los empleados del lote en paralelo, conservando el orden de los resultados.
+        const resultados = await Promise.all(lote.map(async (empleado) => {
             try {
                 const resumen = await this.asistencia.execute(empleado.id, dto.periodo, actor);
-                resultados.push({ empleado_id: empleado.id, id: resumen.id, estado: resumen.estado });
+                return { empleado_id: empleado.id, id: resumen.id, estado: resumen.estado };
             } catch (error) {
                 if (dto.empleado_id) throw error;
-                resultados.push({ empleado_id: empleado.id, error: mensajeErrorIncidencia(error) });
+                return { empleado_id: empleado.id, error: mensajeErrorIncidencia(error) };
             }
-        }
+        }));
 
         //Se devuelve un objeto con el resumen del procesamiento, incluyendo el número de empleados procesados, los errores encontrados y el cursor para la siguiente página.
         return {

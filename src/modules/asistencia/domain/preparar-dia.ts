@@ -54,7 +54,7 @@ export function prepararDia(contexto: ContextoAsistencia, fecha: string, r: Resu
         return null;
 
     // Obtiene la jornada histórica vigente para la fecha evaluada.
-    const jornada = contexto.jornadas.filter((j) => j.desde <= fecha).at(-1);
+    const jornada = contexto.jornadas.findLast((j) => j.desde <= fecha);
 
     if (!jornada) {
         r.estado = 'PENDIENTE';

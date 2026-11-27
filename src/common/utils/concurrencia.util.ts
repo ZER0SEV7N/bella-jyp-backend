@@ -17,14 +17,17 @@ export async function mapConLimite<T, R>(
   const resultados = new Array<R>(items.length);
   let siguiente = 0;
 
+  const procesarSiguiente = async (): Promise<void> => {
+    const indice = siguiente++;
+    if (indice >= items.length) return;
+
+    resultados[indice] = await fn(items[indice]);
+    return procesarSiguiente();
+  };
+
   const trabajadores = Array.from(
     { length: Math.max(1, Math.min(limite, items.length)) },
-    async () => {
-      while (siguiente < items.length) {
-        const indice = siguiente++;
-        resultados[indice] = await fn(items[indice]);
-      }
-    }
+    () => procesarSiguiente()
   );
 
   await Promise.all(trabajadores);

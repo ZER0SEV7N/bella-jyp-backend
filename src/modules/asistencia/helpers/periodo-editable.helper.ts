@@ -109,10 +109,12 @@ export async function validarFechaSinPeriodoCerrado(
   ]);
 
   if (aprobados > 0 || planillaCerrada) {
-    const detalleAprobados =
-      aprobados > 0
-        ? ` (${aprobados} ${aprobados === 1 ? 'colaborador aprobado' : 'colaboradores aprobados'})`
-        : '';
+    let detalleAprobados = '';
+    if (aprobados > 0) {
+      const etiquetaAprobados =
+        aprobados === 1 ? 'colaborador aprobado' : 'colaboradores aprobados';
+      detalleAprobados = ` (${aprobados} ${etiquetaAprobados})`;
+    }
     throw new ConflictException({
       title: 'Periodo cerrado',
       detail: `El periodo ${periodo} tiene resúmenes aprobados${detalleAprobados} o una planilla cerrada. Reabra el periodo antes de modificar el calendario.`,

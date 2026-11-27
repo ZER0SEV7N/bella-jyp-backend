@@ -43,9 +43,12 @@ export class ImportarMarcacionesService {
     //Se ejecuta la operación dentro de una transacción para asegurar la atomicidad y consistencia de los cambios,
     return transaccionAuditada(this.prisma, actor, async (tx) => {
       //Se bloquea a cada empleado involucrado en la importación para evitar conflictos de concurrencia durante la operación.
-      const ids = empleados.map((e) => e.id).sort();
+      const ids = empleados.map((e) => e.id).sort((a, b) => a.localeCompare(b));
       //Se valida que los períodos de los empleados sean editables antes de insertar las nuevas marcaciones.
-      for (const id of ids) await bloquearEmpleado(tx, id);
+      await ids.reduce(
+        (bloqueo, id) => bloqueo.then(() => bloquearEmpleado(tx, id)),
+        Promise.resolve(),
+      );
 
       const rango = ServerTime.obtenerRangoMes(vista.periodo); //Obtenemos el rango de fechas del mes para el período de la importación.
 
@@ -88,7 +91,11 @@ export class ImportarMarcacionesService {
       });
 
       //Se validan los períodos editables de los empleados involucrados en la importación.
-      for (const id of new Set(nuevas.map((f) => f.empleado_id))) await validarPeriodoEditable(tx, id, vista.periodo);
+      await Promise.all(
+        [...new Set(nuevas.map((f) => f.empleado_id))].map((id) =>
+          validarPeriodoEditable(tx, id, vista.periodo),
+        ),
+      );
       //La restricción única es la defensa final; la transacción evita importaciones parciales.
       if (nuevas.length) await tx.asistencia_marcacion.createMany({ data: nuevas });
       return { ...vista, insertadas: nuevas.length, duplicadas_omitidas: filas.length - nuevas.length };

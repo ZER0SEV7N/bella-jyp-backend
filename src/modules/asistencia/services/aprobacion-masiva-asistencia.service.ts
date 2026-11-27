@@ -72,7 +72,8 @@ export class AprobacionMasivaAsistenciaService {
         );
 
       //Se procesan las incidencias pendientes, bloqueando cada empleado y validando su estado.
-      for (const fila of filas) {
+      await filas.reduce(async (anterior, fila) => {
+        await anterior;
         //Se bloquea al empleado para evitar conflictos de concurrencia durante la operación de aprobación.
         await bloquearEmpleado(tx, fila.empleado_id);
         await validarPeriodoEditable(tx, fila.empleado_id, periodo);
@@ -96,10 +97,11 @@ export class AprobacionMasivaAsistenciaService {
           throw new ConflictException(
             'Las fuentes cambiaron. Vuelva a generar el resumen.'
           );
-      }
+      }, Promise.resolve());
 
       //Se aprueban las incidencias pendientes actualizando su estado a 'APROBADO', registrando el actor que realizó la aprobación y la fecha de aprobación, y aumentando la versión de la incidencia.
-      for (const fila of filas)
+      await filas.reduce(async (anterior, fila) => {
+        await anterior;
         //Se actualiza la incidencia pendiente a 'APROBADO', registrando el actor que realizó la aprobación y la fecha de aprobación, y aumentando la versión de la incidencia.
         await tx.incidencias_mes.update({
           where: { id: fila.id, estado: 'PENDIENTE', version: fila.version },
@@ -110,6 +112,7 @@ export class AprobacionMasivaAsistenciaService {
             version: { increment: 1 },
           },
         });
+      }, Promise.resolve());
 
       return { periodo, registros_aprobados: filas.length };
     });

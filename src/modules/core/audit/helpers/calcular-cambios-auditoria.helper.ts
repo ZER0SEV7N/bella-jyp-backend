@@ -68,6 +68,37 @@ function sonIgualesProtegidos(antes: unknown, despues: unknown): boolean {
 }
 
 /**
+ * Determina si un campo es considerado protegido, ya sea porque es un campo financiero o sensible, o porque está marcado como protegido en la configuración de auditoría.
+ * @param campo - Nombre del campo a evaluar.
+ * @returns true si el campo es protegido, false en caso contrario.
+ */
+function esCampoProtegido(campo: string): boolean {
+  return (
+    CAMPOS_PROTEGIDOS_VISTA.has(campo) ||
+    CAMPOS_SENSIBLES_AUDITORIA.has(campo)
+  );
+}
+
+/**
+ * Compara dos valores de un campo y determina si son iguales, considerando si el campo es protegido o no.
+ * @param campo - Nombre del campo a comparar.
+ * @param antes - Valor previo del campo.
+ * @param despues - Valor posterior del campo.
+ * @returns true si los valores son iguales, false en caso contrario.
+ * - Para campos protegidos, se comparan las huellas de los valores sin revelar su contenido.
+ * - Para campos no protegidos, se realiza una comparación directa de los valores.
+ */
+function sonValoresIguales(
+  campo: string,
+  antes: unknown,
+  despues: unknown
+): boolean {
+  return esCampoProtegido(campo)
+    ? sonIgualesProtegidos(antes, despues)
+    : antes === despues;
+}
+
+/**
  * Calcula la lista de campos modificados entre `valores_antes` y `valores_despues` (AUD-M2).
  * - Oculta `password_hash` y `token_hash`.
  * - Marca cuentas bancarias, CCI y CUSPP con `protegido: true` y valores `null`.
@@ -87,10 +118,13 @@ export function calcularCambiosAuditoria(
   nombresCatalogos: Record<string, string> = {},
   tabla?: string
 ): CambioCampoAuditoria[] {
+  // Se asegura que los valores antes y después sean objetos planos para poder iterar sobre sus claves.
   const antes =
     antesRaw && typeof antesRaw === 'object' && !Array.isArray(antesRaw)
       ? (antesRaw as Record<string, unknown>)
       : {};
+
+  // Se normalizan los valores antes y después para evitar falsos positivos al comparar fechas y objetos.
   const despues =
     despuesRaw && typeof despuesRaw === 'object' && !Array.isArray(despuesRaw)
       ? (despuesRaw as Record<string, unknown>)
@@ -101,8 +135,10 @@ export function calcularCambiosAuditoria(
   const relaciones = tabla ? obtenerCamposRelacion(tabla) : new Set<string>();
   const claves = new Set([...Object.keys(antes), ...Object.keys(despues)]);
   const cambios: CambioCampoAuditoria[] = [];
-
+  
+  //Se recorre cada campo de la fila y se comparan los valores antes y después, ignorando los campos técnicos y protegidos.
   for (const campo of claves) {
+    //Se ignoran los campos técnicos internos, los campos de relación y los campos sensibles como `password`, `password_hash` y `token_hash`.  
     if (CAMPOS_TECNICOS_IGNORADOS.has(campo) || relaciones.has(campo)) continue;
     if (
       campo === 'password' ||
@@ -111,25 +147,19 @@ export function calcularCambiosAuditoria(
     )
       continue;
 
+    //Se normalizan los valores antes y después para evitar falsos positivos al comparar fechas y objetos.
     const valAntes = normalizarValorAuditoria(antes[campo]);
     const valDespues = normalizarValorAuditoria(despues[campo]);
 
-    const esProtegido =
-      CAMPOS_PROTEGIDOS_VISTA.has(campo) ||
-      CAMPOS_SENSIBLES_AUDITORIA.has(campo);
-    if (
-      esProtegido
-        ? sonIgualesProtegidos(valAntes, valDespues)
-        : valAntes === valDespues
-    )
-      continue;
+    //Se determina si el campo es protegido y se comparan los valores antes y después, considerando la protección.
+    const esProtegido = esCampoProtegido(campo);
+    if (sonValoresIguales(campo, valAntes, valDespues)) continue;
 
+    //Se obtiene la etiqueta legible del campo para mostrarla en el registro de cambios.
     const etiqueta = obtenerEtiquetaCampoAuditoria(tabla, campo);
 
-    if (
-      CAMPOS_PROTEGIDOS_VISTA.has(campo) ||
-      CAMPOS_SENSIBLES_AUDITORIA.has(campo)
-    ) {
+    //Si el campo es protegido, se agrega al registro de cambios con `protegido: true` y valores `null`, sin revelar su contenido.
+    if (esProtegido) {
       cambios.push({
         campo,
         etiqueta,
@@ -140,9 +170,11 @@ export function calcularCambiosAuditoria(
       continue;
     }
 
+    //Se traduce el valor de cada campo si se proporciona un diccionario de nombres de catálogos, para mostrar nombres legibles en lugar de IDs.
     const traducir = (v: unknown) =>
       typeof v === 'string' && nombresCatalogos[v] ? nombresCatalogos[v] : v;
 
+    //Se agrega el cambio al registro de cambios con la etiqueta y los valores traducidos, mostrando los valores antes y después del cambio.
     cambios.push({
       campo,
       etiqueta,

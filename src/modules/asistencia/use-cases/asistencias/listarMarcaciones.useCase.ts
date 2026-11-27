@@ -76,7 +76,19 @@ export class ListarMarcacionesUseCase {
 
             return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
         } catch (error) {
-            throw new InternalServerErrorException('Error al obtener el listado de marcaciones.', error instanceof Error ? error.message : String(error) );
+            let errorMessage: string;
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === "string") {
+                errorMessage = error;
+            } else {
+                try {
+                    errorMessage = JSON.stringify(error) ?? "Error desconocido";
+                } catch {
+                    errorMessage = "Error desconocido";
+                }
+            }
+            throw new InternalServerErrorException('Error al obtener el listado de marcaciones.', errorMessage);
         }
     }
 }
