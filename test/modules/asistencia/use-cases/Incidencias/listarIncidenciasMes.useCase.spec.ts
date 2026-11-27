@@ -100,9 +100,9 @@ describe('Listado de incidencias - combinaciones de filtros y resumen', () => {
             periodo: string;
             estado?: string;
             empleados?: {
-              deleted_at: null;
-              area_id?: string;
               OR?: Array<Record<string, unknown>>;
+              area_id?: string;
+              AND?: Array<{ OR: Array<Record<string, unknown>> }>;
             };
           };
         },
@@ -114,14 +114,14 @@ describe('Listado de incidencias - combinaciones de filtros y resumen', () => {
       where: {
         periodo: '2026-09',
         estado: 'APROBADO',
-        empleados: { deleted_at: null },
+        empleados: { OR: expect.any(Array) },
       },
     });
     if (filtro.area_id) {
       expect(consulta.where.empleados?.area_id).toBe('area');
     }
     if (filtro.busqueda) {
-      expect(consulta.where.empleados?.OR?.[1]).toEqual({
+      expect(consulta.where.empleados?.AND?.[0].OR?.[1]).toEqual({
         nombre: { contains: 'Ana', mode: 'insensitive' },
       });
     }

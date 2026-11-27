@@ -47,8 +47,9 @@ export class ResolverDiaAsistenciaUseCase {
       await bloquearEmpleado(tx, dto.empleado_id);
       await validarPeriodoEditable(tx, dto.empleado_id, dto.fecha.slice(0, 7));
 
-      //Se busca el empleado en la base de datos para verificar que exista. Si no se encuentra, se lanza una excepción NotFoundException.
-      const empleado = await tx.empleados.findUnique({ where: { id: dto.empleado_id, deleted_at: null }, select: { id: true } });
+      //Se busca el empleado sin filtrar por `deleted_at`: un cesado a mitad de mes sigue siendo
+      //resoluble en su período activo (ASI-F6); el motor marca los días posteriores FUERA_DE_VINCULO.
+      const empleado = await tx.empleados.findUnique({ where: { id: dto.empleado_id }, select: { id: true } });
       if (!empleado) throw new NotFoundException('El colaborador no existe.');
 
       //Se desestructura el objeto validado para obtener los datos necesarios para la operación de upsert.

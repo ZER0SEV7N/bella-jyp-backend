@@ -18,9 +18,10 @@ export async function prepararImportacion(prisma: PrismaService, archivo: Multip
     const { filas, errores, archivoHash, periodo } = await leerMarcacionesExcel(archivo);
     const documentos = [...new Set(filas.map((f) => f.nro_documento))];
 
-    //Se buscan los empleados en la base de datos que coincidan con los documentos de las filas y que estén vigentes (no eliminados).
+    //Se buscan los empleados por documento sin filtrar por `deleted_at`: la vigencia de cada marcación
+    //se valida contra `fecha_inicio`/`fecha_cese` en el bucle siguiente (ASI-F6).
     const empleados = await prisma.empleados.findMany({
-        where: { nro_documento: { in: documentos }, deleted_at: null },
+        where: { nro_documento: { in: documentos } },
         select: { id: true, nro_documento: true, fecha_inicio: true, fecha_cese: true }
     });
 

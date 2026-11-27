@@ -104,7 +104,7 @@ BEGIN
     emp := (datos->>'empleado_id')::uuid;
     IF TG_TABLE_NAME = 'asistencia_marcacion' THEN
         IF TG_OP <> 'INSERT' THEN RAISE EXCEPTION 'ASISTENCIA_BLOQUEADA: registre una decisión para corregir la marca original.' USING ERRCODE = '23514'; END IF;
-        IF NOT EXISTS (SELECT 1 FROM empleados WHERE id = emp AND deleted_at IS NULL AND fecha_inicio IS NOT NULL
+        IF NOT EXISTS (SELECT 1 FROM empleados WHERE id = emp AND fecha_inicio IS NOT NULL
             AND ((datos->>'fecha_hora')::timestamptz AT TIME ZONE 'America/Lima')::date >= fecha_inicio
             AND (fecha_cese IS NULL OR ((datos->>'fecha_hora')::timestamptz AT TIME ZONE 'America/Lima')::date <= fecha_cese)) THEN
             RAISE EXCEPTION 'ASISTENCIA_BLOQUEADA: la marca está fuera del vínculo laboral.' USING ERRCODE = '23514';

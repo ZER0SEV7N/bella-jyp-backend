@@ -3,6 +3,7 @@ import { ListarIncidenciasQuerySchema } from '@jyp/shared-contracts';
 import type { ListarIncidenciasQueryDto } from '@jyp/shared-contracts';
 import type { Prisma, estado_incidencia_enum } from '@prisma/client';
 import type { ZodSchemaLike } from '@/common/pipes/zod-validation.pipe';
+import { criterioVigenciaEnPeriodo } from './criterio-vigencia.helper';
 
 /**
  * Esquema de consulta para obtener los totales por estado del cierre mensual de asistencia (ASI-M3).
@@ -55,18 +56,23 @@ export function construirFiltroIncidencias({
 
   if (area_id || busqueda) {
     where.empleados = {
-      deleted_at: null,
+      //La vigencia la determina el vínculo, no el soft-delete (ASI-F6).
+      ...criterioVigenciaEnPeriodo(periodo),
       ...(area_id && { area_id }),
       ...(busqueda && {
-        OR: [
+        AND: [
           {
-            nro_documento: {
-              contains: busqueda.trim(),
-              mode: 'insensitive',
-            },
+            OR: [
+              {
+                nro_documento: {
+                  contains: busqueda.trim(),
+                  mode: 'insensitive',
+                },
+              },
+              { nombre: { contains: busqueda.trim(), mode: 'insensitive' } },
+              { apellido: { contains: busqueda.trim(), mode: 'insensitive' } },
+            ],
           },
-          { nombre: { contains: busqueda.trim(), mode: 'insensitive' } },
-          { apellido: { contains: busqueda.trim(), mode: 'insensitive' } },
         ],
       }),
     };
